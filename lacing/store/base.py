@@ -55,6 +55,17 @@ class IntervalAnnotationStore(Protocol):
         """Remove and return the annotation with this id, or None if absent."""
         ...
 
+    def update(self, annotation: Annotation) -> None:
+        """Replace the stored annotation that has ``annotation.id``, atomically.
+
+        One commit: a concurrent reader sees the old annotation or the new one,
+        never neither (``remove(id)`` then ``add(...)`` leaves a gap in
+        between). The replacement may move to a different interval or tier.
+        Raises ``KeyError`` when no annotation has that id — use :meth:`add`
+        for a new one.
+        """
+        ...
+
     def all(self) -> Iterator[Annotation]:
         """Iterate every annotation in the store, order unspecified."""
         ...

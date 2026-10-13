@@ -344,14 +344,64 @@ class SqliteStore:
             cur.execute("DELETE FROM annotations WHERE id = ?", (str(annotation_id),))
         return ann
 
+    def update(self, annotation: Annotation) -> None:
+        """Replace the row with this id (and its R*Tree entry) in one transaction.
+
+        Readers take the same lock (:meth:`_fetchall`), so on a connection
+        shared between threads — where a reader would otherwise see this
+        transaction's uncommitted state — they get the old annotation or the
+        new one, never neither (lacing#66).
+        """
+        cols, values = _annotation_to_row(annotation)
+        assignments = [(c, v) for c, v in zip(cols, values) if c != "id"]
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute("BEGIN IMMEDIATE")
+            try:
+                row = cur.execute(
+                    "SELECT rowid FROM annotations WHERE id = ?", (str(annotation.id),)
+                ).fetchone()
+                if row is None:
+                    raise KeyError(annotation.id)
+                rowid = row["rowid"]
+                cur.execute(
+                    f"UPDATE annotations SET {', '.join(f'{c} = ?' for c, _ in assignments)} "
+                    "WHERE id = ?",
+                    (*(v for _, v in assignments), str(annotation.id)),
+                )
+                cur.execute("DELETE FROM annotations_rtree WHERE rowid = ?", (rowid,))
+                iv = annotation.interval
+                if iv is not None:
+                    start_s = float(iv.start.to_fraction())
+                    end_s = float(iv.end.to_fraction())
+                    cur.execute(
+                        "INSERT INTO annotations_rtree (rowid, start_seconds, end_seconds) "
+                        "VALUES (?, ?, ?)",
+                        (
+                            rowid,
+                            math.nextafter(start_s, -math.inf),
+                            math.nextafter(end_s, math.inf),
+                        ),
+                    )
+                cur.execute("COMMIT")
+            except BaseException:
+                cur.execute("ROLLBACK")
+                raise
+
+    def _fetchall(self, sql: str, params: tuple = ()) -> list[sqlite3.Row]:
+        """Run a read under the store lock, so it never lands inside a transaction
+        another thread has open on this connection (see :meth:`update`)."""
+        with self._lock:
+            return self._conn.execute(sql, params).fetchall()
+
     def _fetch_one(self, annotation_id: UUID) -> Annotation | None:
-        row = self._conn.execute(
+        rows = self._fetchall(
             "SELECT * FROM annotations WHERE id = ?", (str(annotation_id),)
-        ).fetchone()
-        return None if row is None else _row_to_annotation(row)
+        )
+        return _row_to_annotation(rows[0]) if rows else None
 
     def all(self) -> Iterator[Annotation]:
-        for row in self._conn.execute("SELECT * FROM annotations"):
+        for row in self._fetchall("SELECT * FROM annotations"):
             yield _row_to_annotation(row)
 
     def __len__(self) -> int:
@@ -390,11 +440,11 @@ class SqliteStore:
         return row is not None
 
     def __getitem__(self, key: TimeInterval) -> list[Annotation]:
-        rows = self._conn.execute(
+        rows = self._fetchall(
             "SELECT * FROM annotations WHERE "
             "  start_value = ? AND start_rate = ? AND end_value = ? AND end_rate = ?",
             (key.start.value, key.start.rate, key.end.value, key.end.rate),
-        ).fetchall()
+        )
         if not rows:
             raise KeyError(key)
         return [_row_to_annotation(r) for r in rows]
@@ -489,7 +539,7 @@ class SqliteStore:
     # --- tier filters --------------------------------------------------
 
     def by_tier(self, tier_name: str) -> Iterator[Annotation]:
-        for row in self._conn.execute(
+        for row in self._fetchall(
             "SELECT * FROM annotations WHERE tier = ?", (tier_name,)
         ):
             yield _row_to_annotation(row)
@@ -553,7 +603,7 @@ class SqliteStore:
             "JOIN annotations_rtree r ON a.rowid = r.rowid "
             "WHERE r.start_seconds <= ? AND r.end_seconds >= ?"
         )
-        for row in self._conn.execute(sql, (widened_end, widened_start)):
+        for row in self._fetchall(sql, (widened_end, widened_start)):
             yield _row_to_annotation(row)
 
     def _candidates_filtered(

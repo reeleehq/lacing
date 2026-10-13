@@ -212,6 +212,13 @@ class MappingStore(MemoryStore):
         self._ids.discard(annotation_id)
         return super().remove(annotation_id)
 
+    def update(self, annotation: Annotation) -> None:
+        with self._lock:
+            if annotation.id not in self._ids:
+                raise KeyError(annotation.id)
+            self._put(annotation)  # one key overwritten: never absent in the mapping
+            super().update(annotation)
+
     # --- tier registry --------------------------------------------------------
 
     def add_tier(self, tier: Tier) -> None:
