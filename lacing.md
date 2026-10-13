@@ -1,4 +1,4 @@
-> built 2026-10-13 06:33 UTC from 2ad167d (main) · lacing 0.0.48. Details: build_info.json
+> built 2026-10-13 16:23 UTC from aa58553 (main) · lacing 0.0.49. Details: build_info.json
 
 # index.html.md
 
@@ -3719,6 +3719,19 @@ callers decide whether that’s an error.
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Tier`](_autosummary/lacing.tier.html.md#lacing.tier.Tier)]
 
+#### update(annotation)
+
+Replace the stored annotation that has `annotation.id`, atomically.
+
+One commit: a concurrent reader sees the old annotation or the new one,
+never neither (`remove(id)` then `add(...)` leaves a gap in
+between). The replacement may move to a different interval or tier.
+Raises `KeyError` when no annotation has that id — use [`add()`](_autosummary/lacing.html.md#lacing.IntervalAnnotationStore.add)
+for a new one.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### *exception* lacing.LossyTimeConversionError
 
 Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
@@ -4095,6 +4108,18 @@ SQLite-backed `IntervalAnnotationStore`.
     Every open-time schema failure — refusal *or* failed migration
     — raises [`SchemaMismatchError`](_autosummary/lacing.html.md#lacing.SchemaMismatchError); a failed migration
     chains the ladder’s `StoreMigrationError` as its cause.
+
+#### update(annotation)
+
+Replace the row with this id (and its R\*Tree entry) in one transaction.
+
+Readers take the same lock (`_fetchall()`), so on a connection
+shared between threads — where a reader would otherwise see this
+transaction’s uncommitted state — they get the old annotation or the
+new one, never neither (lacing#66).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### *exception* lacing.StoreMigrationError
 
@@ -5685,6 +5710,19 @@ callers decide whether that’s an error.
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Tier`](_autosummary/lacing.tier.html.md#lacing.tier.Tier)]
 
+#### update(annotation)
+
+Replace the stored annotation that has `annotation.id`, atomically.
+
+One commit: a concurrent reader sees the old annotation or the new one,
+never neither (`remove(id)` then `add(...)` leaves a gap in
+between). The replacement may move to a different interval or tier.
+Raises `KeyError` when no annotation has that id — use [`add()`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore.add)
+for a new one.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 
 # _autosummary/lacing.store.html.md
 
@@ -5858,6 +5896,19 @@ callers decide whether that’s an error.
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Tier`](_autosummary/lacing.tier.html.md#lacing.tier.Tier)]
 
+#### update(annotation)
+
+Replace the stored annotation that has `annotation.id`, atomically.
+
+One commit: a concurrent reader sees the old annotation or the new one,
+never neither (`remove(id)` then `add(...)` leaves a gap in
+between). The replacement may move to a different interval or tier.
+Raises `KeyError` when no annotation has that id — use [`add()`](_autosummary/lacing.store.html.md#lacing.store.IntervalAnnotationStore.add)
+for a new one.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### *class* lacing.store.MappingCodec(encode, decode)
 
 Bases: [`NamedTuple`](https://docs.python.org/3/library/typing.html#typing.NamedTuple)
@@ -5961,6 +6012,18 @@ Add or update a tier.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### update(annotation)
+
+Replace the row with this id in ONE `UPDATE` statement (lacing#66).
+
+A single statement is atomic in any isolation mode, so a concurrent
+reader sees the old row or the new one — unlike `remove` then `add`,
+which commit twice. Raises `KeyError` if the id is not in this
+`(owner, project)` and `TierOverlapError` like `add()`.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### *exception* lacing.store.RateMismatchError
 
 Bases: [`LossyTimeConversionError`](_autosummary/lacing.time.html.md#lacing.time.LossyTimeConversionError)
@@ -5992,6 +6055,18 @@ SQLite-backed `IntervalAnnotationStore`.
     Every open-time schema failure — refusal *or* failed migration
     — raises [`SchemaMismatchError`](_autosummary/lacing.store.html.md#lacing.store.SchemaMismatchError); a failed migration
     chains the ladder’s `StoreMigrationError` as its cause.
+
+#### update(annotation)
+
+Replace the row with this id (and its R\*Tree entry) in one transaction.
+
+Readers take the same lock (`_fetchall()`), so on a connection
+shared between threads — where a reader would otherwise see this
+transaction’s uncommitted state — they get the old annotation or the
+new one, never neither (lacing#66).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### *exception* lacing.store.StoreMigrationError
 
@@ -6569,6 +6644,18 @@ Add or update a tier.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### update(annotation)
+
+Replace the row with this id in ONE `UPDATE` statement (lacing#66).
+
+A single statement is atomic in any isolation mode, so a concurrent
+reader sees the old row or the new one — unlike `remove` then `add`,
+which commit twice. Raises `KeyError` if the id is not in this
+`(owner, project)` and `TierOverlapError` like `add()`.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### *exception* lacing.store.postgres.RateMismatchError
 
 Bases: [`LossyTimeConversionError`](_autosummary/lacing.time.html.md#lacing.time.LossyTimeConversionError)
@@ -6738,6 +6825,18 @@ SQLite-backed `IntervalAnnotationStore`.
     Every open-time schema failure — refusal *or* failed migration
     — raises [`SchemaMismatchError`](_autosummary/lacing.store.sqlite.html.md#lacing.store.sqlite.SchemaMismatchError); a failed migration
     chains the ladder’s `StoreMigrationError` as its cause.
+
+#### update(annotation)
+
+Replace the row with this id (and its R\*Tree entry) in one transaction.
+
+Readers take the same lock (`_fetchall()`), so on a connection
+shared between threads — where a reader would otherwise see this
+transaction’s uncommitted state — they get the old annotation or the
+new one, never neither (lacing#66).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### lacing.store.sqlite.from_memory(memory_store, target)
 
@@ -7376,18 +7475,16 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-10-13 06:33 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/2ad167d1bb9d79bba4e695432f3fcab5648c5b28"><code>2ad167d</code></a> on branch <code>main</code>, for **lacing 0.0.48** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 16:23 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/aa5855318eb485f29a43078112e0dfac8c89d7cc"><code>aa58553</code></a> on branch <code>main</code>, for **lacing 0.0.49** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.48) is behind the latest release on PyPI (0.0.49): `pip install lacing` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/2ad167d1bb9d79bba4e695432f3fcab5648c5b28"><code>2ad167d1bb9d79bba4e695432f3fcab5648c5b28</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/aa5855318eb485f29a43078112e0dfac8c89d7cc"><code>aa5855318eb485f29a43078112e0dfac8c89d7cc</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -7398,15 +7495,15 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/38357158498">38357158498</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/38429810955">38429810955</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>2ad167d1bb9d79bba4e695432f3fcab5648c5b28</code> (in the history of the built commit) |
+| Event commit | <code>aa5855318eb485f29a43078112e0dfac8c89d7cc</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.14  |
+| epythet  | 0.2.17  |
 | Sphinx   | 9.1.0   |
 | docutils | 0.22.4  |
 | Python   | 3.12.15 |
@@ -7425,14 +7522,14 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.49/">0.0.49</a>, newer than the documented version (0.0.48).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.49/">0.0.49</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 2ad167d1bb9d79bba4e695432f3fcab5648c5b28
-pip install "epythet==0.2.14"
+git checkout aa5855318eb485f29a43078112e0dfac8c89d7cc
+pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

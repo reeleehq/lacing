@@ -146,3 +146,16 @@ callers decide whether that’s an error.
 
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Tier`](lacing.tier.html.md#lacing.tier.Tier)]
+
+#### update(annotation)
+
+Replace the stored annotation that has `annotation.id`, atomically.
+
+One commit: a concurrent reader sees the old annotation or the new one,
+never neither (`remove(id)` then `add(...)` leaves a gap in
+between). The replacement may move to a different interval or tier.
+Raises `KeyError` when no annotation has that id — use [`add()`](#lacing.store.base.IntervalAnnotationStore.add)
+for a new one.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)

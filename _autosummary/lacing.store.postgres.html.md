@@ -145,6 +145,18 @@ Add or update a tier.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### update(annotation)
+
+Replace the row with this id in ONE `UPDATE` statement (lacing#66).
+
+A single statement is atomic in any isolation mode, so a concurrent
+reader sees the old row or the new one — unlike `remove` then `add`,
+which commit twice. Raises `KeyError` if the id is not in this
+`(owner, project)` and `TierOverlapError` like `add()`.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### *exception* lacing.store.postgres.RateMismatchError
 
 Bases: [`LossyTimeConversionError`](lacing.time.html.md#lacing.time.LossyTimeConversionError)

@@ -98,6 +98,18 @@ SQLite-backed `IntervalAnnotationStore`.
     — raises [`SchemaMismatchError`](#lacing.store.sqlite.SchemaMismatchError); a failed migration
     chains the ladder’s `StoreMigrationError` as its cause.
 
+#### update(annotation)
+
+Replace the row with this id (and its R\*Tree entry) in one transaction.
+
+Readers take the same lock (`_fetchall()`), so on a connection
+shared between threads — where a reader would otherwise see this
+transaction’s uncommitted state — they get the old annotation or the
+new one, never neither (lacing#66).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### lacing.store.sqlite.from_memory(memory_store, target)
 
 Persist an in-memory store to a new `.annot` file.

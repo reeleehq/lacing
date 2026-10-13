@@ -168,6 +168,19 @@ callers decide whether that’s an error.
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Tier`](lacing.tier.html.md#lacing.tier.Tier)]
 
+#### update(annotation)
+
+Replace the stored annotation that has `annotation.id`, atomically.
+
+One commit: a concurrent reader sees the old annotation or the new one,
+never neither (`remove(id)` then `add(...)` leaves a gap in
+between). The replacement may move to a different interval or tier.
+Raises `KeyError` when no annotation has that id — use [`add()`](#lacing.store.IntervalAnnotationStore.add)
+for a new one.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### *class* lacing.store.MappingCodec(encode, decode)
 
 Bases: [`NamedTuple`](https://docs.python.org/3/library/typing.html#typing.NamedTuple)
@@ -271,6 +284,18 @@ Add or update a tier.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### update(annotation)
+
+Replace the row with this id in ONE `UPDATE` statement (lacing#66).
+
+A single statement is atomic in any isolation mode, so a concurrent
+reader sees the old row or the new one — unlike `remove` then `add`,
+which commit twice. Raises `KeyError` if the id is not in this
+`(owner, project)` and `TierOverlapError` like `add()`.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### *exception* lacing.store.RateMismatchError
 
 Bases: [`LossyTimeConversionError`](lacing.time.html.md#lacing.time.LossyTimeConversionError)
@@ -302,6 +327,18 @@ SQLite-backed `IntervalAnnotationStore`.
     Every open-time schema failure — refusal *or* failed migration
     — raises [`SchemaMismatchError`](#lacing.store.SchemaMismatchError); a failed migration
     chains the ladder’s `StoreMigrationError` as its cause.
+
+#### update(annotation)
+
+Replace the row with this id (and its R\*Tree entry) in one transaction.
+
+Readers take the same lock (`_fetchall()`), so on a connection
+shared between threads — where a reader would otherwise see this
+transaction’s uncommitted state — they get the old annotation or the
+new one, never neither (lacing#66).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### *exception* lacing.store.StoreMigrationError
 
