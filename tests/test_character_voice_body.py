@@ -114,3 +114,46 @@ def test_export_json_schemas_emits_it(tmp_path):
 
     paths = export_json_schemas(tmp_path)
     assert any("character-voice" in str(p) for p in paths)
+
+
+# --- exported JSON Schema carries the field default (lacing#40) --------------
+
+
+def _committed_schema() -> dict:
+    import json
+    from pathlib import Path
+
+    path = (
+        Path(__file__).parent.parent
+        / "lacing"
+        / "schema"
+        / "character-voice"
+        / "v1.json"
+    )
+    return json.loads(path.read_text())
+
+
+def test_provider_voice_ids_exports_an_explicit_empty_default():
+    """``default_factory`` alone writes no ``default``, so a schema-derived zod
+    mirror parses an absent map as ``undefined``. The exported schema must say
+    ``{}`` — and it must agree with what the model actually defaults to."""
+    exported = get_body_schema(CHARACTER_VOICE_BODY_SCHEMA_URI).model_json_schema()
+    prop = exported["properties"]["provider_voice_ids"]
+    assert prop["default"] == {}
+    assert prop["default"] == CharacterVoiceBodyV1.model_validate(
+        REELEE_SHAPED
+    ).provider_voice_ids
+
+
+def test_the_committed_schema_matches_the_model():
+    """The committed artifact is what zod codegen reads: regenerate it
+    (``export_json_schemas``) whenever the model changes."""
+    exported = get_body_schema(CHARACTER_VOICE_BODY_SCHEMA_URI).model_json_schema()
+    assert _committed_schema() == exported
+
+
+def test_the_default_does_not_make_the_field_required():
+    """Adding a schema default is not a contract change: old bodies, which omit
+    the map, still validate."""
+    assert "provider_voice_ids" not in _committed_schema()["required"]
+    CharacterVoiceBodyV1.model_validate(REELEE_SHAPED)

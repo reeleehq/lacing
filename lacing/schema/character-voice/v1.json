@@ -16,6 +16,7 @@
       "additionalProperties": {
         "type": "string"
       },
+      "default": {},
       "description": "Per-provider voice ids, keyed by provider slug (``'elevenlabs'``, ``'minimax'``, ...). A synthesis path looks its provider up here first and falls back to ``voice_id`` \u2014 which is what lets a production switch providers without recasting every character.",
       "title": "Provider Voice Ids",
       "type": "object"

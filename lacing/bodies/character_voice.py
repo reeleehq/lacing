@@ -71,6 +71,11 @@ class CharacterVoiceBodyV1(BaseModel):
     )
     provider_voice_ids: dict[str, str] = Field(
         default_factory=dict,
+        # ``default_factory`` writes no ``default`` into the exported JSON Schema,
+        # so a schema-derived zod mirror would parse an absent map as ``undefined``
+        # instead of ``{}``. Say it explicitly (lacing#40); keep it in step with the
+        # factory above.
+        json_schema_extra={"default": {}},
         description=(
             "Per-provider voice ids, keyed by provider slug (``'elevenlabs'``, "
             "``'minimax'``, ...). A synthesis path looks its provider up here "
