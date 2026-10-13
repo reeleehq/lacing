@@ -643,6 +643,34 @@ class PostgresStore:
             )
         return ann
 
+    def update(self, annotation: Annotation) -> None:
+        """Replace the row with this id in ONE ``UPDATE`` statement (lacing#66).
+
+        A single statement is atomic in any isolation mode, so a concurrent
+        reader sees the old row or the new one — unlike ``remove`` then ``add``,
+        which commit twice. Raises ``KeyError`` if the id is not in this
+        ``(owner, project)`` and ``TierOverlapError`` like :meth:`add`.
+        """
+        cols, values = self._annotation_to_row(annotation)
+        # The key and the tenant are what the row is found by; they never change.
+        fixed = {"id", "owner_id", "project_id"}
+        changing = [(c, v) for c, v in zip(cols, values) if c not in fixed]
+        scope, params = self._scope()
+        assignments = ", ".join(f"{c} = %s" for c, _ in changing)
+        try:
+            with self._conn.cursor() as cur:
+                cur.execute(
+                    f"UPDATE annotations SET {assignments} WHERE id = %s AND {scope}",
+                    (*(v for _, v in changing), annotation.id, *params),
+                )
+                if cur.rowcount == 0:
+                    raise KeyError(annotation.id)
+        except self._psycopg.errors.ExclusionViolation as exc:
+            raise TierOverlapError(
+                f"annotation {annotation.id} would overlap an existing one in tier "
+                f"{annotation.tier!r} (per-tier EXCLUDE constraint is active)"
+            ) from exc
+
     def all(self) -> Iterator[Annotation]:
         scope, params = self._scope()
         with self._conn.cursor() as cur:

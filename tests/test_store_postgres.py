@@ -194,11 +194,11 @@ class TestMapping:
 
 class TestAllen:
     def _populate(self, store):
-        store.add(_ann(_ti(0, 10)))    # before query [30, 40)
-        store.add(_ann(_ti(15, 25)))   # overlaps query
-        store.add(_ann(_ti(30, 40)))   # equals query
-        store.add(_ann(_ti(33, 37)))   # during query
-        store.add(_ann(_ti(50, 60)))   # after query
+        store.add(_ann(_ti(0, 10)))  # before query [30, 40)
+        store.add(_ann(_ti(15, 25)))  # overlaps query
+        store.add(_ann(_ti(30, 40)))  # equals query
+        store.add(_ann(_ti(33, 37)))  # during query
+        store.add(_ann(_ti(50, 60)))  # after query
 
     def test_intersects(self, postgres_store):
         self._populate(postgres_store)
@@ -739,3 +739,82 @@ class TestD5MixedRefs:
         )
         assert annotation_ids == [parent.id]
         assert asset_ids == [asset]
+
+
+class TestUpdate:
+    """``update`` replaces by id in one statement (lacing#66)."""
+
+    def test_replaces_and_can_move(self, postgres_store):
+        a = _ann(_ti(0, 2), text="old")
+        postgres_store.add(a)
+        moved = a.model_copy(
+            update={
+                "reference": MediaRef(asset_id="blake3:test", interval=_ti(10, 12)),
+                "body": {"text": "new"},
+            }
+        )
+        postgres_store.update(moved)
+        got = list(postgres_store.all())
+        assert [(x.id, x.body["text"]) for x in got] == [(a.id, "new")]
+        assert [x.id for x in postgres_store.intersects(_ti(10, 12))] == [a.id]
+        assert list(postgres_store.intersects(_ti(0, 2))) == []
+
+    def test_unknown_id_raises_and_changes_nothing(self, postgres_store):
+        a = _ann(_ti(0, 2), text="old")
+        postgres_store.add(a)
+        with pytest.raises(KeyError):
+            postgres_store.update(_ann(_ti(0, 2), text="ghost"))
+        assert [x.body["text"] for x in postgres_store.all()] == ["old"]
+
+    def test_update_into_an_overlap_raises_tier_overlap_error(self, postgres_store):
+        postgres_store.add_tier(Tier("words"), enforce_no_overlap=True)
+        postgres_store.add(_ann(_ti(0, 100), tier="words"))
+        b = _ann(_ti(200, 300), tier="words")
+        postgres_store.add(b)
+        moved = b.model_copy(
+            update={
+                "reference": MediaRef(asset_id="blake3:test", interval=_ti(50, 150))
+            }
+        )
+        with pytest.raises(TierOverlapError):
+            postgres_store.update(moved)
+
+    def test_reader_on_another_connection_never_finds_the_id_missing(
+        self, postgres_store, postgresql
+    ):
+        import threading
+
+        info = postgresql.info
+        reader_store = PostgresStore(
+            {
+                "host": info.host,
+                "port": info.port,
+                "user": info.user,
+                "password": info.password or "",
+                "dbname": info.dbname,
+            },
+            rate=24000,
+            use_pool=False,
+        )
+        target = _ann(_ti(0, 2), text="0")
+        postgres_store.add(target)
+        missing: list[str] = []
+        stop = threading.Event()
+
+        def reader():
+            while not stop.is_set():
+                if target.id not in {a.id for a in reader_store.all()}:
+                    missing.append("all()")
+
+        t = threading.Thread(target=reader)
+        t.start()
+        try:
+            for i in range(1, 101):
+                postgres_store.update(
+                    target.model_copy(update={"body": {"text": str(i)}})
+                )
+        finally:
+            stop.set()
+            t.join()
+            reader_store.close()
+        assert missing == []

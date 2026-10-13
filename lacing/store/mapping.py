@@ -199,18 +199,27 @@ class MappingStore(MemoryStore):
     # --- annotation-level -----------------------------------------------------
 
     def add(self, annotation: Annotation) -> None:
-        if annotation.id in self._ids:
-            raise ValueError(f"annotation id {annotation.id} already in the store")
-        self._put(annotation)
-        self._ids.add(annotation.id)
-        super().add(annotation)
+        with self._lock:
+            if annotation.id in self._ids:
+                raise ValueError(f"annotation id {annotation.id} already in the store")
+            self._put(annotation)
+            self._ids.add(annotation.id)
+            super().add(annotation)
 
     def remove(self, annotation_id: UUID) -> Annotation | None:
-        if annotation_id not in self._ids:
-            return None
-        del self._mapping[str(annotation_id)]
-        self._ids.discard(annotation_id)
-        return super().remove(annotation_id)
+        with self._lock:
+            if annotation_id not in self._ids:
+                return None
+            del self._mapping[str(annotation_id)]
+            self._ids.discard(annotation_id)
+            return super().remove(annotation_id)
+
+    def update(self, annotation: Annotation) -> None:
+        with self._lock:
+            if annotation.id not in self._ids:
+                raise KeyError(annotation.id)
+            self._put(annotation)  # one key overwritten: never absent in the mapping
+            super().update(annotation)
 
     # --- tier registry --------------------------------------------------------
 

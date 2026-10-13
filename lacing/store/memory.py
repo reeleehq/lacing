@@ -8,6 +8,7 @@ won't appear in interval queries.
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Iterable, Iterator
 from fractions import Fraction
 from uuid import UUID
@@ -25,6 +26,11 @@ def _key(interval: TimeInterval) -> tuple[Fraction, Fraction]:
     return interval.start.to_fraction(), interval.end.to_fraction()
 
 
+def _index_of(bucket: list[Annotation], ann: Annotation) -> int:
+    """Position of ``ann`` in ``bucket`` by identity (equal annotations may repeat)."""
+    return next(i for i, a in enumerate(bucket) if a is ann)
+
+
 class MemoryStore:
     """``IntervalAnnotationStore`` implementation over ``intervaltree``.
 
@@ -34,6 +40,9 @@ class MemoryStore:
     """
 
     def __init__(self) -> None:
+        # Serialises writers and the snapshots readers take, so ``update`` is
+        # atomic for a reader on another thread (lacing#66).
+        self._lock = threading.RLock()
         self._tree: IntervalTree = IntervalTree()
         # interval-keyed bucket: (start_frac, end_frac) -> list of annotations
         self._buckets: dict[tuple[Fraction, Fraction], list[Annotation]] = {}
@@ -41,6 +50,16 @@ class MemoryStore:
         # in future, or AnnotationRef without sub-interval): kept addressable by id
         self._timeless: dict[UUID, Annotation] = {}
         self._tiers: dict[str, Tier] = {}
+
+    # --- copy / pickle ---------------------------------------------------------
+
+    def __getstate__(self) -> dict:
+        # A lock cannot be copied or pickled; each copy gets its own.
+        return {k: v for k, v in self.__dict__.items() if k != "_lock"}
+
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+        self._lock = threading.RLock()
 
     # --- helpers --------------------------------------------------------------
 
@@ -64,25 +83,28 @@ class MemoryStore:
     # --- MutableMapping interface -------------------------------------------
 
     def __getitem__(self, key: TimeInterval) -> list[Annotation]:
-        bucket = self._buckets.get(_key(key))
-        if bucket is None:
-            raise KeyError(key)
-        return list(bucket)  # defensive copy
+        with self._lock:
+            bucket = self._buckets.get(_key(key))
+            if bucket is None:
+                raise KeyError(key)
+            return list(bucket)  # defensive copy
 
     def __setitem__(self, key: TimeInterval, value: list[Annotation]) -> None:
         k = _key(key)
-        # Replace; ensure tree node exists exactly when bucket is non-empty.
-        if not value:
-            self._drop_node(k)
-            return
-        self._ensure_node(k)
-        self._buckets[k] = list(value)
+        with self._lock:
+            # Replace; ensure tree node exists exactly when bucket is non-empty.
+            if not value:
+                self._drop_node(k)
+                return
+            self._ensure_node(k)
+            self._buckets[k] = list(value)
 
     def __delitem__(self, key: TimeInterval) -> None:
         k = _key(key)
-        if k not in self._buckets:
-            raise KeyError(key)
-        self._drop_node(k)
+        with self._lock:
+            if k not in self._buckets:
+                raise KeyError(key)
+            self._drop_node(k)
 
     def __iter__(self) -> Iterator[TimeInterval]:
         for ann_list in self._buckets.values():
@@ -97,40 +119,83 @@ class MemoryStore:
     # --- annotation-level convenience ---------------------------------------
 
     def add(self, annotation: Annotation) -> None:
-        iv = annotation.interval
-        if iv is None:
-            self._timeless[annotation.id] = annotation
-            return
-        bucket = self._ensure_node(_key(iv))
-        bucket.append(annotation)
+        self._insert(annotation)
+
+    def _insert(self, annotation: Annotation) -> None:
+        """``add`` without subclass checks (``update`` must not trip a duplicate-id guard)."""
+        with self._lock:
+            iv = annotation.interval
+            if iv is None:
+                self._timeless[annotation.id] = annotation
+                return
+            bucket = self._ensure_node(_key(iv))
+            bucket.append(annotation)
 
     def remove(self, annotation_id: UUID) -> Annotation | None:
-        # Search timeless first.
-        if annotation_id in self._timeless:
-            return self._timeless.pop(annotation_id)
-        for k, bucket in list(self._buckets.items()):
-            for i, a in enumerate(bucket):
-                if a.id == annotation_id:
-                    bucket.pop(i)
-                    if not bucket:
-                        self._drop_node(k)
-                    return a
-        return None
+        with self._lock:
+            # Search timeless first.
+            if annotation_id in self._timeless:
+                return self._timeless.pop(annotation_id)
+            for k, bucket in list(self._buckets.items()):
+                for i, a in enumerate(bucket):
+                    if a.id == annotation_id:
+                        bucket.pop(i)
+                        if not bucket:
+                            self._drop_node(k)
+                        return a
+            return None
+
+    def update(self, annotation: Annotation) -> None:
+        with self._lock:
+            old = next((a for a in self.all() if a.id == annotation.id), None)
+            if old is None:
+                raise KeyError(annotation.id)
+            old_iv, new_iv = old.interval, annotation.interval
+            if old_iv is None and new_iv is None:
+                self._timeless[annotation.id] = annotation  # one slot write
+            elif (
+                old_iv is not None
+                and new_iv is not None
+                and _key(old_iv) == _key(new_iv)
+            ):
+                bucket = self._buckets[_key(new_iv)]
+                bucket[_index_of(bucket, old)] = annotation  # one slot write
+            else:
+                # The copy lands somewhere else: put the new one in *before*
+                # taking the old out, so the id is never absent even to a
+                # reader that does not take the lock.
+                self._insert(annotation)
+                self._take_out(old)
+
+    def _take_out(self, old: Annotation) -> None:
+        """Remove exactly ``old`` (by identity) from where ``add`` put it."""
+        if old.interval is None:
+            del self._timeless[old.id]
+            return
+        k = _key(old.interval)
+        bucket = self._buckets[k]
+        bucket.pop(_index_of(bucket, old))
+        if not bucket:
+            self._drop_node(k)
 
     def all(self) -> Iterator[Annotation]:
-        for bucket in self._buckets.values():
-            yield from bucket
-        yield from self._timeless.values()
+        with self._lock:
+            snapshot = [a for bucket in self._buckets.values() for a in bucket]
+            snapshot.extend(self._timeless.values())
+        yield from snapshot
 
     # --- Allen-relation queries ---------------------------------------------
+
+    def _bucket_snapshot(self) -> list[list[Annotation]]:
+        """Copies of the non-empty buckets, taken under the lock (see ``update``)."""
+        with self._lock:
+            return [list(b) for b in self._buckets.values() if b]
 
     def _query(
         self, query: TimeInterval, relation: AllenRelation
     ) -> Iterator[Annotation]:
         pred = PREDICATE_BY_RELATION[relation]
-        for bucket in self._buckets.values():
-            if not bucket:
-                continue
+        for bucket in self._bucket_snapshot():
             iv = bucket[0].interval
             if iv is not None and pred(iv, query):
                 yield from bucket
@@ -138,9 +203,7 @@ class MemoryStore:
     def intersects(self, query: TimeInterval) -> Iterator[Annotation]:
         from lacing.allen import intersects as _intersects
 
-        for bucket in self._buckets.values():
-            if not bucket:
-                continue
+        for bucket in self._bucket_snapshot():
             iv = bucket[0].interval
             if iv is not None and _intersects(iv, query):
                 yield from bucket
@@ -170,9 +233,7 @@ class MemoryStore:
         self, query: TimeInterval, relations: Iterable[AllenRelation]
     ) -> Iterator[Annotation]:
         rels = set(relations)
-        for bucket in self._buckets.values():
-            if not bucket:
-                continue
+        for bucket in self._bucket_snapshot():
             iv = bucket[0].interval
             if iv is None:
                 continue
