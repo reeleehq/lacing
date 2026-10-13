@@ -1,4 +1,4 @@
-> built 2026-10-03 08:07 UTC from 38a8929 (main) · lacing 0.0.47. Details: build_info.json
+> built 2026-10-13 06:33 UTC from 2ad167d (main) · lacing 0.0.48. Details: build_info.json
 
 # index.html.md
 
@@ -7376,40 +7376,40 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-10-03 08:07 UTC** from commit <a href="https://github.com/thorwhalen/lacing/commit/38a8929571100ee3d78c6c1dac662e054e44bfb3"><code>38a8929</code></a> on branch <code>main</code>, for **lacing 0.0.47** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 06:33 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/2ad167d1bb9d79bba4e695432f3fcab5648c5b28"><code>2ad167d</code></a> on branch <code>main</code>, for **lacing 0.0.48** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.0.47) is behind the latest release on PyPI (0.0.48): `pip install lacing` gives newer code than these docs describe.
+- The documented version (0.0.48) is behind the latest release on PyPI (0.0.49): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
-|                     |                                                                                                                                                          |
-|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/thorwhalen/lacing/commit/38a8929571100ee3d78c6c1dac662e054e44bfb3"><code>38a8929571100ee3d78c6c1dac662e054e44bfb3</code></a> |
-| Branch              | <code>main</code>                                                                                                                                        |
-| Tags at this commit | none                                                                                                                                                     |
-| Working tree        | clean                                                                                                                                                    |
-| Remote              | <code>https://github.com/thorwhalen/lacing</code>                                                                                                        |
+|                     |                                                                                                                                                        |
+|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/2ad167d1bb9d79bba4e695432f3fcab5648c5b28"><code>2ad167d1bb9d79bba4e695432f3fcab5648c5b28</code></a> |
+| Branch              | <code>main</code>                                                                                                                                      |
+| Tags at this commit | none                                                                                                                                                   |
+| Working tree        | clean                                                                                                                                                  |
+| Remote              | <code>https://github.com/reeleehq/lacing</code>                                                                                                        |
 
 ## Continuous integration
 
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
-| Repository   | <code>thorwhalen/lacing</code>                                                             |
-| Run          | <a href="https://github.com/thorwhalen/lacing/actions/runs/37108506620">37108506620</a>    |
+| Repository   | <code>reeleehq/lacing</code>                                                               |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/38357158498">38357158498</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>38a8929571100ee3d78c6c1dac662e054e44bfb3</code> (in the history of the built commit) |
+| Event commit | <code>2ad167d1bb9d79bba4e695432f3fcab5648c5b28</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.12  |
+| epythet  | 0.2.14  |
 | Sphinx   | 9.1.0   |
 | docutils | 0.22.4  |
-| Python   | 3.12.14 |
+| Python   | 3.12.15 |
 
 ## Configuration as resolved
 
@@ -7425,14 +7425,14 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.48/">0.0.48</a>, newer than the documented version (0.0.47).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.49/">0.0.49</a>, newer than the documented version (0.0.48).
 
 ## Reproduce
 
 ```bash
-git clone https://github.com/thorwhalen/lacing && cd lacing
-git checkout 38a8929571100ee3d78c6c1dac662e054e44bfb3
-pip install "epythet==0.2.12"
+git clone https://github.com/reeleehq/lacing && cd lacing
+git checkout 2ad167d1bb9d79bba4e695432f3fcab5648c5b28
+pip install "epythet==0.2.14"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

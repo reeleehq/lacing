@@ -1,39 +1,39 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-03T08:07:23Z",
+  "built_at": "2026-10-13T06:33:37Z",
   "package": {
     "name": "lacing",
-    "version": "0.0.47",
+    "version": "0.0.48",
     "display_name": "lacing",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "38a8929571100ee3d78c6c1dac662e054e44bfb3",
-    "short_commit": "38a8929",
+    "commit": "2ad167d1bb9d79bba4e695432f3fcab5648c5b28",
+    "short_commit": "2ad167d",
     "branch": "main",
     "tags": [],
     "dirty": false,
-    "remote_url": "https://github.com/thorwhalen/lacing",
-    "commit_url": "https://github.com/thorwhalen/lacing/commit/38a8929571100ee3d78c6c1dac662e054e44bfb3",
+    "remote_url": "https://github.com/reeleehq/lacing",
+    "commit_url": "https://github.com/reeleehq/lacing/commit/2ad167d1bb9d79bba4e695432f3fcab5648c5b28",
     "error": null
   },
   "ci": {
     "provider": "github",
-    "repository": "thorwhalen/lacing",
-    "sha": "38a8929571100ee3d78c6c1dac662e054e44bfb3",
+    "repository": "reeleehq/lacing",
+    "sha": "2ad167d1bb9d79bba4e695432f3fcab5648c5b28",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "37108506620",
-    "run_url": "https://github.com/thorwhalen/lacing/actions/runs/37108506620",
+    "run_id": "38357158498",
+    "run_url": "https://github.com/reeleehq/lacing/actions/runs/38357158498",
     "server_url": "https://github.com"
   },
   "tools": {
-    "epythet": "0.2.12",
+    "epythet": "0.2.14",
     "sphinx": "9.1.0",
     "docutils": "0.22.4",
-    "python": "3.12.14"
+    "python": "3.12.15"
   },
   "config": {
     "theme": "auto",
@@ -60,16 +60,16 @@
   },
   "pypi": {
     "checked": true,
-    "latest": "0.0.48",
+    "latest": "0.0.49",
     "relation": "behind",
     "error": null
   },
-  "reproduce": "git clone https://github.com/thorwhalen/lacing && cd lacing\ngit checkout 38a8929571100ee3d78c6c1dac662e054e44bfb3\npip install \"epythet==0.2.12\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout 2ad167d1bb9d79bba4e695432f3fcab5648c5b28\npip install \"epythet==0.2.14\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": false,
     "notes": [
-      "The documented version (0.0.47) is behind the latest release on PyPI (0.0.48): `pip install lacing` gives newer code than these docs describe."
+      "The documented version (0.0.48) is behind the latest release on PyPI (0.0.49): `pip install lacing` gives newer code than these docs describe."
     ]
   }
 }

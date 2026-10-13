@@ -30,20 +30,20 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=37d13f4f" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
-<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=4f34e5f2"></script>
+    <script src="../_static/documentation_options.js?v=a72e4630"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -55,8 +55,9 @@
     <link rel="next" title="lacing.tier" href="lacing.tier.html" />
     <link rel="prev" title="lacing.store.postgres" href="lacing.store.postgres.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.47" />
+  <meta name="docsearch:version" content="0.0.48" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -531,24 +532,24 @@ pre-v2 services after migrating a file they serve.</p>
 <dl class="py exception">
 <dt class="sig sig-object py" id="lacing.store.sqlite.SchemaMismatchError">
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.store.sqlite.</span></span><span class="sig-name descname"><span class="pre">SchemaMismatchError</span></span><a class="reference internal" href="../_modules/lacing/store/sqlite.html#SchemaMismatchError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.sqlite.SchemaMismatchError" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></p>
 <p>Raised when opening a <code class="docutils literal notranslate"><span class="pre">.annot</span></code> file with an incompatible schema.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.store.sqlite.SqliteStore">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.store.sqlite.</span></span><span class="sig-name descname"><span class="pre">SqliteStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_same_thread</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">migrate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/sqlite.html#SqliteStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.sqlite.SqliteStore" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>SQLite-backed <code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathLike</span></code></a></span>) – Path to the <code class="docutils literal notranslate"><span class="pre">.annot</span></code> file. Use <code class="docutils literal notranslate"><span class="pre">&quot;:memory:&quot;</span></code> for an
+<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathLike</span></code></a></span>) – Path to the <code class="docutils literal notranslate"><span class="pre">.annot</span></code> file. Use <code class="docutils literal notranslate"><span class="pre">&quot;:memory:&quot;</span></code> for an
 ephemeral in-memory database.</p></li>
-<li><p><strong>check_same_thread</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Forwarded to <code class="docutils literal notranslate"><span class="pre">sqlite3.connect</span></code>. We hold a
+<li><p><strong>check_same_thread</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Forwarded to <code class="docutils literal notranslate"><span class="pre">sqlite3.connect</span></code>. We hold a
 single connection guarded by a lock; pass <code class="docutils literal notranslate"><span class="pre">False</span></code> when
 sharing across threads.</p></li>
-<li><p><strong>migrate</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Opt-in to upgrading a file written at an older
+<li><p><strong>migrate</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Opt-in to upgrading a file written at an older
 <code class="docutils literal notranslate"><span class="pre">schema_version</span></code> on open, via the ladder in
 <a class="reference internal" href="lacing.store.migrations.html#module-lacing.store.migrations" title="lacing.store.migrations"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.store.migrations</span></code></a>. Off by default — silently
 rewriting someone’s file on open is worse than refusing.
@@ -658,8 +659,8 @@ chains the ladder’s <code class="docutils literal notranslate"><span class="pr
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
-<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -671,7 +672,7 @@ chains the ladder’s <code class="docutils literal notranslate"><span class="pr
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
 </p></div>
       
     </div>

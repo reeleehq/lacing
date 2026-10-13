@@ -30,20 +30,20 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=37d13f4f" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
-<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=4f34e5f2"></script>
+    <script src="../_static/documentation_options.js?v=a72e4630"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -55,8 +55,9 @@
     <link rel="next" title="lacing.store.mapping" href="lacing.store.mapping.html" />
     <link rel="prev" title="lacing.store" href="lacing.store.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.47" />
+  <meta name="docsearch:version" content="0.0.48" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -458,7 +459,7 @@ and BACK-DOC §4.1.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.store.base.IntervalAnnotationStore">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.store.base.</span></span><span class="sig-name descname"><span class="pre">IntervalAnnotationStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/base.html#IntervalAnnotationStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.base.IntervalAnnotationStore" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></a></p>
 <p>Protocol for any interval-keyed annotation store.</p>
 <p>Conceptually a <code class="docutils literal notranslate"><span class="pre">MutableMapping[TimeInterval,</span> <span class="pre">list[Annotation]]</span></code>: keys
 are <code class="docutils literal notranslate"><span class="pre">TimeInterval</span></code>; values are lists because multiple annotations can
@@ -474,7 +475,7 @@ implement the full interface.</p>
 <dd><p>Append <code class="docutils literal notranslate"><span class="pre">annotation</span></code> to the list at its reference interval.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -485,7 +486,7 @@ implement the full interface.</p>
 <dd><p>Iterate every annotation in the store, order unspecified.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -496,7 +497,7 @@ implement the full interface.</p>
 <dd><p>Annotations on <code class="docutils literal notranslate"><span class="pre">tier_name</span></code> that intersect <code class="docutils literal notranslate"><span class="pre">query</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -507,7 +508,7 @@ implement the full interface.</p>
 <dd><p>All annotations on <code class="docutils literal notranslate"><span class="pre">tier_name</span></code>, regardless of interval.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -518,7 +519,7 @@ implement the full interface.</p>
 <dd><p>Annotations whose interval strictly contains <code class="docutils literal notranslate"><span class="pre">query</span></code> (Allen <code class="docutils literal notranslate"><span class="pre">di</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -529,7 +530,7 @@ implement the full interface.</p>
 <dd><p>Annotations whose interval is strictly inside <code class="docutils literal notranslate"><span class="pre">query</span></code> (Allen <code class="docutils literal notranslate"><span class="pre">d</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -540,7 +541,7 @@ implement the full interface.</p>
 <dd><p>Allen <code class="docutils literal notranslate"><span class="pre">=</span></code>: identical interval.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -551,7 +552,7 @@ implement the full interface.</p>
 <dd><p>Add many; equivalent to repeated <code class="docutils literal notranslate"><span class="pre">.add</span></code> but adapters can optimize.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -562,7 +563,7 @@ implement the full interface.</p>
 <dd><p>Allen <code class="docutils literal notranslate"><span class="pre">f</span></code>: later start, same end.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -573,7 +574,7 @@ implement the full interface.</p>
 <dd><p>Annotations whose interval shares any time with <code class="docutils literal notranslate"><span class="pre">query</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -584,7 +585,7 @@ implement the full interface.</p>
 <dd><p>Allen <code class="docutils literal notranslate"><span class="pre">m</span></code>: <code class="docutils literal notranslate"><span class="pre">a.end</span> <span class="pre">==</span> <span class="pre">q.start</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -595,7 +596,7 @@ implement the full interface.</p>
 <dd><p>Strict Allen <code class="docutils literal notranslate"><span class="pre">o</span></code>: <code class="docutils literal notranslate"><span class="pre">a.start</span> <span class="pre">&lt;</span> <span class="pre">q.start</span> <span class="pre">&lt;</span> <span class="pre">a.end</span> <span class="pre">&lt;</span> <span class="pre">q.end</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -607,7 +608,7 @@ implement the full interface.</p>
 <p>Generic dispatch — useful when relations are computed at runtime.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -618,7 +619,7 @@ implement the full interface.</p>
 <dd><p>Remove and return the annotation with this id, or None if absent.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -629,7 +630,7 @@ implement the full interface.</p>
 <dd><p>Allen <code class="docutils literal notranslate"><span class="pre">s</span></code>: same start, earlier end.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -641,7 +642,7 @@ implement the full interface.</p>
 callers decide whether that’s an error.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.tier.html#lacing.tier.Tier" title="lacing.tier.Tier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tier</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.tier.html#lacing.tier.Tier" title="lacing.tier.Tier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tier</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -741,8 +742,8 @@ callers decide whether that’s an error.</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
-<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -754,7 +755,7 @@ callers decide whether that’s an error.</p>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
 </p></div>
       
     </div>
