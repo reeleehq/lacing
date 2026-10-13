@@ -99,14 +99,20 @@ def test_a_reader_never_finds_the_id_missing(store, move):
     store.add(target)
     everywhere = _ti(0, 100)
     missing: list[str] = []
+    reads = [0]
     stop = threading.Event()
 
     def reader():
-        while not stop.is_set():
-            if target.id not in {a.id for a in store.all()}:
-                missing.append("all()")
-            if target.id not in {a.id for a in store.intersects(everywhere)}:
-                missing.append("intersects()")
+        # A reader that dies must fail the test, not end it quietly.
+        try:
+            while not stop.is_set():
+                if target.id not in {a.id for a in store.all()}:
+                    missing.append("all()")
+                if target.id not in {a.id for a in store.intersects(everywhere)}:
+                    missing.append("intersects()")
+                reads[0] += 1
+        except Exception as exc:  # noqa: BLE001 - reported by the assert below
+            missing.append(f"reader died: {exc!r}")
 
     old_interval = sys.getswitchinterval()
     sys.setswitchinterval(1e-6)  # make a thread switch inside the gap likely
@@ -121,6 +127,7 @@ def test_a_reader_never_finds_the_id_missing(store, move):
         t.join()
         sys.setswitchinterval(old_interval)
     assert missing == []
+    assert reads[0] > 0  # the reader really ran
     assert _texts(store) == {target.id: str(N_REPLACEMENTS)}
 
 
@@ -133,3 +140,14 @@ def test_mapping_store_update_persists(tmp_path):
     reopened = MappingStore(backing)
     assert _texts(reopened) == {a.id: "new"}
     assert len(backing) == 1
+
+
+def test_stores_with_a_lock_still_copy_and_pickle():
+    import copy
+    import pickle
+
+    s = MemoryStore()
+    s.add(_ann(_ti(0, 2)))
+    for clone in (copy.deepcopy(s), pickle.loads(pickle.dumps(s))):
+        assert [a.id for a in clone.all()] == [a.id for a in s.all()]
+        clone.update(next(iter(clone.all())).model_copy(update={"body": {"text": "y"}}))

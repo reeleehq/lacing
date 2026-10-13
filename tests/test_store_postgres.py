@@ -194,11 +194,11 @@ class TestMapping:
 
 class TestAllen:
     def _populate(self, store):
-        store.add(_ann(_ti(0, 10)))    # before query [30, 40)
-        store.add(_ann(_ti(15, 25)))   # overlaps query
-        store.add(_ann(_ti(30, 40)))   # equals query
-        store.add(_ann(_ti(33, 37)))   # during query
-        store.add(_ann(_ti(50, 60)))   # after query
+        store.add(_ann(_ti(0, 10)))  # before query [30, 40)
+        store.add(_ann(_ti(15, 25)))  # overlaps query
+        store.add(_ann(_ti(30, 40)))  # equals query
+        store.add(_ann(_ti(33, 37)))  # during query
+        store.add(_ann(_ti(50, 60)))  # after query
 
     def test_intersects(self, postgres_store):
         self._populate(postgres_store)
@@ -765,6 +765,19 @@ class TestUpdate:
         with pytest.raises(KeyError):
             postgres_store.update(_ann(_ti(0, 2), text="ghost"))
         assert [x.body["text"] for x in postgres_store.all()] == ["old"]
+
+    def test_update_into_an_overlap_raises_tier_overlap_error(self, postgres_store):
+        postgres_store.add_tier(Tier("words"), enforce_no_overlap=True)
+        postgres_store.add(_ann(_ti(0, 100), tier="words"))
+        b = _ann(_ti(200, 300), tier="words")
+        postgres_store.add(b)
+        moved = b.model_copy(
+            update={
+                "reference": MediaRef(asset_id="blake3:test", interval=_ti(50, 150))
+            }
+        )
+        with pytest.raises(TierOverlapError):
+            postgres_store.update(moved)
 
     def test_reader_on_another_connection_never_finds_the_id_missing(
         self, postgres_store, postgresql

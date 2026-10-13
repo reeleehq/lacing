@@ -51,6 +51,16 @@ class MemoryStore:
         self._timeless: dict[UUID, Annotation] = {}
         self._tiers: dict[str, Tier] = {}
 
+    # --- copy / pickle ---------------------------------------------------------
+
+    def __getstate__(self) -> dict:
+        # A lock cannot be copied or pickled; each copy gets its own.
+        return {k: v for k, v in self.__dict__.items() if k != "_lock"}
+
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+        self._lock = threading.RLock()
+
     # --- helpers --------------------------------------------------------------
 
     def _ensure_node(self, key: tuple[Fraction, Fraction]) -> list[Annotation]:
