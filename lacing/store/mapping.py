@@ -161,6 +161,10 @@ class MappingStore(MemoryStore):
     # --- MutableMapping interface ---------------------------------------------
 
     def __setitem__(self, key: TimeInterval, value: list[Annotation]) -> None:
+        with self._lock:
+            self._set_bucket(key, value)
+
+    def _set_bucket(self, key: TimeInterval, value: list[Annotation]) -> None:
         value = list(value)
         for ann in value:
             if ann.interval != key:
@@ -187,6 +191,10 @@ class MappingStore(MemoryStore):
         super().__setitem__(key, value)
 
     def __delitem__(self, key: TimeInterval) -> None:
+        with self._lock:
+            self._del_bucket(key)
+
+    def _del_bucket(self, key: TimeInterval) -> None:
         bucket = self._buckets.get(_bucket_key(key))
         if bucket is None:
             raise KeyError(key)

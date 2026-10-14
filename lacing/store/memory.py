@@ -107,14 +107,20 @@ class MemoryStore:
             self._drop_node(k)
 
     def __iter__(self) -> Iterator[TimeInterval]:
-        for ann_list in self._buckets.values():
-            if ann_list:
-                iv = ann_list[0].interval
-                if iv is not None:
-                    yield iv
+        # Iterate a snapshot taken under the lock, so a concurrent ``add`` /
+        # ``update`` / ``remove`` cannot raise "dictionary changed size during
+        # iteration".
+        with self._lock:
+            intervals = [
+                b[0].interval
+                for b in self._buckets.values()
+                if b and b[0].interval is not None
+            ]
+        yield from intervals
 
     def __len__(self) -> int:
-        return sum(1 for ann_list in self._buckets.values() if ann_list)
+        with self._lock:
+            return sum(1 for ann_list in self._buckets.values() if ann_list)
 
     # --- annotation-level convenience ---------------------------------------
 
