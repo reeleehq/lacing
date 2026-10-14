@@ -1,32 +1,34 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-14T12:55:20Z",
+  "built_at": "2026-10-14T12:56:49Z",
   "package": {
     "name": "lacing",
-    "version": "0.0.51",
+    "version": "0.0.52",
     "display_name": "lacing",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "39645a6ceb6d20d1219613306df9ddadf9c2f478",
-    "short_commit": "39645a6",
+    "commit": "a3ee3cf3425665660b26dad778c66d06eb5103c2",
+    "short_commit": "a3ee3cf",
     "branch": "main",
-    "tags": [],
+    "tags": [
+      "0.0.52"
+    ],
     "dirty": false,
     "remote_url": "https://github.com/reeleehq/lacing",
-    "commit_url": "https://github.com/reeleehq/lacing/commit/39645a6ceb6d20d1219613306df9ddadf9c2f478",
+    "commit_url": "https://github.com/reeleehq/lacing/commit/a3ee3cf3425665660b26dad778c66d06eb5103c2",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "reeleehq/lacing",
-    "sha": "d670300bbb43c373c4614e8363da49a577be5d1c",
+    "sha": "39645a6ceb6d20d1219613306df9ddadf9c2f478",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "38567190811",
-    "run_url": "https://github.com/reeleehq/lacing/actions/runs/38567190811",
+    "run_id": "38567420078",
+    "run_url": "https://github.com/reeleehq/lacing/actions/runs/38567420078",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -60,11 +62,11 @@
   },
   "pypi": {
     "checked": true,
-    "latest": "0.0.51",
+    "latest": "0.0.52",
     "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout 39645a6ceb6d20d1219613306df9ddadf9c2f478\npip install \"epythet==0.2.17\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout a3ee3cf3425665660b26dad778c66d06eb5103c2\npip install \"epythet==0.2.17\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,
