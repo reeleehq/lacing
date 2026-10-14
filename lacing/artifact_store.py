@@ -739,8 +739,10 @@ class ArtifactStore(MutableMapping):
         )
 
         def _key_of_id(row_or_key):
-            # ``wrap_kvs`` hands this the key dict on writes and the ORM row on
-            # iteration (sqldol's ``__iter__`` yields rows, not keys).
+            # ``wrap_kvs`` hands this a key dict on writes and a ``RowKey`` on
+            # iteration (sqldol's ``__iter__`` yields ``RowKey``s, which are
+            # dicts that also read as attributes). The attribute branch is only
+            # for older sqldol releases that iterated ORM rows.
             if isinstance(row_or_key, dict):
                 return row_or_key["artifact_id"]
             return row_or_key.artifact_id
