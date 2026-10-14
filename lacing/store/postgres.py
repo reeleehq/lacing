@@ -82,6 +82,7 @@ from lacing.model import (
     Provenance,
     Reference,
 )
+from lacing.store.locking import advisory_lock_id
 from lacing.tier import Tier, TierStereotype
 from lacing.time import LossyTimeConversionError, RationalTime, TimeInterval
 
@@ -346,6 +347,7 @@ class PostgresStore:
             conninfo = connection_string
             poolable = True
 
+        self._conninfo = conninfo
         self._pool = None
         self._pooled = False
         if use_pool and poolable:
@@ -446,6 +448,28 @@ class PostgresStore:
     @property
     def schema_version(self) -> int:
         return SCHEMA_VERSION
+
+    @contextmanager
+    def lock(self, key: str) -> Iterator[None]:
+        """Exclusive lock named ``key`` for this ``(owner, project)``, across hosts.
+
+        A session-level ``pg_advisory_lock`` keyed on a 64-bit hash of
+        ``owner_id`` + ``project_id`` + ``key``, taken on a dedicated connection
+        (never the store's own, which other threads and transactions share) and
+        released in ``finally``. If the holder crashes, Postgres drops the lock
+        when its connection dies, so nothing can go stale. Blocks until
+        available; not re-entrant.
+        """
+        lock_id = advisory_lock_id(self._owner_id, self._project_id, key)
+        conn = self._psycopg.connect(self._conninfo, autocommit=True)
+        try:
+            conn.execute("SELECT pg_advisory_lock(%s)", (lock_id,))
+            try:
+                yield
+            finally:
+                conn.execute("SELECT pg_advisory_unlock(%s)", (lock_id,))
+        finally:
+            conn.close()
 
     def close(self) -> None:
         if self._pooled and self._pool is not None:

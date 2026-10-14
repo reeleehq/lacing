@@ -877,3 +877,104 @@ class TestUpdate:
             reader_store.close()
         assert missing == []
         assert [a.body["text"] for a in postgres_store.all()] == ["100"]
+
+
+# ---------------------------------------------------------------------------
+# lock(key) — an advisory lock held in the database (lacing#70)
+# ---------------------------------------------------------------------------
+
+
+class TestLock:
+    """Two connections contend for a key; different keys and projects do not."""
+
+    BLOCKED_SECS = 0.5
+    PROMPT_SECS = 10.0
+
+    @pytest.fixture
+    def second_store(self, postgresql):
+        """A second store on its own connection, same database/owner/project."""
+        info = postgresql.info
+        store = PostgresStore(
+            {
+                "host": info.host,
+                "port": info.port,
+                "user": info.user,
+                "password": info.password or "",
+                "dbname": info.dbname,
+            },
+            rate=24000,
+            use_pool=False,
+        )
+        yield store
+        store.close()
+
+    @staticmethod
+    def _hold(store, key):
+        """A thread that takes ``store.lock(key)``; returns (thread, acquired, release)."""
+        import threading
+
+        acquired, release = threading.Event(), threading.Event()
+
+        def run():
+            with store.lock(key):
+                acquired.set()
+                release.wait(TestLock.PROMPT_SECS)
+
+        t = threading.Thread(target=run, daemon=True)
+        t.start()
+        return t, acquired, release
+
+    def test_same_key_second_connection_blocks_until_release(
+        self, postgres_store, second_store
+    ):
+        with postgres_store.lock("k"):
+            t, acquired, release = self._hold(second_store, "k")
+            assert not acquired.wait(self.BLOCKED_SECS)
+        assert acquired.wait(self.PROMPT_SECS)
+        release.set()
+        t.join(self.PROMPT_SECS)
+
+    def test_different_keys_do_not_contend(self, postgres_store, second_store):
+        with postgres_store.lock("a"):
+            t, acquired, release = self._hold(second_store, "b")
+            assert acquired.wait(self.PROMPT_SECS)
+            release.set()
+            t.join(self.PROMPT_SECS)
+
+    def test_different_projects_do_not_contend(self, postgres_store, postgresql):
+        info = postgresql.info
+        other = PostgresStore(
+            {
+                "host": info.host,
+                "port": info.port,
+                "user": info.user,
+                "password": info.password or "",
+                "dbname": info.dbname,
+            },
+            rate=24000,
+            project_id="another-project",
+            use_pool=False,
+        )
+        try:
+            with postgres_store.lock("k"):
+                t, acquired, release = self._hold(other, "k")
+                assert acquired.wait(self.PROMPT_SECS)
+                release.set()
+                t.join(self.PROMPT_SECS)
+        finally:
+            other.close()
+
+    def test_released_when_the_body_raises(self, postgres_store, second_store):
+        with pytest.raises(RuntimeError):
+            with postgres_store.lock("k"):
+                raise RuntimeError("boom")
+        t, acquired, release = self._hold(second_store, "k")
+        assert acquired.wait(self.PROMPT_SECS)
+        release.set()
+        t.join(self.PROMPT_SECS)
+
+    def test_lock_does_not_use_the_stores_own_connection(self, postgres_store):
+        """Holding a lock leaves the store usable from the same thread."""
+        with postgres_store.lock("k"):
+            postgres_store.add(_ann(_ti(0, 2)))
+        assert len(list(postgres_store.all())) == 1
