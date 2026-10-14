@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=e072a57b"></script>
+    <script src="../../_static/documentation_options.js?v=440a2162"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.50" />
+  <meta name="docsearch:version" content="0.0.51" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1501,8 +1501,10 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">_key_of_id</span><span class="p">(</span><span class="n">row_or_key</span><span class="p">):</span>
-            <span class="c1"># ``wrap_kvs`` hands this the key dict on writes and the ORM row on</span>
-            <span class="c1"># iteration (sqldol's ``__iter__`` yields rows, not keys).</span>
+            <span class="c1"># ``wrap_kvs`` hands this a key dict on writes and a ``RowKey`` on</span>
+            <span class="c1"># iteration (sqldol's ``__iter__`` yields ``RowKey``s, which are</span>
+            <span class="c1"># dicts that also read as attributes). The attribute branch is only</span>
+            <span class="c1"># for older sqldol releases that iterated ORM rows.</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">row_or_key</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">row_or_key</span><span class="p">[</span><span class="s2">"artifact_id"</span><span class="p">]</span>
             <span class="k">return</span> <span class="n">row_or_key</span><span class="o">.</span><span class="n">artifact_id</span>

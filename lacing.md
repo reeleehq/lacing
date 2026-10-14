@@ -1,4 +1,4 @@
-> built 2026-10-14 03:55 UTC from 2f32c44 (main) · lacing 0.0.50. Details: build_info.json
+> built 2026-10-14 12:55 UTC from 39645a6 (main) · lacing 0.0.51. Details: build_info.json
 
 # index.html.md
 
@@ -7475,18 +7475,16 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-10-14 03:55 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/2f32c4432a0c4e78f047fbdc72831f3e6916be75"><code>2f32c44</code></a> on branch <code>main</code>, for **lacing 0.0.50** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 12:55 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/39645a6ceb6d20d1219613306df9ddadf9c2f478"><code>39645a6</code></a> on branch <code>main</code>, for **lacing 0.0.51** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.50) is behind the latest release on PyPI (0.0.51): `pip install lacing` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/2f32c4432a0c4e78f047fbdc72831f3e6916be75"><code>2f32c4432a0c4e78f047fbdc72831f3e6916be75</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/39645a6ceb6d20d1219613306df9ddadf9c2f478"><code>39645a6ceb6d20d1219613306df9ddadf9c2f478</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -7497,9 +7495,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/38508586276">38508586276</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/38567190811">38567190811</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>2f32c4432a0c4e78f047fbdc72831f3e6916be75</code> (in the history of the built commit) |
+| Event commit | <code>d670300bbb43c373c4614e8363da49a577be5d1c</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -7524,13 +7522,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.51/">0.0.51</a>, newer than the documented version (0.0.50).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.51/">0.0.51</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 2f32c4432a0c4e78f047fbdc72831f3e6916be75
+git checkout 39645a6ceb6d20d1219613306df9ddadf9c2f478
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
