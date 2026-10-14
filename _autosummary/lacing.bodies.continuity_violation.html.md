@@ -32,7 +32,7 @@ Reference: `reelee/docs/Narrative to Storyboard.md` §6.5, §8.1.
 
 ### *class* lacing.bodies.continuity_violation.ContinuityViolationBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Body of a continuity-violation annotation.
 

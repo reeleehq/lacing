@@ -98,6 +98,18 @@ SQLite-backed `IntervalAnnotationStore`.
     — raises [`SchemaMismatchError`](#lacing.store.sqlite.SchemaMismatchError); a failed migration
     chains the ladder’s `StoreMigrationError` as its cause.
 
+#### lock(key)
+
+Exclusive lock named `key`: a file lock beside the database.
+
+Excludes other threads and other processes on this host that open the
+same `.annot` file; the kernel frees it if the holder dies. An
+in-memory database (`":memory:"`) has no file, so it falls back to a
+process-local lock.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 #### update(annotation)
 
 Replace the row with this id (and its R\*Tree entry) in one transaction.

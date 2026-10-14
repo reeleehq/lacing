@@ -30,7 +30,7 @@ and `.claude/skills/lacing-schema-codegen/SKILL.md`.
 
 ### *class* lacing.model.Annotation(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 The single annotation envelope. `body` is typed by `body_schema_uri`.
 
@@ -47,7 +47,7 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 ### *class* lacing.model.AnnotationRef(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Reference to another annotation (for discussion threads, review, derivations).
 
@@ -69,7 +69,7 @@ alias of `Annotated`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#st
 
 ### *class* lacing.model.MediaRef(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Reference to a region of a content-addressed media asset.
 
@@ -79,7 +79,7 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 ### *class* lacing.model.NodeRef(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Reference to a node in a structured scene/document graph.
 
@@ -89,7 +89,7 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 ### *class* lacing.model.Provenance(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 W3C PROV-O subset, embedded inline on every annotation.
 

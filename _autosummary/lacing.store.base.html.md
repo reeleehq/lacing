@@ -102,6 +102,20 @@ Annotations whose interval shares any time with `query`.
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
 
+#### lock(key)
+
+Exclusive lock named `key`, held for the `with` block.
+
+Scoped to this store’s data (for `PostgresStore`, its owner and
+project): holders of the same key exclude each other, different keys do
+not. The reach of the exclusion is the backend’s: `MemoryStore`
+excludes threads of this process, `SqliteStore` also other processes
+on the host, `PostgresStore` every client of the database, on any
+host. A holder that dies releases the lock. Not re-entrant.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 #### meets(query)
 
 Allen `m`: `a.end == q.start`.

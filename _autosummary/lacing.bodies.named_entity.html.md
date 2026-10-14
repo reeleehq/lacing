@@ -19,7 +19,7 @@ A v1 -> v2 migration is registered to demonstrate the pattern.
 
 ### *class* lacing.bodies.named_entity.NamedEntityBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Original NER body. `type` is the entity tag (PER, ORG, LOC, …).
 
@@ -29,7 +29,7 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 ### *class* lacing.bodies.named_entity.NamedEntityBodyV2(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 v2 renames `type` -> `entity_type` and adds optional `confidence`.
 

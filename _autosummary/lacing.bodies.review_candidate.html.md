@@ -34,7 +34,7 @@ default) while human/agent reviews land on `"review"`
 
 ### *class* lacing.bodies.review_candidate.ReviewCandidateBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Body of a review-candidate annotation.
 

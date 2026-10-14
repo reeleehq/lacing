@@ -145,6 +145,20 @@ Add or update a tier.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### lock(key)
+
+Exclusive lock named `key` for this `(owner, project)`, across hosts.
+
+A session-level `pg_advisory_lock` keyed on a 64-bit hash of
+`owner_id` + `project_id` + `key`, taken on a dedicated connection
+(never the store’s own, which other threads and transactions share) and
+released in `finally`. If the holder crashes, Postgres drops the lock
+when its connection dies, so nothing can go stale. Blocks until
+available; not re-entrant.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 #### update(annotation)
 
 Replace the row with this id in ONE `UPDATE` statement (lacing#66).

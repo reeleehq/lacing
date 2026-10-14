@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=73f2ab08"></script>
+    <script src="../_static/documentation_options.js?v=d78a2f11"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.52" />
+  <meta name="docsearch:version" content="0.0.53" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -354,6 +354,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.schema.html">lacing.schema</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.store.html">lacing.store</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.base.html">lacing.store.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.store.locking.html">lacing.store.locking</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.mapping.html">lacing.store.mapping</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.memory.html">lacing.store.memory</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.migrations.html">lacing.store.migrations</a></li>
@@ -473,7 +474,7 @@ default) while human/agent reviews land on <code class="docutils literal notrans
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.bodies.review_candidate.ReviewCandidateBodyV1">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.bodies.review_candidate.</span></span><span class="sig-name descname"><span class="pre">ReviewCandidateBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/bodies/review_candidate.html#ReviewCandidateBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.bodies.review_candidate.ReviewCandidateBodyV1" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SchemaModel</span></code></p>
 <p>Body of a review-candidate annotation.</p>
 <dl class="field-list simple">
 </dl>

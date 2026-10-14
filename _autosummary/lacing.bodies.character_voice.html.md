@@ -43,7 +43,7 @@ provider-generic 0-1 intents that a provider adapter maps or ignores.
 
 ### *class* lacing.bodies.character_voice.CharacterVoiceBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Body of a character-voice annotation — one character’s voice profile.
 

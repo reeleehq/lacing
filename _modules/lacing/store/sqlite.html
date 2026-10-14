@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=73f2ab08"></script>
+    <script src="../../../_static/documentation_options.js?v=d78a2f11"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.52" />
+  <meta name="docsearch:version" content="0.0.53" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -751,6 +751,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">AbstractContextManager</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">UUID</span>
@@ -772,6 +773,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">Provenance</span><span class="p">,</span>
     <span class="n">Reference</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store.locking</span><span class="w"> </span><span class="kn">import</span> <span class="n">NamedLocks</span><span class="p">,</span> <span class="n">file_lock</span><span class="p">,</span> <span class="n">sidecar_lock_path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tier</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tier</span><span class="p">,</span> <span class="n">TierStereotype</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.time</span><span class="w"> </span><span class="kn">import</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">TimeInterval</span>
 
@@ -879,6 +881,7 @@ window.runMermaid = runMermaid;</script>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_path</span> <span class="o">=</span> <span class="n">path</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">RLock</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_named_locks</span> <span class="o">=</span> <span class="n">NamedLocks</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
             <span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="n">path</span><span class="p">),</span>
             <span class="n">check_same_thread</span><span class="o">=</span><span class="n">check_same_thread</span><span class="p">,</span>
@@ -956,6 +959,23 @@ window.runMermaid = runMermaid;</script>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">exc</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># --- named lock -----------------------------------------------------</span>
+
+<div class="viewcode-block" id="SqliteStore.lock">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.lock">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lock</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractContextManager</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Exclusive lock named ``key``: a file lock beside the database.</span>
+
+<span class="sd">        Excludes other threads and other processes on this host that open the</span>
+<span class="sd">        same ``.annot`` file; the kernel frees it if the holder dies. An</span>
+<span class="sd">        in-memory database (``":memory:"``) has no file, so it falls back to a</span>
+<span class="sd">        process-local lock.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">":memory:"</span><span class="p">,</span> <span class="s2">""</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_named_locks</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">file_lock</span><span class="p">(</span><span class="n">sidecar_lock_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span></div>
+
 
     <span class="c1"># --- meta -----------------------------------------------------------</span>
 

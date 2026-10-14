@@ -11,7 +11,7 @@ URI: `annot://schema/word/v1`
 
 ### *class* lacing.bodies.word.WordBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 A single word annotation.
 

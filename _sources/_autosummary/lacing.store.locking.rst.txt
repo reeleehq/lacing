@@ -1,0 +1,27 @@
+lacing.store.locking
+====================
+
+.. automodule:: lacing.store.locking
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      KEY_DIGEST_BYTES
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      advisory_lock_id
+      file_lock
+      key_digest
+      sidecar_lock_path
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      NamedLocks
+   

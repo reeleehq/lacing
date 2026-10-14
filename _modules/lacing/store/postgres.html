@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=73f2ab08"></script>
+    <script src="../../../_static/documentation_options.js?v=d78a2f11"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.52" />
+  <meta name="docsearch:version" content="0.0.53" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -795,6 +795,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">Provenance</span><span class="p">,</span>
     <span class="n">Reference</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store.locking</span><span class="w"> </span><span class="kn">import</span> <span class="n">advisory_lock_id</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tier</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tier</span><span class="p">,</span> <span class="n">TierStereotype</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.time</span><span class="w"> </span><span class="kn">import</span> <span class="n">LossyTimeConversionError</span><span class="p">,</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">TimeInterval</span>
 
@@ -1076,6 +1077,7 @@ window.runMermaid = runMermaid;</script>
             <span class="n">conninfo</span> <span class="o">=</span> <span class="n">connection_string</span>
             <span class="n">poolable</span> <span class="o">=</span> <span class="kc">True</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_conninfo</span> <span class="o">=</span> <span class="n">conninfo</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_pool</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_pooled</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="n">use_pool</span> <span class="ow">and</span> <span class="n">poolable</span><span class="p">:</span>
@@ -1176,6 +1178,31 @@ window.runMermaid = runMermaid;</script>
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">schema_version</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">SCHEMA_VERSION</span>
+
+<div class="viewcode-block" id="PostgresStore.lock">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.lock">[docs]</a>
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lock</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Exclusive lock named ``key`` for this ``(owner, project)``, across hosts.</span>
+
+<span class="sd">        A session-level ``pg_advisory_lock`` keyed on a 64-bit hash of</span>
+<span class="sd">        ``owner_id`` + ``project_id`` + ``key``, taken on a dedicated connection</span>
+<span class="sd">        (never the store's own, which other threads and transactions share) and</span>
+<span class="sd">        released in ``finally``. If the holder crashes, Postgres drops the lock</span>
+<span class="sd">        when its connection dies, so nothing can go stale. Blocks until</span>
+<span class="sd">        available; not re-entrant.</span>
+<span class="sd">        """</span>
+        <span class="n">lock_id</span> <span class="o">=</span> <span class="n">advisory_lock_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_owner_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_id</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psycopg</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_conninfo</span><span class="p">,</span> <span class="n">autocommit</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"SELECT pg_advisory_lock(</span><span class="si">%s</span><span class="s2">)"</span><span class="p">,</span> <span class="p">(</span><span class="n">lock_id</span><span class="p">,))</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">yield</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"SELECT pg_advisory_unlock(</span><span class="si">%s</span><span class="s2">)"</span><span class="p">,</span> <span class="p">(</span><span class="n">lock_id</span><span class="p">,))</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pooled</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pool</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>

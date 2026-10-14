@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=73f2ab08"></script>
+    <script src="../_static/documentation_options.js?v=d78a2f11"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.52" />
+  <meta name="docsearch:version" content="0.0.53" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -354,6 +354,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.schema.html">lacing.schema</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.store.html">lacing.store</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.base.html">lacing.store.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.store.locking.html">lacing.store.locking</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.mapping.html">lacing.store.mapping</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.memory.html">lacing.store.memory</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.migrations.html">lacing.store.migrations</a></li>
@@ -490,7 +491,7 @@ and <code class="docutils literal notranslate"><span class="pre">.claude/skills/
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.model.Annotation">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.model.</span></span><span class="sig-name descname"><span class="pre">Annotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/model.html#Annotation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.model.Annotation" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SchemaModel</span></code></p>
 <p>The single annotation envelope. <code class="docutils literal notranslate"><span class="pre">body</span></code> is typed by <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code>.</p>
 <dl class="field-list simple">
 </dl>
@@ -516,7 +517,7 @@ and <code class="docutils literal notranslate"><span class="pre">.claude/skills/
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.model.AnnotationRef">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.model.</span></span><span class="sig-name descname"><span class="pre">AnnotationRef</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/model.html#AnnotationRef"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.model.AnnotationRef" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SchemaModel</span></code></p>
 <p>Reference to another annotation (for discussion threads, review, derivations).</p>
 <dl class="field-list simple">
 </dl>
@@ -544,7 +545,7 @@ design. Format-disjoint from a UUID string (36 hyphenated chars), so the
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.model.MediaRef">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.model.</span></span><span class="sig-name descname"><span class="pre">MediaRef</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/model.html#MediaRef"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.model.MediaRef" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SchemaModel</span></code></p>
 <p>Reference to a region of a content-addressed media asset.</p>
 <dl class="field-list simple">
 </dl>
@@ -559,7 +560,7 @@ design. Format-disjoint from a UUID string (36 hyphenated chars), so the
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.model.NodeRef">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.model.</span></span><span class="sig-name descname"><span class="pre">NodeRef</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/model.html#NodeRef"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.model.NodeRef" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SchemaModel</span></code></p>
 <p>Reference to a node in a structured scene/document graph.</p>
 <dl class="field-list simple">
 </dl>
@@ -574,7 +575,7 @@ design. Format-disjoint from a UUID string (36 hyphenated chars), so the
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.model.Provenance">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.model.</span></span><span class="sig-name descname"><span class="pre">Provenance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/model.html#Provenance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.model.Provenance" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SchemaModel</span></code></p>
 <p>W3C PROV-O subset, embedded inline on every annotation.</p>
 <dl class="field-list simple">
 </dl>

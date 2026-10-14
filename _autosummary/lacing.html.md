@@ -101,7 +101,7 @@ The inverse relation.
 
 ### *class* lacing.Annotation(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 The single annotation envelope. `body` is typed by `body_schema_uri`.
 
@@ -118,7 +118,7 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 ### *class* lacing.AnnotationRef(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Reference to another annotation (for discussion threads, review, derivations).
 
@@ -701,6 +701,20 @@ Annotations whose interval shares any time with `query`.
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
 
+#### lock(key)
+
+Exclusive lock named `key`, held for the `with` block.
+
+Scoped to this store’s data (for `PostgresStore`, its owner and
+project): holders of the same key exclude each other, different keys do
+not. The reach of the exclusion is the backend’s: `MemoryStore`
+excludes threads of this process, `SqliteStore` also other processes
+on the host, `PostgresStore` every client of the database, on any
+host. A holder that dies releases the lock. Not re-entrant.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 #### meets(query)
 
 Allen `m`: `a.end == q.start`.
@@ -797,7 +811,7 @@ for `SqliteStore`) can treat both alike; the store stays usable.
 
 ### *class* lacing.MediaRef(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Reference to a region of a content-addressed media asset.
 
@@ -815,6 +829,13 @@ Conforms to the protocol in `lacing.store.base`. We don’t formally
 inherit from `IntervalAnnotationStore` because it’s a `Protocol`
 with method bodies — structural typing is enough.
 
+#### lock(key)
+
+Exclusive lock named `key` among the threads of this process.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 ### *exception* lacing.MigrationError
 
 Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#RuntimeError)
@@ -823,7 +844,7 @@ Raised when a migration step is missing or fails.
 
 ### *class* lacing.NodeRef(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Reference to a node in a structured scene/document graph.
 
@@ -921,7 +942,7 @@ Raised when a registered processor’s invocation fails.
 
 ### *class* lacing.Provenance(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 W3C PROV-O subset, embedded inline on every annotation.
 
@@ -1135,6 +1156,18 @@ SQLite-backed `IntervalAnnotationStore`.
     Every open-time schema failure — refusal *or* failed migration
     — raises [`SchemaMismatchError`](#lacing.SchemaMismatchError); a failed migration
     chains the ladder’s `StoreMigrationError` as its cause.
+
+#### lock(key)
+
+Exclusive lock named `key`: a file lock beside the database.
+
+Excludes other threads and other processes on this host that open the
+same `.annot` file; the kernel frees it if the holder dies. An
+in-memory database (`":memory:"`) has no file, so it falls back to a
+process-local lock.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 #### update(annotation)
 
@@ -1483,7 +1516,10 @@ Quick check: is OTel installed AND a TracerProvider configured?
 
 Return the JSON Schema for the body model registered at `uri`.
 
-Pydantic’s `model_json_schema()` output, unmodified.
+Pydantic’s `model_json_schema()` output, plus a `default` for every
+zero-argument `default_factory` field (see
+`lacing.json_schema.DefaultFactoryJsonSchema`), whatever base class
+the registered model has.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)

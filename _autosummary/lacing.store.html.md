@@ -123,6 +123,20 @@ Annotations whose interval shares any time with `query`.
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
 
+#### lock(key)
+
+Exclusive lock named `key`, held for the `with` block.
+
+Scoped to this store’s data (for `PostgresStore`, its owner and
+project): holders of the same key exclude each other, different keys do
+not. The reach of the exclusion is the backend’s: `MemoryStore`
+excludes threads of this process, `SqliteStore` also other processes
+on the host, `PostgresStore` every client of the database, on any
+host. A holder that dies releases the lock. Not re-entrant.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 #### meets(query)
 
 Allen `m`: `a.end == q.start`.
@@ -235,6 +249,13 @@ Conforms to the protocol in `lacing.store.base`. We don’t formally
 inherit from `IntervalAnnotationStore` because it’s a `Protocol`
 with method bodies — structural typing is enough.
 
+#### lock(key)
+
+Exclusive lock named `key` among the threads of this process.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 ### *exception* lacing.store.PgSchemaMismatchError
 
 Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#RuntimeError)
@@ -284,6 +305,20 @@ Add or update a tier.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### lock(key)
+
+Exclusive lock named `key` for this `(owner, project)`, across hosts.
+
+A session-level `pg_advisory_lock` keyed on a 64-bit hash of
+`owner_id` + `project_id` + `key`, taken on a dedicated connection
+(never the store’s own, which other threads and transactions share) and
+released in `finally`. If the holder crashes, Postgres drops the lock
+when its connection dies, so nothing can go stale. Blocks until
+available; not re-entrant.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 #### update(annotation)
 
 Replace the row with this id in ONE `UPDATE` statement (lacing#66).
@@ -327,6 +362,18 @@ SQLite-backed `IntervalAnnotationStore`.
     Every open-time schema failure — refusal *or* failed migration
     — raises [`SchemaMismatchError`](#lacing.store.SchemaMismatchError); a failed migration
     chains the ladder’s `StoreMigrationError` as its cause.
+
+#### lock(key)
+
+Exclusive lock named `key`: a file lock beside the database.
+
+Excludes other threads and other processes on this host that open the
+same `.annot` file; the kernel frees it if the holder dies. An
+in-memory database (`":memory:"`) has no file, so it falls back to a
+process-local lock.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 #### update(annotation)
 
@@ -438,6 +485,7 @@ previous entry.
 
 | [`base`](lacing.store.base.html.md#module-lacing.store.base)             | `IntervalAnnotationStore` — the headline Pythonic API.                           |
 |--------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+| [`locking`](lacing.store.locking.html.md#module-lacing.store.locking)       | Named exclusive locks for stores: the mechanisms behind `store.lock(key)`.       |
 | [`mapping`](lacing.store.mapping.html.md#module-lacing.store.mapping)       | `MappingStore` — an `IntervalAnnotationStore` persisted to any `MutableMapping`. |
 | [`memory`](lacing.store.memory.html.md#module-lacing.store.memory)         | In-memory annotation store backed by an interval tree.                           |
 | [`migrations`](lacing.store.migrations.html.md#module-lacing.store.migrations) | Store-level schema migrations — the on-disk counterpart of the body ladder.      |

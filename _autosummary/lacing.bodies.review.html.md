@@ -60,7 +60,7 @@ alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Litera
 
 ### *class* lacing.bodies.review.ReviewBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Body of a review annotation.
 

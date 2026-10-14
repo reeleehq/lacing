@@ -52,7 +52,7 @@ consistency); reelee-web epic #151, lacing #9.
 
 ### *class* lacing.bodies.reference_lock.ReferenceLockBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Body of a reference-lock annotation.
 

@@ -21,3 +21,10 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 Conforms to the protocol in `lacing.store.base`. We don’t formally
 inherit from `IntervalAnnotationStore` because it’s a `Protocol`
 with method bodies — structural typing is enough.
+
+#### lock(key)
+
+Exclusive lock named `key` among the threads of this process.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]

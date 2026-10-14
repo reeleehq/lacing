@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=73f2ab08"></script>
+    <script src="../../_static/documentation_options.js?v=d78a2f11"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +410,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.52" />
+  <meta name="docsearch:version" content="0.0.53" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -763,6 +763,8 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ValidationError</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.json_schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultFactoryJsonSchema</span>
+
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
 <span class="c1"># URI parsing</span>
@@ -899,9 +901,14 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">json_schema</span><span class="p">(</span><span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Return the JSON Schema for the body model registered at ``uri``.</span>
 
-<span class="sd">    Pydantic's ``model_json_schema()`` output, unmodified.</span>
+<span class="sd">    Pydantic's ``model_json_schema()`` output, plus a ``default`` for every</span>
+<span class="sd">    zero-argument ``default_factory`` field (see</span>
+<span class="sd">    :class:`lacing.json_schema.DefaultFactoryJsonSchema`), whatever base class</span>
+<span class="sd">    the registered model has.</span>
 <span class="sd">    """</span>
-    <span class="k">return</span> <span class="n">get_body_schema</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span><span class="o">.</span><span class="n">model_json_schema</span><span class="p">()</span></div>
+    <span class="k">return</span> <span class="n">get_body_schema</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span><span class="o">.</span><span class="n">model_json_schema</span><span class="p">(</span>
+        <span class="n">schema_generator</span><span class="o">=</span><span class="n">DefaultFactoryJsonSchema</span>
+    <span class="p">)</span></div>
 
 
 

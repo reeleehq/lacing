@@ -43,6 +43,7 @@ lacing.store
    :recursive:
 
    base
+   locking
    mapping
    memory
    migrations

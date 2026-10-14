@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=73f2ab08"></script>
+    <script src="../_static/documentation_options.js?v=d78a2f11"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.52" />
+  <meta name="docsearch:version" content="0.0.53" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -354,6 +354,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.schema.html">lacing.schema</a></li>
 <li class="toctree-l2 current active has-children"><a aria-current="page" class="current reference internal" href="#">lacing.store</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.base.html">lacing.store.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.store.locking.html">lacing.store.locking</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.mapping.html">lacing.store.mapping</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.memory.html">lacing.store.memory</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.migrations.html">lacing.store.migrations</a></li>
@@ -634,6 +635,23 @@ implement the full interface.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.IntervalAnnotationStore.lock">
+<span class="sig-name descname"><span class="pre">lock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/base.html#IntervalAnnotationStore.lock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.IntervalAnnotationStore.lock" title="Link to this definition">#</a></dt>
+<dd><p>Exclusive lock named <code class="docutils literal notranslate"><span class="pre">key</span></code>, held for the <code class="docutils literal notranslate"><span class="pre">with</span></code> block.</p>
+<p>Scoped to this store’s data (for <code class="docutils literal notranslate"><span class="pre">PostgresStore</span></code>, its owner and
+project): holders of the same key exclude each other, different keys do
+not. The reach of the exclusion is the backend’s: <code class="docutils literal notranslate"><span class="pre">MemoryStore</span></code>
+excludes threads of this process, <code class="docutils literal notranslate"><span class="pre">SqliteStore</span></code> also other processes
+on the host, <code class="docutils literal notranslate"><span class="pre">PostgresStore</span></code> every client of the database, on any
+host. A holder that dies releases the lock. Not re-entrant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">AbstractContextManager</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lacing.store.IntervalAnnotationStore.meets">
 <span class="sig-name descname"><span class="pre">meets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/base.html#IntervalAnnotationStore.meets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.IntervalAnnotationStore.meets" title="Link to this definition">#</a></dt>
 <dd><p>Allen <code class="docutils literal notranslate"><span class="pre">m</span></code>: <code class="docutils literal notranslate"><span class="pre">a.end</span> <span class="pre">==</span> <span class="pre">q.start</span></code>.</p>
@@ -783,6 +801,17 @@ inherit from <code class="docutils literal notranslate"><span class="pre">Interv
 with method bodies — structural typing is enough.</p>
 <dl class="field-list simple">
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.MemoryStore.lock">
+<span class="sig-name descname"><span class="pre">lock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.lock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.MemoryStore.lock" title="Link to this definition">#</a></dt>
+<dd><p>Exclusive lock named <code class="docutils literal notranslate"><span class="pre">key</span></code> among the threads of this process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">AbstractContextManager</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py exception">
@@ -845,6 +874,23 @@ Cannot be toggled after the tier has annotations.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.PostgresStore.lock">
+<span class="sig-name descname"><span class="pre">lock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/postgres.html#PostgresStore.lock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.PostgresStore.lock" title="Link to this definition">#</a></dt>
+<dd><p>Exclusive lock named <code class="docutils literal notranslate"><span class="pre">key</span></code> for this <code class="docutils literal notranslate"><span class="pre">(owner,</span> <span class="pre">project)</span></code>, across hosts.</p>
+<p>A session-level <code class="docutils literal notranslate"><span class="pre">pg_advisory_lock</span></code> keyed on a 64-bit hash of
+<code class="docutils literal notranslate"><span class="pre">owner_id</span></code> + <code class="docutils literal notranslate"><span class="pre">project_id</span></code> + <code class="docutils literal notranslate"><span class="pre">key</span></code>, taken on a dedicated connection
+(never the store’s own, which other threads and transactions share) and
+released in <code class="docutils literal notranslate"><span class="pre">finally</span></code>. If the holder crashes, Postgres drops the lock
+when its connection dies, so nothing can go stale. Blocks until
+available; not re-entrant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lacing.store.PostgresStore.update">
 <span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/postgres.html#PostgresStore.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.PostgresStore.update" title="Link to this definition">#</a></dt>
 <dd><p>Replace the row with this id in ONE <code class="docutils literal notranslate"><span class="pre">UPDATE</span></code> statement (lacing#66).</p>
@@ -898,6 +944,21 @@ chains the ladder’s <code class="docutils literal notranslate"><span class="pr
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.SqliteStore.lock">
+<span class="sig-name descname"><span class="pre">lock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/sqlite.html#SqliteStore.lock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.SqliteStore.lock" title="Link to this definition">#</a></dt>
+<dd><p>Exclusive lock named <code class="docutils literal notranslate"><span class="pre">key</span></code>: a file lock beside the database.</p>
+<p>Excludes other threads and other processes on this host that open the
+same <code class="docutils literal notranslate"><span class="pre">.annot</span></code> file; the kernel frees it if the holder dies. An
+in-memory database (<code class="docutils literal notranslate"><span class="pre">&quot;:memory:&quot;</span></code>) has no file, so it falls back to a
+process-local lock.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">AbstractContextManager</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="lacing.store.SqliteStore.update">
 <span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/sqlite.html#SqliteStore.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.SqliteStore.update" title="Link to this definition">#</a></dt>
@@ -1036,19 +1097,22 @@ previous entry.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="lacing.store.base.html#module-lacing.store.base" title="lacing.store.base"><code class="xref py py-obj docutils literal notranslate"><span class="pre">base</span></code></a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code> — the headline Pythonic API.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.store.mapping.html#module-lacing.store.mapping" title="lacing.store.mapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mapping</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.store.locking.html#module-lacing.store.locking" title="lacing.store.locking"><code class="xref py py-obj docutils literal notranslate"><span class="pre">locking</span></code></a></p></td>
+<td><p>Named exclusive locks for stores: the mechanisms behind <code class="docutils literal notranslate"><span class="pre">store.lock(key)</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.store.mapping.html#module-lacing.store.mapping" title="lacing.store.mapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mapping</span></code></a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">MappingStore</span></code> — an <code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code> persisted to any <code class="docutils literal notranslate"><span class="pre">MutableMapping</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.store.memory.html#module-lacing.store.memory" title="lacing.store.memory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">memory</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.store.memory.html#module-lacing.store.memory" title="lacing.store.memory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">memory</span></code></a></p></td>
 <td><p>In-memory annotation store backed by an interval tree.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.store.migrations.html#module-lacing.store.migrations" title="lacing.store.migrations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">migrations</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.store.migrations.html#module-lacing.store.migrations" title="lacing.store.migrations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">migrations</span></code></a></p></td>
 <td><p>Store-level schema migrations — the on-disk counterpart of the body ladder.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.store.postgres.html#module-lacing.store.postgres" title="lacing.store.postgres"><code class="xref py py-obj docutils literal notranslate"><span class="pre">postgres</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.store.postgres.html#module-lacing.store.postgres" title="lacing.store.postgres"><code class="xref py py-obj docutils literal notranslate"><span class="pre">postgres</span></code></a></p></td>
 <td><p>PostgreSQL-backed annotation store using <code class="docutils literal notranslate"><span class="pre">int8range</span></code> + GiST.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.store.sqlite.html#module-lacing.store.sqlite" title="lacing.store.sqlite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sqlite</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.store.sqlite.html#module-lacing.store.sqlite" title="lacing.store.sqlite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sqlite</span></code></a></p></td>
 <td><p>SQLite-backed annotation store and the <code class="docutils literal notranslate"><span class="pre">.annot</span></code> portable file format.</p></td>
 </tr>
 </tbody>
@@ -1114,6 +1178,7 @@ previous entry.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.IntervalAnnotationStore.extend"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.extend()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.IntervalAnnotationStore.finishes"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.finishes()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.IntervalAnnotationStore.intersects"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.intersects()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.IntervalAnnotationStore.lock"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.lock()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.IntervalAnnotationStore.meets"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.meets()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.IntervalAnnotationStore.overlaps"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.overlaps()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.IntervalAnnotationStore.relate"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.relate()</span></code></a></li>
@@ -1132,16 +1197,21 @@ previous entry.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.MappingStore.close"><code class="docutils literal notranslate"><span class="pre">MappingStore.close()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.MemoryStore"><code class="docutils literal notranslate"><span class="pre">MemoryStore</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.MemoryStore"><code class="docutils literal notranslate"><span class="pre">MemoryStore</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.MemoryStore.lock"><code class="docutils literal notranslate"><span class="pre">MemoryStore.lock()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.PgSchemaMismatchError"><code class="docutils literal notranslate"><span class="pre">PgSchemaMismatchError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.PostgresStore"><code class="docutils literal notranslate"><span class="pre">PostgresStore</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.PostgresStore.add_tier"><code class="docutils literal notranslate"><span class="pre">PostgresStore.add_tier()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.PostgresStore.lock"><code class="docutils literal notranslate"><span class="pre">PostgresStore.lock()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.PostgresStore.update"><code class="docutils literal notranslate"><span class="pre">PostgresStore.update()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.RateMismatchError"><code class="docutils literal notranslate"><span class="pre">RateMismatchError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.SchemaMismatchError"><code class="docutils literal notranslate"><span class="pre">SchemaMismatchError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.SqliteStore"><code class="docutils literal notranslate"><span class="pre">SqliteStore</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.SqliteStore.lock"><code class="docutils literal notranslate"><span class="pre">SqliteStore.lock()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.SqliteStore.update"><code class="docutils literal notranslate"><span class="pre">SqliteStore.update()</span></code></a></li>
 </ul>
 </li>

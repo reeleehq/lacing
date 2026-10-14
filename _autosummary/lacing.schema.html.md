@@ -139,7 +139,10 @@ Look up the registered Pydantic model for `uri`.
 
 Return the JSON Schema for the body model registered at `uri`.
 
-Pydantic’s `model_json_schema()` output, unmodified.
+Pydantic’s `model_json_schema()` output, plus a `default` for every
+zero-argument `default_factory` field (see
+`lacing.json_schema.DefaultFactoryJsonSchema`), whatever base class
+the registered model has.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)

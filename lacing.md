@@ -1,4 +1,4 @@
-> built 2026-10-14 12:56 UTC from a3ee3cf (main) · lacing 0.0.52. Details: build_info.json
+> built 2026-10-14 13:03 UTC from e98578f (main) · lacing 0.0.53. Details: build_info.json
 
 # index.html.md
 
@@ -2021,7 +2021,7 @@ provider-generic 0-1 intents that a provider adapter maps or ignores.
 
 ### *class* lacing.bodies.character_voice.CharacterVoiceBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Body of a character-voice annotation — one character’s voice profile.
 
@@ -2066,7 +2066,7 @@ Reference: `reelee/docs/Narrative to Storyboard.md` §6.5, §8.1.
 
 ### *class* lacing.bodies.continuity_violation.ContinuityViolationBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Body of a continuity-violation annotation.
 
@@ -2132,7 +2132,7 @@ A v1 -> v2 migration is registered to demonstrate the pattern.
 
 ### *class* lacing.bodies.named_entity.NamedEntityBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Original NER body. `type` is the entity tag (PER, ORG, LOC, …).
 
@@ -2142,7 +2142,7 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 ### *class* lacing.bodies.named_entity.NamedEntityBodyV2(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 v2 renames `type` -> `entity_type` and adds optional `confidence`.
 
@@ -2209,7 +2209,7 @@ consistency); reelee-web epic #151, lacing #9.
 
 ### *class* lacing.bodies.reference_lock.ReferenceLockBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Body of a reference-lock annotation.
 
@@ -2308,7 +2308,7 @@ alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Litera
 
 ### *class* lacing.bodies.review.ReviewBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Body of a review annotation.
 
@@ -2382,7 +2382,7 @@ default) while human/agent reviews land on `"review"`
 
 ### *class* lacing.bodies.review_candidate.ReviewCandidateBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Body of a review-candidate annotation.
 
@@ -2406,7 +2406,7 @@ URI: `annot://schema/word/v1`
 
 ### *class* lacing.bodies.word.WordBodyV1(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 A single word annotation.
 
@@ -3074,7 +3074,7 @@ The inverse relation.
 
 ### *class* lacing.Annotation(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 The single annotation envelope. `body` is typed by `body_schema_uri`.
 
@@ -3091,7 +3091,7 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 ### *class* lacing.AnnotationRef(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Reference to another annotation (for discussion threads, review, derivations).
 
@@ -3674,6 +3674,20 @@ Annotations whose interval shares any time with `query`.
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](_autosummary/lacing.model.html.md#lacing.model.Annotation)]
 
+#### lock(key)
+
+Exclusive lock named `key`, held for the `with` block.
+
+Scoped to this store’s data (for `PostgresStore`, its owner and
+project): holders of the same key exclude each other, different keys do
+not. The reach of the exclusion is the backend’s: `MemoryStore`
+excludes threads of this process, `SqliteStore` also other processes
+on the host, `PostgresStore` every client of the database, on any
+host. A holder that dies releases the lock. Not re-entrant.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 #### meets(query)
 
 Allen `m`: `a.end == q.start`.
@@ -3770,7 +3784,7 @@ for `SqliteStore`) can treat both alike; the store stays usable.
 
 ### *class* lacing.MediaRef(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Reference to a region of a content-addressed media asset.
 
@@ -3788,6 +3802,13 @@ Conforms to the protocol in `lacing.store.base`. We don’t formally
 inherit from `IntervalAnnotationStore` because it’s a `Protocol`
 with method bodies — structural typing is enough.
 
+#### lock(key)
+
+Exclusive lock named `key` among the threads of this process.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 ### *exception* lacing.MigrationError
 
 Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#RuntimeError)
@@ -3796,7 +3817,7 @@ Raised when a migration step is missing or fails.
 
 ### *class* lacing.NodeRef(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Reference to a node in a structured scene/document graph.
 
@@ -3894,7 +3915,7 @@ Raised when a registered processor’s invocation fails.
 
 ### *class* lacing.Provenance(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 W3C PROV-O subset, embedded inline on every annotation.
 
@@ -4108,6 +4129,18 @@ SQLite-backed `IntervalAnnotationStore`.
     Every open-time schema failure — refusal *or* failed migration
     — raises [`SchemaMismatchError`](_autosummary/lacing.html.md#lacing.SchemaMismatchError); a failed migration
     chains the ladder’s `StoreMigrationError` as its cause.
+
+#### lock(key)
+
+Exclusive lock named `key`: a file lock beside the database.
+
+Excludes other threads and other processes on this host that open the
+same `.annot` file; the kernel frees it if the holder dies. An
+in-memory database (`":memory:"`) has no file, so it falls back to a
+process-local lock.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 #### update(annotation)
 
@@ -4456,7 +4489,10 @@ Quick check: is OTel installed AND a TracerProvider configured?
 
 Return the JSON Schema for the body model registered at `uri`.
 
-Pydantic’s `model_json_schema()` output, unmodified.
+Pydantic’s `model_json_schema()` output, plus a `default` for every
+zero-argument `default_factory` field (see
+`lacing.json_schema.DefaultFactoryJsonSchema`), whatever base class
+the registered model has.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
@@ -4712,7 +4748,7 @@ and `.claude/skills/lacing-schema-codegen/SKILL.md`.
 
 ### *class* lacing.model.Annotation(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 The single annotation envelope. `body` is typed by `body_schema_uri`.
 
@@ -4729,7 +4765,7 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 ### *class* lacing.model.AnnotationRef(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Reference to another annotation (for discussion threads, review, derivations).
 
@@ -4751,7 +4787,7 @@ alias of `Annotated`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#st
 
 ### *class* lacing.model.MediaRef(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Reference to a region of a content-addressed media asset.
 
@@ -4761,7 +4797,7 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 ### *class* lacing.model.NodeRef(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 Reference to a node in a structured scene/document graph.
 
@@ -4771,7 +4807,7 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 ### *class* lacing.model.Provenance(\*\*data)
 
-Bases: `BaseModel`
+Bases: `SchemaModel`
 
 W3C PROV-O subset, embedded inline on every annotation.
 
@@ -5475,7 +5511,10 @@ Look up the registered Pydantic model for `uri`.
 
 Return the JSON Schema for the body model registered at `uri`.
 
-Pydantic’s `model_json_schema()` output, unmodified.
+Pydantic’s `model_json_schema()` output, plus a `default` for every
+zero-argument `default_factory` field (see
+`lacing.json_schema.DefaultFactoryJsonSchema`), whatever base class
+the registered model has.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
@@ -5665,6 +5704,20 @@ Annotations whose interval shares any time with `query`.
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](_autosummary/lacing.model.html.md#lacing.model.Annotation)]
 
+#### lock(key)
+
+Exclusive lock named `key`, held for the `with` block.
+
+Scoped to this store’s data (for `PostgresStore`, its owner and
+project): holders of the same key exclude each other, different keys do
+not. The reach of the exclusion is the backend’s: `MemoryStore`
+excludes threads of this process, `SqliteStore` also other processes
+on the host, `PostgresStore` every client of the database, on any
+host. A holder that dies releases the lock. Not re-entrant.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 #### meets(query)
 
 Allen `m`: `a.end == q.start`.
@@ -5851,6 +5904,20 @@ Annotations whose interval shares any time with `query`.
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](_autosummary/lacing.model.html.md#lacing.model.Annotation)]
 
+#### lock(key)
+
+Exclusive lock named `key`, held for the `with` block.
+
+Scoped to this store’s data (for `PostgresStore`, its owner and
+project): holders of the same key exclude each other, different keys do
+not. The reach of the exclusion is the backend’s: `MemoryStore`
+excludes threads of this process, `SqliteStore` also other processes
+on the host, `PostgresStore` every client of the database, on any
+host. A holder that dies releases the lock. Not re-entrant.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 #### meets(query)
 
 Allen `m`: `a.end == q.start`.
@@ -5963,6 +6030,13 @@ Conforms to the protocol in `lacing.store.base`. We don’t formally
 inherit from `IntervalAnnotationStore` because it’s a `Protocol`
 with method bodies — structural typing is enough.
 
+#### lock(key)
+
+Exclusive lock named `key` among the threads of this process.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 ### *exception* lacing.store.PgSchemaMismatchError
 
 Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#RuntimeError)
@@ -6012,6 +6086,20 @@ Add or update a tier.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### lock(key)
+
+Exclusive lock named `key` for this `(owner, project)`, across hosts.
+
+A session-level `pg_advisory_lock` keyed on a 64-bit hash of
+`owner_id` + `project_id` + `key`, taken on a dedicated connection
+(never the store’s own, which other threads and transactions share) and
+released in `finally`. If the holder crashes, Postgres drops the lock
+when its connection dies, so nothing can go stale. Blocks until
+available; not re-entrant.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 #### update(annotation)
 
 Replace the row with this id in ONE `UPDATE` statement (lacing#66).
@@ -6055,6 +6143,18 @@ SQLite-backed `IntervalAnnotationStore`.
     Every open-time schema failure — refusal *or* failed migration
     — raises [`SchemaMismatchError`](_autosummary/lacing.store.html.md#lacing.store.SchemaMismatchError); a failed migration
     chains the ladder’s `StoreMigrationError` as its cause.
+
+#### lock(key)
+
+Exclusive lock named `key`: a file lock beside the database.
+
+Excludes other threads and other processes on this host that open the
+same `.annot` file; the kernel frees it if the holder dies. An
+in-memory database (`":memory:"`) has no file, so it falls back to a
+process-local lock.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 #### update(annotation)
 
@@ -6166,11 +6266,97 @@ previous entry.
 
 | [`base`](_autosummary/lacing.store.base.html.md#module-lacing.store.base)             | `IntervalAnnotationStore` — the headline Pythonic API.                           |
 |--------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+| [`locking`](_autosummary/lacing.store.locking.html.md#module-lacing.store.locking)       | Named exclusive locks for stores: the mechanisms behind `store.lock(key)`.       |
 | [`mapping`](_autosummary/lacing.store.mapping.html.md#module-lacing.store.mapping)       | `MappingStore` — an `IntervalAnnotationStore` persisted to any `MutableMapping`. |
 | [`memory`](_autosummary/lacing.store.memory.html.md#module-lacing.store.memory)         | In-memory annotation store backed by an interval tree.                           |
 | [`migrations`](_autosummary/lacing.store.migrations.html.md#module-lacing.store.migrations) | Store-level schema migrations — the on-disk counterpart of the body ladder.      |
 | [`postgres`](_autosummary/lacing.store.postgres.html.md#module-lacing.store.postgres)     | PostgreSQL-backed annotation store using `int8range` + GiST.                     |
 | [`sqlite`](_autosummary/lacing.store.sqlite.html.md#module-lacing.store.sqlite)         | SQLite-backed annotation store and the `.annot` portable file format.            |
+
+
+# _autosummary/lacing.store.locking.html.md
+
+# lacing.store.locking
+
+Named exclusive locks for stores: the mechanisms behind `store.lock(key)`.
+
+`IntervalAnnotationStore.lock(key)` is an exclusive context manager scoped to
+one store (for `PostgresStore`: one `(owner, project)`). Each backend picks
+the narrowest mechanism that excludes every holder that can reach the same
+data: a process-local lock for `MemoryStore`, a file lock beside the database
+for `SqliteStore` (excludes other processes on the host too), a Postgres
+advisory lock for `PostgresStore` (excludes other hosts).
+
+Locks are *not* re-entrant: taking a lock you already hold blocks forever.
+
+### Module Attributes
+
+| [`KEY_DIGEST_BYTES`](_autosummary/lacing.store.locking.html.md#lacing.store.locking.KEY_DIGEST_BYTES)   | Bytes of the blake2b digest used to name a key (file name / advisory id).   |
+|---------------------------------------------------------------------|-----------------------------------------------------------------------------|
+
+### Functions
+
+| [`advisory_lock_id`](_autosummary/lacing.store.locking.html.md#lacing.store.locking.advisory_lock_id)(\*parts)       | A signed 64-bit integer for `parts`: the argument of `pg_advisory_lock`.     |
+|----------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [`file_lock`](_autosummary/lacing.store.locking.html.md#lacing.store.locking.file_lock)(path)                 | Exclusive lock on `path` (created if missing), held for the `with` block.    |
+| [`key_digest`](_autosummary/lacing.store.locking.html.md#lacing.store.locking.key_digest)(\*parts)             | Stable digest of `parts` (length-prefixed, so `("a", "bc") != ("ab", "c")`). |
+| [`sidecar_lock_path`](_autosummary/lacing.store.locking.html.md#lacing.store.locking.sidecar_lock_path)(db_path, key) | Lock file for `key` beside the database at `db_path`.                        |
+
+### Classes
+
+| [`NamedLocks`](_autosummary/lacing.store.locking.html.md#lacing.store.locking.NamedLocks)()   | Process-local named exclusive locks (a registry of `threading.Lock`).   |
+|-----------------------------------------------------------------|-------------------------------------------------------------------------|
+
+### lacing.store.locking.KEY_DIGEST_BYTES *= 8*
+
+Bytes of the blake2b digest used to name a key (file name / advisory id).
+
+### *class* lacing.store.locking.NamedLocks
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Process-local named exclusive locks (a registry of `threading.Lock`).
+
+### lacing.store.locking.advisory_lock_id(\*parts)
+
+A signed 64-bit integer for `parts`: the argument of `pg_advisory_lock`.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+```pycon
+>>> advisory_lock_id("o", "p", "k") == advisory_lock_id("o", "p", "k")
+True
+>>> advisory_lock_id("o", "p", "k") != advisory_lock_id("o", "p", "other")
+True
+>>> -2**63 <= advisory_lock_id("o", "p", "k") < 2**63
+True
+```
+
+### lacing.store.locking.file_lock(path)
+
+Exclusive lock on `path` (created if missing), held for the `with` block.
+
+A fresh file descriptor per call, so threads of one process exclude each
+other as well as other processes. The kernel drops the lock if the holder
+dies. The lock file is left in place (removing it would race a waiter).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
+### lacing.store.locking.key_digest(\*parts)
+
+Stable digest of `parts` (length-prefixed, so `("a", "bc") != ("ab", "c")`).
+
+* **Return type:**
+  [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes)
+
+### lacing.store.locking.sidecar_lock_path(db_path, key)
+
+Lock file for `key` beside the database at `db_path`.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 
 # _autosummary/lacing.store.mapping.html.md
@@ -6319,6 +6505,13 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 Conforms to the protocol in `lacing.store.base`. We don’t formally
 inherit from `IntervalAnnotationStore` because it’s a `Protocol`
 with method bodies — structural typing is enough.
+
+#### lock(key)
+
+Exclusive lock named `key` among the threads of this process.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 
 # _autosummary/lacing.store.migrations.html.md
@@ -6644,6 +6837,20 @@ Add or update a tier.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### lock(key)
+
+Exclusive lock named `key` for this `(owner, project)`, across hosts.
+
+A session-level `pg_advisory_lock` keyed on a 64-bit hash of
+`owner_id` + `project_id` + `key`, taken on a dedicated connection
+(never the store’s own, which other threads and transactions share) and
+released in `finally`. If the holder crashes, Postgres drops the lock
+when its connection dies, so nothing can go stale. Blocks until
+available; not re-entrant.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 #### update(annotation)
 
 Replace the row with this id in ONE `UPDATE` statement (lacing#66).
@@ -6825,6 +7032,18 @@ SQLite-backed `IntervalAnnotationStore`.
     Every open-time schema failure — refusal *or* failed migration
     — raises [`SchemaMismatchError`](_autosummary/lacing.store.sqlite.html.md#lacing.store.sqlite.SchemaMismatchError); a failed migration
     chains the ladder’s `StoreMigrationError` as its cause.
+
+#### lock(key)
+
+Exclusive lock named `key`: a file lock beside the database.
+
+Excludes other threads and other processes on this host that open the
+same `.annot` file; the kernel frees it if the holder dies. An
+in-memory database (`":memory:"`) has no file, so it falls back to a
+process-local lock.
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 #### update(annotation)
 
@@ -7475,18 +7694,20 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-10-14 12:56 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/a3ee3cf3425665660b26dad778c66d06eb5103c2"><code>a3ee3cf</code></a> on branch <code>main</code>, for **lacing 0.0.52** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 13:03 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/e98578f9a6336f47578b0d11da09918fd15ecd3a"><code>e98578f</code></a> on branch <code>main</code>, for **lacing 0.0.53** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.53) is behind the latest release on PyPI (0.0.54): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/a3ee3cf3425665660b26dad778c66d06eb5103c2"><code>a3ee3cf3425665660b26dad778c66d06eb5103c2</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/e98578f9a6336f47578b0d11da09918fd15ecd3a"><code>e98578f9a6336f47578b0d11da09918fd15ecd3a</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
-| Tags at this commit | <code>0.0.52</code>                                                                                                                                    |
+| Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
 | Remote              | <code>https://github.com/reeleehq/lacing</code>                                                                                                        |
 
@@ -7495,9 +7716,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/38567420078">38567420078</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/38568282872">38568282872</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>39645a6ceb6d20d1219613306df9ddadf9c2f478</code> (in the history of the built commit) |
+| Event commit | <code>e98578f9a6336f47578b0d11da09918fd15ecd3a</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -7522,13 +7743,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.52/">0.0.52</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.54/">0.0.54</a>, newer than the documented version (0.0.53).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout a3ee3cf3425665660b26dad778c66d06eb5103c2
+git checkout e98578f9a6336f47578b0d11da09918fd15ecd3a
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
