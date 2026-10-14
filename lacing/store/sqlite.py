@@ -38,6 +38,7 @@ import sqlite3
 import threading
 import time as _time
 from collections.abc import Iterable, Iterator
+from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -59,6 +60,7 @@ from lacing.model import (
     Provenance,
     Reference,
 )
+from lacing.store.locking import NamedLocks, file_lock, sidecar_lock_path
 from lacing.tier import Tier, TierStereotype
 from lacing.time import RationalTime, TimeInterval
 
@@ -164,6 +166,7 @@ class SqliteStore:
     ) -> None:
         self._path = path
         self._lock = threading.RLock()
+        self._named_locks = NamedLocks()
         self._conn = sqlite3.connect(
             os.fspath(path),
             check_same_thread=check_same_thread,
@@ -241,6 +244,20 @@ class SqliteStore:
 
     def __exit__(self, *exc) -> None:
         self.close()
+
+    # --- named lock -----------------------------------------------------
+
+    def lock(self, key: str) -> AbstractContextManager[None]:
+        """Exclusive lock named ``key``: a file lock beside the database.
+
+        Excludes other threads and other processes on this host that open the
+        same ``.annot`` file; the kernel frees it if the holder dies. An
+        in-memory database (``":memory:"``) has no file, so it falls back to a
+        process-local lock.
+        """
+        if os.fspath(self._path) in (":memory:", ""):
+            return self._named_locks(key)
+        return file_lock(sidecar_lock_path(self._path, key))
 
     # --- meta -----------------------------------------------------------
 

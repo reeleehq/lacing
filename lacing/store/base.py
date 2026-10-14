@@ -12,6 +12,7 @@ The facade hides the index. Phase 0 ships ``MemoryStore`` over
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
+from contextlib import AbstractContextManager
 from typing import Protocol, runtime_checkable
 
 from lacing.allen import AllenRelation
@@ -68,6 +69,18 @@ class IntervalAnnotationStore(Protocol):
 
     def all(self) -> Iterator[Annotation]:
         """Iterate every annotation in the store, order unspecified."""
+        ...
+
+    def lock(self, key: str) -> AbstractContextManager[None]:
+        """Exclusive lock named ``key``, held for the ``with`` block.
+
+        Scoped to this store's data (for ``PostgresStore``, its owner and
+        project): holders of the same key exclude each other, different keys do
+        not. The reach of the exclusion is the backend's: ``MemoryStore``
+        excludes threads of this process, ``SqliteStore`` also other processes
+        on the host, ``PostgresStore`` every client of the database, on any
+        host. A holder that dies releases the lock. Not re-entrant.
+        """
         ...
 
     # --- Allen-relation queries ---------------------------------------------

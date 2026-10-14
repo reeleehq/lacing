@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Iterable, Iterator
+from contextlib import AbstractContextManager
 from fractions import Fraction
 from uuid import UUID
 
@@ -17,6 +18,7 @@ from intervaltree import Interval, IntervalTree
 
 from lacing.allen import PREDICATE_BY_RELATION, AllenRelation
 from lacing.model import Annotation
+from lacing.store.locking import NamedLocks
 from lacing.tier import Tier
 from lacing.time import TimeInterval
 
@@ -43,6 +45,7 @@ class MemoryStore:
         # Serialises writers and the snapshots readers take, so ``update`` is
         # atomic for a reader on another thread (lacing#66).
         self._lock = threading.RLock()
+        self._named_locks = NamedLocks()
         self._tree: IntervalTree = IntervalTree()
         # interval-keyed bucket: (start_frac, end_frac) -> list of annotations
         self._buckets: dict[tuple[Fraction, Fraction], list[Annotation]] = {}
@@ -121,6 +124,10 @@ class MemoryStore:
     def __len__(self) -> int:
         with self._lock:
             return sum(1 for ann_list in self._buckets.values() if ann_list)
+
+    def lock(self, key: str) -> AbstractContextManager[None]:
+        """Exclusive lock named ``key`` among the threads of this process."""
+        return self._named_locks(key)
 
     # --- annotation-level convenience ---------------------------------------
 
