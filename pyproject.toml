@@ -117,7 +117,9 @@ exhibit = [
     # carries the in-document artifact↔artifact anchor links through to
     # clickable PDF links.
     "weasyprint>=60",
-    "dn>=0.1",
+    # dn.html_to_markdown needs markdownify (dn's ``html`` extra); 0.0.15 is the
+    # first dn release that uses markdownify (MIT) instead of html2text (GPL).
+    "dn[html]>=0.0.15",
 ]
 
 [tool.ruff]
