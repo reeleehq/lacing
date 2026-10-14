@@ -5,12 +5,13 @@ URI: ``annot://schema/word/v1``
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from lacing.json_schema import SchemaModel
 from lacing.schema import register_body_schema
 
 
-class WordBodyV1(BaseModel):
+class WordBodyV1(SchemaModel):
     """A single word annotation.
 
     The ``text`` is the surface form as it appears in the source media.

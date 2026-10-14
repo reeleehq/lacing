@@ -121,6 +121,7 @@
     },
     "params": {
       "additionalProperties": true,
+      "default": {},
       "description": "Opaque per-aspect config (e.g. per-aspect thresholds). Ignored by lacing; consumed by the producing supervisor.",
       "title": "Params",
       "type": "object"

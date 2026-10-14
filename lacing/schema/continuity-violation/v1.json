@@ -78,6 +78,7 @@
     },
     "evidence": {
       "additionalProperties": true,
+      "default": {},
       "description": "Rule-specific evidence (e.g. eyeline vectors, bbox set diffs). Opaque to lacing; consumed by the inspector.",
       "title": "Evidence",
       "type": "object"

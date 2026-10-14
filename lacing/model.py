@@ -10,9 +10,10 @@ from __future__ import annotations
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field, field_validator
 
 from lacing.digest import reject_non_string_keys
+from lacing.json_schema import SchemaModel
 from lacing.time import RationalTime, TimeInterval
 
 
@@ -22,7 +23,7 @@ from lacing.time import RationalTime, TimeInterval
 # annotation (annotating another annotation — for review/discussion threads).
 
 
-class MediaRef(BaseModel):
+class MediaRef(SchemaModel):
     """Reference to a region of a content-addressed media asset."""
 
     model_config = {"frozen": True, "extra": "forbid"}
@@ -34,7 +35,7 @@ class MediaRef(BaseModel):
     interval: TimeInterval = Field(..., description="Region within the asset.")
 
 
-class NodeRef(BaseModel):
+class NodeRef(SchemaModel):
     """Reference to a node in a structured scene/document graph."""
 
     model_config = {"frozen": True, "extra": "forbid"}
@@ -48,7 +49,7 @@ class NodeRef(BaseModel):
     )
 
 
-class AnnotationRef(BaseModel):
+class AnnotationRef(SchemaModel):
     """Reference to another annotation (for discussion threads, review, derivations)."""
 
     model_config = {"frozen": True, "extra": "forbid"}
@@ -131,7 +132,7 @@ a tick-0 annotation against a real timestamp.
 """
 
 
-class Provenance(BaseModel):
+class Provenance(SchemaModel):
     """W3C PROV-O subset, embedded inline on every annotation."""
 
     model_config = {"frozen": True, "extra": "forbid"}
@@ -188,7 +189,7 @@ class Provenance(BaseModel):
 # --- Annotation envelope -----------------------------------------------------
 
 
-class Annotation(BaseModel):
+class Annotation(SchemaModel):
     """The single annotation envelope. ``body`` is typed by ``body_schema_uri``."""
 
     model_config = {"frozen": True, "extra": "forbid"}

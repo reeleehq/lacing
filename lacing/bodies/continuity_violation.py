@@ -23,8 +23,9 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from lacing.json_schema import SchemaModel
 from lacing.schema import register_body_schema
 
 
@@ -44,7 +45,7 @@ SuggestedAction = Literal[
 Transforms pick one; the FE wires each to a button + acture command."""
 
 
-class ContinuityViolationBodyV1(BaseModel):
+class ContinuityViolationBodyV1(SchemaModel):
     """Body of a continuity-violation annotation."""
 
     model_config = {"frozen": True, "extra": "forbid"}
