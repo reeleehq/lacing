@@ -42,8 +42,9 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import Field, model_validator
 
+from lacing.json_schema import SchemaModel
 from lacing.schema import register_body_schema
 
 
@@ -62,7 +63,7 @@ re-locked for one scene/segment (flashback, costume change); requires
 ``scope_ref``."""
 
 
-class ReferenceLockBodyV1(BaseModel):
+class ReferenceLockBodyV1(SchemaModel):
     """Body of a reference-lock annotation.
 
     Records that ``locked_artifact_ids`` are the canonical anchor for

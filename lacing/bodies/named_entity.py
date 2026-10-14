@@ -9,12 +9,13 @@ A v1 -> v2 migration is registered to demonstrate the pattern.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from lacing.json_schema import SchemaModel
 from lacing.schema import register_body_schema, register_migration
 
 
-class NamedEntityBodyV1(BaseModel):
+class NamedEntityBodyV1(SchemaModel):
     """Original NER body. ``type`` is the entity tag (PER, ORG, LOC, ...)."""
 
     model_config = {"frozen": True, "extra": "forbid"}
@@ -23,7 +24,7 @@ class NamedEntityBodyV1(BaseModel):
     text: str = Field(..., description="Surface form of the entity mention.")
 
 
-class NamedEntityBodyV2(BaseModel):
+class NamedEntityBodyV2(SchemaModel):
     """v2 renames ``type`` -> ``entity_type`` and adds optional ``confidence``.
 
     The rename makes v2 incompatible with v1, so we register a migration.

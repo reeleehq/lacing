@@ -18,6 +18,7 @@
       "type": "string"
     },
     "target_annotation_ids": {
+      "default": [],
       "description": "Annotation ids this review targets. Typically one, but continuity reviews carry the same ids as the underlying ContinuityViolationBodyV1.",
       "items": {
         "type": "string"

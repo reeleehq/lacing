@@ -40,8 +40,9 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from lacing.json_schema import SchemaModel
 from lacing.schema import register_body_schema
 
 
@@ -89,7 +90,7 @@ the next write can move. Recovering "was this accepted?" by dereferencing
 a live value is exactly the coupling that made lacing#18 possible."""
 
 
-class ReviewBodyV1(BaseModel):
+class ReviewBodyV1(SchemaModel):
     """Body of a review annotation."""
 
     model_config = {"frozen": True, "extra": "forbid"}

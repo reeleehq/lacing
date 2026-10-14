@@ -28,15 +28,16 @@ default) while human/agent reviews land on ``"review"``
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+from lacing.json_schema import SchemaModel
 from lacing.schema import register_body_schema
 
 
 REVIEW_CANDIDATE_BODY_SCHEMA_URI = "annot://schema/review-candidate/v1"
 
 
-class ReviewCandidateBodyV1(BaseModel):
+class ReviewCandidateBodyV1(SchemaModel):
     """Body of a review-candidate annotation."""
 
     model_config = {"frozen": True, "extra": "forbid"}

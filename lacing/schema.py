@@ -50,6 +50,8 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
+from lacing.json_schema import DefaultFactoryJsonSchema
+
 
 # ---------------------------------------------------------------------------
 # URI parsing
@@ -157,9 +159,14 @@ def validate(body: dict, uri: str) -> BaseModel:
 def json_schema(uri: str) -> dict:
     """Return the JSON Schema for the body model registered at ``uri``.
 
-    Pydantic's ``model_json_schema()`` output, unmodified.
+    Pydantic's ``model_json_schema()`` output, plus a ``default`` for every
+    zero-argument ``default_factory`` field (see
+    :class:`lacing.json_schema.DefaultFactoryJsonSchema`), whatever base class
+    the registered model has.
     """
-    return get_body_schema(uri).model_json_schema()
+    return get_body_schema(uri).model_json_schema(
+        schema_generator=DefaultFactoryJsonSchema
+    )
 
 
 class EmptySchemaRegistryError(RuntimeError):
