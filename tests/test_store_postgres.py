@@ -818,3 +818,62 @@ class TestUpdate:
             t.join()
             reader_store.close()
         assert missing == []
+
+    def test_moving_update_under_concurrent_readers(self, postgres_store, postgresql):
+        """A moving ``update`` (interval changes each time) never opens a gap (lacing#68).
+
+        The reader looks for the id by whole-store scan *and* by an interval
+        query covering both places the annotation lives, so a gap in either the
+        row or the range index shows up.
+        """
+        import threading
+
+        info = postgresql.info
+        reader_store = PostgresStore(
+            {
+                "host": info.host,
+                "port": info.port,
+                "user": info.user,
+                "password": info.password or "",
+                "dbname": info.dbname,
+            },
+            rate=24000,
+            use_pool=False,
+        )
+        target = _ann(_ti(0, 2), text="0")
+        postgres_store.add(target)
+        everywhere = _ti(0, 100)
+        missing: list[str] = []
+        stop = threading.Event()
+
+        def reader():
+            try:
+                while not stop.is_set():
+                    if target.id not in {a.id for a in reader_store.all()}:
+                        missing.append("all()")
+                    if target.id not in {
+                        a.id for a in reader_store.intersects(everywhere)
+                    }:
+                        missing.append("intersects()")
+            except Exception as exc:  # noqa: BLE001 - a dead reader must fail the test
+                missing.append(f"reader died: {exc!r}")
+
+        t = threading.Thread(target=reader)
+        t.start()
+        try:
+            for i in range(1, 101):
+                iv = _ti(10, 12) if i % 2 else _ti(0, 2)
+                postgres_store.update(
+                    target.model_copy(
+                        update={
+                            "reference": MediaRef(asset_id="blake3:test", interval=iv),
+                            "body": {"text": str(i)},
+                        }
+                    )
+                )
+        finally:
+            stop.set()
+            t.join()
+            reader_store.close()
+        assert missing == []
+        assert [a.body["text"] for a in postgres_store.all()] == ["100"]
