@@ -151,3 +151,68 @@ def test_stores_with_a_lock_still_copy_and_pickle():
     for clone in (copy.deepcopy(s), pickle.loads(pickle.dumps(s))):
         assert [a.id for a in clone.all()] == [a.id for a in s.all()]
         clone.update(next(iter(clone.all())).model_copy(update={"body": {"text": "y"}}))
+
+
+@pytest.mark.parametrize("kind", ["memory", "mapping"])
+def test_iterating_while_update_moves_an_annotation(kind):
+    """``__iter__`` works from a snapshot: no "dictionary changed size" (lacing#68)."""
+    store = MemoryStore() if kind == "memory" else MappingStore({})
+    store.add_tier(Tier("words"))
+    target = _ann(_ti(0, 2), text="0")
+    store.add(target)
+    errors: list[BaseException] = []
+    stop = threading.Event()
+
+    def iterator():
+        try:
+            while not stop.is_set():
+                list(store)
+                len(store)
+        except Exception as exc:  # noqa: BLE001 - reported by the assert below
+            errors.append(exc)
+
+    old_interval = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)
+    t = threading.Thread(target=iterator)
+    t.start()
+    try:
+        for i in range(1, N_REPLACEMENTS + 1):
+            # A fresh interval each time grows and shrinks the bucket dict.
+            store.update(_ann(_ti(10 * i, 10 * i + 2), id=target.id, text=str(i)))
+    finally:
+        stop.set()
+        t.join()
+        sys.setswitchinterval(old_interval)
+    assert errors == []
+
+
+def test_mapping_store_delitem_and_setitem_vs_update_keep_mapping_consistent():
+    """A racing ``update`` must not bring a deleted key back in the mapping (lacing#68)."""
+    backing: dict = {}
+    store = MappingStore(backing)
+    iv = _ti(0, 2)
+    old_interval = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)
+    try:
+        for _ in range(100):
+            target = _ann(iv, text="0")
+            store[iv] = [target]
+            stop = threading.Event()
+
+            def updater():
+                while not stop.is_set():
+                    try:
+                        store.update(_ann(iv, id=target.id, text="u"))
+                    except KeyError:
+                        return  # deleted: update must refuse from here on
+
+            t = threading.Thread(target=updater)
+            t.start()
+            del store[iv]
+            stop.set()
+            t.join()
+            ids_in_store = {str(a.id) for a in store.all()}
+            ids_in_mapping = {k for k in backing if k != store._tiers_key}
+            assert ids_in_mapping == ids_in_store == set()
+    finally:
+        sys.setswitchinterval(old_interval)
