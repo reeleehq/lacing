@@ -540,6 +540,7 @@ class ArtifactStore(MutableMapping):
         *,
         record_type: type[BaseModel] = Artifact,
         blob_delete_func: Callable[[str], Any] | None = None,
+        catalog_delete_func: Callable[[str], Any] | None = None,
     ) -> ArtifactStore:
         """An ArtifactStore persisted under ``root``.
 
@@ -565,6 +566,10 @@ class ArtifactStore(MutableMapping):
                 path. ``None`` keeps ``dol.Files``' default (move to the OS
                 trash); pass ``os.remove`` when blobs are derived data and a
                 delete should free the disk.
+            catalog_delete_func: The same for the catalog's record files.
+                ``None`` keeps ``dol.Files``' default (move to the OS trash,
+                a sensible default for records); pass ``os.remove`` for a
+                delete that is final.
         """
         root = Path(root)
         catalog_dir = root / "catalog"
@@ -574,7 +579,9 @@ class ArtifactStore(MutableMapping):
 
         catalog = wrap_kvs(
             filt_iter(
-                _ContainedDirStore(Files(str(catalog_dir))),
+                _ContainedDirStore(
+                    Files(str(catalog_dir), delete_func=catalog_delete_func)
+                ),
                 filt=lambda k: k.endswith(".json"),
             ),
             id_of_key=lambda artifact_id: f"{artifact_id}.json",
