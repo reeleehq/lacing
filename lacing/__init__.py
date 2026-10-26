@@ -50,6 +50,7 @@ from lacing.schema import (
     export_json_schemas,
     json_schema,
     migrate,
+    on_register,
     register_body_schema,
     register_migration,
     validate as validate_body,
@@ -163,6 +164,7 @@ __all__ = [
     "boundary_iou",
     # schema
     "register_body_schema",
+    "on_register",
     "body_locations",
     "Location",
     "LocationKind",

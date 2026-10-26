@@ -96,6 +96,9 @@ def make_uri(name: str, version: int) -> str:
 # uri -> Pydantic model class
 _BODY_REGISTRY: dict[str, type[BaseModel]] = {}
 
+# callbacks told about every (re-)registration; see on_register
+_REGISTER_LISTENERS: list[Callable[[str, type[BaseModel]], None]] = []
+
 
 class BodySchemaError(ValueError):
     """Raised when a body fails validation against its registered schema."""
@@ -114,7 +117,46 @@ def register_body_schema(uri: str, model: type[BaseModel]) -> type[BaseModel]:
             f"got {model!r}"
         )
     _BODY_REGISTRY[uri] = model
+    for listener in tuple(_REGISTER_LISTENERS):
+        listener(uri, model)
     return model
+
+
+def on_register(
+    listener: Callable[[str, type[BaseModel]], None], *, replay: bool = True
+) -> Callable[[], None]:
+    """Call ``listener(uri, model)`` whenever a body schema is registered.
+
+    For consumers that keep a process-wide view derived from the registry (e.g. one
+    vocabulary of :func:`body_locations` over every schema) and so must hear about
+    schemas registered after they first looked. With ``replay`` (default) the
+    listener is first called for every schema already registered, so subscribing
+    late loses nothing. Re-registering a URI notifies again. :func:`clear_registry`
+    does not notify and keeps the listeners.
+
+    Returns a zero-argument function that unsubscribes the listener.
+
+    >>> seen = []
+    >>> off = on_register(lambda uri, model: seen.append(uri), replay=False)
+    >>> class _B(BaseModel):
+    ...     pass
+    >>> _ = register_body_schema("annot://schema/doctest-on-register/v1", _B)
+    >>> seen
+    ['annot://schema/doctest-on-register/v1']
+    >>> off()
+    >>> _BODY_REGISTRY.pop("annot://schema/doctest-on-register/v1").__name__
+    '_B'
+    """
+    if replay:
+        for uri, model in tuple(_BODY_REGISTRY.items()):
+            listener(uri, model)
+    _REGISTER_LISTENERS.append(listener)
+
+    def unsubscribe() -> None:
+        if listener in _REGISTER_LISTENERS:
+            _REGISTER_LISTENERS.remove(listener)
+
+    return unsubscribe
 
 
 def get_body_schema(uri: str) -> type[BaseModel]:

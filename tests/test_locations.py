@@ -123,3 +123,31 @@ def test_same_name_with_two_kinds_across_models_is_an_error():
 def test_unknown_kind_is_refused():
     with pytest.raises(ValueError, match="kind must be"):
         Location("ftp")
+
+
+def test_on_register_hears_later_registrations_and_replays(registered):
+    seen = {}
+    off = lacing.on_register(lambda uri, model: seen.__setitem__(uri, model))
+    assert seen[URI] is Body  # replay of what was already registered
+    other = "annot://schema/loc-demo-late/v1"
+    try:
+        register_body_schema(other, Body)
+        assert seen[other] is Body
+        off()
+        off()  # idempotent
+        seen.clear()
+        register_body_schema(other, Body)
+        assert seen == {}
+    finally:
+        _BODY_REGISTRY.pop(other, None)
+
+
+def test_on_register_without_replay_is_quiet_until_registration(registered):
+    seen = []
+    off = lacing.on_register(lambda uri, model: seen.append(uri), replay=False)
+    try:
+        assert seen == []
+        register_body_schema(URI, Body)
+        assert seen == [URI]
+    finally:
+        off()
