@@ -103,6 +103,71 @@ def test_v1_scheme_still_digests_the_whole_body(registered):
     assert annotation_value_digest(before, scheme=V1) != annotation_value_digest(before)
 
 
+# captured on main (before this change) for the annotation built in test below
+GOLDEN_V1 = "525649d43ad4d09ade4f128a22778a90b619eff50eb0aec69f86f4933568426e"
+
+
+def test_v1_digest_is_unchanged_and_unmarked_bodies_keep_it():
+    from uuid import UUID
+
+    ann = _ann({"images": [{"artifact_id": "a1", "asset_id": "h"}]}).model_copy(
+        update={
+            "id": UUID(int=1),
+            "provenance": Provenance(
+                was_generated_by="agent:m@1",
+                was_attributed_to="thor",
+                generated_at_time=RationalTime(5),
+            ),
+        }
+    )
+    assert annotation_value_digest(ann, scheme=V1) == GOLDEN_V1
+    assert annotation_value_digest(ann) == GOLDEN_V1  # URI unregistered: no marker
+
+
+def test_registration_rejects_a_bad_marker():
+    class Bad(BaseModel):
+        a: Annotated[str, Derived("missing")] = ""
+
+    with pytest.raises(ValueError, match="non-derived"):
+        register_body_schema("annot://schema/derived-bad/v1", Bad)
+    assert "annot://schema/derived-bad/v1" not in schema_module._BODY_REGISTRY
+
+
+class _Other(BaseModel):
+    artifact_id: str = ""
+    asset_id: str = ""
+
+
+def test_union_excludes_only_what_every_alternative_marks():
+    class U(BaseModel):
+        img: Image | _Other | None = None
+
+    class Same(BaseModel):
+        img: Image | Image | None = None
+
+    assert derived_paths(U) == frozenset()
+    assert derived_paths(Same) == {("img", "asset_id")}
+
+
+def test_tuple_positions_must_agree():
+    class T(BaseModel):
+        pair: tuple[Image, _Other]
+
+    class T2(BaseModel):
+        pair: tuple[Image, Image]
+
+    assert derived_paths(T) == frozenset()
+    assert derived_paths(T2) == {("pair", None, "asset_id")}
+
+
+def test_map_values_are_not_walked_beside_declared_properties():
+    class M(BaseModel, extra="allow"):
+        meta: _Other = _Other()
+        __pydantic_extra__: dict[str, Image]
+
+    assert derived_paths(M) == frozenset()
+
+
 def test_does_not_mutate_the_annotation(registered):
     body = {"images": [{"artifact_id": "a1", "asset_id": "h"}]}
     ann = _ann(body)
@@ -120,9 +185,9 @@ def test_injected_resolver_wins():
     a = _ann({"x": 1, "y": 1}, uri="annot://schema/nope/v1")
     b = _ann({"x": 2, "y": 1}, uri="annot://schema/nope/v1")
     only_x = lambda uri: {("x",)}
-    assert annotation_value_digest(a, derived_paths=only_x) == annotation_value_digest(
-        b, derived_paths=only_x
-    )
+    assert annotation_value_digest(
+        a, resolve_derived=only_x
+    ) == annotation_value_digest(b, resolve_derived=only_x)
 
 
 def test_unknown_scheme_is_refused():

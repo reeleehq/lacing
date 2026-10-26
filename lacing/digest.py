@@ -234,10 +234,9 @@ VALUE_DIGEST_SCHEME = "lacing/annotation-value-digest/v2"
 :mod:`lacing.derived`); ``v1`` digested the whole body. A trace that recorded a
 ``v1`` digest is still verifiable: pass ``scheme="lacing/annotation-value-digest/v1"``."""
 
-VALUE_DIGEST_SCHEMES: tuple[str, ...] = (
-    "lacing/annotation-value-digest/v1",
-    VALUE_DIGEST_SCHEME,
-)
+_V1_SCHEME = "lacing/annotation-value-digest/v1"
+
+VALUE_DIGEST_SCHEMES: tuple[str, ...] = (_V1_SCHEME, VALUE_DIGEST_SCHEME)
 """Every scheme :func:`annotation_value_digest` can compute, oldest first. Only
 the latest excludes derived fields."""
 
@@ -249,7 +248,7 @@ def annotation_value_digest(
     annotation: "Annotation",
     *,
     scheme: str = VALUE_DIGEST_SCHEME,
-    derived_paths: Callable[[str], Collection[Sequence[str | None]]] | None = None,
+    resolve_derived: Callable[[str], Collection[Sequence[str | None]]] | None = None,
 ) -> str:
     """Return the SHA-256 hex digest of ``annotation``'s value.
 
@@ -259,9 +258,14 @@ def annotation_value_digest(
     body's :class:`lacing.Derived` fields (scheme ``v2`` onwards): a value
     derivable from another field of the body does not change what a render reads.
 
+    A body with no derived fields (no marker, or a schema that is not
+    registered) digests exactly as under ``v1``, so only marked schemas change
+    digest. The verifier must therefore have registered the same body schemas as
+    the producer, or it computes a different (stale-reading) digest.
+
     ``scheme`` selects which computation to run, so a digest recorded under an
     older scheme can be re-verified (see :data:`VALUE_DIGEST_SCHEMES`).
-    ``derived_paths`` maps a ``body_schema_uri`` to the paths to leave out; the
+    ``resolve_derived`` maps a ``body_schema_uri`` to the paths to leave out; the
     default reads the registered body schema (:func:`registered_derived_paths`),
     and a schema that is not registered excludes nothing.
 
@@ -315,8 +319,12 @@ def annotation_value_digest(
         )
     payload = _payload(annotation, VALUE_FIELDS)
     if scheme == VALUE_DIGEST_SCHEME:
-        resolve = derived_paths or registered_derived_paths
-        _drop_derived(payload["body"], resolve(annotation.body_schema_uri))
+        resolve = resolve_derived or registered_derived_paths
+        paths = resolve(annotation.body_schema_uri)
+        if paths:
+            _drop_derived(payload["body"], paths)
+        else:
+            scheme = _V1_SCHEME  # nothing to leave out: byte-identical to v1
     return _digest(scheme, payload)
 
 
@@ -407,10 +415,9 @@ def registered_derived_paths(uri: str) -> frozenset[tuple[str | None, ...]]:
 
 def _drop_derived(body: Any, paths: Collection[Sequence[str | None]]) -> None:
     """Delete ``paths`` from the (already dumped, hence private) ``body`` in place."""
-    if paths:
-        from lacing.derived import drop_paths
+    from lacing.derived import drop_paths
 
-        drop_paths(body, {tuple(path) for path in paths})
+    drop_paths(body, {tuple(path) for path in paths})
 
 
 def _payload(annotation: "Annotation", fields: Sequence[str]) -> dict[str, Any]:

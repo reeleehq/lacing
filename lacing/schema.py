@@ -122,6 +122,7 @@ def register_body_schema(uri: str, model: type[BaseModel]) -> type[BaseModel]:
             f"register_body_schema expects a Pydantic v2 BaseModel subclass; "
             f"got {model!r}"
         )
+    derived_paths(model)  # a bad Derived marker fails here, not on every digest
     with _REGISTRY_LOCK:
         _BODY_REGISTRY[uri] = model
         _notify(tuple(_REGISTER_LISTENERS.values()), uri, model)

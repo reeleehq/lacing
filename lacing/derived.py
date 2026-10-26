@@ -34,7 +34,13 @@ derivable would make two different values digest alike (a wrong cache hit):
   is refused, since "the sibling" would then be undefined).
 
 Paths are exact: only the marked field of the marked model is excluded, not
-every key of that name elsewhere in the body.
+every key of that name elsewhere in the body. Where a path is ambiguous it is
+dropped, never guessed: in a union (``A | B``) a field is excluded only if every
+object alternative marks it, tuple positions must agree, and the values of a map
+that also declares properties are not walked. A recursive model is walked one
+level only. Each of these costs at most a spurious cache miss, never a wrong hit.
+Field names and aliases are both read as spellings of a field, as in
+:func:`lacing.location_fields`.
 """
 
 from __future__ import annotations
@@ -56,8 +62,7 @@ ANY_ITEM = None
 
 _SCHEMA_MODES = ("validation", "serialization")
 _MARK = "x-derived"
-_COMBINATORS = ("anyOf", "oneOf", "allOf")
-_ITEM_KEYS = ("items", "prefixItems", "additionalProperties")
+_SCALAR_TYPES = ("null", "string", "number", "integer", "boolean")
 
 
 @dataclass(frozen=True)
@@ -108,13 +113,34 @@ def _collect(
             )
         else:
             out.add((*prefix, name))
-    for key in _COMBINATORS:
-        for member in node.get(key, ()):
-            _collect(member, defs, prefix, stack, out)
-    for key in _ITEM_KEYS:
-        sub = node.get(key)
-        for member in sub if isinstance(sub, list) else (sub,):
-            _collect(member, defs, (*prefix, ANY_ITEM), stack, out)
+    for member in node.get("allOf", ()):
+        _collect(member, defs, prefix, stack, out)
+    for key in ("anyOf", "oneOf"):
+        out |= _common(node.get(key, ()), defs, prefix, stack)
+    # One path per element is only sound if every element agrees, so a tuple's
+    # positions are intersected; a map's extra values are skipped when the
+    # object also declares properties (they would be told apart from them only
+    # by key name).
+    out |= _common(node.get("prefixItems", ()), defs, (*prefix, ANY_ITEM), stack)
+    if isinstance(node.get("items"), dict):
+        _collect(node["items"], defs, (*prefix, ANY_ITEM), stack, out)
+    extra = node.get("additionalProperties")
+    if isinstance(extra, dict) and not properties:
+        _collect(extra, defs, (*prefix, ANY_ITEM), stack, out)
+
+
+def _common(
+    members: Any, defs: dict, prefix: DerivedPath, stack: tuple[str, ...]
+) -> set[DerivedPath]:
+    """Paths marked by *every* non-scalar member (``A | B`` drops only what both mark)."""
+    per_member = []
+    for member in members:
+        if isinstance(member, dict) and member.get("type") in _SCALAR_TYPES:
+            continue  # a null / str / number alternative has no fields to confuse
+        found: set[DerivedPath] = set()
+        _collect(member, defs, prefix, stack, found)
+        per_member.append(found)
+    return set.intersection(*per_member) if per_member else set()
 
 
 @lru_cache(maxsize=256)
