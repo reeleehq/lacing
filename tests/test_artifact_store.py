@@ -859,3 +859,20 @@ class TestStreamingBlobWrites:
         content_hash = store.put_blob_stream((b"a", b"b", b"c"))
 
         assert store.get_blob(content_hash) == b"abc"
+
+
+def test_catalog_save_creates_missing_parent_of_nested_id(tmp_path: Path):
+    # lacing#84: dol's Files does not mkdir parents; the store must.
+    store, catalog_dir = _catalog_store(tmp_path)
+    art = _artifact()
+    store.save("n/deeper/x", art)
+    assert (catalog_dir / "n" / "deeper" / "x.json").is_file()
+    assert store["n/deeper/x"] == art
+
+
+def test_catalog_refused_id_creates_no_directory(tmp_path: Path):
+    store, catalog_dir = _catalog_store(tmp_path)
+    with pytest.raises(KeyError):
+        store.save("n/../../escape/x", _artifact())
+    assert not (catalog_dir / "n").exists()
+    assert not (tmp_path / "escape").exists()

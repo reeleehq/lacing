@@ -553,7 +553,8 @@ class ArtifactStore(MutableMapping):
         ``<id>.json`` would resolve outside it — ``..`` segments, an absolute
         path, a NUL, or a symlink pointing out — is refused with ``KeyError``
         on get, save and delete, and is simply not ``in`` the store. Nested
-        ids (``"a/b"``) that stay inside keep working, and listing never
+        ids (``"a/b"``) that stay inside keep working (``save`` creates the
+        missing parent directory), and listing never
         follows a symlinked directory out of ``catalog/``. See
         :class:`_ContainedDirStore`.
 
@@ -1044,6 +1045,9 @@ class _ContainedDirStore(MutableMapping):
             raise self._refuse(key, f"cannot be written ({error})") from error
         if not is_regular:
             raise self._refuse(key, "names something that is not a regular file")
+        # dol's Files does not create parent directories; ``target`` is already
+        # resolved inside rootdir, so creating its parents cannot escape.
+        Path(target).parent.mkdir(parents=True, exist_ok=True)
         self.store[contained] = value
 
     def __delitem__(self, key: str) -> None:
