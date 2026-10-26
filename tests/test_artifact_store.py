@@ -212,6 +212,24 @@ def test_from_directory_blob_delete_func_is_the_blob_stores_delete_policy(
     assert not path.exists()  # freed, not moved to the OS trash
 
 
+def test_from_directory_catalog_delete_func_is_the_catalogs_delete_policy(
+    tmp_path: Path,
+):
+    removed = []
+
+    def remove(path: str) -> None:
+        removed.append(path)
+        os.remove(path)
+
+    store = ArtifactStore.from_directory(tmp_path / "a", catalog_delete_func=remove)
+    store.save("rec", _artifact())
+    path = tmp_path / "a" / "catalog" / "rec.json"
+    assert path.exists()
+    del store.catalog["rec"]
+    assert len(removed) == 1 and removed[0].endswith("rec.json")
+    assert not path.exists()  # final, not moved to the OS trash
+
+
 # -- blob reads: containment (lacing#50) --------------------------------------
 #
 # ``from_directory(root)`` keeps blobs in ``root / "blobs"``, so an escaping
