@@ -142,6 +142,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable, Collection
 from typing import TYPE_CHECKING, Any, Sequence
 
 if TYPE_CHECKING:  # pragma: no cover - typing only, keeps this module import-light
@@ -155,7 +156,9 @@ __all__ = [
     "VALUE_FIELDS",
     "BODY_FIELDS",
     "VALUE_DIGEST_SCHEME",
+    "VALUE_DIGEST_SCHEMES",
     "BODY_DIGEST_SCHEME",
+    "registered_derived_paths",
 ]
 
 
@@ -224,19 +227,43 @@ Note what this drops, which is more than timing: the **entire** ``reference``
 ``tier`` and ``confidence``. Two annotations over different assets digest
 alike here."""
 
-VALUE_DIGEST_SCHEME = "lacing/annotation-value-digest/v1"
-"""Domain-separation tag mixed into :func:`annotation_value_digest`."""
+VALUE_DIGEST_SCHEME = "lacing/annotation-value-digest/v2"
+"""Domain-separation tag mixed into :func:`annotation_value_digest` by default.
+
+``v2`` leaves the body's :class:`lacing.Derived` fields out (see
+:mod:`lacing.derived`); ``v1`` digested the whole body. A trace that recorded a
+``v1`` digest is still verifiable: pass ``scheme="lacing/annotation-value-digest/v1"``."""
+
+VALUE_DIGEST_SCHEMES: tuple[str, ...] = (
+    "lacing/annotation-value-digest/v1",
+    VALUE_DIGEST_SCHEME,
+)
+"""Every scheme :func:`annotation_value_digest` can compute, oldest first. Only
+the latest excludes derived fields."""
 
 BODY_DIGEST_SCHEME = "lacing/annotation-body-digest/v1"
 """Domain-separation tag mixed into :func:`annotation_body_digest`."""
 
 
-def annotation_value_digest(annotation: "Annotation") -> str:
+def annotation_value_digest(
+    annotation: "Annotation",
+    *,
+    scheme: str = VALUE_DIGEST_SCHEME,
+    derived_paths: Callable[[str], Collection[Sequence[str | None]]] | None = None,
+) -> str:
     """Return the SHA-256 hex digest of ``annotation``'s value.
 
     Covers ``body``, ``body_schema_uri``, ``tier``, ``reference`` and
     ``confidence``. Excludes ``id`` and ``provenance``, so a regeneration that
-    produces identical content produces an identical digest.
+    produces identical content produces an identical digest. Also excludes the
+    body's :class:`lacing.Derived` fields (scheme ``v2`` onwards): a value
+    derivable from another field of the body does not change what a render reads.
+
+    ``scheme`` selects which computation to run, so a digest recorded under an
+    older scheme can be re-verified (see :data:`VALUE_DIGEST_SCHEMES`).
+    ``derived_paths`` maps a ``body_schema_uri`` to the paths to leave out; the
+    default reads the registered body schema (:func:`registered_derived_paths`),
+    and a schema that is not registered excludes nothing.
 
     Use this for freshness and early cutoff. For optimistic concurrency use
     :func:`lacing.server.etag.annotation_etag` instead — two digests, two
@@ -282,7 +309,15 @@ def annotation_value_digest(annotation: "Annotation") -> str:
     ... )
     False
     """
-    return _digest(VALUE_DIGEST_SCHEME, _payload(annotation, VALUE_FIELDS))
+    if scheme not in VALUE_DIGEST_SCHEMES:
+        raise ValueError(
+            f"unknown value digest scheme {scheme!r}; known: {VALUE_DIGEST_SCHEMES}"
+        )
+    payload = _payload(annotation, VALUE_FIELDS)
+    if scheme == VALUE_DIGEST_SCHEME:
+        resolve = derived_paths or registered_derived_paths
+        _drop_derived(payload["body"], resolve(annotation.body_schema_uri))
+    return _digest(scheme, payload)
 
 
 def annotation_body_digest(annotation: "Annotation") -> str:
@@ -355,7 +390,27 @@ def annotation_body_digest(annotation: "Annotation") -> str:
     return _digest(BODY_DIGEST_SCHEME, _payload(annotation, BODY_FIELDS))
 
 
+def registered_derived_paths(uri: str) -> frozenset[tuple[str | None, ...]]:
+    """The :class:`lacing.Derived` paths of the body schema registered at ``uri``.
+
+    Empty for an unregistered ``uri``: excluding less can only cost a spurious
+    miss, never a wrong hit. Imports :mod:`lacing.schema` on first use, so this
+    module stays stdlib-only at import time.
+    """
+    from lacing.schema import body_derived, is_registered
+
+    return body_derived(uri) if is_registered(uri) else frozenset()
+
+
 # --- internals ---------------------------------------------------------------
+
+
+def _drop_derived(body: Any, paths: Collection[Sequence[str | None]]) -> None:
+    """Delete ``paths`` from the (already dumped, hence private) ``body`` in place."""
+    if paths:
+        from lacing.derived import drop_paths
+
+        drop_paths(body, {tuple(path) for path in paths})
 
 
 def _payload(annotation: "Annotation", fields: Sequence[str]) -> dict[str, Any]:

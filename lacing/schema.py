@@ -7,6 +7,7 @@ module implements:
 - :func:`register_body_schema` — register a Pydantic v2 model for a schema URI.
 - :func:`validate` — validate an annotation's body dict against its schema.
 - :func:`body_locations` — which body fields hold urls/paths (``Location`` marker).
+- :func:`body_derived` — which body fields are derived from a sibling (``Derived`` marker).
 - :func:`json_schema` — get the JSON Schema for a registered URI.
 - :func:`export_json_schemas` — write all JSON Schema artifacts to disk
   (under ``lacing/schema/<name>/v<N>.json`` by default), the upstream
@@ -53,6 +54,7 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 
 from lacing.json_schema import DefaultFactoryJsonSchema
+from lacing.derived import DerivedPath, derived_paths
 from lacing.locations import LocationKind, location_fields
 
 
@@ -190,6 +192,12 @@ def body_locations(uri: str) -> dict[str, LocationKind]:
     """The location-marked fields of the body schema for ``uri``
     (see :mod:`lacing.locations`): ``{field spelling: "url" | "path"}``."""
     return location_fields(get_body_schema(uri))
+
+
+def body_derived(uri: str) -> frozenset[DerivedPath]:
+    """The ``Derived``-marked field paths of the body schema for ``uri``
+    (see :mod:`lacing.derived`)."""
+    return derived_paths(get_body_schema(uri))
 
 
 def is_registered(uri: str) -> bool:

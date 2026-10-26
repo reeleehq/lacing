@@ -40,6 +40,7 @@ from lacing.quality import (
     interval_iou,
     krippendorff_alpha,
 )
+from lacing.derived import Derived, derived_paths
 from lacing.locations import Location, LocationKind, location_fields
 from lacing.schema import (
     BodySchemaError,
@@ -167,6 +168,8 @@ __all__ = [
     "on_register",
     "body_locations",
     "Location",
+    "Derived",
+    "derived_paths",
     "LocationKind",
     "location_fields",
     "register_migration",
