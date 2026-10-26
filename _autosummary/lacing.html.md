@@ -17,34 +17,36 @@ full story. `.claude/skills/` contains the rules.
 
 ### Functions
 
-| [`hash_bytes`](#lacing.hash_bytes)(data)                                  | Return the canonical `asset_id` (SHA-256 hex) for `data`.               |
-|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| [`hash_file`](#lacing.hash_file)(path, \*[, chunk_size])                 | Return the canonical `asset_id` (SHA-256 hex) for the file at `path`.   |
-| [`annotation_value_digest`](#lacing.annotation_value_digest)(annotation)               | Return the SHA-256 hex digest of `annotation`'s value.                  |
-| [`annotation_body_digest`](#lacing.annotation_body_digest)(annotation)                | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.        |
-| [`register_store_migration`](#lacing.register_store_migration)(\*, store_kind, ...)     | Register a forward store migration from `from_version` to `to_version`. |
-| [`migrate_annot_file`](#lacing.migrate_annot_file)(path, \*[, to_version])        | Migrate a `.annot` file in place, returning `(from, to)` versions.      |
-| [`replay_oplog`](#lacing.replay_oplog)(log, \*[, until_clock, ...])         | Rebuild a store by replaying `log` up to (and including) `until_clock`. |
-| [`register_processor`](#lacing.register_processor)([func, name])                  | Register a processor under `name` (defaults to the function name).      |
-| [`registered_processors`](#lacing.registered_processors)()                           | Names of every registered processor, sorted.                            |
-| [`run_processor_async`](#lacing.run_processor_async)(name, \*, store, oplog, ...)  | Run a processor in the current event loop.                              |
-| [`run_processor_sync`](#lacing.run_processor_sync)(name, \*, store, oplog, ...)   | Run a processor synchronously and return its result.                    |
-| [`get_tracer`](#lacing.get_tracer)([name, version])                       | Return a tracer or a no-op fallback.                                    |
-| [`maybe_span`](#lacing.maybe_span)(tracer, name, \*\*attributes)          | Open a span on `tracer`, attaching `attributes` if supported.           |
-| [`traced`](#lacing.traced)(tracer[, span_name, record_args])          | Decorator: wrap a function in a span on `tracer`.                       |
-| [`instrument_otel`](#lacing.instrument_otel)(app, \*[, tracer_name])           | Add OpenTelemetry instrumentation to a FastAPI app.                     |
-| [`is_otel_active`](#lacing.is_otel_active)()                                  | Quick check: is OTel installed AND a TracerProvider configured?         |
-| [`cohen_kappa`](#lacing.cohen_kappa)(a, b)                                 | Cohen's kappa for two annotators on a categorical label.                |
-| [`krippendorff_alpha`](#lacing.krippendorff_alpha)(annotations, \*[, distance])   | Krippendorff's α across any number of annotators.                       |
-| [`interval_iou`](#lacing.interval_iou)(a, b)                                | Intersection-over-Union for two time intervals.                         |
-| [`boundary_iou`](#lacing.boundary_iou)(a, b)                                | Mean IoU between two sets of intervals via greedy best-match.           |
-| [`register_body_schema`](#lacing.register_body_schema)(uri, model)                  | Register `model` as the validator for `uri`.                            |
-| [`register_migration`](#lacing.register_migration)(\*, schema_name, ...)          | Register a forward migration from `v<from_version>` to `v<to_version>`. |
-| [`json_schema`](#lacing.json_schema)(uri)                                  | Return the JSON Schema for the body model registered at `uri`.          |
-| [`export_json_schemas`](#lacing.export_json_schemas)(target_dir, \*[, ...])        | Write every registered schema as JSON files under `target_dir`.         |
-| [`render_artifact_exhibit`](#lacing.render_artifact_exhibit)(annotations, \*, out_dir) | Render an annotation graph as a human-readable artifact exhibit.        |
-| [`migrate`](#lacing.migrate)(body, \*, from_uri, to_uri)               | Migrate `body` from `from_uri` to `to_uri` via registered steps.        |
-| [`validate_body`](#lacing.validate_body)(body, uri)                          | Validate `body` against the schema registered for `uri`.                |
+| [`hash_bytes`](#lacing.hash_bytes)(data)                                  | Return the canonical `asset_id` (SHA-256 hex) for `data`.                                                                                                                                    |
+|----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`hash_file`](#lacing.hash_file)(path, \*[, chunk_size])                 | Return the canonical `asset_id` (SHA-256 hex) for the file at `path`.                                                                                                                        |
+| [`annotation_value_digest`](#lacing.annotation_value_digest)(annotation)               | Return the SHA-256 hex digest of `annotation`'s value.                                                                                                                                       |
+| [`annotation_body_digest`](#lacing.annotation_body_digest)(annotation)                | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                                                                             |
+| [`register_store_migration`](#lacing.register_store_migration)(\*, store_kind, ...)     | Register a forward store migration from `from_version` to `to_version`.                                                                                                                      |
+| [`migrate_annot_file`](#lacing.migrate_annot_file)(path, \*[, to_version])        | Migrate a `.annot` file in place, returning `(from, to)` versions.                                                                                                                           |
+| [`replay_oplog`](#lacing.replay_oplog)(log, \*[, until_clock, ...])         | Rebuild a store by replaying `log` up to (and including) `until_clock`.                                                                                                                      |
+| [`register_processor`](#lacing.register_processor)([func, name])                  | Register a processor under `name` (defaults to the function name).                                                                                                                           |
+| [`registered_processors`](#lacing.registered_processors)()                           | Names of every registered processor, sorted.                                                                                                                                                 |
+| [`run_processor_async`](#lacing.run_processor_async)(name, \*, store, oplog, ...)  | Run a processor in the current event loop.                                                                                                                                                   |
+| [`run_processor_sync`](#lacing.run_processor_sync)(name, \*, store, oplog, ...)   | Run a processor synchronously and return its result.                                                                                                                                         |
+| [`get_tracer`](#lacing.get_tracer)([name, version])                       | Return a tracer or a no-op fallback.                                                                                                                                                         |
+| [`maybe_span`](#lacing.maybe_span)(tracer, name, \*\*attributes)          | Open a span on `tracer`, attaching `attributes` if supported.                                                                                                                                |
+| [`traced`](#lacing.traced)(tracer[, span_name, record_args])          | Decorator: wrap a function in a span on `tracer`.                                                                                                                                            |
+| [`instrument_otel`](#lacing.instrument_otel)(app, \*[, tracer_name])           | Add OpenTelemetry instrumentation to a FastAPI app.                                                                                                                                          |
+| [`is_otel_active`](#lacing.is_otel_active)()                                  | Quick check: is OTel installed AND a TracerProvider configured?                                                                                                                              |
+| [`cohen_kappa`](#lacing.cohen_kappa)(a, b)                                 | Cohen's kappa for two annotators on a categorical label.                                                                                                                                     |
+| [`krippendorff_alpha`](#lacing.krippendorff_alpha)(annotations, \*[, distance])   | Krippendorff's α across any number of annotators.                                                                                                                                            |
+| [`interval_iou`](#lacing.interval_iou)(a, b)                                | Intersection-over-Union for two time intervals.                                                                                                                                              |
+| [`boundary_iou`](#lacing.boundary_iou)(a, b)                                | Mean IoU between two sets of intervals via greedy best-match.                                                                                                                                |
+| [`register_body_schema`](#lacing.register_body_schema)(uri, model)                  | Register `model` as the validator for `uri`.                                                                                                                                                 |
+| [`body_locations`](#lacing.body_locations)(uri)                               | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`. |
+| [`location_fields`](#lacing.location_fields)(model)                            | `{field spelling: kind}` for the [`Location`](#lacing.Location)-marked fields of `model` and of the models nested in it.                                          |
+| [`register_migration`](#lacing.register_migration)(\*, schema_name, ...)          | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                      |
+| [`json_schema`](#lacing.json_schema)(uri)                                  | Return the JSON Schema for the body model registered at `uri`.                                                                                                                               |
+| [`export_json_schemas`](#lacing.export_json_schemas)(target_dir, \*[, ...])        | Write every registered schema as JSON files under `target_dir`.                                                                                                                              |
+| [`render_artifact_exhibit`](#lacing.render_artifact_exhibit)(annotations, \*, out_dir) | Render an annotation graph as a human-readable artifact exhibit.                                                                                                                             |
+| [`migrate`](#lacing.migrate)(body, \*, from_uri, to_uri)               | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                             |
+| [`validate_body`](#lacing.validate_body)(body, uri)                          | Validate `body` against the schema registered for `uri`.                                                                                                                                     |
 
 ### Classes
 
@@ -70,6 +72,7 @@ full story. `.claude/skills/` contains the rules.
 | [`OpLogEntry`](#lacing.OpLogEntry)(clock, operation, target_id, payload) | One row of the op-log.                                                         |
 | [`InMemoryOpLog`](#lacing.InMemoryOpLog)()                                  | Simple list-backed op-log.                                                     |
 | [`SqliteOpLog`](#lacing.SqliteOpLog)(path, \*[, check_same_thread])       | Op-log backed by a SQLite table.                                               |
+| [`Location`](#lacing.Location)(kind)                                   | Field marker: this body field holds a location of `kind`.                      |
 
 ### Exceptions
 
@@ -773,6 +776,12 @@ for a new one.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+### *class* lacing.Location(kind)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Field marker: this body field holds a location of `kind`.
+
 ### *exception* lacing.LossyTimeConversionError
 
 Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
@@ -1389,6 +1398,14 @@ False
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
+### lacing.body_locations(uri)
+
+The location-marked fields of the body schema for `uri`
+(see [`lacing.locations`](lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'url'`, `'path'`]]
+
 ### lacing.boundary_iou(a, b)
 
 Mean IoU between two sets of intervals via greedy best-match.
@@ -1541,6 +1558,18 @@ Krippendorff’s α across any number of annotators.
 * **Raises:**
   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – If sequences differ in length, fewer than 2 annotators
       given, or fewer than 2 paired observations exist.
+
+### lacing.location_fields(model)
+
+`{field spelling: kind}` for the [`Location`](#lacing.Location)-marked fields of `model`
+and of the models nested in it.
+
+Spellings are the property names of `model`’s JSON Schema in both modes,
+so a field’s name (`populate_by_name`), `alias`, `validation_alias` and `serialization_alias`
+all count. A name marked with two kinds is an error.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'url'`, `'path'`]]
 
 ### lacing.maybe_span(tracer, name, \*\*attributes)
 
@@ -1728,6 +1757,7 @@ or [`UnknownBodySchemaError`](#lacing.UnknownBodySchemaError) if the URI isn’t
 | [`cli`](lacing.cli.html.md#module-lacing.cli)                       | Command-line interface for lacing.                                        |
 | [`digest`](lacing.digest.html.md#module-lacing.digest)                 | Content digests over an annotation's *value* — the freshness primitive.   |
 | [`exhibit`](lacing.exhibit.html.md#module-lacing.exhibit)               | Artifact exhibit — render an annotation graph as a readable document.     |
+| [`locations`](lacing.locations.html.md#module-lacing.locations)           | Which body fields hold locations (urls, file paths).                      |
 | [`model`](lacing.model.html.md#module-lacing.model)                   | Annotation envelope, references, and provenance.                          |
 | [`oplog`](lacing.oplog.html.md#module-lacing.oplog)                   | Operation log for time-travel debug + audit.                              |
 | [`otel`](lacing.otel.html.md#module-lacing.otel)                     | Optional OpenTelemetry instrumentation for the lacing server.             |

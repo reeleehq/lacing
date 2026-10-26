@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=1c03bfdc"></script>
+    <script src="../_static/documentation_options.js?v=b87b3bc5"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.54" />
+  <meta name="docsearch:version" content="0.0.55" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -347,6 +347,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.cli.html">lacing.cli</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.digest.html">lacing.digest</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.exhibit.html">lacing.exhibit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.locations.html">lacing.locations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.model.html">lacing.model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.oplog.html">lacing.oplog</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.otel.html">lacing.otel</a></li>
@@ -444,6 +445,7 @@ module implements:</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#lacing.schema.register_body_schema" title="lacing.schema.register_body_schema"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_body_schema()</span></code></a> — register a Pydantic v2 model for a schema URI.</p></li>
 <li><p><a class="reference internal" href="#lacing.schema.validate" title="lacing.schema.validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">validate()</span></code></a> — validate an annotation’s body dict against its schema.</p></li>
+<li><p><a class="reference internal" href="#lacing.schema.body_locations" title="lacing.schema.body_locations"><code class="xref py py-func docutils literal notranslate"><span class="pre">body_locations()</span></code></a> — which body fields hold urls/paths (<code class="docutils literal notranslate"><span class="pre">Location</span></code> marker).</p></li>
 <li><p><a class="reference internal" href="#lacing.schema.json_schema" title="lacing.schema.json_schema"><code class="xref py py-func docutils literal notranslate"><span class="pre">json_schema()</span></code></a> — get the JSON Schema for a registered URI.</p></li>
 <li><p><a class="reference internal" href="#lacing.schema.export_json_schemas" title="lacing.schema.export_json_schemas"><code class="xref py py-func docutils literal notranslate"><span class="pre">export_json_schemas()</span></code></a> — write all JSON Schema artifacts to disk
 (under <code class="docutils literal notranslate"><span class="pre">lacing/schema/&lt;name&gt;/v&lt;N&gt;.json</span></code> by default), the upstream
@@ -479,46 +481,49 @@ registered migrations.</p></li>
 <p class="rubric">Functions</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.clear_registry" title="lacing.schema.clear_registry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clear_registry</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.body_locations" title="lacing.schema.body_locations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">body_locations</span></code></a>(uri)</p></td>
+<td><p>The location-marked fields of the body schema for <code class="docutils literal notranslate"><span class="pre">uri</span></code> (see <a class="reference internal" href="lacing.locations.html#module-lacing.locations" title="lacing.locations"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.locations</span></code></a>): <code class="docutils literal notranslate"><span class="pre">{field</span> <span class="pre">spelling:</span> <span class="pre">&quot;url&quot;</span> <span class="pre">|</span> <span class="pre">&quot;path&quot;}</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.clear_registry" title="lacing.schema.clear_registry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clear_registry</span></code></a>()</p></td>
 <td><p>Drop every registered body schema and migration.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.export_json_schemas" title="lacing.schema.export_json_schemas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_json_schemas</span></code></a>(target_dir, *[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.export_json_schemas" title="lacing.schema.export_json_schemas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_json_schemas</span></code></a>(target_dir, *[, ...])</p></td>
 <td><p>Write every registered schema as JSON files under <code class="docutils literal notranslate"><span class="pre">target_dir</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.get_body_schema" title="lacing.schema.get_body_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_body_schema</span></code></a>(uri)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.get_body_schema" title="lacing.schema.get_body_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_body_schema</span></code></a>(uri)</p></td>
 <td><p>Look up the registered Pydantic model for <code class="docutils literal notranslate"><span class="pre">uri</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_registered</span></code>(uri)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_registered</span></code>(uri)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.json_schema" title="lacing.schema.json_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">json_schema</span></code></a>(uri)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.json_schema" title="lacing.schema.json_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">json_schema</span></code></a>(uri)</p></td>
 <td><p>Return the JSON Schema for the body model registered at <code class="docutils literal notranslate"><span class="pre">uri</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.latest_version" title="lacing.schema.latest_version"><code class="xref py py-obj docutils literal notranslate"><span class="pre">latest_version</span></code></a>(schema_name)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.latest_version" title="lacing.schema.latest_version"><code class="xref py py-obj docutils literal notranslate"><span class="pre">latest_version</span></code></a>(schema_name)</p></td>
 <td><p>Highest registered major version for <code class="docutils literal notranslate"><span class="pre">schema_name</span></code>, or None.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.make_uri" title="lacing.schema.make_uri"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_uri</span></code></a>(name, version)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.make_uri" title="lacing.schema.make_uri"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_uri</span></code></a>(name, version)</p></td>
 <td><p>Build a <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code> from a name and major version.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.migrate" title="lacing.schema.migrate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">migrate</span></code></a>(body, *, from_uri, to_uri)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.migrate" title="lacing.schema.migrate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">migrate</span></code></a>(body, *, from_uri, to_uri)</p></td>
 <td><p>Migrate <code class="docutils literal notranslate"><span class="pre">body</span></code> from <code class="docutils literal notranslate"><span class="pre">from_uri</span></code> to <code class="docutils literal notranslate"><span class="pre">to_uri</span></code> via registered steps.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.migrate_to_latest" title="lacing.schema.migrate_to_latest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">migrate_to_latest</span></code></a>(body, *, from_uri)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.migrate_to_latest" title="lacing.schema.migrate_to_latest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">migrate_to_latest</span></code></a>(body, *, from_uri)</p></td>
 <td><p>Convenience: migrate to the highest registered version of the schema.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.parse_uri" title="lacing.schema.parse_uri"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_uri</span></code></a>(uri)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.parse_uri" title="lacing.schema.parse_uri"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_uri</span></code></a>(uri)</p></td>
 <td><p>Split <code class="docutils literal notranslate"><span class="pre">annot://schema/&lt;name&gt;/v&lt;major&gt;</span></code> into <code class="docutils literal notranslate"><span class="pre">(name,</span> <span class="pre">major)</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.register_body_schema" title="lacing.schema.register_body_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_body_schema</span></code></a>(uri, model)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.register_body_schema" title="lacing.schema.register_body_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_body_schema</span></code></a>(uri, model)</p></td>
 <td><p>Register <code class="docutils literal notranslate"><span class="pre">model</span></code> as the validator for <code class="docutils literal notranslate"><span class="pre">uri</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.register_migration" title="lacing.schema.register_migration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_migration</span></code></a>(*, schema_name, ...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.register_migration" title="lacing.schema.register_migration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_migration</span></code></a>(*, schema_name, ...)</p></td>
 <td><p>Register a forward migration from <code class="docutils literal notranslate"><span class="pre">v&lt;from_version&gt;</span></code> to <code class="docutils literal notranslate"><span class="pre">v&lt;to_version&gt;</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.registered_uris" title="lacing.schema.registered_uris"><code class="xref py py-obj docutils literal notranslate"><span class="pre">registered_uris</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.registered_uris" title="lacing.schema.registered_uris"><code class="xref py py-obj docutils literal notranslate"><span class="pre">registered_uris</span></code></a>()</p></td>
 <td><p>All currently registered <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code> values, sorted.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.validate" title="lacing.schema.validate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate</span></code></a>(body, uri)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.validate" title="lacing.schema.validate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate</span></code></a>(body, uri)</p></td>
 <td><p>Validate <code class="docutils literal notranslate"><span class="pre">body</span></code> against the schema registered for <code class="docutils literal notranslate"><span class="pre">uri</span></code>.</p></td>
 </tr>
 </tbody>
@@ -572,6 +577,18 @@ committed <code class="docutils literal notranslate"><span class="pre">v&lt;N&gt
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.schema.</span></span><span class="sig-name descname"><span class="pre">UnknownBodySchemaError</span></span><a class="reference internal" href="../_modules/lacing/schema.html#UnknownBodySchemaError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.schema.UnknownBodySchemaError" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#KeyError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyError</span></code></a></p>
 <p>Raised when an annotation’s body_schema_uri has no registered model.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.schema.body_locations">
+<span class="sig-prename descclassname"><span class="pre">lacing.schema.</span></span><span class="sig-name descname"><span class="pre">body_locations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uri</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/schema.html#body_locations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.schema.body_locations" title="Link to this definition">#</a></dt>
+<dd><p>The location-marked fields of the body schema for <code class="docutils literal notranslate"><span class="pre">uri</span></code>
+(see <a class="reference internal" href="lacing.locations.html#module-lacing.locations" title="lacing.locations"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.locations</span></code></a>): <code class="docutils literal notranslate"><span class="pre">{field</span> <span class="pre">spelling:</span> <span class="pre">&quot;url&quot;</span> <span class="pre">|</span> <span class="pre">&quot;path&quot;}</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'url'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'path'</span></span></code></span>]]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -802,6 +819,7 @@ or <a class="reference internal" href="#lacing.schema.UnknownBodySchemaError" ti
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.EmptySchemaRegistryError"><code class="docutils literal notranslate"><span class="pre">EmptySchemaRegistryError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.MigrationError"><code class="docutils literal notranslate"><span class="pre">MigrationError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.UnknownBodySchemaError"><code class="docutils literal notranslate"><span class="pre">UnknownBodySchemaError</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.body_locations"><code class="docutils literal notranslate"><span class="pre">body_locations()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.clear_registry"><code class="docutils literal notranslate"><span class="pre">clear_registry()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.export_json_schemas"><code class="docutils literal notranslate"><span class="pre">export_json_schemas()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.get_body_schema"><code class="docutils literal notranslate"><span class="pre">get_body_schema()</span></code></a></li>

@@ -29,6 +29,8 @@
       interval_iou
       boundary_iou
       register_body_schema
+      body_locations
+      location_fields
       register_migration
       json_schema
       export_json_schemas
@@ -61,6 +63,7 @@
       OpLogEntry
       InMemoryOpLog
       SqliteOpLog
+      Location
    
    .. rubric:: Exceptions
 
@@ -90,6 +93,7 @@
    cli
    digest
    exhibit
+   locations
    model
    oplog
    otel

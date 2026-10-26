@@ -29,6 +29,7 @@
 - [lacing.cli](lacing.cli.html.md): Command-line interface for lacing.
 - [lacing.digest](lacing.digest.html.md): Content digests over an annotation’s &#42;value&#42; — the freshness primitive.
 - [lacing.exhibit](lacing.exhibit.html.md): Artifact exhibit — render an annotation graph as a readable document.
+- [lacing.locations](lacing.locations.html.md): Which body fields hold locations (urls, file paths).
 - [lacing.model](lacing.model.html.md): Annotation envelope, references, and provenance.
 - [lacing.oplog](lacing.oplog.html.md): Operation log for time-travel debug + audit.
 - [lacing.otel](lacing.otel.html.md): Optional OpenTelemetry instrumentation for the lacing server.

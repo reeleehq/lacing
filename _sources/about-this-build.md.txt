@@ -5,19 +5,17 @@ orphan: true
 
 # About this build
 
-This documentation was built on **2026-10-26 13:09 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/f273af2a04995ecc13ce749ebcf394bdab6a632e"><code>f273af2</code></a> on branch <code>main</code>, for **lacing 0.0.54** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 15:16 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/c45fbc2de34776b745f69a8c13f8784511b6d6cf"><code>c45fbc2</code></a> on branch <code>main</code>, for **lacing 0.0.55** (from <code>pyproject.toml</code>).
 
-:::{warning}
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.54) is behind the latest release on PyPI (0.0.55): `pip install lacing` gives newer code than these docs describe.
+:::{note}
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 :::
 
 ## Source
 
 | | |
 |---|---|
-| Commit | <a href="https://github.com/reeleehq/lacing/commit/f273af2a04995ecc13ce749ebcf394bdab6a632e"><code>f273af2a04995ecc13ce749ebcf394bdab6a632e</code></a> |
+| Commit | <a href="https://github.com/reeleehq/lacing/commit/c45fbc2de34776b745f69a8c13f8784511b6d6cf"><code>c45fbc2de34776b745f69a8c13f8784511b6d6cf</code></a> |
 | Branch | <code>main</code> |
 | Tags at this commit | none |
 | Working tree | clean |
@@ -28,9 +26,9 @@ The documentation and the package may be misaligned:
 | | |
 |---|---|
 | Repository | <code>reeleehq/lacing</code> |
-| Run | <a href="https://github.com/reeleehq/lacing/actions/runs/40327750849">40327750849</a> |
+| Run | <a href="https://github.com/reeleehq/lacing/actions/runs/40347252093">40347252093</a> |
 | Ref | <code>refs/heads/main</code> |
-| Event commit | <code>f273af2a04995ecc13ce749ebcf394bdab6a632e</code> (in the history of the built commit) |
+| Event commit | <code>c45fbc2de34776b745f69a8c13f8784511b6d6cf</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -55,13 +53,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.55/">0.0.55</a>, newer than the documented version (0.0.54).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.55/">0.0.55</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout f273af2a04995ecc13ce749ebcf394bdab6a632e
+git checkout c45fbc2de34776b745f69a8c13f8784511b6d6cf
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

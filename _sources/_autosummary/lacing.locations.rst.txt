@@ -1,0 +1,18 @@
+lacing.locations
+================
+
+.. automodule:: lacing.locations
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      location_fields
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Location
+   
