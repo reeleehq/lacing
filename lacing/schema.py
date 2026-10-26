@@ -6,6 +6,7 @@ module implements:
 
 - :func:`register_body_schema` — register a Pydantic v2 model for a schema URI.
 - :func:`validate` — validate an annotation's body dict against its schema.
+- :func:`body_locations` — which body fields hold urls/paths (``Location`` marker).
 - :func:`json_schema` — get the JSON Schema for a registered URI.
 - :func:`export_json_schemas` — write all JSON Schema artifacts to disk
   (under ``lacing/schema/<name>/v<N>.json`` by default), the upstream
@@ -51,6 +52,7 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 
 from lacing.json_schema import DefaultFactoryJsonSchema
+from lacing.locations import LocationKind, location_fields
 
 
 # ---------------------------------------------------------------------------
@@ -120,6 +122,12 @@ def get_body_schema(uri: str) -> type[BaseModel]:
     if uri not in _BODY_REGISTRY:
         raise UnknownBodySchemaError(uri)
     return _BODY_REGISTRY[uri]
+
+
+def body_locations(uri: str) -> dict[str, LocationKind]:
+    """The location-marked fields of the body schema for ``uri``
+    (see :mod:`lacing.locations`): ``{field spelling: "url" | "path"}``."""
+    return location_fields(get_body_schema(uri))
 
 
 def is_registered(uri: str) -> bool:
