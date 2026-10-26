@@ -34,6 +34,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=37d13f4f" />
   
@@ -465,7 +466,7 @@ that carries the result is generic enough to live in lacing.</p>
 <p class="rubric">Classes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.bodies.continuity_violation.ContinuityViolationBodyV1" title="lacing.bodies.continuity_violation.ContinuityViolationBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContinuityViolationBodyV1</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.bodies.continuity_violation.ContinuityViolationBodyV1" title="lacing.bodies.continuity_violation.ContinuityViolationBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContinuityViolationBodyV1</span></code></a>(*, rule, ...[, ...])</p></td>
 <td><p>Body of a continuity-violation annotation.</p></td>
 </tr>
 </tbody>
@@ -473,7 +474,7 @@ that carries the result is generic enough to live in lacing.</p>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.bodies.continuity_violation.ContinuityViolationBodyV1">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.bodies.continuity_violation.</span></span><span class="sig-name descname"><span class="pre">ContinuityViolationBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/bodies/continuity_violation.html#ContinuityViolationBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.bodies.continuity_violation.ContinuityViolationBodyV1" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.bodies.continuity_violation.</span></span><span class="sig-name descname"><span class="pre">ContinuityViolationBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">severity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'warn'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detection_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detection_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suggested_fix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suggested_action</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'manual_edit'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evidence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/bodies/continuity_violation.html#ContinuityViolationBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.bodies.continuity_violation.ContinuityViolationBodyV1" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SchemaModel</span></code></p>
 <p>Body of a continuity-violation annotation.</p>
 <dl class="field-list simple">

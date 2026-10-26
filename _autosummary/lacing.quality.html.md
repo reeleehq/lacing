@@ -43,8 +43,8 @@ Unmatched intervals in either set contribute 0.0 to the mean.
 Cohen’s kappa for two annotators on a categorical label.
 
 * **Parameters:**
-  * **a** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))]) – Annotator A’s labels.
-  * **b** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))]) – Annotator B’s labels (must be the same length).
+  * **a** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[`T`]) – Annotator A’s labels.
+  * **b** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[`T`]) – Annotator B’s labels (must be the same length).
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
 * **Returns:**
@@ -71,10 +71,10 @@ if they don’t intersect (including when only one is a point).
 Krippendorff’s α across any number of annotators.
 
 * **Parameters:**
-  * **annotations** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))]]]) – A list of annotators, each a sequence of labels (one per
+  * **annotations** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`T`]]]) – A list of annotators, each a sequence of labels (one per
     unit). Use `None` for a missing annotation by that annotator on
     that unit.
-  * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable)), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
+  * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
     two label values. Default is the nominal (0/1) distance.
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)

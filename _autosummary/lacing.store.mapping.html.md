@@ -38,7 +38,10 @@ means there is nothing to flush, and the mapping is not ours to close).
 
 ## Concurrency
 
-**Single writer, no locking.** Unlike `SqliteStore` there is no cross-process
+**Single writer.** `store.lock(key)` excludes the threads of this process
+over the same mapping *object*: every `MappingStore` built over it shares its
+named locks (two wrappers over one folder or table are different objects and do
+not; nor does it reach other processes). Unlike `SqliteStore` there is no cross-process
 lock: the index is a snapshot taken at construction, so a second
 `MappingStore` over the same mapping (in this or another process) does not
 see the first one’s later writes, and two writers can overwrite each other’s

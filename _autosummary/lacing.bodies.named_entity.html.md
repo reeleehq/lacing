@@ -13,11 +13,11 @@ A v1 -> v2 migration is registered to demonstrate the pattern.
 
 ### Classes
 
-| [`NamedEntityBodyV1`](#lacing.bodies.named_entity.NamedEntityBodyV1)(\*\*data)   | Original NER body.                                                 |
-|--------------------------------------------------------------------------------|--------------------------------------------------------------------|
-| [`NamedEntityBodyV2`](#lacing.bodies.named_entity.NamedEntityBodyV2)(\*\*data)   | v2 renames `type` -> `entity_type` and adds optional `confidence`. |
+| [`NamedEntityBodyV1`](#lacing.bodies.named_entity.NamedEntityBodyV1)(\*, type, text)               | Original NER body.                                                 |
+|--------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| [`NamedEntityBodyV2`](#lacing.bodies.named_entity.NamedEntityBodyV2)(\*, entity_type, text[, ...]) | v2 renames `type` -> `entity_type` and adds optional `confidence`. |
 
-### *class* lacing.bodies.named_entity.NamedEntityBodyV1(\*\*data)
+### *class* lacing.bodies.named_entity.NamedEntityBodyV1(, type, text)
 
 Bases: `SchemaModel`
 
@@ -27,7 +27,7 @@ Original NER body. `type` is the entity tag (PER, ORG, LOC, …).
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* lacing.bodies.named_entity.NamedEntityBodyV2(\*\*data)
+### *class* lacing.bodies.named_entity.NamedEntityBodyV2(, entity_type, text, confidence=None)
 
 Bases: `SchemaModel`
 

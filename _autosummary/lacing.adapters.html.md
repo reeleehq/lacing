@@ -26,7 +26,7 @@ Or by using the convenience top-level loaders that look up by extension or
 | [`AdapterSpec`](#lacing.adapters.AdapterSpec)(name, extensions, media_types, ...)   | Registered adapter for one format.   |
 |----------------------------------------------------------------------------------------------------|--------------------------------------|
 
-### *class* lacing.adapters.AdapterSpec(name, extensions, media_types, load, dump, body_schema_uris=<factory>, description='')
+### *class* lacing.adapters.AdapterSpec(name, extensions, media_types, load, dump, body_schema_uris=tuple(), description='')
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 

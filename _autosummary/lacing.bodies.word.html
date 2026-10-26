@@ -34,6 +34,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=37d13f4f" />
   
@@ -444,7 +445,7 @@
 <p class="rubric">Classes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.bodies.word.WordBodyV1" title="lacing.bodies.word.WordBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">WordBodyV1</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.bodies.word.WordBodyV1" title="lacing.bodies.word.WordBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">WordBodyV1</span></code></a>(*, text[, speaker])</p></td>
 <td><p>A single word annotation.</p></td>
 </tr>
 </tbody>
@@ -452,7 +453,7 @@
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.bodies.word.WordBodyV1">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.bodies.word.</span></span><span class="sig-name descname"><span class="pre">WordBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/bodies/word.html#WordBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.bodies.word.WordBodyV1" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.bodies.word.</span></span><span class="sig-name descname"><span class="pre">WordBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speaker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/bodies/word.html#WordBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.bodies.word.WordBodyV1" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SchemaModel</span></code></p>
 <p>A single word annotation.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">text</span></code> is the surface form as it appears in the source media.</p>

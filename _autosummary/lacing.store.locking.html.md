@@ -43,9 +43,6 @@ Process-local named exclusive locks (a registry of `threading.Lock`).
 
 A signed 64-bit integer for `parts`: the argument of `pg_advisory_lock`.
 
-* **Return type:**
-  [`int`](https://docs.python.org/3/builtins/functions.html#int)
-
 ```pycon
 >>> advisory_lock_id("o", "p", "k") == advisory_lock_id("o", "p", "k")
 True
@@ -54,6 +51,9 @@ True
 >>> -2**63 <= advisory_lock_id("o", "p", "k") < 2**63
 True
 ```
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
 ### lacing.store.locking.file_lock(path)
 

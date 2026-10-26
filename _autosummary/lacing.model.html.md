@@ -21,14 +21,14 @@ and `.claude/skills/lacing-schema-codegen/SKILL.md`.
 
 ### Classes
 
-| [`Annotation`](#lacing.model.Annotation)(\*\*data)    | The single annotation envelope.                                                |
-|--------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| [`AnnotationRef`](#lacing.model.AnnotationRef)(\*\*data) | Reference to another annotation (for discussion threads, review, derivations). |
-| [`MediaRef`](#lacing.model.MediaRef)(\*\*data)      | Reference to a region of a content-addressed media asset.                      |
-| [`NodeRef`](#lacing.model.NodeRef)(\*\*data)       | Reference to a node in a structured scene/document graph.                      |
-| [`Provenance`](#lacing.model.Provenance)(\*\*data)    | W3C PROV-O subset, embedded inline on every annotation.                        |
+| [`Annotation`](#lacing.model.Annotation)(\*, id, tier, reference, body, ...)   | The single annotation envelope.                                                |
+|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| [`AnnotationRef`](#lacing.model.AnnotationRef)(\*[, kind, interval])              | Reference to another annotation (for discussion threads, review, derivations). |
+| [`MediaRef`](#lacing.model.MediaRef)(\*[, kind])                             | Reference to a region of a content-addressed media asset.                      |
+| [`NodeRef`](#lacing.model.NodeRef)(\*[, kind])                              | Reference to a node in a structured scene/document graph.                      |
+| [`Provenance`](#lacing.model.Provenance)(\*, was_generated_by, ...[, ...])     | W3C PROV-O subset, embedded inline on every annotation.                        |
 
-### *class* lacing.model.Annotation(\*\*data)
+### *class* lacing.model.Annotation(, id, tier, reference, body, body_schema_uri, provenance, confidence=None)
 
 Bases: `SchemaModel`
 
@@ -45,7 +45,7 @@ the reference’s interval, if any.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* lacing.model.AnnotationRef(\*\*data)
+### *class* lacing.model.AnnotationRef(, kind='annotation', target_id, interval=None)
 
 Bases: `SchemaModel`
 
@@ -67,7 +67,7 @@ design. Format-disjoint from a UUID string (36 hyphenated chars), so the
 
 alias of `Annotated`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=64), MaxLen(max_length=64), \_PydanticGeneralMetadata(pattern=’^[0-9a-f]{64}$’)])]
 
-### *class* lacing.model.MediaRef(\*\*data)
+### *class* lacing.model.MediaRef(, kind='media', asset_id, interval)
 
 Bases: `SchemaModel`
 
@@ -77,7 +77,7 @@ Reference to a region of a content-addressed media asset.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* lacing.model.NodeRef(\*\*data)
+### *class* lacing.model.NodeRef(, kind='node', scene_path, interval)
 
 Bases: `SchemaModel`
 
@@ -87,7 +87,7 @@ Reference to a node in a structured scene/document graph.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* lacing.model.Provenance(\*\*data)
+### *class* lacing.model.Provenance(\*, was_generated_by, was_attributed_to, was_derived_from=<factory>, generated_at_time, activity='create')
 
 Bases: `SchemaModel`
 

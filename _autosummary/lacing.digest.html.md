@@ -212,9 +212,6 @@ That is a correctness bug in any consumer that reads any of those. Reach
 for it only when the consumer demonstrably depends on nothing but what the
 annotation *says*; prefer [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) otherwise.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> from uuid import uuid4
 >>> from lacing import Annotation, MediaRef, Provenance
@@ -274,6 +271,9 @@ True
 False
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### lacing.digest.annotation_value_digest(annotation)
 
 Return the SHA-256 hex digest of `annotation`’s value.
@@ -285,9 +285,6 @@ produces identical content produces an identical digest.
 Use this for freshness and early cutoff. For optimistic concurrency use
 `lacing.server.etag.annotation_etag()` instead — two digests, two
 jobs, and neither substitutes for the other.
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ```pycon
 >>> from uuid import uuid4
@@ -334,3 +331,6 @@ A changed body does not:
 ... )
 False
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)

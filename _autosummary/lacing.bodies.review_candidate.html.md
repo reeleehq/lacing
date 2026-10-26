@@ -29,10 +29,10 @@ default) while human/agent reviews land on `"review"`
 
 ### Classes
 
-| [`ReviewCandidateBodyV1`](#lacing.bodies.review_candidate.ReviewCandidateBodyV1)(\*\*data)   | Body of a review-candidate annotation.   |
-|------------------------------------------------------------------------------------|------------------------------------------|
+| [`ReviewCandidateBodyV1`](#lacing.bodies.review_candidate.ReviewCandidateBodyV1)(\*, reason, source_id)   | Body of a review-candidate annotation.   |
+|-------------------------------------------------------------------------------------------------|------------------------------------------|
 
-### *class* lacing.bodies.review_candidate.ReviewCandidateBodyV1(\*\*data)
+### *class* lacing.bodies.review_candidate.ReviewCandidateBodyV1(, reason, source_id, source_confidence=None, source_tier='')
 
 Bases: `SchemaModel`
 

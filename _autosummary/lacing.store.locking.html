@@ -34,6 +34,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=37d13f4f" />
   
@@ -502,11 +503,6 @@ advisory lock for <code class="docutils literal notranslate"><span class="pre">P
 <dt class="sig sig-object py" id="lacing.store.locking.advisory_lock_id">
 <span class="sig-prename descclassname"><span class="pre">lacing.store.locking.</span></span><span class="sig-name descname"><span class="pre">advisory_lock_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">parts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/locking.html#advisory_lock_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.locking.advisory_lock_id" title="Link to this definition">#</a></dt>
 <dd><p>A signed 64-bit integer for <code class="docutils literal notranslate"><span class="pre">parts</span></code>: the argument of <code class="docutils literal notranslate"><span class="pre">pg_advisory_lock</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">advisory_lock_id</span><span class="p">(</span><span class="s2">"o"</span><span class="p">,</span> <span class="s2">"p"</span><span class="p">,</span> <span class="s2">"k"</span><span class="p">)</span> <span class="o">==</span> <span class="n">advisory_lock_id</span><span class="p">(</span><span class="s2">"o"</span><span class="p">,</span> <span class="s2">"p"</span><span class="p">,</span> <span class="s2">"k"</span><span class="p">)</span>
 <span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">advisory_lock_id</span><span class="p">(</span><span class="s2">"o"</span><span class="p">,</span> <span class="s2">"p"</span><span class="p">,</span> <span class="s2">"k"</span><span class="p">)</span> <span class="o">!=</span> <span class="n">advisory_lock_id</span><span class="p">(</span><span class="s2">"o"</span><span class="p">,</span> <span class="s2">"p"</span><span class="p">,</span> <span class="s2">"other"</span><span class="p">)</span>
@@ -515,6 +511,11 @@ advisory lock for <code class="docutils literal notranslate"><span class="pre">P
 <span class="go">True</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -526,7 +527,7 @@ other as well as other processes. The kernel drops the lock if the holder
 dies. The lock file is left in place (removing it would race a waiter).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>]</span></p>
 </dd>
 </dl>
 </dd></dl>

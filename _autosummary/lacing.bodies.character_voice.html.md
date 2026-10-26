@@ -38,10 +38,10 @@ provider-generic 0-1 intents that a provider adapter maps or ignores.
 
 ### Classes
 
-| [`CharacterVoiceBodyV1`](#lacing.bodies.character_voice.CharacterVoiceBodyV1)(\*\*data)   | Body of a character-voice annotation — one character's voice profile.   |
-|-----------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [`CharacterVoiceBodyV1`](#lacing.bodies.character_voice.CharacterVoiceBodyV1)(\*, character_ref, voice_id)   | Body of a character-voice annotation — one character's voice profile.   |
+|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
 
-### *class* lacing.bodies.character_voice.CharacterVoiceBodyV1(\*\*data)
+### *class* lacing.bodies.character_voice.CharacterVoiceBodyV1(\*, character_ref, voice_id, provider_voice_ids=<factory>, model_id=None, delivery=None, default_emotion='', stability=None, similarity_boost=None, style=None, speed=None, accent=None, reference_sample_artifact_id=None, display_name=None, notes='')
 
 Bases: `SchemaModel`
 

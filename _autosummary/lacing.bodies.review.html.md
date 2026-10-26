@@ -47,8 +47,8 @@ mirror is regenerated — tracked as thorwhalen/reelee-web#234.
 
 ### Classes
 
-| [`ReviewBodyV1`](#lacing.bodies.review.ReviewBodyV1)(\*\*data)   | Body of a review annotation.   |
-|---------------------------------------------------------------------------|--------------------------------|
+| [`ReviewBodyV1`](#lacing.bodies.review.ReviewBodyV1)(\*, review_kind[, ...])   | Body of a review annotation.   |
+|-----------------------------------------------------------------------------------------|--------------------------------|
 
 ### lacing.bodies.review.Author
 
@@ -58,7 +58,7 @@ quick chip for the FE.
 
 alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[‘human’, ‘agent’, ‘system’]
 
-### *class* lacing.bodies.review.ReviewBodyV1(\*\*data)
+### *class* lacing.bodies.review.ReviewBodyV1(\*, review_kind, target_annotation_ids=<factory>, message='', status='open', author='human', decision=None, violation_ref=None, suggested_action_slug='')
 
 Bases: `SchemaModel`
 

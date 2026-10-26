@@ -53,13 +53,13 @@ full story. `.claude/skills/` contains the rules.
 | [`TimeInterval`](#lacing.TimeInterval)(start, end)                         | A half-open interval `[start, end)`.                                           |
 | [`Tier`](#lacing.Tier)(name, \*[, stereotype, parent, metadata])   | A named annotation layer with optional parent and stereotype.                  |
 | [`TierStereotype`](#lacing.TierStereotype)(\*values)                         | Constraints on how a child tier relates to its parent tier.                    |
-| [`Annotation`](#lacing.Annotation)(\*\*data)                             | The single annotation envelope.                                                |
-| [`MediaRef`](#lacing.MediaRef)(\*\*data)                               | Reference to a region of a content-addressed media asset.                      |
-| [`NodeRef`](#lacing.NodeRef)(\*\*data)                                | Reference to a node in a structured scene/document graph.                      |
-| [`AnnotationRef`](#lacing.AnnotationRef)(\*\*data)                          | Reference to another annotation (for discussion threads, review, derivations). |
-| [`Provenance`](#lacing.Provenance)(\*\*data)                             | W3C PROV-O subset, embedded inline on every annotation.                        |
-| [`Artifact`](#lacing.Artifact)(\*\*data)                               | A content-addressed generated file with provenance.                            |
-| [`Rights`](#lacing.Rights)(\*\*data)                                 | Who owns the bytes of an *acquired* artifact, and on what terms.               |
+| [`Annotation`](#lacing.Annotation)(\*, id, tier, reference, body, ...)   | The single annotation envelope.                                                |
+| [`MediaRef`](#lacing.MediaRef)(\*[, kind])                             | Reference to a region of a content-addressed media asset.                      |
+| [`NodeRef`](#lacing.NodeRef)(\*[, kind])                              | Reference to a node in a structured scene/document graph.                      |
+| [`AnnotationRef`](#lacing.AnnotationRef)(\*[, kind, interval])              | Reference to another annotation (for discussion threads, review, derivations). |
+| [`Provenance`](#lacing.Provenance)(\*, was_generated_by, ...[, ...])     | W3C PROV-O subset, embedded inline on every annotation.                        |
+| [`Artifact`](#lacing.Artifact)(\*, asset_id, kind[, path, url, ...])   | A content-addressed generated file with provenance.                            |
+| [`Rights`](#lacing.Rights)(\*, provider[, id, title, license, ...])  | Who owns the bytes of an *acquired* artifact, and on what terms.               |
 | [`ArtifactStore`](#lacing.ArtifactStore)(catalog[, blobs])                  | Facade over an artifact `catalog` and an optional `blobs` store.               |
 | [`AllenRelation`](#lacing.AllenRelation)(\*values)                          | The thirteen Allen relations.                                                  |
 | [`IntervalAnnotationStore`](#lacing.IntervalAnnotationStore)(\*args, \*\*kwargs)      | Protocol for any interval-keyed annotation store.                              |
@@ -99,7 +99,7 @@ The inverse relation.
 * **Return type:**
   [`AllenRelation`](lacing.allen.html.md#lacing.allen.AllenRelation)
 
-### *class* lacing.Annotation(\*\*data)
+### *class* lacing.Annotation(, id, tier, reference, body, body_schema_uri, provenance, confidence=None)
 
 Bases: `SchemaModel`
 
@@ -116,7 +116,7 @@ the reference’s interval, if any.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* lacing.AnnotationRef(\*\*data)
+### *class* lacing.AnnotationRef(, kind='annotation', target_id, interval=None)
 
 Bases: `SchemaModel`
 
@@ -126,7 +126,7 @@ Reference to another annotation (for discussion threads, review, derivations).
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* lacing.Artifact(\*\*data)
+### *class* lacing.Artifact(, asset_id, kind, path=None, url=None, bytes_size, duration_s=None, mime=None, provenance, cost_usd=None, producer_call_id=None, rights=None)
 
 Bases: `BaseModel`
 
@@ -809,7 +809,7 @@ for `SqliteStore`) can treat both alike; the store stays usable.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### *class* lacing.MediaRef(\*\*data)
+### *class* lacing.MediaRef(, kind='media', asset_id, interval)
 
 Bases: `SchemaModel`
 
@@ -842,7 +842,7 @@ Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#Runti
 
 Raised when a migration step is missing or fails.
 
-### *class* lacing.NodeRef(\*\*data)
+### *class* lacing.NodeRef(, kind='node', scene_path, interval)
 
 Bases: `SchemaModel`
 
@@ -940,7 +940,7 @@ Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#Runti
 
 Raised when a registered processor’s invocation fails.
 
-### *class* lacing.Provenance(\*\*data)
+### *class* lacing.Provenance(\*, was_generated_by, was_attributed_to, was_derived_from=<factory>, generated_at_time, activity='create')
 
 Bases: `SchemaModel`
 
@@ -1076,7 +1076,7 @@ the epoch. Producers stamp [`now()`](#lacing.RationalTime.now) there.
 * **Return type:**
   [`RationalTime`](lacing.time.html.md#lacing.time.RationalTime)
 
-### *class* lacing.Rights(\*\*data)
+### *class* lacing.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None)
 
 Bases: `BaseModel`
 
@@ -1266,9 +1266,6 @@ That is a correctness bug in any consumer that reads any of those. Reach
 for it only when the consumer demonstrably depends on nothing but what the
 annotation *says*; prefer [`annotation_value_digest()`](#lacing.annotation_value_digest) otherwise.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> from uuid import uuid4
 >>> from lacing import Annotation, MediaRef, Provenance
@@ -1328,6 +1325,9 @@ True
 False
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### lacing.annotation_value_digest(annotation)
 
 Return the SHA-256 hex digest of `annotation`’s value.
@@ -1339,9 +1339,6 @@ produces identical content produces an identical digest.
 Use this for freshness and early cutoff. For optimistic concurrency use
 `lacing.server.etag.annotation_etag()` instead — two digests, two
 jobs, and neither substitutes for the other.
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ```pycon
 >>> from uuid import uuid4
@@ -1389,6 +1386,9 @@ A changed body does not:
 False
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### lacing.boundary_iou(a, b)
 
 Mean IoU between two sets of intervals via greedy best-match.
@@ -1408,8 +1408,8 @@ Unmatched intervals in either set contribute 0.0 to the mean.
 Cohen’s kappa for two annotators on a categorical label.
 
 * **Parameters:**
-  * **a** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))]) – Annotator A’s labels.
-  * **b** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))]) – Annotator B’s labels (must be the same length).
+  * **a** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[`T`]) – Annotator A’s labels.
+  * **b** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[`T`]) – Annotator B’s labels (must be the same length).
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
 * **Returns:**
@@ -1463,13 +1463,13 @@ Return a tracer or a no-op fallback.
 
 Return the canonical `asset_id` (SHA-256 hex) for `data`.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> hash_bytes(b"hello world")[:8]
 'b94d27b9'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### lacing.hash_file(path, , chunk_size=1048576)
 
@@ -1529,10 +1529,10 @@ the registered model has.
 Krippendorff’s α across any number of annotators.
 
 * **Parameters:**
-  * **annotations** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))]]]) – A list of annotators, each a sequence of labels (one per
+  * **annotations** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`T`]]]) – A list of annotators, each a sequence of labels (one per
     unit). Use `None` for a missing annotation by that annotator on
     that unit.
-  * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable)), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
+  * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
     two label values. Default is the nominal (0/1) distance.
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)

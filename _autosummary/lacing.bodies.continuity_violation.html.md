@@ -27,10 +27,10 @@ Reference: `reelee/docs/Narrative to Storyboard.md` §6.5, §8.1.
 
 ### Classes
 
-| [`ContinuityViolationBodyV1`](#lacing.bodies.continuity_violation.ContinuityViolationBodyV1)(\*\*data)   | Body of a continuity-violation annotation.   |
-|----------------------------------------------------------------------------------------|----------------------------------------------|
+| [`ContinuityViolationBodyV1`](#lacing.bodies.continuity_violation.ContinuityViolationBodyV1)(\*, rule, ...[, ...])   | Body of a continuity-violation annotation.   |
+|----------------------------------------------------------------------------------------------------|----------------------------------------------|
 
-### *class* lacing.bodies.continuity_violation.ContinuityViolationBodyV1(\*\*data)
+### *class* lacing.bodies.continuity_violation.ContinuityViolationBodyV1(\*, rule, annotation_ids, severity='warn', detection_method='', detection_value=None, threshold=None, suggested_fix='', suggested_action='manual_edit', evidence=<factory>)
 
 Bases: `SchemaModel`
 

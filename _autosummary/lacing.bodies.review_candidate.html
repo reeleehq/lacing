@@ -34,6 +34,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=37d13f4f" />
   
@@ -465,7 +466,7 @@ default) while human/agent reviews land on <code class="docutils literal notrans
 <p class="rubric">Classes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.bodies.review_candidate.ReviewCandidateBodyV1" title="lacing.bodies.review_candidate.ReviewCandidateBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReviewCandidateBodyV1</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.bodies.review_candidate.ReviewCandidateBodyV1" title="lacing.bodies.review_candidate.ReviewCandidateBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReviewCandidateBodyV1</span></code></a>(*, reason, source_id)</p></td>
 <td><p>Body of a review-candidate annotation.</p></td>
 </tr>
 </tbody>
@@ -473,7 +474,7 @@ default) while human/agent reviews land on <code class="docutils literal notrans
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.bodies.review_candidate.ReviewCandidateBodyV1">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.bodies.review_candidate.</span></span><span class="sig-name descname"><span class="pre">ReviewCandidateBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/bodies/review_candidate.html#ReviewCandidateBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.bodies.review_candidate.ReviewCandidateBodyV1" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.bodies.review_candidate.</span></span><span class="sig-name descname"><span class="pre">ReviewCandidateBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">reason</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_confidence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_tier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/bodies/review_candidate.html#ReviewCandidateBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.bodies.review_candidate.ReviewCandidateBodyV1" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SchemaModel</span></code></p>
 <p>Body of a review-candidate annotation.</p>
 <dl class="field-list simple">

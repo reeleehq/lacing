@@ -34,6 +34,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=37d13f4f" />
   
@@ -605,7 +606,7 @@ snapshot + the op-log live together and survive a single
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>log</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#lacing.oplog.OpLog" title="lacing.oplog.OpLog"><code class="xref py py-class docutils literal notranslate"><span class="pre">OpLog</span></code></a></span>) – Source op-log.</p></li>
-<li><p><strong>until_clock</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Stop at this clock (inclusive). None = replay all.</p></li>
+<li><p><strong>until_clock</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Stop at this clock (inclusive). None = replay all.</p></li>
 <li><p><strong>target_factory</strong> – Zero-arg callable returning a fresh empty store.
 Defaults to <code class="docutils literal notranslate"><span class="pre">MemoryStore</span></code>. Pass a <code class="docutils literal notranslate"><span class="pre">SqliteStore</span></code> factory to
 replay into a persistent file.</p></li>

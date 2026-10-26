@@ -85,11 +85,11 @@ True
 
 ### Classes
 
-| [`Artifact`](#lacing.artifact.Artifact)(\*\*data)   | A content-addressed generated file with provenance.              |
-|-----------------------------------------------------------------------|------------------------------------------------------------------|
-| [`Rights`](#lacing.artifact.Rights)(\*\*data)     | Who owns the bytes of an *acquired* artifact, and on what terms. |
+| [`Artifact`](#lacing.artifact.Artifact)(\*, asset_id, kind[, path, url, ...])   | A content-addressed generated file with provenance.              |
+|---------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
+| [`Rights`](#lacing.artifact.Rights)(\*, provider[, id, title, license, ...])  | Who owns the bytes of an *acquired* artifact, and on what terms. |
 
-### *class* lacing.artifact.Artifact(\*\*data)
+### *class* lacing.artifact.Artifact(, asset_id, kind, path=None, url=None, bytes_size, duration_s=None, mime=None, provenance, cost_usd=None, producer_call_id=None, rights=None)
 
 Bases: `BaseModel`
 
@@ -140,7 +140,7 @@ should switch on this *before* falling back to `mime`/`path.suffix`.
 
 alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[‘image’, ‘video’, ‘audio’, ‘json’, ‘text’, ‘binary’]
 
-### *class* lacing.artifact.Rights(\*\*data)
+### *class* lacing.artifact.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None)
 
 Bases: `BaseModel`
 
@@ -189,13 +189,13 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 Return the canonical `asset_id` (SHA-256 hex) for `data`.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> hash_bytes(b"hello world")[:8]
 'b94d27b9'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### lacing.artifact.hash_file(path, , chunk_size=1048576)
 

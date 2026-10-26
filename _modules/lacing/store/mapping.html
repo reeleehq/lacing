@@ -31,6 +31,7 @@
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/epythet.css?v=37d13f4f" />
   
@@ -749,7 +750,10 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">Concurrency</span>
 <span class="sd">-----------</span>
-<span class="sd">**Single writer, no locking.** Unlike ``SqliteStore`` there is no cross-process</span>
+<span class="sd">**Single writer.** ``store.lock(key)`` excludes the threads of this process</span>
+<span class="sd">over the same mapping *object*: every ``MappingStore`` built over it shares its</span>
+<span class="sd">named locks (two wrappers over one folder or table are different objects and do</span>
+<span class="sd">not; nor does it reach other processes). Unlike ``SqliteStore`` there is no cross-process</span>
 <span class="sd">lock: the index is a snapshot taken at construction, so a second</span>
 <span class="sd">``MappingStore`` over the same mapping (in this or another process) does not</span>
 <span class="sd">see the first one's later writes, and two writers can overwrite each other's</span>
@@ -762,11 +766,14 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">weakref</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">MutableMapping</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">NamedTuple</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">UUID</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store.locking</span><span class="w"> </span><span class="kn">import</span> <span class="n">NamedLocks</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store.memory</span><span class="w"> </span><span class="kn">import</span> <span class="n">MemoryStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store.memory</span><span class="w"> </span><span class="kn">import</span> <span class="n">_key</span> <span class="k">as</span> <span class="n">_bucket_key</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tier</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tier</span>
@@ -810,6 +817,25 @@ window.runMermaid = runMermaid;</script>
         <span class="k">return</span> <span class="kc">False</span>
 
 
+<span class="c1">#: Process-wide named locks, one registry per backing mapping *object*, keyed</span>
+<span class="c1">#: by ``id(mapping)`` so two stores over one mapping exclude each other. Weakly</span>
+<span class="c1">#: valued: an entry lives only while some store holds its ``NamedLocks``, and</span>
+<span class="c1">#: that store keeps the mapping alive, so a key's id cannot be recycled while</span>
+<span class="c1">#: its entry exists. (A plain ``dict`` cannot itself be weak-referenced.)</span>
+<span class="n">_MAPPING_LOCKS</span><span class="p">:</span> <span class="s2">"weakref.WeakValueDictionary[int, NamedLocks]"</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">weakref</span><span class="o">.</span><span class="n">WeakValueDictionary</span><span class="p">()</span>
+<span class="p">)</span>
+<span class="n">_MAPPING_LOCKS_GUARD</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_locks_for</span><span class="p">(</span><span class="n">mapping</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NamedLocks</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">_MAPPING_LOCKS_GUARD</span><span class="p">:</span>
+        <span class="n">locks</span> <span class="o">=</span> <span class="n">_MAPPING_LOCKS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">mapping</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">locks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">locks</span> <span class="o">=</span> <span class="n">_MAPPING_LOCKS</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">mapping</span><span class="p">)]</span> <span class="o">=</span> <span class="n">NamedLocks</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">locks</span>
+
+
 <div class="viewcode-block" id="MappingStore">
 <a class="viewcode-back" href="../../../_autosummary/lacing.store.mapping.html#lacing.MappingStore">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MappingStore</span><span class="p">(</span><span class="n">MemoryStore</span><span class="p">):</span>
@@ -842,6 +868,7 @@ window.runMermaid = runMermaid;</script>
             <span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span> <span class="o">=</span> <span class="n">mapping</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_named_locks</span> <span class="o">=</span> <span class="n">_locks_for</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_codec</span> <span class="o">=</span> <span class="n">codec</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tiers_key</span> <span class="o">=</span> <span class="n">tiers_key</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ids</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">UUID</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>

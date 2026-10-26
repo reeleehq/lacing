@@ -1,4 +1,4 @@
-> built 2026-10-14 13:03 UTC from a43715b (main) · lacing 0.0.54. Details: build_info.json
+> built 2026-10-26 13:09 UTC from f273af2 (main) · lacing 0.0.54. Details: build_info.json
 
 # index.html.md
 
@@ -658,7 +658,7 @@ Or by using the convenience top-level loaders that look up by extension or
 | [`AdapterSpec`](_autosummary/lacing.adapters.html.md#lacing.adapters.AdapterSpec)(name, extensions, media_types, ...)   | Registered adapter for one format.   |
 |----------------------------------------------------------------------------------------------------|--------------------------------------|
 
-### *class* lacing.adapters.AdapterSpec(name, extensions, media_types, load, dump, body_schema_uris=<factory>, description='')
+### *class* lacing.adapters.AdapterSpec(name, extensions, media_types, load, dump, body_schema_uris=tuple(), description='')
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1369,11 +1369,11 @@ True
 
 ### Classes
 
-| [`Artifact`](_autosummary/lacing.artifact.html.md#lacing.artifact.Artifact)(\*\*data)   | A content-addressed generated file with provenance.              |
-|-----------------------------------------------------------------------|------------------------------------------------------------------|
-| [`Rights`](_autosummary/lacing.artifact.html.md#lacing.artifact.Rights)(\*\*data)     | Who owns the bytes of an *acquired* artifact, and on what terms. |
+| [`Artifact`](_autosummary/lacing.artifact.html.md#lacing.artifact.Artifact)(\*, asset_id, kind[, path, url, ...])   | A content-addressed generated file with provenance.              |
+|---------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
+| [`Rights`](_autosummary/lacing.artifact.html.md#lacing.artifact.Rights)(\*, provider[, id, title, license, ...])  | Who owns the bytes of an *acquired* artifact, and on what terms. |
 
-### *class* lacing.artifact.Artifact(\*\*data)
+### *class* lacing.artifact.Artifact(, asset_id, kind, path=None, url=None, bytes_size, duration_s=None, mime=None, provenance, cost_usd=None, producer_call_id=None, rights=None)
 
 Bases: `BaseModel`
 
@@ -1424,7 +1424,7 @@ should switch on this *before* falling back to `mime`/`path.suffix`.
 
 alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[‘image’, ‘video’, ‘audio’, ‘json’, ‘text’, ‘binary’]
 
-### *class* lacing.artifact.Rights(\*\*data)
+### *class* lacing.artifact.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None)
 
 Bases: `BaseModel`
 
@@ -1473,13 +1473,13 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 Return the canonical `asset_id` (SHA-256 hex) for `data`.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> hash_bytes(b"hello world")[:8]
 'b94d27b9'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### lacing.artifact.hash_file(path, , chunk_size=1048576)
 
@@ -2016,10 +2016,10 @@ provider-generic 0-1 intents that a provider adapter maps or ignores.
 
 ### Classes
 
-| [`CharacterVoiceBodyV1`](_autosummary/lacing.bodies.character_voice.html.md#lacing.bodies.character_voice.CharacterVoiceBodyV1)(\*\*data)   | Body of a character-voice annotation — one character's voice profile.   |
-|-----------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [`CharacterVoiceBodyV1`](_autosummary/lacing.bodies.character_voice.html.md#lacing.bodies.character_voice.CharacterVoiceBodyV1)(\*, character_ref, voice_id)   | Body of a character-voice annotation — one character's voice profile.   |
+|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
 
-### *class* lacing.bodies.character_voice.CharacterVoiceBodyV1(\*\*data)
+### *class* lacing.bodies.character_voice.CharacterVoiceBodyV1(\*, character_ref, voice_id, provider_voice_ids=<factory>, model_id=None, delivery=None, default_emotion='', stability=None, similarity_boost=None, style=None, speed=None, accent=None, reference_sample_artifact_id=None, display_name=None, notes='')
 
 Bases: `SchemaModel`
 
@@ -2061,10 +2061,10 @@ Reference: `reelee/docs/Narrative to Storyboard.md` §6.5, §8.1.
 
 ### Classes
 
-| [`ContinuityViolationBodyV1`](_autosummary/lacing.bodies.continuity_violation.html.md#lacing.bodies.continuity_violation.ContinuityViolationBodyV1)(\*\*data)   | Body of a continuity-violation annotation.   |
-|----------------------------------------------------------------------------------------|----------------------------------------------|
+| [`ContinuityViolationBodyV1`](_autosummary/lacing.bodies.continuity_violation.html.md#lacing.bodies.continuity_violation.ContinuityViolationBodyV1)(\*, rule, ...[, ...])   | Body of a continuity-violation annotation.   |
+|----------------------------------------------------------------------------------------------------|----------------------------------------------|
 
-### *class* lacing.bodies.continuity_violation.ContinuityViolationBodyV1(\*\*data)
+### *class* lacing.bodies.continuity_violation.ContinuityViolationBodyV1(\*, rule, annotation_ids, severity='warn', detection_method='', detection_value=None, threshold=None, suggested_fix='', suggested_action='manual_edit', evidence=<factory>)
 
 Bases: `SchemaModel`
 
@@ -2126,11 +2126,11 @@ A v1 -> v2 migration is registered to demonstrate the pattern.
 
 ### Classes
 
-| [`NamedEntityBodyV1`](_autosummary/lacing.bodies.named_entity.html.md#lacing.bodies.named_entity.NamedEntityBodyV1)(\*\*data)   | Original NER body.                                                 |
-|--------------------------------------------------------------------------------|--------------------------------------------------------------------|
-| [`NamedEntityBodyV2`](_autosummary/lacing.bodies.named_entity.html.md#lacing.bodies.named_entity.NamedEntityBodyV2)(\*\*data)   | v2 renames `type` -> `entity_type` and adds optional `confidence`. |
+| [`NamedEntityBodyV1`](_autosummary/lacing.bodies.named_entity.html.md#lacing.bodies.named_entity.NamedEntityBodyV1)(\*, type, text)               | Original NER body.                                                 |
+|--------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| [`NamedEntityBodyV2`](_autosummary/lacing.bodies.named_entity.html.md#lacing.bodies.named_entity.NamedEntityBodyV2)(\*, entity_type, text[, ...]) | v2 renames `type` -> `entity_type` and adds optional `confidence`. |
 
-### *class* lacing.bodies.named_entity.NamedEntityBodyV1(\*\*data)
+### *class* lacing.bodies.named_entity.NamedEntityBodyV1(, type, text)
 
 Bases: `SchemaModel`
 
@@ -2140,7 +2140,7 @@ Original NER body. `type` is the entity tag (PER, ORG, LOC, …).
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* lacing.bodies.named_entity.NamedEntityBodyV2(\*\*data)
+### *class* lacing.bodies.named_entity.NamedEntityBodyV2(, entity_type, text, confidence=None)
 
 Bases: `SchemaModel`
 
@@ -2204,10 +2204,10 @@ consistency); reelee-web epic #151, lacing #9.
 
 ### Classes
 
-| [`ReferenceLockBodyV1`](_autosummary/lacing.bodies.reference_lock.html.md#lacing.bodies.reference_lock.ReferenceLockBodyV1)(\*\*data)   | Body of a reference-lock annotation.   |
-|----------------------------------------------------------------------------------|----------------------------------------|
+| [`ReferenceLockBodyV1`](_autosummary/lacing.bodies.reference_lock.html.md#lacing.bodies.reference_lock.ReferenceLockBodyV1)(\*, subject_kind, ...[, ...])   | Body of a reference-lock annotation.   |
+|------------------------------------------------------------------------------------------------------|----------------------------------------|
 
-### *class* lacing.bodies.reference_lock.ReferenceLockBodyV1(\*\*data)
+### *class* lacing.bodies.reference_lock.ReferenceLockBodyV1(\*, subject_kind, subject_id, locked_artifact_ids, primary_artifact_id=None, scope='project', scope_ref=None, checklist=('face', ), hard_gates=(), min_similarity=None, supersedes=None, notes='', params=<factory>)
 
 Bases: `SchemaModel`
 
@@ -2295,8 +2295,8 @@ mirror is regenerated — tracked as thorwhalen/reelee-web#234.
 
 ### Classes
 
-| [`ReviewBodyV1`](_autosummary/lacing.bodies.review.html.md#lacing.bodies.review.ReviewBodyV1)(\*\*data)   | Body of a review annotation.   |
-|---------------------------------------------------------------------------|--------------------------------|
+| [`ReviewBodyV1`](_autosummary/lacing.bodies.review.html.md#lacing.bodies.review.ReviewBodyV1)(\*, review_kind[, ...])   | Body of a review annotation.   |
+|-----------------------------------------------------------------------------------------|--------------------------------|
 
 ### lacing.bodies.review.Author
 
@@ -2306,7 +2306,7 @@ quick chip for the FE.
 
 alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[‘human’, ‘agent’, ‘system’]
 
-### *class* lacing.bodies.review.ReviewBodyV1(\*\*data)
+### *class* lacing.bodies.review.ReviewBodyV1(\*, review_kind, target_annotation_ids=<factory>, message='', status='open', author='human', decision=None, violation_ref=None, suggested_action_slug='')
 
 Bases: `SchemaModel`
 
@@ -2377,10 +2377,10 @@ default) while human/agent reviews land on `"review"`
 
 ### Classes
 
-| [`ReviewCandidateBodyV1`](_autosummary/lacing.bodies.review_candidate.html.md#lacing.bodies.review_candidate.ReviewCandidateBodyV1)(\*\*data)   | Body of a review-candidate annotation.   |
-|------------------------------------------------------------------------------------|------------------------------------------|
+| [`ReviewCandidateBodyV1`](_autosummary/lacing.bodies.review_candidate.html.md#lacing.bodies.review_candidate.ReviewCandidateBodyV1)(\*, reason, source_id)   | Body of a review-candidate annotation.   |
+|-------------------------------------------------------------------------------------------------|------------------------------------------|
 
-### *class* lacing.bodies.review_candidate.ReviewCandidateBodyV1(\*\*data)
+### *class* lacing.bodies.review_candidate.ReviewCandidateBodyV1(, reason, source_id, source_confidence=None, source_tier='')
 
 Bases: `SchemaModel`
 
@@ -2401,10 +2401,10 @@ URI: `annot://schema/word/v1`
 
 ### Classes
 
-| [`WordBodyV1`](_autosummary/lacing.bodies.word.html.md#lacing.bodies.word.WordBodyV1)(\*\*data)   | A single word annotation.   |
-|-------------------------------------------------------------------------|-----------------------------|
+| [`WordBodyV1`](_autosummary/lacing.bodies.word.html.md#lacing.bodies.word.WordBodyV1)(\*, text[, speaker])   | A single word annotation.   |
+|------------------------------------------------------------------------------------|-----------------------------|
 
-### *class* lacing.bodies.word.WordBodyV1(\*\*data)
+### *class* lacing.bodies.word.WordBodyV1(, text, speaker=None)
 
 Bases: `SchemaModel`
 
@@ -2765,9 +2765,6 @@ That is a correctness bug in any consumer that reads any of those. Reach
 for it only when the consumer demonstrably depends on nothing but what the
 annotation *says*; prefer [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) otherwise.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> from uuid import uuid4
 >>> from lacing import Annotation, MediaRef, Provenance
@@ -2827,6 +2824,9 @@ True
 False
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### lacing.digest.annotation_value_digest(annotation)
 
 Return the SHA-256 hex digest of `annotation`’s value.
@@ -2838,9 +2838,6 @@ produces identical content produces an identical digest.
 Use this for freshness and early cutoff. For optimistic concurrency use
 `lacing.server.etag.annotation_etag()` instead — two digests, two
 jobs, and neither substitutes for the other.
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ```pycon
 >>> from uuid import uuid4
@@ -2887,6 +2884,9 @@ A changed body does not:
 ... )
 False
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 
 # _autosummary/lacing.exhibit.html.md
@@ -3026,13 +3026,13 @@ full story. `.claude/skills/` contains the rules.
 | [`TimeInterval`](_autosummary/lacing.html.md#lacing.TimeInterval)(start, end)                         | A half-open interval `[start, end)`.                                           |
 | [`Tier`](_autosummary/lacing.html.md#lacing.Tier)(name, \*[, stereotype, parent, metadata])   | A named annotation layer with optional parent and stereotype.                  |
 | [`TierStereotype`](_autosummary/lacing.html.md#lacing.TierStereotype)(\*values)                         | Constraints on how a child tier relates to its parent tier.                    |
-| [`Annotation`](_autosummary/lacing.html.md#lacing.Annotation)(\*\*data)                             | The single annotation envelope.                                                |
-| [`MediaRef`](_autosummary/lacing.html.md#lacing.MediaRef)(\*\*data)                               | Reference to a region of a content-addressed media asset.                      |
-| [`NodeRef`](_autosummary/lacing.html.md#lacing.NodeRef)(\*\*data)                                | Reference to a node in a structured scene/document graph.                      |
-| [`AnnotationRef`](_autosummary/lacing.html.md#lacing.AnnotationRef)(\*\*data)                          | Reference to another annotation (for discussion threads, review, derivations). |
-| [`Provenance`](_autosummary/lacing.html.md#lacing.Provenance)(\*\*data)                             | W3C PROV-O subset, embedded inline on every annotation.                        |
-| [`Artifact`](_autosummary/lacing.html.md#lacing.Artifact)(\*\*data)                               | A content-addressed generated file with provenance.                            |
-| [`Rights`](_autosummary/lacing.html.md#lacing.Rights)(\*\*data)                                 | Who owns the bytes of an *acquired* artifact, and on what terms.               |
+| [`Annotation`](_autosummary/lacing.html.md#lacing.Annotation)(\*, id, tier, reference, body, ...)   | The single annotation envelope.                                                |
+| [`MediaRef`](_autosummary/lacing.html.md#lacing.MediaRef)(\*[, kind])                             | Reference to a region of a content-addressed media asset.                      |
+| [`NodeRef`](_autosummary/lacing.html.md#lacing.NodeRef)(\*[, kind])                              | Reference to a node in a structured scene/document graph.                      |
+| [`AnnotationRef`](_autosummary/lacing.html.md#lacing.AnnotationRef)(\*[, kind, interval])              | Reference to another annotation (for discussion threads, review, derivations). |
+| [`Provenance`](_autosummary/lacing.html.md#lacing.Provenance)(\*, was_generated_by, ...[, ...])     | W3C PROV-O subset, embedded inline on every annotation.                        |
+| [`Artifact`](_autosummary/lacing.html.md#lacing.Artifact)(\*, asset_id, kind[, path, url, ...])   | A content-addressed generated file with provenance.                            |
+| [`Rights`](_autosummary/lacing.html.md#lacing.Rights)(\*, provider[, id, title, license, ...])  | Who owns the bytes of an *acquired* artifact, and on what terms.               |
 | [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)(catalog[, blobs])                  | Facade over an artifact `catalog` and an optional `blobs` store.               |
 | [`AllenRelation`](_autosummary/lacing.html.md#lacing.AllenRelation)(\*values)                          | The thirteen Allen relations.                                                  |
 | [`IntervalAnnotationStore`](_autosummary/lacing.html.md#lacing.IntervalAnnotationStore)(\*args, \*\*kwargs)      | Protocol for any interval-keyed annotation store.                              |
@@ -3072,7 +3072,7 @@ The inverse relation.
 * **Return type:**
   [`AllenRelation`](_autosummary/lacing.allen.html.md#lacing.allen.AllenRelation)
 
-### *class* lacing.Annotation(\*\*data)
+### *class* lacing.Annotation(, id, tier, reference, body, body_schema_uri, provenance, confidence=None)
 
 Bases: `SchemaModel`
 
@@ -3089,7 +3089,7 @@ the reference’s interval, if any.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* lacing.AnnotationRef(\*\*data)
+### *class* lacing.AnnotationRef(, kind='annotation', target_id, interval=None)
 
 Bases: `SchemaModel`
 
@@ -3099,7 +3099,7 @@ Reference to another annotation (for discussion threads, review, derivations).
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* lacing.Artifact(\*\*data)
+### *class* lacing.Artifact(, asset_id, kind, path=None, url=None, bytes_size, duration_s=None, mime=None, provenance, cost_usd=None, producer_call_id=None, rights=None)
 
 Bases: `BaseModel`
 
@@ -3782,7 +3782,7 @@ for `SqliteStore`) can treat both alike; the store stays usable.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### *class* lacing.MediaRef(\*\*data)
+### *class* lacing.MediaRef(, kind='media', asset_id, interval)
 
 Bases: `SchemaModel`
 
@@ -3815,7 +3815,7 @@ Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#Runti
 
 Raised when a migration step is missing or fails.
 
-### *class* lacing.NodeRef(\*\*data)
+### *class* lacing.NodeRef(, kind='node', scene_path, interval)
 
 Bases: `SchemaModel`
 
@@ -3913,7 +3913,7 @@ Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#Runti
 
 Raised when a registered processor’s invocation fails.
 
-### *class* lacing.Provenance(\*\*data)
+### *class* lacing.Provenance(\*, was_generated_by, was_attributed_to, was_derived_from=<factory>, generated_at_time, activity='create')
 
 Bases: `SchemaModel`
 
@@ -4049,7 +4049,7 @@ the epoch. Producers stamp [`now()`](_autosummary/lacing.html.md#lacing.Rational
 * **Return type:**
   [`RationalTime`](_autosummary/lacing.time.html.md#lacing.time.RationalTime)
 
-### *class* lacing.Rights(\*\*data)
+### *class* lacing.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None)
 
 Bases: `BaseModel`
 
@@ -4239,9 +4239,6 @@ That is a correctness bug in any consumer that reads any of those. Reach
 for it only when the consumer demonstrably depends on nothing but what the
 annotation *says*; prefer [`annotation_value_digest()`](_autosummary/lacing.html.md#lacing.annotation_value_digest) otherwise.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> from uuid import uuid4
 >>> from lacing import Annotation, MediaRef, Provenance
@@ -4301,6 +4298,9 @@ True
 False
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### lacing.annotation_value_digest(annotation)
 
 Return the SHA-256 hex digest of `annotation`’s value.
@@ -4312,9 +4312,6 @@ produces identical content produces an identical digest.
 Use this for freshness and early cutoff. For optimistic concurrency use
 `lacing.server.etag.annotation_etag()` instead — two digests, two
 jobs, and neither substitutes for the other.
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ```pycon
 >>> from uuid import uuid4
@@ -4362,6 +4359,9 @@ A changed body does not:
 False
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### lacing.boundary_iou(a, b)
 
 Mean IoU between two sets of intervals via greedy best-match.
@@ -4381,8 +4381,8 @@ Unmatched intervals in either set contribute 0.0 to the mean.
 Cohen’s kappa for two annotators on a categorical label.
 
 * **Parameters:**
-  * **a** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))]) – Annotator A’s labels.
-  * **b** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))]) – Annotator B’s labels (must be the same length).
+  * **a** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[`T`]) – Annotator A’s labels.
+  * **b** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[`T`]) – Annotator B’s labels (must be the same length).
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
 * **Returns:**
@@ -4436,13 +4436,13 @@ Return a tracer or a no-op fallback.
 
 Return the canonical `asset_id` (SHA-256 hex) for `data`.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> hash_bytes(b"hello world")[:8]
 'b94d27b9'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### lacing.hash_file(path, , chunk_size=1048576)
 
@@ -4502,10 +4502,10 @@ the registered model has.
 Krippendorff’s α across any number of annotators.
 
 * **Parameters:**
-  * **annotations** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))]]]) – A list of annotators, each a sequence of labels (one per
+  * **annotations** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`T`]]]) – A list of annotators, each a sequence of labels (one per
     unit). Use `None` for a missing annotation by that annotator on
     that unit.
-  * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable)), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
+  * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
     two label values. Default is the nominal (0/1) distance.
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
@@ -4739,14 +4739,14 @@ and `.claude/skills/lacing-schema-codegen/SKILL.md`.
 
 ### Classes
 
-| [`Annotation`](_autosummary/lacing.model.html.md#lacing.model.Annotation)(\*\*data)    | The single annotation envelope.                                                |
-|--------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| [`AnnotationRef`](_autosummary/lacing.model.html.md#lacing.model.AnnotationRef)(\*\*data) | Reference to another annotation (for discussion threads, review, derivations). |
-| [`MediaRef`](_autosummary/lacing.model.html.md#lacing.model.MediaRef)(\*\*data)      | Reference to a region of a content-addressed media asset.                      |
-| [`NodeRef`](_autosummary/lacing.model.html.md#lacing.model.NodeRef)(\*\*data)       | Reference to a node in a structured scene/document graph.                      |
-| [`Provenance`](_autosummary/lacing.model.html.md#lacing.model.Provenance)(\*\*data)    | W3C PROV-O subset, embedded inline on every annotation.                        |
+| [`Annotation`](_autosummary/lacing.model.html.md#lacing.model.Annotation)(\*, id, tier, reference, body, ...)   | The single annotation envelope.                                                |
+|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| [`AnnotationRef`](_autosummary/lacing.model.html.md#lacing.model.AnnotationRef)(\*[, kind, interval])              | Reference to another annotation (for discussion threads, review, derivations). |
+| [`MediaRef`](_autosummary/lacing.model.html.md#lacing.model.MediaRef)(\*[, kind])                             | Reference to a region of a content-addressed media asset.                      |
+| [`NodeRef`](_autosummary/lacing.model.html.md#lacing.model.NodeRef)(\*[, kind])                              | Reference to a node in a structured scene/document graph.                      |
+| [`Provenance`](_autosummary/lacing.model.html.md#lacing.model.Provenance)(\*, was_generated_by, ...[, ...])     | W3C PROV-O subset, embedded inline on every annotation.                        |
 
-### *class* lacing.model.Annotation(\*\*data)
+### *class* lacing.model.Annotation(, id, tier, reference, body, body_schema_uri, provenance, confidence=None)
 
 Bases: `SchemaModel`
 
@@ -4763,7 +4763,7 @@ the reference’s interval, if any.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* lacing.model.AnnotationRef(\*\*data)
+### *class* lacing.model.AnnotationRef(, kind='annotation', target_id, interval=None)
 
 Bases: `SchemaModel`
 
@@ -4785,7 +4785,7 @@ design. Format-disjoint from a UUID string (36 hyphenated chars), so the
 
 alias of `Annotated`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=64), MaxLen(max_length=64), \_PydanticGeneralMetadata(pattern=’^[0-9a-f]{64}$’)])]
 
-### *class* lacing.model.MediaRef(\*\*data)
+### *class* lacing.model.MediaRef(, kind='media', asset_id, interval)
 
 Bases: `SchemaModel`
 
@@ -4795,7 +4795,7 @@ Reference to a region of a content-addressed media asset.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* lacing.model.NodeRef(\*\*data)
+### *class* lacing.model.NodeRef(, kind='node', scene_path, interval)
 
 Bases: `SchemaModel`
 
@@ -4805,7 +4805,7 @@ Reference to a node in a structured scene/document graph.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* lacing.model.Provenance(\*\*data)
+### *class* lacing.model.Provenance(\*, was_generated_by, was_attributed_to, was_derived_from=<factory>, generated_at_time, activity='create')
 
 Bases: `SchemaModel`
 
@@ -5326,8 +5326,8 @@ Unmatched intervals in either set contribute 0.0 to the mean.
 Cohen’s kappa for two annotators on a categorical label.
 
 * **Parameters:**
-  * **a** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))]) – Annotator A’s labels.
-  * **b** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))]) – Annotator B’s labels (must be the same length).
+  * **a** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[`T`]) – Annotator A’s labels.
+  * **b** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[`T`]) – Annotator B’s labels (must be the same length).
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
 * **Returns:**
@@ -5354,10 +5354,10 @@ if they don’t intersect (including when only one is a point).
 Krippendorff’s α across any number of annotators.
 
 * **Parameters:**
-  * **annotations** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))]]]) – A list of annotators, each a sequence of labels (one per
+  * **annotations** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`T`]]]) – A list of annotators, each a sequence of labels (one per
     unit). Use `None` for a missing annotation by that annotator on
     that unit.
-  * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable)), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`, bound= [`Hashable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Hashable))], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
+  * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
     two label values. Default is the nominal (0/1) distance.
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
@@ -6321,9 +6321,6 @@ Process-local named exclusive locks (a registry of `threading.Lock`).
 
 A signed 64-bit integer for `parts`: the argument of `pg_advisory_lock`.
 
-* **Return type:**
-  [`int`](https://docs.python.org/3/builtins/functions.html#int)
-
 ```pycon
 >>> advisory_lock_id("o", "p", "k") == advisory_lock_id("o", "p", "k")
 True
@@ -6332,6 +6329,9 @@ True
 >>> -2**63 <= advisory_lock_id("o", "p", "k") < 2**63
 True
 ```
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
 ### lacing.store.locking.file_lock(path)
 
@@ -6401,7 +6401,10 @@ means there is nothing to flush, and the mapping is not ours to close).
 
 ## Concurrency
 
-**Single writer, no locking.** Unlike `SqliteStore` there is no cross-process
+**Single writer.** `store.lock(key)` excludes the threads of this process
+over the same mapping *object*: every `MappingStore` built over it shares its
+named locks (two wrappers over one folder or table are different objects and do
+not; nor does it reach other processes). Unlike `SqliteStore` there is no cross-process
 lock: the index is a snapshot taken at construction, so a second
 `MappingStore` over the same mapping (in this or another process) does not
 see the first one’s later writes, and two writers can overwrite each other’s
@@ -7694,16 +7697,18 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-10-14 13:03 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/a43715b686362004f2a0f007c08ec22bb5d281a9"><code>a43715b</code></a> on branch <code>main</code>, for **lacing 0.0.54** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 13:09 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/f273af2a04995ecc13ce749ebcf394bdab6a632e"><code>f273af2</code></a> on branch <code>main</code>, for **lacing 0.0.54** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.54) is behind the latest release on PyPI (0.0.55): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/a43715b686362004f2a0f007c08ec22bb5d281a9"><code>a43715b686362004f2a0f007c08ec22bb5d281a9</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/f273af2a04995ecc13ce749ebcf394bdab6a632e"><code>f273af2a04995ecc13ce749ebcf394bdab6a632e</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -7714,16 +7719,16 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/38568271096">38568271096</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40327750849">40327750849</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>1eddbb5ba18a68cec02e4f960ac75204794aa1a1</code> (in the history of the built commit) |
+| Event commit | <code>f273af2a04995ecc13ce749ebcf394bdab6a632e</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.17  |
-| Sphinx   | 9.1.0   |
+| epythet  | 0.2.22  |
+| Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
 | Python   | 3.12.15 |
 
@@ -7741,14 +7746,14 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.54/">0.0.54</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.55/">0.0.55</a>, newer than the documented version (0.0.54).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout a43715b686362004f2a0f007c08ec22bb5d281a9
-pip install "epythet==0.2.17"
+git checkout f273af2a04995ecc13ce749ebcf394bdab6a632e
+pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

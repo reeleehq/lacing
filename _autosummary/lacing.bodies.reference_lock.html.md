@@ -47,10 +47,10 @@ consistency); reelee-web epic #151, lacing #9.
 
 ### Classes
 
-| [`ReferenceLockBodyV1`](#lacing.bodies.reference_lock.ReferenceLockBodyV1)(\*\*data)   | Body of a reference-lock annotation.   |
-|----------------------------------------------------------------------------------|----------------------------------------|
+| [`ReferenceLockBodyV1`](#lacing.bodies.reference_lock.ReferenceLockBodyV1)(\*, subject_kind, ...[, ...])   | Body of a reference-lock annotation.   |
+|------------------------------------------------------------------------------------------------------|----------------------------------------|
 
-### *class* lacing.bodies.reference_lock.ReferenceLockBodyV1(\*\*data)
+### *class* lacing.bodies.reference_lock.ReferenceLockBodyV1(\*, subject_kind, subject_id, locked_artifact_ids, primary_artifact_id=None, scope='project', scope_ref=None, checklist=('face', ), hard_gates=(), min_similarity=None, supersedes=None, notes='', params=<factory>)
 
 Bases: `SchemaModel`
 
