@@ -14,7 +14,7 @@ the rest of the adapter API. To open an ``.annot`` file as a *persistent*
 store you can mutate, use ``SqliteStore(path)`` directly:
 
     >>> from lacing.store import SqliteStore
-    >>> store = SqliteStore("project.annot")  # writes go straight to disk
+    >>> store = SqliteStore("project.annot")  # doctest: +SKIP
 """
 
 from __future__ import annotations

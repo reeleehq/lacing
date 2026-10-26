@@ -123,3 +123,92 @@ def test_same_name_with_two_kinds_across_models_is_an_error():
 def test_unknown_kind_is_refused():
     with pytest.raises(ValueError, match="kind must be"):
         Location("ftp")
+
+
+def test_on_register_hears_later_registrations_and_replays(registered):
+    seen = {}
+    other = "annot://schema/loc-demo-late/v1"
+    off = lacing.on_register(lambda uri, model: seen.__setitem__(uri, model))
+    try:
+        assert seen[URI] is Body  # replay of what was already registered
+        register_body_schema(other, Body)
+        assert seen[other] is Body
+        off()
+        off()  # idempotent
+        seen.clear()
+        register_body_schema(other, Body)
+        assert seen == {}
+    finally:
+        off()
+        _BODY_REGISTRY.pop(other, None)
+
+
+def test_on_register_without_replay_is_quiet_until_registration(registered):
+    seen = []
+    off = lacing.on_register(lambda uri, model: seen.append(uri), replay=False)
+    try:
+        assert seen == []
+        register_body_schema(URI, Body)
+        assert seen == [URI]
+    finally:
+        off()
+
+
+def test_on_register_failing_listener_does_not_blind_the_others(registered):
+    heard = []
+
+    def bad(uri, model):
+        raise RuntimeError("boom")
+
+    offs = [
+        lacing.on_register(bad, replay=False),
+        lacing.on_register(lambda uri, model: heard.append(uri), replay=False),
+    ]
+    try:
+        with pytest.raises(RuntimeError, match="boom"):
+            register_body_schema(URI, Body)
+        assert heard == [URI]
+        assert lacing.schema.is_registered(URI)
+    finally:
+        for off in offs:
+            off()
+
+
+def test_on_register_equal_listeners_unsubscribe_independently(registered):
+    heard = []
+
+    class L:
+        def __eq__(self, other):
+            return True
+
+        __hash__ = object.__hash__
+
+        def __call__(self, uri, model):
+            heard.append(uri)
+
+    first, second = L(), L()
+    off1 = lacing.on_register(first, replay=False)
+    off2 = lacing.on_register(second, replay=False)
+    try:
+        off1()
+        register_body_schema(URI, Body)
+        assert heard == [URI]  # second is still subscribed
+    finally:
+        off1()
+        off2()
+
+
+def test_clear_registry_does_not_notify_and_keeps_listeners(registered):
+    heard = []
+    saved = dict(_BODY_REGISTRY)
+    saved_migrations = dict(lacing.schema._MIGRATION_REGISTRY)
+    off = lacing.on_register(lambda uri, model: heard.append(uri), replay=False)
+    try:
+        lacing.schema.clear_registry()
+        assert heard == []
+        register_body_schema(URI, Body)
+        assert heard == [URI]
+    finally:
+        off()
+        _BODY_REGISTRY.update(saved)
+        lacing.schema._MIGRATION_REGISTRY.update(saved_migrations)
