@@ -36,7 +36,10 @@ means there is nothing to flush, and the mapping is not ours to close).
 
 Concurrency
 -----------
-**Single writer, no locking.** Unlike ``SqliteStore`` there is no cross-process
+**Single writer.** ``store.lock(key)`` excludes the threads of this process
+over the same mapping *object*: every ``MappingStore`` built over it shares its
+named locks (two wrappers over one folder or table are different objects and do
+not; nor does it reach other processes). Unlike ``SqliteStore`` there is no cross-process
 lock: the index is a snapshot taken at construction, so a second
 ``MappingStore`` over the same mapping (in this or another process) does not
 see the first one's later writes, and two writers can overwrite each other's
@@ -49,11 +52,14 @@ point the store at a mapping (or a sub-mapping) dedicated to it.
 from __future__ import annotations
 
 import json
+import threading
+import weakref
 from collections.abc import Callable, Iterable, MutableMapping
 from typing import Any, NamedTuple
 from uuid import UUID
 
 from lacing.model import Annotation
+from lacing.store.locking import NamedLocks
 from lacing.store.memory import MemoryStore
 from lacing.store.memory import _key as _bucket_key
 from lacing.tier import Tier
@@ -94,6 +100,25 @@ def _is_annotation_key(key: object) -> bool:
         return False
 
 
+#: Process-wide named locks, one registry per backing mapping *object*, keyed
+#: by ``id(mapping)`` so two stores over one mapping exclude each other. Weakly
+#: valued: an entry lives only while some store holds its ``NamedLocks``, and
+#: that store keeps the mapping alive, so a key's id cannot be recycled while
+#: its entry exists. (A plain ``dict`` cannot itself be weak-referenced.)
+_MAPPING_LOCKS: "weakref.WeakValueDictionary[int, NamedLocks]" = (
+    weakref.WeakValueDictionary()
+)
+_MAPPING_LOCKS_GUARD = threading.Lock()
+
+
+def _locks_for(mapping: MutableMapping) -> NamedLocks:
+    with _MAPPING_LOCKS_GUARD:
+        locks = _MAPPING_LOCKS.get(id(mapping))
+        if locks is None:
+            locks = _MAPPING_LOCKS[id(mapping)] = NamedLocks()
+        return locks
+
+
 class MappingStore(MemoryStore):
     """An ``IntervalAnnotationStore`` persisted to an injected ``MutableMapping``.
 
@@ -124,6 +149,7 @@ class MappingStore(MemoryStore):
             )
         super().__init__()
         self._mapping = mapping
+        self._named_locks = _locks_for(mapping)
         self._codec = codec
         self._tiers_key = tiers_key
         self._ids: set[UUID] = set()

@@ -128,3 +128,32 @@ def test_sqlite_lock_excludes_another_process(tmp_path):
             assert child.poll() is None  # still waiting on us, not finished
         out, _ = child.communicate(timeout=30)  # we let go: it gets the lock
     assert out.split() == ["got"]
+
+
+def test_mapping_stores_over_one_mapping_share_their_locks():
+    backing: dict = {}
+    first, second = MappingStore(backing), MappingStore(backing)
+    with first.lock("k"):
+        t, acquired, release = _try_lock(second, "k")
+        assert not acquired.wait(BLOCKED_SECS)
+    assert acquired.wait(PROMPT_SECS)
+    release.set()
+    t.join(PROMPT_SECS)
+
+
+def test_mapping_stores_over_different_mappings_do_not_exclude():
+    first, second = MappingStore({}), MappingStore({})
+    with first.lock("k"):
+        t, acquired, release = _try_lock(second, "k")
+        assert acquired.wait(PROMPT_SECS)
+    release.set()
+    t.join(PROMPT_SECS)
+
+
+def test_mapping_lock_registry_does_not_grow_with_dead_stores():
+    from lacing.store import mapping as mapping_mod
+
+    before = len(mapping_mod._MAPPING_LOCKS)
+    for _ in range(200):
+        MappingStore({}).lock("k")
+    assert len(mapping_mod._MAPPING_LOCKS) <= before + 1
