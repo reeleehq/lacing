@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -96,8 +97,11 @@ def make_uri(name: str, version: int) -> str:
 # uri -> Pydantic model class
 _BODY_REGISTRY: dict[str, type[BaseModel]] = {}
 
-# callbacks told about every (re-)registration; see on_register
-_REGISTER_LISTENERS: list[Callable[[str, type[BaseModel]], None]] = []
+# token -> callback, told about every (re-)registration; see on_register.
+# The RLock makes "write registry + notify" and "subscribe + replay" atomic with
+# respect to each other, and lets a listener register further schemas.
+_REGISTER_LISTENERS: dict[object, Callable[[str, type[BaseModel]], None]] = {}
+_REGISTRY_LOCK = threading.RLock()
 
 
 class BodySchemaError(ValueError):
@@ -116,10 +120,22 @@ def register_body_schema(uri: str, model: type[BaseModel]) -> type[BaseModel]:
             f"register_body_schema expects a Pydantic v2 BaseModel subclass; "
             f"got {model!r}"
         )
-    _BODY_REGISTRY[uri] = model
-    for listener in tuple(_REGISTER_LISTENERS):
-        listener(uri, model)
+    with _REGISTRY_LOCK:
+        _BODY_REGISTRY[uri] = model
+        _notify(tuple(_REGISTER_LISTENERS.values()), uri, model)
     return model
+
+
+def _notify(listeners, uri: str, model: type[BaseModel]) -> None:
+    """Call every listener even if some raise; re-raise the first error after."""
+    first_error = None
+    for listener in listeners:
+        try:
+            listener(uri, model)
+        except Exception as error:  # one bad listener must not blind the others
+            first_error = first_error or error
+    if first_error is not None:
+        raise first_error
 
 
 def on_register(
@@ -134,7 +150,10 @@ def on_register(
     late loses nothing. Re-registering a URI notifies again. :func:`clear_registry`
     does not notify and keeps the listeners.
 
-    Returns a zero-argument function that unsubscribes the listener.
+    A listener that raises does not stop the others from being told; the first
+    error is re-raised to the caller of :func:`register_body_schema` (the schema
+    stays registered). Returns a zero-argument function that unsubscribes the
+    listener (idempotent).
 
     >>> seen = []
     >>> off = on_register(lambda uri, model: seen.append(uri), replay=False)
@@ -144,17 +163,18 @@ def on_register(
     >>> seen
     ['annot://schema/doctest-on-register/v1']
     >>> off()
-    >>> _BODY_REGISTRY.pop("annot://schema/doctest-on-register/v1").__name__
-    '_B'
+    >>> _ = _BODY_REGISTRY.pop("annot://schema/doctest-on-register/v1")  # test cleanup
     """
-    if replay:
-        for uri, model in tuple(_BODY_REGISTRY.items()):
-            listener(uri, model)
-    _REGISTER_LISTENERS.append(listener)
+    token = object()
+    with _REGISTRY_LOCK:
+        _REGISTER_LISTENERS[token] = listener
+        if replay:
+            for uri, model in tuple(_BODY_REGISTRY.items()):
+                _notify((listener,), uri, model)
 
     def unsubscribe() -> None:
-        if listener in _REGISTER_LISTENERS:
-            _REGISTER_LISTENERS.remove(listener)
+        with _REGISTRY_LOCK:
+            _REGISTER_LISTENERS.pop(token, None)
 
     return unsubscribe
 
