@@ -1,4 +1,4 @@
-> built 2026-10-26 17:45 UTC from c896797 (main) · lacing 0.0.56. Details: build_info.json
+> built 2026-10-26 17:56 UTC from 3d0633e (main) · lacing 0.0.57. Details: build_info.json
 
 # index.html.md
 
@@ -1721,7 +1721,7 @@ a smoke test. Vendor specifics live only in the two kwargs dicts.
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
 
-#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>)
+#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None)
 
 An ArtifactStore persisted under `root`.
 
@@ -1743,6 +1743,10 @@ follows a symlinked directory out of `catalog/`. See
   * **record_type** ([`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]) – The pydantic model the catalog deserializes JSON into.
     Defaults to [`Artifact`](_autosummary/lacing.artifact.html.md#lacing.artifact.Artifact); callers with
     their own record schema pass their model here.
+  * **blob_delete_func** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – How the blob store deletes a file, given its
+    path. `None` keeps `dol.Files`’ default (move to the OS
+    trash); pass `os.remove` when blobs are derived data and a
+    delete should free the disk.
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
 
@@ -3317,7 +3321,7 @@ a smoke test. Vendor specifics live only in the two kwargs dicts.
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
 
-#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>)
+#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None)
 
 An ArtifactStore persisted under `root`.
 
@@ -3339,6 +3343,10 @@ follows a symlinked directory out of `catalog/`. See
   * **record_type** ([`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]) – The pydantic model the catalog deserializes JSON into.
     Defaults to [`Artifact`](_autosummary/lacing.artifact.html.md#lacing.artifact.Artifact); callers with
     their own record schema pass their model here.
+  * **blob_delete_func** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – How the blob store deletes a file, given its
+    path. `None` keeps `dol.Files`’ default (move to the OS
+    trash); pass `os.remove` when blobs are derived data and a
+    delete should free the disk.
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
 
@@ -7863,16 +7871,18 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-10-26 17:45 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/c896797179b515ec21c743dcc3a2d3a7215fd63c"><code>c896797</code></a> on branch <code>main</code>, for **lacing 0.0.56** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 17:56 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/3d0633e85281f3bba0b92b09aa619ebb767785db"><code>3d0633e</code></a> on branch <code>main</code>, for **lacing 0.0.57** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.57) is behind the latest release on PyPI (0.0.58): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/c896797179b515ec21c743dcc3a2d3a7215fd63c"><code>c896797179b515ec21c743dcc3a2d3a7215fd63c</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/3d0633e85281f3bba0b92b09aa619ebb767785db"><code>3d0633e85281f3bba0b92b09aa619ebb767785db</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -7883,9 +7893,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40371184916">40371184916</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40372911316">40372911316</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>c896797179b515ec21c743dcc3a2d3a7215fd63c</code> (in the history of the built commit) |
+| Event commit | <code>3d0633e85281f3bba0b92b09aa619ebb767785db</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -7910,13 +7920,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.56/">0.0.56</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.58/">0.0.58</a>, newer than the documented version (0.0.57).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout c896797179b515ec21c743dcc3a2d3a7215fd63c
+git checkout 3d0633e85281f3bba0b92b09aa619ebb767785db
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
