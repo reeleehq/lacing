@@ -585,7 +585,7 @@ class ArtifactStore(MutableMapping):
                 ),
                 filt=lambda k: k.endswith(".json"),
             ),
-            id_of_key=lambda artifact_id: f"{artifact_id}.json",
+            id_of_key=_catalog_filename,
             key_of_id=lambda filename: (
                 filename[:-5] if filename.endswith(".json") else filename
             ),
@@ -1006,6 +1006,8 @@ class _ContainedDirStore(MutableMapping):
         if not isinstance(key, str) or os.path.isabs(key) or os.path.splitdrive(key)[0]:
             return None
         separators = {"/", os.sep, os.altsep} - {None}
+        if key.endswith(tuple(separators)):
+            return None  # names a directory, never an entry
         segments = [key]
         for separator in separators:
             segments = [part for seg in segments for part in seg.split(separator)]
@@ -1047,8 +1049,17 @@ class _ContainedDirStore(MutableMapping):
             raise self._refuse(key, "names something that is not a regular file")
         # dol's Files does not create parent directories; ``target`` is already
         # resolved inside rootdir, so creating its parents cannot escape.
-        Path(target).parent.mkdir(parents=True, exist_ok=True)
-        self.store[contained] = value
+        created = _missing_parents(Path(target))
+        try:
+            Path(target).parent.mkdir(parents=True, exist_ok=True)
+            self.store[contained] = value
+        except (OSError, KeyError) as error:  # dol re-raises I/O errors as KeyError
+            for directory in created:  # deepest first; only what this call made
+                try:
+                    directory.rmdir()
+                except OSError:
+                    continue  # never made (e.g. name too long), or not empty
+            raise self._refuse(key, f"cannot be written ({error})") from error
 
     def __delitem__(self, key: str) -> None:
         if key not in self:
@@ -1070,6 +1081,23 @@ class _ContainedDirStore(MutableMapping):
 
     def __len__(self) -> int:
         return sum(1 for _ in self)
+
+
+def _catalog_filename(artifact_id: str) -> str:
+    """``<id>.json``; an id ending in a separator names a directory: ``KeyError``."""
+    if artifact_id.endswith(("/", os.sep)):
+        raise KeyError(f"{artifact_id!r} names a directory, not an artifact")
+    return f"{artifact_id}.json"
+
+
+def _missing_parents(path: Path) -> list[Path]:
+    """The ancestors of ``path`` that do not exist yet, deepest first."""
+    missing = []
+    for parent in path.parents:
+        if parent.exists():
+            break
+        missing.append(parent)
+    return missing
 
 
 def _spool_chunks_to_dir(chunks: Iterable[bytes], rootdir: Path) -> str:
