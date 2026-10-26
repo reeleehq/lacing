@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=6799126d"></script>
+    <script src="../../_static/documentation_options.js?v=4d22d5b7"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.59" />
+  <meta name="docsearch:version" content="0.0.60" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -721,6 +721,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">- :func:`register_body_schema` — register a Pydantic v2 model for a schema URI.</span>
 <span class="sd">- :func:`validate` — validate an annotation's body dict against its schema.</span>
 <span class="sd">- :func:`body_locations` — which body fields hold urls/paths (``Location`` marker).</span>
+<span class="sd">- :func:`body_derived` — which body fields are derived from a sibling (``Derived`` marker).</span>
 <span class="sd">- :func:`json_schema` — get the JSON Schema for a registered URI.</span>
 <span class="sd">- :func:`export_json_schemas` — write all JSON Schema artifacts to disk</span>
 <span class="sd">  (under ``lacing/schema/&lt;name&gt;/v&lt;N&gt;.json`` by default), the upstream</span>
@@ -767,6 +768,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ValidationError</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.json_schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultFactoryJsonSchema</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.derived</span><span class="w"> </span><span class="kn">import</span> <span class="n">DerivedPath</span><span class="p">,</span> <span class="n">derived_paths</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.locations</span><span class="w"> </span><span class="kn">import</span> <span class="n">LocationKind</span><span class="p">,</span> <span class="n">location_fields</span>
 
 
@@ -848,6 +850,7 @@ window.runMermaid = runMermaid;</script>
             <span class="sa">f</span><span class="s2">"register_body_schema expects a Pydantic v2 BaseModel subclass; "</span>
             <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="n">model</span><span class="si">!r}</span><span class="s2">"</span>
         <span class="p">)</span>
+    <span class="n">derived_paths</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>  <span class="c1"># a bad Derived marker fails here, not on every digest</span>
     <span class="k">with</span> <span class="n">_REGISTRY_LOCK</span><span class="p">:</span>
         <span class="n">_BODY_REGISTRY</span><span class="p">[</span><span class="n">uri</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span>
         <span class="n">_notify</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">_REGISTER_LISTENERS</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">uri</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
@@ -927,6 +930,15 @@ window.runMermaid = runMermaid;</script>
 <span class="w">    </span><span class="sd">"""The location-marked fields of the body schema for ``uri``</span>
 <span class="sd">    (see :mod:`lacing.locations`): ``{field spelling: "url" | "path"}``."""</span>
     <span class="k">return</span> <span class="n">location_fields</span><span class="p">(</span><span class="n">get_body_schema</span><span class="p">(</span><span class="n">uri</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="body_derived">
+<a class="viewcode-back" href="../../_autosummary/lacing.schema.html#lacing.body_derived">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">body_derived</span><span class="p">(</span><span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">[</span><span class="n">DerivedPath</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The ``Derived``-marked field paths of the body schema for ``uri``</span>
+<span class="sd">    (see :mod:`lacing.derived`)."""</span>
+    <span class="k">return</span> <span class="n">derived_paths</span><span class="p">(</span><span class="n">get_body_schema</span><span class="p">(</span><span class="n">uri</span><span class="p">))</span></div>
 
 
 

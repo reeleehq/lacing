@@ -1,0 +1,26 @@
+lacing.derived
+==============
+
+.. automodule:: lacing.derived
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      DerivedPath
+      ANY_ITEM
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      derived_paths
+      drop_paths
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Derived
+   

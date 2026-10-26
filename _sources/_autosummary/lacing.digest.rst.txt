@@ -11,6 +11,7 @@ lacing.digest
       VALUE_FIELDS
       BODY_FIELDS
       VALUE_DIGEST_SCHEME
+      VALUE_DIGEST_SCHEMES
       BODY_DIGEST_SCHEME
    
    .. rubric:: Functions
@@ -19,6 +20,7 @@ lacing.digest
    
       annotation_value_digest
       annotation_body_digest
+      registered_derived_paths
    
    .. rubric:: Exceptions
 

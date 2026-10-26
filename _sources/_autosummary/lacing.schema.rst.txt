@@ -8,6 +8,7 @@ lacing.schema
 
    .. autosummary::
    
+      body_derived
       body_locations
       clear_registry
       export_json_schemas

@@ -141,17 +141,19 @@ the scheme string when you do it, so the change is legible in a trace.
 
 ### Module Attributes
 
-| [`VALUE_FIELDS`](#lacing.digest.VALUE_FIELDS)        | Annotation fields that constitute its *value*.                                                               |
-|----------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
-| [`BODY_FIELDS`](#lacing.digest.BODY_FIELDS)         | The narrower payload for [`annotation_body_digest()`](#lacing.digest.annotation_body_digest).          |
-| [`VALUE_DIGEST_SCHEME`](#lacing.digest.VALUE_DIGEST_SCHEME) | Domain-separation tag mixed into [`annotation_value_digest()`](#lacing.digest.annotation_value_digest). |
-| [`BODY_DIGEST_SCHEME`](#lacing.digest.BODY_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_body_digest()`](#lacing.digest.annotation_body_digest).  |
+| [`VALUE_FIELDS`](#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                          |
+|-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| [`BODY_FIELDS`](#lacing.digest.BODY_FIELDS)          | The narrower payload for [`annotation_body_digest()`](#lacing.digest.annotation_body_digest).                     |
+| [`VALUE_DIGEST_SCHEME`](#lacing.digest.VALUE_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) by default. |
+| [`VALUE_DIGEST_SCHEMES`](#lacing.digest.VALUE_DIGEST_SCHEMES) | Every scheme [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) can compute, oldest first.      |
+| [`BODY_DIGEST_SCHEME`](#lacing.digest.BODY_DIGEST_SCHEME)   | Domain-separation tag mixed into [`annotation_body_digest()`](#lacing.digest.annotation_body_digest).             |
 
 ### Functions
 
-| [`annotation_value_digest`](#lacing.digest.annotation_value_digest)(annotation)   | Return the SHA-256 hex digest of `annotation`'s value.           |
-|----------------------------------------------------------------------------------------|------------------------------------------------------------------|
-| [`annotation_body_digest`](#lacing.digest.annotation_body_digest)(annotation)    | Return the SHA-256 hex digest of `{body, body_schema_uri}` only. |
+| [`annotation_value_digest`](#lacing.digest.annotation_value_digest)(annotation, \*[, ...])   | Return the SHA-256 hex digest of `annotation`'s value.                                                                           |
+|---------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| [`annotation_body_digest`](#lacing.digest.annotation_body_digest)(annotation)               | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                 |
+| [`registered_derived_paths`](#lacing.digest.registered_derived_paths)(uri)                    | The [`lacing.Derived`](lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`. |
 
 ### Exceptions
 
@@ -188,9 +190,18 @@ producer-side fix. This error lives here rather than in `lacing.model`
 because this module is deliberately import-light (stdlib only, pinned by
 test) and the model can import from it, not vice versa.
 
-### lacing.digest.VALUE_DIGEST_SCHEME *= 'lacing/annotation-value-digest/v1'*
+### lacing.digest.VALUE_DIGEST_SCHEME *= 'lacing/annotation-value-digest/v2'*
 
-Domain-separation tag mixed into [`annotation_value_digest()`](#lacing.digest.annotation_value_digest).
+Domain-separation tag mixed into [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) by default.
+
+`v2` leaves the body’s [`lacing.Derived`](lacing.html.md#lacing.Derived) fields out (see
+[`lacing.derived`](lacing.derived.html.md#module-lacing.derived)); `v1` digested the whole body. A trace that recorded a
+`v1` digest is still verifiable: pass `scheme="lacing/annotation-value-digest/v1"`.
+
+### lacing.digest.VALUE_DIGEST_SCHEMES *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ('lacing/annotation-value-digest/v1', 'lacing/annotation-value-digest/v2')*
+
+Every scheme [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) can compute, oldest first. Only
+the latest excludes derived fields.
 
 ### lacing.digest.VALUE_FIELDS *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ('body', 'body_schema_uri', 'confidence', 'reference', 'tier')*
 
@@ -274,13 +285,26 @@ False
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### lacing.digest.annotation_value_digest(annotation)
+### lacing.digest.annotation_value_digest(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
 
 Return the SHA-256 hex digest of `annotation`’s value.
 
 Covers `body`, `body_schema_uri`, `tier`, `reference` and
 `confidence`. Excludes `id` and `provenance`, so a regeneration that
-produces identical content produces an identical digest.
+produces identical content produces an identical digest. Also excludes the
+body’s [`lacing.Derived`](lacing.html.md#lacing.Derived) fields (scheme `v2` onwards): a value
+derivable from another field of the body does not change what a render reads.
+
+A body with no derived fields (no marker, or a schema that is not
+registered) digests exactly as under `v1`, so only marked schemas change
+digest. The verifier must therefore have registered the same body schemas as
+the producer, or it computes a different (stale-reading) digest.
+
+`scheme` selects which computation to run, so a digest recorded under an
+older scheme can be re-verified (see [`VALUE_DIGEST_SCHEMES`](#lacing.digest.VALUE_DIGEST_SCHEMES)).
+`resolve_derived` maps a `body_schema_uri` to the paths to leave out; the
+default reads the registered body schema ([`registered_derived_paths()`](#lacing.digest.registered_derived_paths)),
+and a schema that is not registered excludes nothing.
 
 Use this for freshness and early cutoff. For optimistic concurrency use
 `lacing.server.etag.annotation_etag()` instead — two digests, two
@@ -334,3 +358,14 @@ False
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### lacing.digest.registered_derived_paths(uri)
+
+The [`lacing.Derived`](lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`.
+
+Empty for an unregistered `uri`: excluding less can only cost a spurious
+miss, never a wrong hit. Imports [`lacing.schema`](lacing.schema.html.md#module-lacing.schema) on first use, so this
+module stays stdlib-only at import time.
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]

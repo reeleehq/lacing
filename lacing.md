@@ -1,4 +1,4 @@
-> built 2026-10-26 20:53 UTC from ab8094f (main) · lacing 0.0.59. Details: build_info.json
+> built 2026-10-26 21:03 UTC from cdc179c (main) · lacing 0.0.60. Details: build_info.json
 
 # index.html.md
 
@@ -2558,6 +2558,115 @@ adapter understands it.
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 
+# _autosummary/lacing.derived.html.md
+
+# lacing.derived
+
+Which body fields are *derived* from another field of the same object.
+
+A body schema marks a field whose value can be recomputed from a sibling field
+by annotating it with [`Derived`](_autosummary/lacing.derived.html.md#lacing.derived.Derived), naming that sibling:
+
+```default
+from typing import Annotated
+from pydantic import BaseModel
+from lacing import Derived, derived_paths
+
+class PanelImage(BaseModel):
+    artifact_id: str = ""
+    asset_id: Annotated[str, Derived("artifact_id")] = ""   # hash of the bytes
+
+class Body(BaseModel):
+    images: list[PanelImage] = []
+
+derived_paths(Body)  # {('images', None, 'asset_id')}   (None = any list item / map value)
+```
+
+The reason to mark one: a host sometimes learns the value *after* the annotation
+was saved (a content hash known only once an upload is ingested). Writing it
+changes nothing a render reads, so [`lacing.annotation_value_digest()`](_autosummary/lacing.html.md#lacing.annotation_value_digest) leaves
+derived fields out and the write does not make downstream results look stale.
+
+The marker is carried into the exported JSON Schema as `x-derived` (the raw
+schema only: json-schema-to-zod drops `x-*` keys), and [`derived_paths()`](_autosummary/lacing.derived.html.md#lacing.derived.derived_paths)
+reads that same schema, so the export and the digest cannot disagree.
+
+Two rules keep the exclusion honest, since leaving out a field that is *not*
+derivable would make two different values digest alike (a wrong cache hit):
+
+- the marker names a **source** field that exists in the same object and is
+  itself not derived (a schema error otherwise, raised by [`derived_paths()`](_autosummary/lacing.derived.html.md#lacing.derived.derived_paths));
+- it sits on a field as a whole, not inside a container (`list[Annotated[...]]`
+  is refused, since “the sibling” would then be undefined).
+
+Paths are exact: only the marked field of the marked model is excluded, not
+every key of that name elsewhere in the body. Where a path is ambiguous it is
+dropped, never guessed: in a union (`A | B`) a field is excluded only if every
+object alternative marks it, tuple positions must agree, and the values of a map
+that also declares properties are not walked. A recursive model is walked one
+level only. Each of these costs at most a spurious cache miss, never a wrong hit.
+Field names and aliases are both read as spellings of a field, as in
+[`lacing.location_fields()`](_autosummary/lacing.html.md#lacing.location_fields).
+
+### Module Attributes
+
+| [`DerivedPath`](_autosummary/lacing.derived.html.md#lacing.derived.DerivedPath)   | an object key, or [`ANY_ITEM`](_autosummary/lacing.derived.html.md#lacing.derived.ANY_ITEM).   |
+|----------------------------------------------------------------|--------------------------------------------------------------------------------|
+| [`ANY_ITEM`](_autosummary/lacing.derived.html.md#lacing.derived.ANY_ITEM)      | Path step standing for "every element of a list / every value of a map".       |
+
+### Functions
+
+| [`derived_paths`](_autosummary/lacing.derived.html.md#lacing.derived.derived_paths)(model)     | The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.derived.html.md#lacing.derived.Derived) fields.   |
+|---------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| [`drop_paths`](_autosummary/lacing.derived.html.md#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`.                                              |
+
+### Classes
+
+| [`Derived`](_autosummary/lacing.derived.html.md#lacing.derived.Derived)(source)   | Field marker: this body field is derivable from the sibling field `source`.   |
+|--------------------------------------------------------------------|-------------------------------------------------------------------------------|
+
+### lacing.derived.ANY_ITEM *= None*
+
+Path step standing for “every element of a list / every value of a map”.
+
+### *class* lacing.derived.Derived(source)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Field marker: this body field is derivable from the sibling field `source`.
+
+### lacing.derived.DerivedPath
+
+an object key, or [`ANY_ITEM`](_autosummary/lacing.derived.html.md#lacing.derived.ANY_ITEM).
+
+* **Type:**
+  One step of a path through a body
+
+alias of [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[str | None, …]
+
+### lacing.derived.derived_paths(model)
+
+The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.derived.html.md#lacing.derived.Derived) fields.
+
+A step is an object key or [`ANY_ITEM`](_autosummary/lacing.derived.html.md#lacing.derived.ANY_ITEM) (every list element / map value).
+Keys are spelled as in `model`’s JSON Schema in both modes, so a field’s
+name, `alias` and `serialization_alias` all count, as in
+[`lacing.location_fields()`](_autosummary/lacing.html.md#lacing.location_fields). Cached per model class.
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – a marker names a source that is not a non-derived sibling,
+      or sits on a container item / union member instead of a whole field.
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
+
+### lacing.derived.drop_paths(value, paths)
+
+Delete, in place, the entries of the JSON-like `value` named by `paths`.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+
 # _autosummary/lacing.digest.html.md
 
 # lacing.digest
@@ -2703,17 +2812,19 @@ the scheme string when you do it, so the change is legible in a trace.
 
 ### Module Attributes
 
-| [`VALUE_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_FIELDS)        | Annotation fields that constitute its *value*.                                                               |
-|----------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
-| [`BODY_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_FIELDS)         | The narrower payload for [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).          |
-| [`VALUE_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEME) | Domain-separation tag mixed into [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest). |
-| [`BODY_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).  |
+| [`VALUE_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                          |
+|-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| [`BODY_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_FIELDS)          | The narrower payload for [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).                     |
+| [`VALUE_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) by default. |
+| [`VALUE_DIGEST_SCHEMES`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEMES) | Every scheme [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) can compute, oldest first.      |
+| [`BODY_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_DIGEST_SCHEME)   | Domain-separation tag mixed into [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).             |
 
 ### Functions
 
-| [`annotation_value_digest`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest)(annotation)   | Return the SHA-256 hex digest of `annotation`'s value.           |
-|----------------------------------------------------------------------------------------|------------------------------------------------------------------|
-| [`annotation_body_digest`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest)(annotation)    | Return the SHA-256 hex digest of `{body, body_schema_uri}` only. |
+| [`annotation_value_digest`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest)(annotation, \*[, ...])   | Return the SHA-256 hex digest of `annotation`'s value.                                                                           |
+|---------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| [`annotation_body_digest`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest)(annotation)               | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                 |
+| [`registered_derived_paths`](_autosummary/lacing.digest.html.md#lacing.digest.registered_derived_paths)(uri)                    | The [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`. |
 
 ### Exceptions
 
@@ -2750,9 +2861,18 @@ producer-side fix. This error lives here rather than in `lacing.model`
 because this module is deliberately import-light (stdlib only, pinned by
 test) and the model can import from it, not vice versa.
 
-### lacing.digest.VALUE_DIGEST_SCHEME *= 'lacing/annotation-value-digest/v1'*
+### lacing.digest.VALUE_DIGEST_SCHEME *= 'lacing/annotation-value-digest/v2'*
 
-Domain-separation tag mixed into [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest).
+Domain-separation tag mixed into [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) by default.
+
+`v2` leaves the body’s [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) fields out (see
+[`lacing.derived`](_autosummary/lacing.derived.html.md#module-lacing.derived)); `v1` digested the whole body. A trace that recorded a
+`v1` digest is still verifiable: pass `scheme="lacing/annotation-value-digest/v1"`.
+
+### lacing.digest.VALUE_DIGEST_SCHEMES *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ('lacing/annotation-value-digest/v1', 'lacing/annotation-value-digest/v2')*
+
+Every scheme [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) can compute, oldest first. Only
+the latest excludes derived fields.
 
 ### lacing.digest.VALUE_FIELDS *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ('body', 'body_schema_uri', 'confidence', 'reference', 'tier')*
 
@@ -2836,13 +2956,26 @@ False
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### lacing.digest.annotation_value_digest(annotation)
+### lacing.digest.annotation_value_digest(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
 
 Return the SHA-256 hex digest of `annotation`’s value.
 
 Covers `body`, `body_schema_uri`, `tier`, `reference` and
 `confidence`. Excludes `id` and `provenance`, so a regeneration that
-produces identical content produces an identical digest.
+produces identical content produces an identical digest. Also excludes the
+body’s [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) fields (scheme `v2` onwards): a value
+derivable from another field of the body does not change what a render reads.
+
+A body with no derived fields (no marker, or a schema that is not
+registered) digests exactly as under `v1`, so only marked schemas change
+digest. The verifier must therefore have registered the same body schemas as
+the producer, or it computes a different (stale-reading) digest.
+
+`scheme` selects which computation to run, so a digest recorded under an
+older scheme can be re-verified (see [`VALUE_DIGEST_SCHEMES`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEMES)).
+`resolve_derived` maps a `body_schema_uri` to the paths to leave out; the
+default reads the registered body schema ([`registered_derived_paths()`](_autosummary/lacing.digest.html.md#lacing.digest.registered_derived_paths)),
+and a schema that is not registered excludes nothing.
 
 Use this for freshness and early cutoff. For optimistic concurrency use
 `lacing.server.etag.annotation_etag()` instead — two digests, two
@@ -2896,6 +3029,17 @@ False
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### lacing.digest.registered_derived_paths(uri)
+
+The [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`.
+
+Empty for an unregistered `uri`: excluding less can only cost a spurious
+miss, never a wrong hit. Imports [`lacing.schema`](_autosummary/lacing.schema.html.md#module-lacing.schema) on first use, so this
+module stays stdlib-only at import time.
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
 
 
 # _autosummary/lacing.exhibit.html.md
@@ -3002,7 +3146,7 @@ full story. `.claude/skills/` contains the rules.
 | [`hash_bytes`](_autosummary/lacing.html.md#lacing.hash_bytes)(data)                                  | Return the canonical `asset_id` (SHA-256 hex) for `data`.                                                                                                                                    |
 |----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [`hash_file`](_autosummary/lacing.html.md#lacing.hash_file)(path, \*[, chunk_size])                 | Return the canonical `asset_id` (SHA-256 hex) for the file at `path`.                                                                                                                        |
-| [`annotation_value_digest`](_autosummary/lacing.html.md#lacing.annotation_value_digest)(annotation)               | Return the SHA-256 hex digest of `annotation`'s value.                                                                                                                                       |
+| [`annotation_value_digest`](_autosummary/lacing.html.md#lacing.annotation_value_digest)(annotation, \*[, ...])    | Return the SHA-256 hex digest of `annotation`'s value.                                                                                                                                       |
 | [`annotation_body_digest`](_autosummary/lacing.html.md#lacing.annotation_body_digest)(annotation)                | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                                                                             |
 | [`register_store_migration`](_autosummary/lacing.html.md#lacing.register_store_migration)(\*, store_kind, ...)     | Register a forward store migration from `from_version` to `to_version`.                                                                                                                      |
 | [`migrate_annot_file`](_autosummary/lacing.html.md#lacing.migrate_annot_file)(path, \*[, to_version])        | Migrate a `.annot` file in place, returning `(from, to)` versions.                                                                                                                           |
@@ -3023,6 +3167,7 @@ full story. `.claude/skills/` contains the rules.
 | [`register_body_schema`](_autosummary/lacing.html.md#lacing.register_body_schema)(uri, model)                  | Register `model` as the validator for `uri`.                                                                                                                                                 |
 | [`on_register`](_autosummary/lacing.html.md#lacing.on_register)(listener, \*[, replay])               | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                            |
 | [`body_locations`](_autosummary/lacing.html.md#lacing.body_locations)(uri)                               | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`. |
+| [`derived_paths`](_autosummary/lacing.html.md#lacing.derived_paths)(model)                              | The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.html.md#lacing.Derived) fields.                                                                          |
 | [`location_fields`](_autosummary/lacing.html.md#lacing.location_fields)(model)                            | `{field spelling: kind}` for the [`Location`](_autosummary/lacing.html.md#lacing.Location)-marked fields of `model` and of the models nested in it.                                          |
 | [`register_migration`](_autosummary/lacing.html.md#lacing.register_migration)(\*, schema_name, ...)          | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                      |
 | [`json_schema`](_autosummary/lacing.html.md#lacing.json_schema)(uri)                                  | Return the JSON Schema for the body model registered at `uri`.                                                                                                                               |
@@ -3056,6 +3201,7 @@ full story. `.claude/skills/` contains the rules.
 | [`InMemoryOpLog`](_autosummary/lacing.html.md#lacing.InMemoryOpLog)()                                  | Simple list-backed op-log.                                                     |
 | [`SqliteOpLog`](_autosummary/lacing.html.md#lacing.SqliteOpLog)(path, \*[, check_same_thread])       | Op-log backed by a SQLite table.                                               |
 | [`Location`](_autosummary/lacing.html.md#lacing.Location)(kind)                                   | Field marker: this body field holds a location of `kind`.                      |
+| [`Derived`](_autosummary/lacing.html.md#lacing.Derived)(source)                                  | Field marker: this body field is derivable from the sibling field `source`.    |
 
 ### Exceptions
 
@@ -3592,6 +3738,12 @@ crash never leaves the catalog pointing at missing bytes. Idempotent on
 Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
 
 Raised when a body fails validation against its registered schema.
+
+### *class* lacing.Derived(source)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Field marker: this body field is derivable from the sibling field `source`.
 
 ### *exception* lacing.EmptySchemaRegistryError
 
@@ -4329,13 +4481,26 @@ False
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### lacing.annotation_value_digest(annotation)
+### lacing.annotation_value_digest(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
 
 Return the SHA-256 hex digest of `annotation`’s value.
 
 Covers `body`, `body_schema_uri`, `tier`, `reference` and
 `confidence`. Excludes `id` and `provenance`, so a regeneration that
-produces identical content produces an identical digest.
+produces identical content produces an identical digest. Also excludes the
+body’s [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) fields (scheme `v2` onwards): a value
+derivable from another field of the body does not change what a render reads.
+
+A body with no derived fields (no marker, or a schema that is not
+registered) digests exactly as under `v1`, so only marked schemas change
+digest. The verifier must therefore have registered the same body schemas as
+the producer, or it computes a different (stale-reading) digest.
+
+`scheme` selects which computation to run, so a digest recorded under an
+older scheme can be re-verified (see `VALUE_DIGEST_SCHEMES`).
+`resolve_derived` maps a `body_schema_uri` to the paths to leave out; the
+default reads the registered body schema (`registered_derived_paths()`),
+and a schema that is not registered excludes nothing.
 
 Use this for freshness and early cutoff. For optimistic concurrency use
 `lacing.server.etag.annotation_etag()` instead — two digests, two
@@ -4429,6 +4594,21 @@ Cohen’s kappa for two annotators on a categorical label.
 Edge cases:
 : If only one category appears across both annotators, both observed
   and expected agreement are 1.0; we return 1.0 by convention.
+
+### lacing.derived_paths(model)
+
+The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.html.md#lacing.Derived) fields.
+
+A step is an object key or `ANY_ITEM` (every list element / map value).
+Keys are spelled as in `model`’s JSON Schema in both modes, so a field’s
+name, `alias` and `serialization_alias` all count, as in
+[`lacing.location_fields()`](_autosummary/lacing.html.md#lacing.location_fields). Cached per model class.
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – a marker names a source that is not a non-derived sibling,
+      or sits on a container item / union member instead of a whole field.
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
 
 ### lacing.export_json_schemas(target_dir, , overwrite=True, include_meta=True, allow_empty=False)
 
@@ -4778,6 +4958,7 @@ or [`UnknownBodySchemaError`](_autosummary/lacing.html.md#lacing.UnknownBodySche
 | [`artifact_store`](_autosummary/lacing.artifact_store.html.md#module-lacing.artifact_store) | Artifact store — a metadata catalog and a blob store behind one facade.   |
 | [`bodies`](_autosummary/lacing.bodies.html.md#module-lacing.bodies)                 | Built-in body schemas.                                                    |
 | [`cli`](_autosummary/lacing.cli.html.md#module-lacing.cli)                       | Command-line interface for lacing.                                        |
+| [`derived`](_autosummary/lacing.derived.html.md#module-lacing.derived)               | Which body fields are *derived* from another field of the same object.    |
 | [`digest`](_autosummary/lacing.digest.html.md#module-lacing.digest)                 | Content digests over an annotation's *value* — the freshness primitive.   |
 | [`exhibit`](_autosummary/lacing.exhibit.html.md#module-lacing.exhibit)               | Artifact exhibit — render an annotation graph as a readable document.     |
 | [`locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)           | Which body fields hold locations (urls, file paths).                      |
@@ -5523,6 +5704,7 @@ module implements:
 - [`register_body_schema()`](_autosummary/lacing.schema.html.md#lacing.schema.register_body_schema) — register a Pydantic v2 model for a schema URI.
 - [`validate()`](_autosummary/lacing.schema.html.md#lacing.schema.validate) — validate an annotation’s body dict against its schema.
 - [`body_locations()`](_autosummary/lacing.schema.html.md#lacing.schema.body_locations) — which body fields hold urls/paths (`Location` marker).
+- [`body_derived()`](_autosummary/lacing.schema.html.md#lacing.schema.body_derived) — which body fields are derived from a sibling (`Derived` marker).
 - [`json_schema()`](_autosummary/lacing.schema.html.md#lacing.schema.json_schema) — get the JSON Schema for a registered URI.
 - [`export_json_schemas()`](_autosummary/lacing.schema.html.md#lacing.schema.export_json_schemas) — write all JSON Schema artifacts to disk
   (under `lacing/schema/<name>/v<N>.json` by default), the upstream
@@ -5560,23 +5742,24 @@ def v1_to_v2(body: dict) -> dict:
 
 ### Functions
 
-| [`body_locations`](_autosummary/lacing.schema.html.md#lacing.schema.body_locations)(uri)                        | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`.   |
-|---------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`clear_registry`](_autosummary/lacing.schema.html.md#lacing.schema.clear_registry)()                           | Drop every registered body schema and migration.                                                                                                                                               |
-| [`export_json_schemas`](_autosummary/lacing.schema.html.md#lacing.schema.export_json_schemas)(target_dir, \*[, ...]) | Write every registered schema as JSON files under `target_dir`.                                                                                                                                |
-| [`get_body_schema`](_autosummary/lacing.schema.html.md#lacing.schema.get_body_schema)(uri)                       | Look up the registered Pydantic model for `uri`.                                                                                                                                               |
-| `is_registered`(uri)                                                                        |                                                                                                                                                                                                |
-| [`json_schema`](_autosummary/lacing.schema.html.md#lacing.schema.json_schema)(uri)                           | Return the JSON Schema for the body model registered at `uri`.                                                                                                                                 |
-| [`latest_version`](_autosummary/lacing.schema.html.md#lacing.schema.latest_version)(schema_name)                | Highest registered major version for `schema_name`, or None.                                                                                                                                   |
-| [`make_uri`](_autosummary/lacing.schema.html.md#lacing.schema.make_uri)(name, version)                    | Build a `body_schema_uri` from a name and major version.                                                                                                                                       |
-| [`migrate`](_autosummary/lacing.schema.html.md#lacing.schema.migrate)(body, \*, from_uri, to_uri)        | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                               |
-| [`migrate_to_latest`](_autosummary/lacing.schema.html.md#lacing.schema.migrate_to_latest)(body, \*, from_uri)      | Convenience: migrate to the highest registered version of the schema.                                                                                                                          |
-| [`on_register`](_autosummary/lacing.schema.html.md#lacing.schema.on_register)(listener, \*[, replay])        | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                              |
-| [`parse_uri`](_autosummary/lacing.schema.html.md#lacing.schema.parse_uri)(uri)                             | Split `annot://schema/<name>/v<major>` into `(name, major)`.                                                                                                                                   |
-| [`register_body_schema`](_autosummary/lacing.schema.html.md#lacing.schema.register_body_schema)(uri, model)           | Register `model` as the validator for `uri`.                                                                                                                                                   |
-| [`register_migration`](_autosummary/lacing.schema.html.md#lacing.schema.register_migration)(\*, schema_name, ...)   | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                        |
-| [`registered_uris`](_autosummary/lacing.schema.html.md#lacing.schema.registered_uris)()                          | All currently registered `body_schema_uri` values, sorted.                                                                                                                                     |
-| [`validate`](_autosummary/lacing.schema.html.md#lacing.schema.validate)(body, uri)                        | Validate `body` against the schema registered for `uri`.                                                                                                                                       |
+| [`body_derived`](_autosummary/lacing.schema.html.md#lacing.schema.body_derived)(uri)                          | The `Derived`-marked field paths of the body schema for `uri` (see [`lacing.derived`](_autosummary/lacing.derived.html.md#module-lacing.derived)).                                   |
+|---------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`body_locations`](_autosummary/lacing.schema.html.md#lacing.schema.body_locations)(uri)                        | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`. |
+| [`clear_registry`](_autosummary/lacing.schema.html.md#lacing.schema.clear_registry)()                           | Drop every registered body schema and migration.                                                                                                                                             |
+| [`export_json_schemas`](_autosummary/lacing.schema.html.md#lacing.schema.export_json_schemas)(target_dir, \*[, ...]) | Write every registered schema as JSON files under `target_dir`.                                                                                                                              |
+| [`get_body_schema`](_autosummary/lacing.schema.html.md#lacing.schema.get_body_schema)(uri)                       | Look up the registered Pydantic model for `uri`.                                                                                                                                             |
+| `is_registered`(uri)                                                                        |                                                                                                                                                                                              |
+| [`json_schema`](_autosummary/lacing.schema.html.md#lacing.schema.json_schema)(uri)                           | Return the JSON Schema for the body model registered at `uri`.                                                                                                                               |
+| [`latest_version`](_autosummary/lacing.schema.html.md#lacing.schema.latest_version)(schema_name)                | Highest registered major version for `schema_name`, or None.                                                                                                                                 |
+| [`make_uri`](_autosummary/lacing.schema.html.md#lacing.schema.make_uri)(name, version)                    | Build a `body_schema_uri` from a name and major version.                                                                                                                                     |
+| [`migrate`](_autosummary/lacing.schema.html.md#lacing.schema.migrate)(body, \*, from_uri, to_uri)        | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                             |
+| [`migrate_to_latest`](_autosummary/lacing.schema.html.md#lacing.schema.migrate_to_latest)(body, \*, from_uri)      | Convenience: migrate to the highest registered version of the schema.                                                                                                                        |
+| [`on_register`](_autosummary/lacing.schema.html.md#lacing.schema.on_register)(listener, \*[, replay])        | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                            |
+| [`parse_uri`](_autosummary/lacing.schema.html.md#lacing.schema.parse_uri)(uri)                             | Split `annot://schema/<name>/v<major>` into `(name, major)`.                                                                                                                                 |
+| [`register_body_schema`](_autosummary/lacing.schema.html.md#lacing.schema.register_body_schema)(uri, model)           | Register `model` as the validator for `uri`.                                                                                                                                                 |
+| [`register_migration`](_autosummary/lacing.schema.html.md#lacing.schema.register_migration)(\*, schema_name, ...)   | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                      |
+| [`registered_uris`](_autosummary/lacing.schema.html.md#lacing.schema.registered_uris)()                          | All currently registered `body_schema_uri` values, sorted.                                                                                                                                   |
+| [`validate`](_autosummary/lacing.schema.html.md#lacing.schema.validate)(body, uri)                        | Validate `body` against the schema registered for `uri`.                                                                                                                                     |
 
 ### Exceptions
 
@@ -5614,6 +5797,14 @@ Raised when a migration step is missing or fails.
 Bases: [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError)
 
 Raised when an annotation’s body_schema_uri has no registered model.
+
+### lacing.schema.body_derived(uri)
+
+The `Derived`-marked field paths of the body schema for `uri`
+(see [`lacing.derived`](_autosummary/lacing.derived.html.md#module-lacing.derived)).
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
 
 ### lacing.schema.body_locations(uri)
 
@@ -7881,7 +8072,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-10-26 20:53 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/ab8094ff579705b0d2abddcd379eec72de2d9758"><code>ab8094f</code></a> on branch <code>main</code>, for **lacing 0.0.59** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 21:03 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/cdc179c70e803cfa85c34700b19881deaf34531f"><code>cdc179c</code></a> on branch <code>main</code>, for **lacing 0.0.60** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -7890,7 +8081,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/ab8094ff579705b0d2abddcd379eec72de2d9758"><code>ab8094ff579705b0d2abddcd379eec72de2d9758</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/cdc179c70e803cfa85c34700b19881deaf34531f"><code>cdc179c70e803cfa85c34700b19881deaf34531f</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -7901,9 +8092,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40399246862">40399246862</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40400775320">40400775320</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>ab8094ff579705b0d2abddcd379eec72de2d9758</code> (in the history of the built commit) |
+| Event commit | <code>cdc179c70e803cfa85c34700b19881deaf34531f</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -7928,13 +8119,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.59/">0.0.59</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.60/">0.0.60</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout ab8094ff579705b0d2abddcd379eec72de2d9758
+git checkout cdc179c70e803cfa85c34700b19881deaf34531f
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -27,6 +27,7 @@
 - [lacing.bodies.review_candidate](lacing.bodies.review_candidate.html.md): Body schema for review &#42;candidates&#42; — “this needs a human’s eyes”.
 - [lacing.bodies.word](lacing.bodies.word.html.md): Body schema for word-level annotations (e.g., transcription, forced alignment).
 - [lacing.cli](lacing.cli.html.md): Command-line interface for lacing.
+- [lacing.derived](lacing.derived.html.md): Which body fields are &#42;derived&#42; from another field of the same object.
 - [lacing.digest](lacing.digest.html.md): Content digests over an annotation’s &#42;value&#42; — the freshness primitive.
 - [lacing.exhibit](lacing.exhibit.html.md): Artifact exhibit — render an annotation graph as a readable document.
 - [lacing.locations](lacing.locations.html.md): Which body fields hold locations (urls, file paths).

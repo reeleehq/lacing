@@ -29,6 +29,7 @@
 - [lacing.bodies.review_candidate](_autosummary/lacing.bodies.review_candidate.html.md): Body schema for review &#42;candidates&#42; — “this needs a human’s eyes”.
 - [lacing.bodies.word](_autosummary/lacing.bodies.word.html.md): Body schema for word-level annotations (e.g., transcription, forced alignment).
 - [lacing.cli](_autosummary/lacing.cli.html.md): Command-line interface for lacing.
+- [lacing.derived](_autosummary/lacing.derived.html.md): Which body fields are &#42;derived&#42; from another field of the same object.
 - [lacing.digest](_autosummary/lacing.digest.html.md): Content digests over an annotation’s &#42;value&#42; — the freshness primitive.
 - [lacing.exhibit](_autosummary/lacing.exhibit.html.md): Artifact exhibit — render an annotation graph as a readable document.
 - [lacing.locations](_autosummary/lacing.locations.html.md): Which body fields hold locations (urls, file paths).
@@ -52,7 +53,7 @@
 - [lacing.tracks.subtitle](_autosummary/lacing.tracks.subtitle.html.md): Subtitle / lyric / caption tracks — the (sections, lines, words) trio.
 - [lacing.worker](_autosummary/lacing.worker.html.md): Optional Arq integration — queue processors through Redis.
 - [For AI agents](ai-agents.html.md): &#96;lacing&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-26 20:53 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-26 21:03 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
 
 ## Optional
 

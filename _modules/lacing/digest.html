@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=6799126d"></script>
+    <script src="../../_static/documentation_options.js?v=4d22d5b7"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.59" />
+  <meta name="docsearch:version" content="0.0.60" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -856,6 +856,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Sequence</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>  <span class="c1"># pragma: no cover - typing only, keeps this module import-light</span>
@@ -869,7 +870,9 @@ window.runMermaid = runMermaid;</script>
     <span class="s2">"VALUE_FIELDS"</span><span class="p">,</span>
     <span class="s2">"BODY_FIELDS"</span><span class="p">,</span>
     <span class="s2">"VALUE_DIGEST_SCHEME"</span><span class="p">,</span>
+    <span class="s2">"VALUE_DIGEST_SCHEMES"</span><span class="p">,</span>
     <span class="s2">"BODY_DIGEST_SCHEME"</span><span class="p">,</span>
+    <span class="s2">"registered_derived_paths"</span><span class="p">,</span>
 <span class="p">]</span>
 
 
@@ -941,8 +944,18 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">``tier`` and ``confidence``. Two annotations over different assets digest</span>
 <span class="sd">alike here."""</span>
 
-<span class="n">VALUE_DIGEST_SCHEME</span> <span class="o">=</span> <span class="s2">"lacing/annotation-value-digest/v1"</span>
-<span class="sd">"""Domain-separation tag mixed into :func:`annotation_value_digest`."""</span>
+<span class="n">VALUE_DIGEST_SCHEME</span> <span class="o">=</span> <span class="s2">"lacing/annotation-value-digest/v2"</span>
+<span class="sd">"""Domain-separation tag mixed into :func:`annotation_value_digest` by default.</span>
+
+<span class="sd">``v2`` leaves the body's :class:`lacing.Derived` fields out (see</span>
+<span class="sd">:mod:`lacing.derived`); ``v1`` digested the whole body. A trace that recorded a</span>
+<span class="sd">``v1`` digest is still verifiable: pass ``scheme="lacing/annotation-value-digest/v1"``."""</span>
+
+<span class="n">_V1_SCHEME</span> <span class="o">=</span> <span class="s2">"lacing/annotation-value-digest/v1"</span>
+
+<span class="n">VALUE_DIGEST_SCHEMES</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">_V1_SCHEME</span><span class="p">,</span> <span class="n">VALUE_DIGEST_SCHEME</span><span class="p">)</span>
+<span class="sd">"""Every scheme :func:`annotation_value_digest` can compute, oldest first. Only</span>
+<span class="sd">the latest excludes derived fields."""</span>
 
 <span class="n">BODY_DIGEST_SCHEME</span> <span class="o">=</span> <span class="s2">"lacing/annotation-body-digest/v1"</span>
 <span class="sd">"""Domain-separation tag mixed into :func:`annotation_body_digest`."""</span>
@@ -950,12 +963,30 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="annotation_value_digest">
 <a class="viewcode-back" href="../../_autosummary/lacing.digest.html#lacing.annotation_value_digest">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">annotation_value_digest</span><span class="p">(</span><span class="n">annotation</span><span class="p">:</span> <span class="s2">"Annotation"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">annotation_value_digest</span><span class="p">(</span>
+    <span class="n">annotation</span><span class="p">:</span> <span class="s2">"Annotation"</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">scheme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">VALUE_DIGEST_SCHEME</span><span class="p">,</span>
+    <span class="n">resolve_derived</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Collection</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Return the SHA-256 hex digest of ``annotation``'s value.</span>
 
 <span class="sd">    Covers ``body``, ``body_schema_uri``, ``tier``, ``reference`` and</span>
 <span class="sd">    ``confidence``. Excludes ``id`` and ``provenance``, so a regeneration that</span>
-<span class="sd">    produces identical content produces an identical digest.</span>
+<span class="sd">    produces identical content produces an identical digest. Also excludes the</span>
+<span class="sd">    body's :class:`lacing.Derived` fields (scheme ``v2`` onwards): a value</span>
+<span class="sd">    derivable from another field of the body does not change what a render reads.</span>
+
+<span class="sd">    A body with no derived fields (no marker, or a schema that is not</span>
+<span class="sd">    registered) digests exactly as under ``v1``, so only marked schemas change</span>
+<span class="sd">    digest. The verifier must therefore have registered the same body schemas as</span>
+<span class="sd">    the producer, or it computes a different (stale-reading) digest.</span>
+
+<span class="sd">    ``scheme`` selects which computation to run, so a digest recorded under an</span>
+<span class="sd">    older scheme can be re-verified (see :data:`VALUE_DIGEST_SCHEMES`).</span>
+<span class="sd">    ``resolve_derived`` maps a ``body_schema_uri`` to the paths to leave out; the</span>
+<span class="sd">    default reads the registered body schema (:func:`registered_derived_paths`),</span>
+<span class="sd">    and a schema that is not registered excludes nothing.</span>
 
 <span class="sd">    Use this for freshness and early cutoff. For optimistic concurrency use</span>
 <span class="sd">    :func:`lacing.server.etag.annotation_etag` instead — two digests, two</span>
@@ -1001,7 +1032,19 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    ... )</span>
 <span class="sd">    False</span>
 <span class="sd">    """</span>
-    <span class="k">return</span> <span class="n">_digest</span><span class="p">(</span><span class="n">VALUE_DIGEST_SCHEME</span><span class="p">,</span> <span class="n">_payload</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="n">VALUE_FIELDS</span><span class="p">))</span></div>
+    <span class="k">if</span> <span class="n">scheme</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALUE_DIGEST_SCHEMES</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"unknown value digest scheme </span><span class="si">{</span><span class="n">scheme</span><span class="si">!r}</span><span class="s2">; known: </span><span class="si">{</span><span class="n">VALUE_DIGEST_SCHEMES</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="n">_payload</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="n">VALUE_FIELDS</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">scheme</span> <span class="o">==</span> <span class="n">VALUE_DIGEST_SCHEME</span><span class="p">:</span>
+        <span class="n">resolve</span> <span class="o">=</span> <span class="n">resolve_derived</span> <span class="ow">or</span> <span class="n">registered_derived_paths</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="n">resolve</span><span class="p">(</span><span class="n">annotation</span><span class="o">.</span><span class="n">body_schema_uri</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">paths</span><span class="p">:</span>
+            <span class="n">_drop_derived</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"body"</span><span class="p">],</span> <span class="n">paths</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">scheme</span> <span class="o">=</span> <span class="n">_V1_SCHEME</span>  <span class="c1"># nothing to leave out: byte-identical to v1</span>
+    <span class="k">return</span> <span class="n">_digest</span><span class="p">(</span><span class="n">scheme</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span></div>
 
 
 
@@ -1078,7 +1121,29 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<div class="viewcode-block" id="registered_derived_paths">
+<a class="viewcode-back" href="../../_autosummary/lacing.digest.html#lacing.registered_derived_paths">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">registered_derived_paths</span><span class="p">(</span><span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""The :class:`lacing.Derived` paths of the body schema registered at ``uri``.</span>
+
+<span class="sd">    Empty for an unregistered ``uri``: excluding less can only cost a spurious</span>
+<span class="sd">    miss, never a wrong hit. Imports :mod:`lacing.schema` on first use, so this</span>
+<span class="sd">    module stays stdlib-only at import time.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">body_derived</span><span class="p">,</span> <span class="n">is_registered</span>
+
+    <span class="k">return</span> <span class="n">body_derived</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span> <span class="k">if</span> <span class="n">is_registered</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span> <span class="k">else</span> <span class="nb">frozenset</span><span class="p">()</span></div>
+
+
+
 <span class="c1"># --- internals ---------------------------------------------------------------</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_drop_derived</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Delete ``paths`` from the (already dumped, hence private) ``body`` in place."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.derived</span><span class="w"> </span><span class="kn">import</span> <span class="n">drop_paths</span>
+
+    <span class="n">drop_paths</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">})</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_payload</span><span class="p">(</span><span class="n">annotation</span><span class="p">:</span> <span class="s2">"Annotation"</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>

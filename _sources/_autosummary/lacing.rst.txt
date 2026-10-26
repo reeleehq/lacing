@@ -31,6 +31,7 @@
       register_body_schema
       on_register
       body_locations
+      derived_paths
       location_fields
       register_migration
       json_schema
@@ -65,6 +66,7 @@
       InMemoryOpLog
       SqliteOpLog
       Location
+      Derived
    
    .. rubric:: Exceptions
 
@@ -92,6 +94,7 @@
    artifact_store
    bodies
    cli
+   derived
    digest
    exhibit
    locations

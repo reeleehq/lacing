@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=6799126d"></script>
+    <script src="../_static/documentation_options.js?v=4d22d5b7"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.59" />
+  <meta name="docsearch:version" content="0.0.60" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -345,6 +345,7 @@
 </ul>
 </details></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.cli.html">lacing.cli</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.derived.html">lacing.derived</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.digest.html">lacing.digest</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.exhibit.html">lacing.exhibit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.locations.html">lacing.locations</a></li>
@@ -454,7 +455,7 @@ full story. <code class="docutils literal notranslate"><span class="pre">.claude
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.hash_file" title="lacing.hash_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hash_file</span></code></a>(path, *[, chunk_size])</p></td>
 <td><p>Return the canonical <code class="docutils literal notranslate"><span class="pre">asset_id</span></code> (SHA-256 hex) for the file at <code class="docutils literal notranslate"><span class="pre">path</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.annotation_value_digest" title="lacing.annotation_value_digest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">annotation_value_digest</span></code></a>(annotation)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.annotation_value_digest" title="lacing.annotation_value_digest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">annotation_value_digest</span></code></a>(annotation, *[, ...])</p></td>
 <td><p>Return the SHA-256 hex digest of <code class="docutils literal notranslate"><span class="pre">annotation</span></code>'s value.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.annotation_body_digest" title="lacing.annotation_body_digest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">annotation_body_digest</span></code></a>(annotation)</p></td>
@@ -517,25 +518,28 @@ full story. <code class="docutils literal notranslate"><span class="pre">.claude
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.body_locations" title="lacing.body_locations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">body_locations</span></code></a>(uri)</p></td>
 <td><p>The location-marked fields of the body schema for <code class="docutils literal notranslate"><span class="pre">uri</span></code> (see <a class="reference internal" href="lacing.locations.html#module-lacing.locations" title="lacing.locations"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.locations</span></code></a>): <code class="docutils literal notranslate"><span class="pre">{field</span> <span class="pre">spelling:</span> <span class="pre">&quot;url&quot;</span> <span class="pre">|</span> <span class="pre">&quot;path&quot;}</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.location_fields" title="lacing.location_fields"><code class="xref py py-obj docutils literal notranslate"><span class="pre">location_fields</span></code></a>(model)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.derived_paths" title="lacing.derived_paths"><code class="xref py py-obj docutils literal notranslate"><span class="pre">derived_paths</span></code></a>(model)</p></td>
+<td><p>The paths, from the root of a <code class="docutils literal notranslate"><span class="pre">model</span></code> body, of its <a class="reference internal" href="#lacing.Derived" title="lacing.Derived"><code class="xref py py-class docutils literal notranslate"><span class="pre">Derived</span></code></a> fields.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.location_fields" title="lacing.location_fields"><code class="xref py py-obj docutils literal notranslate"><span class="pre">location_fields</span></code></a>(model)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">{field</span> <span class="pre">spelling:</span> <span class="pre">kind}</span></code> for the <a class="reference internal" href="#lacing.Location" title="lacing.Location"><code class="xref py py-class docutils literal notranslate"><span class="pre">Location</span></code></a>-marked fields of <code class="docutils literal notranslate"><span class="pre">model</span></code> and of the models nested in it.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.register_migration" title="lacing.register_migration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_migration</span></code></a>(*, schema_name, ...)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.register_migration" title="lacing.register_migration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_migration</span></code></a>(*, schema_name, ...)</p></td>
 <td><p>Register a forward migration from <code class="docutils literal notranslate"><span class="pre">v&lt;from_version&gt;</span></code> to <code class="docutils literal notranslate"><span class="pre">v&lt;to_version&gt;</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.json_schema" title="lacing.json_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">json_schema</span></code></a>(uri)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.json_schema" title="lacing.json_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">json_schema</span></code></a>(uri)</p></td>
 <td><p>Return the JSON Schema for the body model registered at <code class="docutils literal notranslate"><span class="pre">uri</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.export_json_schemas" title="lacing.export_json_schemas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_json_schemas</span></code></a>(target_dir, *[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.export_json_schemas" title="lacing.export_json_schemas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_json_schemas</span></code></a>(target_dir, *[, ...])</p></td>
 <td><p>Write every registered schema as JSON files under <code class="docutils literal notranslate"><span class="pre">target_dir</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.render_artifact_exhibit" title="lacing.render_artifact_exhibit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_artifact_exhibit</span></code></a>(annotations, *, out_dir)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.render_artifact_exhibit" title="lacing.render_artifact_exhibit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_artifact_exhibit</span></code></a>(annotations, *, out_dir)</p></td>
 <td><p>Render an annotation graph as a human-readable artifact exhibit.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.migrate" title="lacing.migrate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">migrate</span></code></a>(body, *, from_uri, to_uri)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.migrate" title="lacing.migrate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">migrate</span></code></a>(body, *, from_uri, to_uri)</p></td>
 <td><p>Migrate <code class="docutils literal notranslate"><span class="pre">body</span></code> from <code class="docutils literal notranslate"><span class="pre">from_uri</span></code> to <code class="docutils literal notranslate"><span class="pre">to_uri</span></code> via registered steps.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.validate_body" title="lacing.validate_body"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_body</span></code></a>(body, uri)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.validate_body" title="lacing.validate_body"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_body</span></code></a>(body, uri)</p></td>
 <td><p>Validate <code class="docutils literal notranslate"><span class="pre">body</span></code> against the schema registered for <code class="docutils literal notranslate"><span class="pre">uri</span></code>.</p></td>
 </tr>
 </tbody>
@@ -609,6 +613,9 @@ full story. <code class="docutils literal notranslate"><span class="pre">.claude
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.Location" title="lacing.Location"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Location</span></code></a>(kind)</p></td>
 <td><p>Field marker: this body field holds a location of <code class="docutils literal notranslate"><span class="pre">kind</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.Derived" title="lacing.Derived"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Derived</span></code></a>(source)</p></td>
+<td><p>Field marker: this body field is derivable from the sibling field <code class="docutils literal notranslate"><span class="pre">source</span></code>.</p></td>
 </tr>
 </tbody>
 </table>
@@ -1266,6 +1273,15 @@ is responsible for also recording that hash on <code class="docutils literal not
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">BodySchemaError</span></span><a class="reference internal" href="../_modules/lacing/schema.html#BodySchemaError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.BodySchemaError" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></a></p>
 <p>Raised when a body fails validation against its registered schema.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lacing.Derived">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">Derived</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/derived.html#Derived"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.Derived" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Field marker: this body field is derivable from the sibling field <code class="docutils literal notranslate"><span class="pre">source</span></code>.</p>
+<dl class="field-list simple">
+</dl>
 </dd></dl>
 
 <dl class="py exception">
@@ -2192,11 +2208,22 @@ annotation <em>says</em>; prefer <a class="reference internal" href="#lacing.ann
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lacing.annotation_value_digest">
-<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">annotation_value_digest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/digest.html#annotation_value_digest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.annotation_value_digest" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">annotation_value_digest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing/annotation-value-digest/v2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_derived</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/digest.html#annotation_value_digest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.annotation_value_digest" title="Link to this definition">#</a></dt>
 <dd><p>Return the SHA-256 hex digest of <code class="docutils literal notranslate"><span class="pre">annotation</span></code>’s value.</p>
 <p>Covers <code class="docutils literal notranslate"><span class="pre">body</span></code>, <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code>, <code class="docutils literal notranslate"><span class="pre">tier</span></code>, <code class="docutils literal notranslate"><span class="pre">reference</span></code> and
 <code class="docutils literal notranslate"><span class="pre">confidence</span></code>. Excludes <code class="docutils literal notranslate"><span class="pre">id</span></code> and <code class="docutils literal notranslate"><span class="pre">provenance</span></code>, so a regeneration that
-produces identical content produces an identical digest.</p>
+produces identical content produces an identical digest. Also excludes the
+body’s <a class="reference internal" href="#lacing.Derived" title="lacing.Derived"><code class="xref py py-class docutils literal notranslate"><span class="pre">lacing.Derived</span></code></a> fields (scheme <code class="docutils literal notranslate"><span class="pre">v2</span></code> onwards): a value
+derivable from another field of the body does not change what a render reads.</p>
+<p>A body with no derived fields (no marker, or a schema that is not
+registered) digests exactly as under <code class="docutils literal notranslate"><span class="pre">v1</span></code>, so only marked schemas change
+digest. The verifier must therefore have registered the same body schemas as
+the producer, or it computes a different (stale-reading) digest.</p>
+<p><code class="docutils literal notranslate"><span class="pre">scheme</span></code> selects which computation to run, so a digest recorded under an
+older scheme can be re-verified (see <code class="xref py py-data docutils literal notranslate"><span class="pre">VALUE_DIGEST_SCHEMES</span></code>).
+<code class="docutils literal notranslate"><span class="pre">resolve_derived</span></code> maps a <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code> to the paths to leave out; the
+default reads the registered body schema (<code class="xref py py-func docutils literal notranslate"><span class="pre">registered_derived_paths()</span></code>),
+and a schema that is not registered excludes nothing.</p>
 <p>Use this for freshness and early cutoff. For optimistic concurrency use
 <code class="xref py py-func docutils literal notranslate"><span class="pre">lacing.server.etag.annotation_etag()</span></code> instead — two digests, two
 jobs, and neither substitutes for the other.</p>
@@ -2302,6 +2329,25 @@ as a “no agreement to measure” baseline).</p>
 <dl class="simple">
 <dt>Edge cases:</dt><dd><p>If only one category appears across both annotators, both observed
 and expected agreement are 1.0; we return 1.0 by convention.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.derived_paths">
+<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">derived_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/derived.html#derived_paths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.derived_paths" title="Link to this definition">#</a></dt>
+<dd><p>The paths, from the root of a <code class="docutils literal notranslate"><span class="pre">model</span></code> body, of its <a class="reference internal" href="#lacing.Derived" title="lacing.Derived"><code class="xref py py-class docutils literal notranslate"><span class="pre">Derived</span></code></a> fields.</p>
+<p>A step is an object key or <code class="xref py py-data docutils literal notranslate"><span class="pre">ANY_ITEM</span></code> (every list element / map value).
+Keys are spelled as in <code class="docutils literal notranslate"><span class="pre">model</span></code>’s JSON Schema in both modes, so a field’s
+name, <code class="docutils literal notranslate"><span class="pre">alias</span></code> and <code class="docutils literal notranslate"><span class="pre">serialization_alias</span></code> all count, as in
+<a class="reference internal" href="#lacing.location_fields" title="lacing.location_fields"><code class="xref py py-func docutils literal notranslate"><span class="pre">lacing.location_fields()</span></code></a>. Cached per model class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – a marker names a source that is not a non-derived sibling,
+    or sits on a container item / union member instead of a whole field.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">frozenset</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -2770,46 +2816,49 @@ or <a class="reference internal" href="#lacing.UnknownBodySchemaError" title="la
 <tr class="row-even"><td><p><a class="reference internal" href="lacing.cli.html#module-lacing.cli" title="lacing.cli"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cli</span></code></a></p></td>
 <td><p>Command-line interface for lacing.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.digest.html#module-lacing.digest" title="lacing.digest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">digest</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.derived.html#module-lacing.derived" title="lacing.derived"><code class="xref py py-obj docutils literal notranslate"><span class="pre">derived</span></code></a></p></td>
+<td><p>Which body fields are <em>derived</em> from another field of the same object.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.digest.html#module-lacing.digest" title="lacing.digest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">digest</span></code></a></p></td>
 <td><p>Content digests over an annotation's <em>value</em> — the freshness primitive.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.exhibit.html#module-lacing.exhibit" title="lacing.exhibit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">exhibit</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.exhibit.html#module-lacing.exhibit" title="lacing.exhibit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">exhibit</span></code></a></p></td>
 <td><p>Artifact exhibit — render an annotation graph as a readable document.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.locations.html#module-lacing.locations" title="lacing.locations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">locations</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.locations.html#module-lacing.locations" title="lacing.locations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">locations</span></code></a></p></td>
 <td><p>Which body fields hold locations (urls, file paths).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.model.html#module-lacing.model" title="lacing.model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.model.html#module-lacing.model" title="lacing.model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model</span></code></a></p></td>
 <td><p>Annotation envelope, references, and provenance.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.oplog.html#module-lacing.oplog" title="lacing.oplog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">oplog</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.oplog.html#module-lacing.oplog" title="lacing.oplog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">oplog</span></code></a></p></td>
 <td><p>Operation log for time-travel debug + audit.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.otel.html#module-lacing.otel" title="lacing.otel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">otel</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.otel.html#module-lacing.otel" title="lacing.otel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">otel</span></code></a></p></td>
 <td><p>Optional OpenTelemetry instrumentation for the lacing server.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.processors.html#module-lacing.processors" title="lacing.processors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">processors</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.processors.html#module-lacing.processors" title="lacing.processors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">processors</span></code></a></p></td>
 <td><p>Background processors — pluggable jobs that run against a store + op-log.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.quality.html#module-lacing.quality" title="lacing.quality"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quality</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.quality.html#module-lacing.quality" title="lacing.quality"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quality</span></code></a></p></td>
 <td><p>Inter-annotator agreement and boundary metrics.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.schema.html#module-lacing.schema" title="lacing.schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">schema</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.schema.html#module-lacing.schema" title="lacing.schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">schema</span></code></a></p></td>
 <td><p>Body schema registry, JSON Schema export, and migrations.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.store.html#module-lacing.store" title="lacing.store"><code class="xref py py-obj docutils literal notranslate"><span class="pre">store</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.store.html#module-lacing.store" title="lacing.store"><code class="xref py py-obj docutils literal notranslate"><span class="pre">store</span></code></a></p></td>
 <td><p>Interval-keyed annotation stores.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.tier.html#module-lacing.tier" title="lacing.tier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tier</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.tier.html#module-lacing.tier" title="lacing.tier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tier</span></code></a></p></td>
 <td><p>Tiers and the five ELAN stereotypes.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.time.html#module-lacing.time" title="lacing.time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.time.html#module-lacing.time" title="lacing.time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time</span></code></a></p></td>
 <td><p>Rational time and half-open intervals — the foundations.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.tracks.html#module-lacing.tracks" title="lacing.tracks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tracks</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.tracks.html#module-lacing.tracks" title="lacing.tracks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tracks</span></code></a></p></td>
 <td><p>High-level &quot;track-shaped&quot; facades on top of <code class="docutils literal notranslate"><span class="pre">lacing</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.worker.html#module-lacing.worker" title="lacing.worker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">worker</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.worker.html#module-lacing.worker" title="lacing.worker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">worker</span></code></a></p></td>
 <td><p>Optional Arq integration — queue processors through Redis.</p></td>
 </tr>
 </tbody>
@@ -2905,6 +2954,7 @@ or <a class="reference internal" href="#lacing.UnknownBodySchemaError" title="la
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.BodySchemaError"><code class="docutils literal notranslate"><span class="pre">BodySchemaError</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.Derived"><code class="docutils literal notranslate"><span class="pre">Derived</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.EmptySchemaRegistryError"><code class="docutils literal notranslate"><span class="pre">EmptySchemaRegistryError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.InMemoryOpLog"><code class="docutils literal notranslate"><span class="pre">InMemoryOpLog</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.IntervalAnnotationStore"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code></a><ul class="nav section-nav flex-column">
@@ -3011,6 +3061,7 @@ or <a class="reference internal" href="#lacing.UnknownBodySchemaError" title="la
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.body_locations"><code class="docutils literal notranslate"><span class="pre">body_locations()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.boundary_iou"><code class="docutils literal notranslate"><span class="pre">boundary_iou()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.cohen_kappa"><code class="docutils literal notranslate"><span class="pre">cohen_kappa()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.derived_paths"><code class="docutils literal notranslate"><span class="pre">derived_paths()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.export_json_schemas"><code class="docutils literal notranslate"><span class="pre">export_json_schemas()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.get_tracer"><code class="docutils literal notranslate"><span class="pre">get_tracer()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.hash_bytes"><code class="docutils literal notranslate"><span class="pre">hash_bytes()</span></code></a></li>
