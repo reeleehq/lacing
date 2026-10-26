@@ -207,8 +207,8 @@ def test_from_directory_blob_delete_func_is_the_blob_stores_delete_policy(
     store = ArtifactStore.from_directory(tmp_path / "a", blob_delete_func=remove)
     content_hash = store.put_blob(b"derived")
     path = store.blob_path(content_hash)
-    del store.blobs[content_hash]
-    assert removed == [str(path)]
+    store.delete_blob(content_hash)
+    assert len(removed) == 1 and removed[0].endswith(content_hash)
     assert not path.exists()  # freed, not moved to the OS trash
 
 
