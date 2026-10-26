@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=c3e19674"></script>
+    <script src="../_static/documentation_options.js?v=6799126d"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.58" />
+  <meta name="docsearch:version" content="0.0.59" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -965,7 +965,8 @@ filesystem stores, so the same facade works unchanged over any other
 <code class="docutils literal notranslate"><span class="pre">&lt;id&gt;.json</span></code> would resolve outside it — <code class="docutils literal notranslate"><span class="pre">..</span></code> segments, an absolute
 path, a NUL, or a symlink pointing out — is refused with <code class="docutils literal notranslate"><span class="pre">KeyError</span></code>
 on get, save and delete, and is simply not <code class="docutils literal notranslate"><span class="pre">in</span></code> the store. Nested
-ids (<code class="docutils literal notranslate"><span class="pre">&quot;a/b&quot;</span></code>) that stay inside keep working, and listing never
+ids (<code class="docutils literal notranslate"><span class="pre">&quot;a/b&quot;</span></code>) that stay inside keep working (<code class="docutils literal notranslate"><span class="pre">save</span></code> creates the
+missing parent directory), and listing never
 follows a symlinked directory out of <code class="docutils literal notranslate"><span class="pre">catalog/</span></code>. See
 <code class="xref py py-class docutils literal notranslate"><span class="pre">_ContainedDirStore</span></code>.</p>
 <dl class="field-list simple">

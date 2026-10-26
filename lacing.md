@@ -1,4 +1,4 @@
-> built 2026-10-26 19:21 UTC from e11e6d7 (main) · lacing 0.0.58. Details: build_info.json
+> built 2026-10-26 20:53 UTC from ab8094f (main) · lacing 0.0.59. Details: build_info.json
 
 # index.html.md
 
@@ -1734,7 +1734,8 @@ Artifact ids are confined to `catalog/` (lacing#55): an id whose
 `<id>.json` would resolve outside it — `..` segments, an absolute
 path, a NUL, or a symlink pointing out — is refused with `KeyError`
 on get, save and delete, and is simply not `in` the store. Nested
-ids (`"a/b"`) that stay inside keep working, and listing never
+ids (`"a/b"`) that stay inside keep working (`save` creates the
+missing parent directory), and listing never
 follows a symlinked directory out of `catalog/`. See
 `_ContainedDirStore`.
 
@@ -3338,7 +3339,8 @@ Artifact ids are confined to `catalog/` (lacing#55): an id whose
 `<id>.json` would resolve outside it — `..` segments, an absolute
 path, a NUL, or a symlink pointing out — is refused with `KeyError`
 on get, save and delete, and is simply not `in` the store. Nested
-ids (`"a/b"`) that stay inside keep working, and listing never
+ids (`"a/b"`) that stay inside keep working (`save` creates the
+missing parent directory), and listing never
 follows a symlinked directory out of `catalog/`. See
 `_ContainedDirStore`.
 
@@ -7879,7 +7881,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-10-26 19:21 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/e11e6d72d8185b82ec507eb4cc66808b1d1ec67a"><code>e11e6d7</code></a> on branch <code>main</code>, for **lacing 0.0.58** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 20:53 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/ab8094ff579705b0d2abddcd379eec72de2d9758"><code>ab8094f</code></a> on branch <code>main</code>, for **lacing 0.0.59** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -7888,7 +7890,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/e11e6d72d8185b82ec507eb4cc66808b1d1ec67a"><code>e11e6d72d8185b82ec507eb4cc66808b1d1ec67a</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/ab8094ff579705b0d2abddcd379eec72de2d9758"><code>ab8094ff579705b0d2abddcd379eec72de2d9758</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -7899,9 +7901,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40385705580">40385705580</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40399246862">40399246862</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>e11e6d72d8185b82ec507eb4cc66808b1d1ec67a</code> (in the history of the built commit) |
+| Event commit | <code>ab8094ff579705b0d2abddcd379eec72de2d9758</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -7926,13 +7928,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.58/">0.0.58</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.59/">0.0.59</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout e11e6d72d8185b82ec507eb4cc66808b1d1ec67a
+git checkout ab8094ff579705b0d2abddcd379eec72de2d9758
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

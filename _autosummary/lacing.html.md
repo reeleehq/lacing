@@ -357,7 +357,8 @@ Artifact ids are confined to `catalog/` (lacing#55): an id whose
 `<id>.json` would resolve outside it — `..` segments, an absolute
 path, a NUL, or a symlink pointing out — is refused with `KeyError`
 on get, save and delete, and is simply not `in` the store. Nested
-ids (`"a/b"`) that stay inside keep working, and listing never
+ids (`"a/b"`) that stay inside keep working (`save` creates the
+missing parent directory), and listing never
 follows a symlinked directory out of `catalog/`. See
 `_ContainedDirStore`.
 
