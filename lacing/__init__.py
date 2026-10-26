@@ -40,7 +40,7 @@ from lacing.quality import (
     interval_iou,
     krippendorff_alpha,
 )
-from lacing.locations import Location, location_fields
+from lacing.locations import Location, LocationKind, location_fields
 from lacing.schema import (
     BodySchemaError,
     EmptySchemaRegistryError,
@@ -165,6 +165,7 @@ __all__ = [
     "register_body_schema",
     "body_locations",
     "Location",
+    "LocationKind",
     "location_fields",
     "register_migration",
     "json_schema",

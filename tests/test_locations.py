@@ -52,7 +52,7 @@ def test_two_kinds_on_one_field_is_an_error():
         x: Annotated[str, Location("url"), Location("path")] = ""
 
     with pytest.raises(ValueError, match="two location kinds"):
-        location_fields(Bad)
+        Bad.model_json_schema()
 
 
 def test_body_locations_by_registered_uri(registered):
@@ -68,3 +68,58 @@ def test_marker_is_exported_in_json_schema(registered):
     assert props["views"]["x-location"] == "url"
     assert "x-location" not in props["label"]
     assert Body(before_image="a.png").before_image == "a.png"  # validation untouched
+
+
+class Step(BaseModel):
+    image: Annotated[str, Location("path")] = ""
+
+
+class Nested(BaseModel):
+    maybe: list[Annotated[str, Location("path")]] = Field(default_factory=list)
+    opt: Annotated[str, Location("url")] | None = None
+    steps: list[Step] = Field(default_factory=list)
+    vs: Annotated[str, Location("url")] = Field("", validation_alias="vS")
+
+
+def test_markers_inside_containers_unions_and_nested_models():
+    found = location_fields(Nested)
+    assert found["maybe"] == "path"
+    assert found["opt"] == "url"
+    assert found["image"] == "path"  # a nested model's field
+    assert found["vS"] == "url"  # validation_alias
+
+
+def test_location_fields_agrees_with_the_exported_schema(registered):
+    def marked(node):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k == "properties":
+                    yield from (n for n, p in v.items() if "x-location" in str(p))
+                else:
+                    yield from marked(v)
+        elif isinstance(node, list):
+            for v in node:
+                yield from marked(v)
+
+    assert set(marked(json_schema(registered))) <= set(location_fields(Body))
+
+
+def test_same_name_with_two_kinds_across_models_is_an_error():
+    class A(BaseModel):
+        x: Annotated[str, Location("url")] = ""
+
+    class B(BaseModel):
+        a: A
+        sub: list["C"] = []  # noqa: F821
+
+    class C(BaseModel):
+        x: Annotated[str, Location("path")] = ""
+
+    B.model_rebuild(_types_namespace={"C": C})
+    with pytest.raises(ValueError, match="declared both"):
+        location_fields(B)
+
+
+def test_unknown_kind_is_refused():
+    with pytest.raises(ValueError, match="kind must be"):
+        Location("ftp")
