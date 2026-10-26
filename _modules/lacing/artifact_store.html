@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=2bfb35b6"></script>
+    <script src="../../_static/documentation_options.js?v=c3e19674"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.57" />
+  <meta name="docsearch:version" content="0.0.58" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1294,6 +1294,7 @@ window.runMermaid = runMermaid;</script>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">record_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]</span> <span class="o">=</span> <span class="n">Artifact</span><span class="p">,</span>
         <span class="n">blob_delete_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">catalog_delete_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArtifactStore</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""An ArtifactStore persisted under ``root``.</span>
 
@@ -1319,6 +1320,10 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">                path. ``None`` keeps ``dol.Files``' default (move to the OS</span>
 <span class="sd">                trash); pass ``os.remove`` when blobs are derived data and a</span>
 <span class="sd">                delete should free the disk.</span>
+<span class="sd">            catalog_delete_func: The same for the catalog's record files.</span>
+<span class="sd">                ``None`` keeps ``dol.Files``' default (move to the OS trash,</span>
+<span class="sd">                a sensible default for records); pass ``os.remove`` for a</span>
+<span class="sd">                delete that is final.</span>
 <span class="sd">        """</span>
         <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
         <span class="n">catalog_dir</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="s2">"catalog"</span>
@@ -1328,7 +1333,9 @@ window.runMermaid = runMermaid;</script>
 
         <span class="n">catalog</span> <span class="o">=</span> <span class="n">wrap_kvs</span><span class="p">(</span>
             <span class="n">filt_iter</span><span class="p">(</span>
-                <span class="n">_ContainedDirStore</span><span class="p">(</span><span class="n">Files</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">catalog_dir</span><span class="p">))),</span>
+                <span class="n">_ContainedDirStore</span><span class="p">(</span>
+                    <span class="n">Files</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">catalog_dir</span><span class="p">),</span> <span class="n">delete_func</span><span class="o">=</span><span class="n">catalog_delete_func</span><span class="p">)</span>
+                <span class="p">),</span>
                 <span class="n">filt</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".json"</span><span class="p">),</span>
             <span class="p">),</span>
             <span class="n">id_of_key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">artifact_id</span><span class="si">}</span><span class="s2">.json"</span><span class="p">,</span>

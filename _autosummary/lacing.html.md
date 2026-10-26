@@ -344,7 +344,7 @@ a smoke test. Vendor specifics live only in the two kwargs dicts.
 * **Return type:**
   [`ArtifactStore`](lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
 
-#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None)
+#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None, catalog_delete_func=None)
 
 An ArtifactStore persisted under `root`.
 
@@ -370,6 +370,10 @@ follows a symlinked directory out of `catalog/`. See
     path. `None` keeps `dol.Files`’ default (move to the OS
     trash); pass `os.remove` when blobs are derived data and a
     delete should free the disk.
+  * **catalog_delete_func** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The same for the catalog’s record files.
+    `None` keeps `dol.Files`’ default (move to the OS trash,
+    a sensible default for records); pass `os.remove` for a
+    delete that is final.
 * **Return type:**
   [`ArtifactStore`](lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
 
