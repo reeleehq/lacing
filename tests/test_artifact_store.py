@@ -195,6 +195,23 @@ def test_blob_path_returns_none_for_missing_blob(tmp_path: Path):
     assert store.blob_path("0" * 64) is None
 
 
+def test_from_directory_blob_delete_func_is_the_blob_stores_delete_policy(
+    tmp_path: Path,
+):
+    removed = []
+
+    def remove(path: str) -> None:
+        removed.append(path)
+        os.remove(path)
+
+    store = ArtifactStore.from_directory(tmp_path / "a", blob_delete_func=remove)
+    content_hash = store.put_blob(b"derived")
+    path = store.blob_path(content_hash)
+    store.delete_blob(content_hash)
+    assert len(removed) == 1 and removed[0].endswith(content_hash)
+    assert not path.exists()  # freed, not moved to the OS trash
+
+
 # -- blob reads: containment (lacing#50) --------------------------------------
 #
 # ``from_directory(root)`` keeps blobs in ``root / "blobs"``, so an escaping
