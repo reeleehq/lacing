@@ -859,3 +859,48 @@ class TestStreamingBlobWrites:
         content_hash = store.put_blob_stream((b"a", b"b", b"c"))
 
         assert store.get_blob(content_hash) == b"abc"
+
+
+def test_catalog_save_creates_missing_parent_of_nested_id(tmp_path: Path):
+    # lacing#84: dol's Files does not mkdir parents; the store must.
+    store, catalog_dir = _catalog_store(tmp_path)
+    art = _artifact()
+    store.save("n/deeper/x", art)
+    assert (catalog_dir / "n" / "deeper" / "x.json").is_file()
+    assert store["n/deeper/x"] == art
+
+
+def test_catalog_nested_id_is_listed(tmp_path: Path):
+    store, _ = _catalog_store(tmp_path)
+    store.save("n/deeper/x", _artifact())
+    assert os.path.join("n", "deeper", "x") in list(store)
+
+
+def test_catalog_failed_nested_write_leaves_no_directory_and_raises_keyerror(
+    tmp_path: Path,
+):
+    store, catalog_dir = _catalog_store(tmp_path)
+    for artifact_id in ("d1/" + "a" * 300 + "/x", "d2/" + "a" * 300):
+        with pytest.raises(KeyError):
+            store.save(artifact_id, _artifact())
+    assert not (catalog_dir / "d1").exists()
+    assert not (catalog_dir / "d2").exists()
+
+
+def test_catalog_refuses_id_ending_in_separator(tmp_path: Path):
+    store, catalog_dir = _catalog_store(tmp_path)
+    with pytest.raises(KeyError):
+        store.save("d4/", _artifact())
+    assert "d4/" not in store
+    assert not (catalog_dir / "d4").exists()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlinks need privileges on Windows")
+def test_catalog_symlinked_dir_out_of_root_creates_nothing_outside(tmp_path: Path):
+    store, catalog_dir = _catalog_store(tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (catalog_dir / "ln").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(KeyError):
+        store.save("ln/sub/x", _artifact())
+    assert list(outside.iterdir()) == []
