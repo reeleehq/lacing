@@ -39,6 +39,7 @@ full story. `.claude/skills/` contains the rules.
 | [`interval_iou`](#lacing.interval_iou)(a, b)                                | Intersection-over-Union for two time intervals.                                                                                                                                              |
 | [`boundary_iou`](#lacing.boundary_iou)(a, b)                                | Mean IoU between two sets of intervals via greedy best-match.                                                                                                                                |
 | [`register_body_schema`](#lacing.register_body_schema)(uri, model)                  | Register `model` as the validator for `uri`.                                                                                                                                                 |
+| [`on_register`](#lacing.on_register)(listener, \*[, replay])               | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                            |
 | [`body_locations`](#lacing.body_locations)(uri)                               | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`. |
 | [`location_fields`](#lacing.location_fields)(model)                            | `{field spelling: kind}` for the [`Location`](#lacing.Location)-marked fields of `model` and of the models nested in it.                                          |
 | [`register_migration`](#lacing.register_migration)(\*, schema_name, ...)          | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                      |
@@ -1604,6 +1605,37 @@ runner’s in-transaction guarantees.
 
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`int`](https://docs.python.org/3/builtins/functions.html#int), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
+
+### lacing.on_register(listener, , replay=True)
+
+Call `listener(uri, model)` whenever a body schema is registered.
+
+For consumers that keep a process-wide view derived from the registry (e.g. one
+vocabulary of [`body_locations()`](#lacing.body_locations) over every schema) and so must hear about
+schemas registered after they first looked. With `replay` (default) the
+listener is first called for every schema already registered, so subscribing
+late loses nothing. Re-registering a URI notifies again. `clear_registry()`
+does not notify and keeps the listeners.
+
+A listener that raises does not stop the others from being told; the first
+error is re-raised to the caller of [`register_body_schema()`](#lacing.register_body_schema) (the schema
+stays registered). Returns a zero-argument function that unsubscribes the
+listener (idempotent).
+
+```pycon
+>>> seen = []
+>>> off = on_register(lambda uri, model: seen.append(uri), replay=False)
+>>> class _B(BaseModel):
+...     pass
+>>> _ = register_body_schema("annot://schema/doctest-on-register/v1", _B)
+>>> seen
+['annot://schema/doctest-on-register/v1']
+>>> off()
+>>> _ = _BODY_REGISTRY.pop("annot://schema/doctest-on-register/v1")  # test cleanup
+```
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 ### lacing.register_body_schema(uri, model)
 

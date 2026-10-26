@@ -1,4 +1,4 @@
-> built 2026-10-26 15:16 UTC from c45fbc2 (main) · lacing 0.0.55. Details: build_info.json
+> built 2026-10-26 17:45 UTC from c896797 (main) · lacing 0.0.56. Details: build_info.json
 
 # index.html.md
 
@@ -502,7 +502,7 @@ store you can mutate, use `SqliteStore(path)` directly:
 
 ```pycon
 >>> from lacing.store import SqliteStore
->>> store = SqliteStore("project.annot")  # writes go straight to disk
+>>> store = SqliteStore("project.annot")
 ```
 
 ### Functions
@@ -3012,6 +3012,7 @@ full story. `.claude/skills/` contains the rules.
 | [`interval_iou`](_autosummary/lacing.html.md#lacing.interval_iou)(a, b)                                | Intersection-over-Union for two time intervals.                                                                                                                                              |
 | [`boundary_iou`](_autosummary/lacing.html.md#lacing.boundary_iou)(a, b)                                | Mean IoU between two sets of intervals via greedy best-match.                                                                                                                                |
 | [`register_body_schema`](_autosummary/lacing.html.md#lacing.register_body_schema)(uri, model)                  | Register `model` as the validator for `uri`.                                                                                                                                                 |
+| [`on_register`](_autosummary/lacing.html.md#lacing.on_register)(listener, \*[, replay])               | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                            |
 | [`body_locations`](_autosummary/lacing.html.md#lacing.body_locations)(uri)                               | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`. |
 | [`location_fields`](_autosummary/lacing.html.md#lacing.location_fields)(model)                            | `{field spelling: kind}` for the [`Location`](_autosummary/lacing.html.md#lacing.Location)-marked fields of `model` and of the models nested in it.                                          |
 | [`register_migration`](_autosummary/lacing.html.md#lacing.register_migration)(\*, schema_name, ...)          | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                      |
@@ -4578,6 +4579,37 @@ runner’s in-transaction guarantees.
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`int`](https://docs.python.org/3/builtins/functions.html#int), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
 
+### lacing.on_register(listener, , replay=True)
+
+Call `listener(uri, model)` whenever a body schema is registered.
+
+For consumers that keep a process-wide view derived from the registry (e.g. one
+vocabulary of [`body_locations()`](_autosummary/lacing.html.md#lacing.body_locations) over every schema) and so must hear about
+schemas registered after they first looked. With `replay` (default) the
+listener is first called for every schema already registered, so subscribing
+late loses nothing. Re-registering a URI notifies again. `clear_registry()`
+does not notify and keeps the listeners.
+
+A listener that raises does not stop the others from being told; the first
+error is re-raised to the caller of [`register_body_schema()`](_autosummary/lacing.html.md#lacing.register_body_schema) (the schema
+stays registered). Returns a zero-argument function that unsubscribes the
+listener (idempotent).
+
+```pycon
+>>> seen = []
+>>> off = on_register(lambda uri, model: seen.append(uri), replay=False)
+>>> class _B(BaseModel):
+...     pass
+>>> _ = register_body_schema("annot://schema/doctest-on-register/v1", _B)
+>>> seen
+['annot://schema/doctest-on-register/v1']
+>>> off()
+>>> _ = _BODY_REGISTRY.pop("annot://schema/doctest-on-register/v1")  # test cleanup
+```
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 ### lacing.register_body_schema(uri, model)
 
 Register `model` as the validator for `uri`. Returns `model`.
@@ -5521,6 +5553,7 @@ def v1_to_v2(body: dict) -> dict:
 | [`make_uri`](_autosummary/lacing.schema.html.md#lacing.schema.make_uri)(name, version)                    | Build a `body_schema_uri` from a name and major version.                                                                                                                                       |
 | [`migrate`](_autosummary/lacing.schema.html.md#lacing.schema.migrate)(body, \*, from_uri, to_uri)        | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                               |
 | [`migrate_to_latest`](_autosummary/lacing.schema.html.md#lacing.schema.migrate_to_latest)(body, \*, from_uri)      | Convenience: migrate to the highest registered version of the schema.                                                                                                                          |
+| [`on_register`](_autosummary/lacing.schema.html.md#lacing.schema.on_register)(listener, \*[, replay])        | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                              |
 | [`parse_uri`](_autosummary/lacing.schema.html.md#lacing.schema.parse_uri)(uri)                             | Split `annot://schema/<name>/v<major>` into `(name, major)`.                                                                                                                                   |
 | [`register_body_schema`](_autosummary/lacing.schema.html.md#lacing.schema.register_body_schema)(uri, model)           | Register `model` as the validator for `uri`.                                                                                                                                                   |
 | [`register_migration`](_autosummary/lacing.schema.html.md#lacing.schema.register_migration)(\*, schema_name, ...)   | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                        |
@@ -5653,6 +5686,37 @@ Returns `(migrated_body, target_uri)`.
 
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### lacing.schema.on_register(listener, , replay=True)
+
+Call `listener(uri, model)` whenever a body schema is registered.
+
+For consumers that keep a process-wide view derived from the registry (e.g. one
+vocabulary of [`body_locations()`](_autosummary/lacing.schema.html.md#lacing.schema.body_locations) over every schema) and so must hear about
+schemas registered after they first looked. With `replay` (default) the
+listener is first called for every schema already registered, so subscribing
+late loses nothing. Re-registering a URI notifies again. [`clear_registry()`](_autosummary/lacing.schema.html.md#lacing.schema.clear_registry)
+does not notify and keeps the listeners.
+
+A listener that raises does not stop the others from being told; the first
+error is re-raised to the caller of [`register_body_schema()`](_autosummary/lacing.schema.html.md#lacing.schema.register_body_schema) (the schema
+stays registered). Returns a zero-argument function that unsubscribes the
+listener (idempotent).
+
+```pycon
+>>> seen = []
+>>> off = on_register(lambda uri, model: seen.append(uri), replay=False)
+>>> class _B(BaseModel):
+...     pass
+>>> _ = register_body_schema("annot://schema/doctest-on-register/v1", _B)
+>>> seen
+['annot://schema/doctest-on-register/v1']
+>>> off()
+>>> _ = _BODY_REGISTRY.pop("annot://schema/doctest-on-register/v1")  # test cleanup
+```
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 ### lacing.schema.parse_uri(uri)
 
@@ -7799,7 +7863,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-10-26 15:16 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/c45fbc2de34776b745f69a8c13f8784511b6d6cf"><code>c45fbc2</code></a> on branch <code>main</code>, for **lacing 0.0.55** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 17:45 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/c896797179b515ec21c743dcc3a2d3a7215fd63c"><code>c896797</code></a> on branch <code>main</code>, for **lacing 0.0.56** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -7808,7 +7872,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/c45fbc2de34776b745f69a8c13f8784511b6d6cf"><code>c45fbc2de34776b745f69a8c13f8784511b6d6cf</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/c896797179b515ec21c743dcc3a2d3a7215fd63c"><code>c896797179b515ec21c743dcc3a2d3a7215fd63c</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -7819,9 +7883,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40347252093">40347252093</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40371184916">40371184916</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>c45fbc2de34776b745f69a8c13f8784511b6d6cf</code> (in the history of the built commit) |
+| Event commit | <code>c896797179b515ec21c743dcc3a2d3a7215fd63c</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -7846,13 +7910,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.55/">0.0.55</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.56/">0.0.56</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout c45fbc2de34776b745f69a8c13f8784511b6d6cf
+git checkout c896797179b515ec21c743dcc3a2d3a7215fd63c
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

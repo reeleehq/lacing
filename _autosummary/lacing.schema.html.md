@@ -57,6 +57,7 @@ def v1_to_v2(body: dict) -> dict:
 | [`make_uri`](#lacing.schema.make_uri)(name, version)                    | Build a `body_schema_uri` from a name and major version.                                                                                                                                       |
 | [`migrate`](#lacing.schema.migrate)(body, \*, from_uri, to_uri)        | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                               |
 | [`migrate_to_latest`](#lacing.schema.migrate_to_latest)(body, \*, from_uri)      | Convenience: migrate to the highest registered version of the schema.                                                                                                                          |
+| [`on_register`](#lacing.schema.on_register)(listener, \*[, replay])        | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                              |
 | [`parse_uri`](#lacing.schema.parse_uri)(uri)                             | Split `annot://schema/<name>/v<major>` into `(name, major)`.                                                                                                                                   |
 | [`register_body_schema`](#lacing.schema.register_body_schema)(uri, model)           | Register `model` as the validator for `uri`.                                                                                                                                                   |
 | [`register_migration`](#lacing.schema.register_migration)(\*, schema_name, ...)   | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                        |
@@ -189,6 +190,37 @@ Returns `(migrated_body, target_uri)`.
 
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### lacing.schema.on_register(listener, , replay=True)
+
+Call `listener(uri, model)` whenever a body schema is registered.
+
+For consumers that keep a process-wide view derived from the registry (e.g. one
+vocabulary of [`body_locations()`](#lacing.schema.body_locations) over every schema) and so must hear about
+schemas registered after they first looked. With `replay` (default) the
+listener is first called for every schema already registered, so subscribing
+late loses nothing. Re-registering a URI notifies again. [`clear_registry()`](#lacing.schema.clear_registry)
+does not notify and keeps the listeners.
+
+A listener that raises does not stop the others from being told; the first
+error is re-raised to the caller of [`register_body_schema()`](#lacing.schema.register_body_schema) (the schema
+stays registered). Returns a zero-argument function that unsubscribes the
+listener (idempotent).
+
+```pycon
+>>> seen = []
+>>> off = on_register(lambda uri, model: seen.append(uri), replay=False)
+>>> class _B(BaseModel):
+...     pass
+>>> _ = register_body_schema("annot://schema/doctest-on-register/v1", _B)
+>>> seen
+['annot://schema/doctest-on-register/v1']
+>>> off()
+>>> _ = _BODY_REGISTRY.pop("annot://schema/doctest-on-register/v1")  # test cleanup
+```
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 ### lacing.schema.parse_uri(uri)
 

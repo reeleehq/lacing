@@ -29,6 +29,7 @@
       interval_iou
       boundary_iou
       register_body_schema
+      on_register
       body_locations
       location_fields
       register_migration

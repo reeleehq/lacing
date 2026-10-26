@@ -18,6 +18,7 @@ lacing.schema
       make_uri
       migrate
       migrate_to_latest
+      on_register
       parse_uri
       register_body_schema
       register_migration

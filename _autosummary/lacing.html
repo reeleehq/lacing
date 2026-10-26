@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=b87b3bc5"></script>
+    <script src="../_static/documentation_options.js?v=8f83b1af"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.55" />
+  <meta name="docsearch:version" content="0.0.56" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -511,28 +511,31 @@ full story. <code class="docutils literal notranslate"><span class="pre">.claude
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.register_body_schema" title="lacing.register_body_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_body_schema</span></code></a>(uri, model)</p></td>
 <td><p>Register <code class="docutils literal notranslate"><span class="pre">model</span></code> as the validator for <code class="docutils literal notranslate"><span class="pre">uri</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.body_locations" title="lacing.body_locations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">body_locations</span></code></a>(uri)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.on_register" title="lacing.on_register"><code class="xref py py-obj docutils literal notranslate"><span class="pre">on_register</span></code></a>(listener, *[, replay])</p></td>
+<td><p>Call <code class="docutils literal notranslate"><span class="pre">listener(uri,</span> <span class="pre">model)</span></code> whenever a body schema is registered.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.body_locations" title="lacing.body_locations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">body_locations</span></code></a>(uri)</p></td>
 <td><p>The location-marked fields of the body schema for <code class="docutils literal notranslate"><span class="pre">uri</span></code> (see <a class="reference internal" href="lacing.locations.html#module-lacing.locations" title="lacing.locations"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.locations</span></code></a>): <code class="docutils literal notranslate"><span class="pre">{field</span> <span class="pre">spelling:</span> <span class="pre">&quot;url&quot;</span> <span class="pre">|</span> <span class="pre">&quot;path&quot;}</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.location_fields" title="lacing.location_fields"><code class="xref py py-obj docutils literal notranslate"><span class="pre">location_fields</span></code></a>(model)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.location_fields" title="lacing.location_fields"><code class="xref py py-obj docutils literal notranslate"><span class="pre">location_fields</span></code></a>(model)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">{field</span> <span class="pre">spelling:</span> <span class="pre">kind}</span></code> for the <a class="reference internal" href="#lacing.Location" title="lacing.Location"><code class="xref py py-class docutils literal notranslate"><span class="pre">Location</span></code></a>-marked fields of <code class="docutils literal notranslate"><span class="pre">model</span></code> and of the models nested in it.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.register_migration" title="lacing.register_migration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_migration</span></code></a>(*, schema_name, ...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.register_migration" title="lacing.register_migration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_migration</span></code></a>(*, schema_name, ...)</p></td>
 <td><p>Register a forward migration from <code class="docutils literal notranslate"><span class="pre">v&lt;from_version&gt;</span></code> to <code class="docutils literal notranslate"><span class="pre">v&lt;to_version&gt;</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.json_schema" title="lacing.json_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">json_schema</span></code></a>(uri)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.json_schema" title="lacing.json_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">json_schema</span></code></a>(uri)</p></td>
 <td><p>Return the JSON Schema for the body model registered at <code class="docutils literal notranslate"><span class="pre">uri</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.export_json_schemas" title="lacing.export_json_schemas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_json_schemas</span></code></a>(target_dir, *[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.export_json_schemas" title="lacing.export_json_schemas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_json_schemas</span></code></a>(target_dir, *[, ...])</p></td>
 <td><p>Write every registered schema as JSON files under <code class="docutils literal notranslate"><span class="pre">target_dir</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.render_artifact_exhibit" title="lacing.render_artifact_exhibit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_artifact_exhibit</span></code></a>(annotations, *, out_dir)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.render_artifact_exhibit" title="lacing.render_artifact_exhibit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_artifact_exhibit</span></code></a>(annotations, *, out_dir)</p></td>
 <td><p>Render an annotation graph as a human-readable artifact exhibit.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.migrate" title="lacing.migrate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">migrate</span></code></a>(body, *, from_uri, to_uri)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.migrate" title="lacing.migrate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">migrate</span></code></a>(body, *, from_uri, to_uri)</p></td>
 <td><p>Migrate <code class="docutils literal notranslate"><span class="pre">body</span></code> from <code class="docutils literal notranslate"><span class="pre">from_uri</span></code> to <code class="docutils literal notranslate"><span class="pre">to_uri</span></code> via registered steps.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.validate_body" title="lacing.validate_body"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_body</span></code></a>(body, uri)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.validate_body" title="lacing.validate_body"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_body</span></code></a>(body, uri)</p></td>
 <td><p>Validate <code class="docutils literal notranslate"><span class="pre">body</span></code> against the schema registered for <code class="docutils literal notranslate"><span class="pre">uri</span></code>.</p></td>
 </tr>
 </tbody>
@@ -2520,6 +2523,38 @@ runner’s in-transaction guarantees.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lacing.on_register">
+<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">on_register</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">listener</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">replay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/schema.html#on_register"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.on_register" title="Link to this definition">#</a></dt>
+<dd><p>Call <code class="docutils literal notranslate"><span class="pre">listener(uri,</span> <span class="pre">model)</span></code> whenever a body schema is registered.</p>
+<p>For consumers that keep a process-wide view derived from the registry (e.g. one
+vocabulary of <a class="reference internal" href="#lacing.body_locations" title="lacing.body_locations"><code class="xref py py-func docutils literal notranslate"><span class="pre">body_locations()</span></code></a> over every schema) and so must hear about
+schemas registered after they first looked. With <code class="docutils literal notranslate"><span class="pre">replay</span></code> (default) the
+listener is first called for every schema already registered, so subscribing
+late loses nothing. Re-registering a URI notifies again. <code class="xref py py-func docutils literal notranslate"><span class="pre">clear_registry()</span></code>
+does not notify and keeps the listeners.</p>
+<p>A listener that raises does not stop the others from being told; the first
+error is re-raised to the caller of <a class="reference internal" href="#lacing.register_body_schema" title="lacing.register_body_schema"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_body_schema()</span></code></a> (the schema
+stays registered). Returns a zero-argument function that unsubscribes the
+listener (idempotent).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">seen</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">off</span> <span class="o">=</span> <span class="n">on_register</span><span class="p">(</span><span class="k">lambda</span> <span class="n">uri</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">seen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">uri</span><span class="p">),</span> <span class="n">replay</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span><span class="w"> </span><span class="nc">_B</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">pass</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">register_body_schema</span><span class="p">(</span><span class="s2">"annot://schema/doctest-on-register/v1"</span><span class="p">,</span> <span class="n">_B</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seen</span>
+<span class="go">['annot://schema/doctest-on-register/v1']</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">off</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">_BODY_REGISTRY</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"annot://schema/doctest-on-register/v1"</span><span class="p">)</span>  <span class="c1"># test cleanup</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[], <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lacing.register_body_schema">
 <span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">register_body_schema</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/schema.html#register_body_schema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.register_body_schema" title="Link to this definition">#</a></dt>
 <dd><p>Register <code class="docutils literal notranslate"><span class="pre">model</span></code> as the validator for <code class="docutils literal notranslate"><span class="pre">uri</span></code>. Returns <code class="docutils literal notranslate"><span class="pre">model</span></code>.</p>
@@ -2980,6 +3015,7 @@ or <a class="reference internal" href="#lacing.UnknownBodySchemaError" title="la
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.maybe_span"><code class="docutils literal notranslate"><span class="pre">maybe_span()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.migrate"><code class="docutils literal notranslate"><span class="pre">migrate()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.migrate_annot_file"><code class="docutils literal notranslate"><span class="pre">migrate_annot_file()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.on_register"><code class="docutils literal notranslate"><span class="pre">on_register()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.register_body_schema"><code class="docutils literal notranslate"><span class="pre">register_body_schema()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.register_migration"><code class="docutils literal notranslate"><span class="pre">register_migration()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.register_processor"><code class="docutils literal notranslate"><span class="pre">register_processor()</span></code></a></li>

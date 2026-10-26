@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=b87b3bc5"></script>
+    <script src="../../_static/documentation_options.js?v=8f83b1af"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.55" />
+  <meta name="docsearch:version" content="0.0.56" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -759,6 +759,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
@@ -816,6 +817,12 @@ window.runMermaid = runMermaid;</script>
 <span class="c1"># uri -&gt; Pydantic model class</span>
 <span class="n">_BODY_REGISTRY</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
 
+<span class="c1"># token -&gt; callback, told about every (re-)registration; see on_register.</span>
+<span class="c1"># The RLock makes "write registry + notify" and "subscribe + replay" atomic with</span>
+<span class="c1"># respect to each other, and lets a listener register further schemas.</span>
+<span class="n">_REGISTER_LISTENERS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">object</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">_REGISTRY_LOCK</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">RLock</span><span class="p">()</span>
+
 
 <div class="viewcode-block" id="BodySchemaError">
 <a class="viewcode-back" href="../../_autosummary/lacing.schema.html#lacing.BodySchemaError">[docs]</a>
@@ -841,8 +848,66 @@ window.runMermaid = runMermaid;</script>
             <span class="sa">f</span><span class="s2">"register_body_schema expects a Pydantic v2 BaseModel subclass; "</span>
             <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="n">model</span><span class="si">!r}</span><span class="s2">"</span>
         <span class="p">)</span>
-    <span class="n">_BODY_REGISTRY</span><span class="p">[</span><span class="n">uri</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span>
+    <span class="k">with</span> <span class="n">_REGISTRY_LOCK</span><span class="p">:</span>
+        <span class="n">_BODY_REGISTRY</span><span class="p">[</span><span class="n">uri</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="n">_notify</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">_REGISTER_LISTENERS</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">uri</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">model</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_notify</span><span class="p">(</span><span class="n">listeners</span><span class="p">,</span> <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Call every listener even if some raise; re-raise the first error after."""</span>
+    <span class="n">first_error</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">listener</span> <span class="ow">in</span> <span class="n">listeners</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">listener</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>  <span class="c1"># one bad listener must not blind the others</span>
+            <span class="n">first_error</span> <span class="o">=</span> <span class="n">first_error</span> <span class="ow">or</span> <span class="n">error</span>
+    <span class="k">if</span> <span class="n">first_error</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">first_error</span>
+
+
+<div class="viewcode-block" id="on_register">
+<a class="viewcode-back" href="../../_autosummary/lacing.schema.html#lacing.on_register">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">on_register</span><span class="p">(</span>
+    <span class="n">listener</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]],</span> <span class="kc">None</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">replay</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Call ``listener(uri, model)`` whenever a body schema is registered.</span>
+
+<span class="sd">    For consumers that keep a process-wide view derived from the registry (e.g. one</span>
+<span class="sd">    vocabulary of :func:`body_locations` over every schema) and so must hear about</span>
+<span class="sd">    schemas registered after they first looked. With ``replay`` (default) the</span>
+<span class="sd">    listener is first called for every schema already registered, so subscribing</span>
+<span class="sd">    late loses nothing. Re-registering a URI notifies again. :func:`clear_registry`</span>
+<span class="sd">    does not notify and keeps the listeners.</span>
+
+<span class="sd">    A listener that raises does not stop the others from being told; the first</span>
+<span class="sd">    error is re-raised to the caller of :func:`register_body_schema` (the schema</span>
+<span class="sd">    stays registered). Returns a zero-argument function that unsubscribes the</span>
+<span class="sd">    listener (idempotent).</span>
+
+<span class="sd">    &gt;&gt;&gt; seen = []</span>
+<span class="sd">    &gt;&gt;&gt; off = on_register(lambda uri, model: seen.append(uri), replay=False)</span>
+<span class="sd">    &gt;&gt;&gt; class _B(BaseModel):</span>
+<span class="sd">    ...     pass</span>
+<span class="sd">    &gt;&gt;&gt; _ = register_body_schema("annot://schema/doctest-on-register/v1", _B)</span>
+<span class="sd">    &gt;&gt;&gt; seen</span>
+<span class="sd">    ['annot://schema/doctest-on-register/v1']</span>
+<span class="sd">    &gt;&gt;&gt; off()</span>
+<span class="sd">    &gt;&gt;&gt; _ = _BODY_REGISTRY.pop("annot://schema/doctest-on-register/v1")  # test cleanup</span>
+<span class="sd">    """</span>
+    <span class="n">token</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">_REGISTRY_LOCK</span><span class="p">:</span>
+        <span class="n">_REGISTER_LISTENERS</span><span class="p">[</span><span class="n">token</span><span class="p">]</span> <span class="o">=</span> <span class="n">listener</span>
+        <span class="k">if</span> <span class="n">replay</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">uri</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">_BODY_REGISTRY</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                <span class="n">_notify</span><span class="p">((</span><span class="n">listener</span><span class="p">,),</span> <span class="n">uri</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">unsubscribe</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_REGISTRY_LOCK</span><span class="p">:</span>
+            <span class="n">_REGISTER_LISTENERS</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">unsubscribe</span></div>
 
 
 

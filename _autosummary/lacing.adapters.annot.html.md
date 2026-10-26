@@ -17,7 +17,7 @@ store you can mutate, use `SqliteStore(path)` directly:
 
 ```pycon
 >>> from lacing.store import SqliteStore
->>> store = SqliteStore("project.annot")  # writes go straight to disk
+>>> store = SqliteStore("project.annot")
 ```
 
 ### Functions
