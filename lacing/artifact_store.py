@@ -60,6 +60,7 @@ import stat
 from collections.abc import Callable, Iterable, Iterator, MutableMapping
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -534,7 +535,11 @@ class ArtifactStore(MutableMapping):
 
     @classmethod
     def from_directory(
-        cls, root: Path | str, *, record_type: type[BaseModel] = Artifact
+        cls,
+        root: Path | str,
+        *,
+        record_type: type[BaseModel] = Artifact,
+        blob_delete_func: Callable[[str], Any] | None = None,
     ) -> ArtifactStore:
         """An ArtifactStore persisted under ``root``.
 
@@ -556,6 +561,10 @@ class ArtifactStore(MutableMapping):
             record_type: The pydantic model the catalog deserializes JSON into.
                 Defaults to :class:`~lacing.artifact.Artifact`; callers with
                 their own record schema pass their model here.
+            blob_delete_func: How the blob store deletes a file, given its
+                path. ``None`` keeps ``dol.Files``' default (move to the OS
+                trash); pass ``os.remove`` when blobs are derived data and a
+                delete should free the disk.
         """
         root = Path(root)
         catalog_dir = root / "catalog"
@@ -575,7 +584,7 @@ class ArtifactStore(MutableMapping):
             data_of_obj=lambda record: record.model_dump_json(indent=2).encode("utf-8"),
             obj_of_data=lambda raw: record_type.model_validate_json(raw),
         )
-        blobs = Files(str(blob_dir))
+        blobs = Files(str(blob_dir), delete_func=blob_delete_func)
         return cls(catalog=catalog, blobs=blobs)
 
     def count_refs(self, content_hash: str) -> int:
