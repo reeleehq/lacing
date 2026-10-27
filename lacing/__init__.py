@@ -72,7 +72,7 @@ from lacing.artifact import (
     hash_bytes,
     hash_file,
 )
-from lacing.artifact_ref import ARTIFACT_REF_PREFIX, ArtifactRef, is_artifact_ref
+from lacing.artifact_ref import ARTIFACT_REF_PREFIX, ArtifactRef
 from lacing.artifact_store import (
     ArtifactStore,
     ResolvedArtifact,
@@ -130,7 +130,6 @@ __all__ = [
     "ResolvedArtifact",
     "ArtifactRef",
     "ARTIFACT_REF_PREFIX",
-    "is_artifact_ref",
     "resolve_in_mall",
     "content_hash_of",
     "hash_bytes",

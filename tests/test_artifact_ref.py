@@ -12,9 +12,9 @@ from lacing import (
     ArtifactStore,
     ResolvedArtifact,
     content_hash_of,
-    is_artifact_ref,
     resolve_in_mall,
 )
+from lacing.artifact_ref import is_artifact_ref
 
 PIN = "ab" * 32
 
@@ -40,7 +40,7 @@ def _artifact(data: bytes) -> Artifact:
 )
 def test_parse_and_format_round_trip(text):
     ref = ArtifactRef.parse(text)
-    assert ref.format() == str(ref) == text
+    assert ref.format() == text
     assert ArtifactRef.parse(ref.format()) == ref
 
 
@@ -92,7 +92,6 @@ def test_is_artifact_ref_is_exactly_parse_succeeding():
         {"key": "k@" + PIN},  # would read back as a pinned reference
         {"key": "k", "store": "a/b"},
         {"key": "k", "store": ""},
-        {"key": "k", "pin": "AB" * 32},
         {"key": "k", "pin": "ab"},
     ],
 )
@@ -285,7 +284,7 @@ def test_the_holder_scan_skips_a_damaged_record(tmp_path):
     store.save("k", first, data=b"v1")
     store.save("k", second, data=b"v2")
     store.save("z-holder", first)
-    assert list(store.keys_with_content(first.asset_id)) == ["z-holder"]
+    assert list(store._keys_with_content(first.asset_id)) == ["z-holder"]
     resolved = store.resolve(ArtifactRef("k", pin=first.asset_id))
     assert (resolved.key, resolved.data) == ("z-holder", b"v1")
 
@@ -355,9 +354,10 @@ def test_resolve_in_mall_picks_the_store(mall):
 
 
 def test_resolve_in_mall_refuses_a_store_not_in_the_mall(mall):
-    with pytest.raises(KeyError, match="'transcripts', 'takes'"):
+    with pytest.raises(LookupError, match="'transcripts', 'takes'") as caught:
         resolve_in_mall(ArtifactRef("a", store="nope"), mall, default_store="takes")
-    with pytest.raises(KeyError, match="'missing'"):
+    assert not isinstance(caught.value, KeyError)  # "no such store", not "no such key"
+    with pytest.raises(LookupError, match="'missing'"):
         resolve_in_mall("artifact:k", mall, default_store="missing")
 
 
@@ -365,3 +365,49 @@ def test_resolve_in_mall_refuses_a_store_that_cannot_resolve(mall):
     mall["plain"] = {"k": 1}
     with pytest.raises(TypeError, match="no resolve method"):
         resolve_in_mall("artifact:plain/k", mall, default_store="transcripts")
+
+
+# -- second review (lacing#90) ------------------------------------------------
+
+
+def test_an_unprefixed_manifest_reference_parses_on_request():
+    """an records ``<store>/<key>@<sha256>`` with no prefix in a take's manifest."""
+    text = f"transcripts/k@{PIN}"
+    with pytest.raises(ValueError, match="not an artifact reference"):
+        ArtifactRef.parse(text)
+    ref = ArtifactRef.parse(text, require_prefix=False)
+    assert (ref.key, ref.pin) == ("transcripts/k", PIN)
+    assert ArtifactRef.parse("artifact:k", require_prefix=False).key == "k"
+    with pytest.raises(ValueError):
+        ArtifactRef.parse("/k", require_prefix=False)
+
+
+def test_an_uppercase_pin_is_a_pin_kept_lowercase():
+    ref = ArtifactRef.parse("artifact:k@" + PIN.upper())
+    assert (ref.key, ref.pin) == ("k", PIN)
+    assert ArtifactRef("k", pin=PIN.upper()).pin == PIN
+    with pytest.raises(ValueError):
+        ArtifactRef("k@" + PIN.upper())  # would read back as a pin
+
+
+def test_non_text_is_not_a_reference():
+    assert not is_artifact_ref(None)
+    assert not is_artifact_ref(123)
+    with pytest.raises(TypeError):
+        ArtifactRef.parse(123)
+
+
+class _CountingStore(dict):
+    """A mall store whose truthiness would list its catalog."""
+
+    def __bool__(self):
+        raise AssertionError("bool() lists the catalog")
+
+    def __len__(self):
+        raise AssertionError("len() lists the catalog")
+
+
+def test_locate_does_not_list_the_default_store():
+    mall = {"transcripts": _CountingStore(), "takes": _CountingStore()}
+    ref = ArtifactRef.parse(f"artifact:takes/gone@{PIN}")
+    assert ref.locate(mall, default_store="transcripts").store == "takes"

@@ -55,12 +55,15 @@ ARTIFACT_REF_PREFIX = "artifact:"
 # The prefix and a name with no whitespace, so a transcript line such as
 # ``artifact: some words`` is not taken for a reference.
 _REF = re.compile(re.escape(ARTIFACT_REF_PREFIX) + r"(?P<name>[^\s/]\S*)")
-_PINNED = re.compile(r"(?P<key>.+)@(?P<pin>[0-9a-f]{64})")
-_PIN = re.compile(r"[0-9a-f]{64}")
+_NAME = re.compile(r"[^\s/]\S*")
+# Hex digits in either case; a pin is kept lowercase, as ``hash_bytes`` spells it.
+_PINNED = re.compile(r"(?P<key>.+)@(?P<pin>[0-9a-fA-F]{64})")
+_PIN = re.compile(r"[0-9a-fA-F]{64}")
 
 
-def is_artifact_ref(text: str) -> bool:
-    """Whether :meth:`ArtifactRef.parse` accepts ``text`` (surrounding space ignored).
+def is_artifact_ref(text: Any) -> bool:
+    """Whether :meth:`ArtifactRef.parse` accepts ``text`` (surrounding space
+    ignored); ``False`` for anything that is not a ``str``.
 
     >>> is_artifact_ref("artifact:transcripts/t"), is_artifact_ref("take.srt")
     (True, False)
@@ -69,7 +72,7 @@ def is_artifact_ref(text: str) -> bool:
     """
     try:
         ArtifactRef.parse(text)
-    except ValueError:
+    except (ValueError, TypeError):
         return False
     return True
 
@@ -90,7 +93,7 @@ def _key_problem(key: str) -> str | None:
 class ArtifactRef:
     """A reference to an artifact: its ``key``, the ``store`` that files it when
     known, and the content ``pin`` when it names one: the store's content hash,
-    64 lowercase hex digits of SHA-256 (an ``Artifact.asset_id``).
+    64 hex digits of SHA-256 (an ``Artifact.asset_id``), kept lowercase.
 
     Raises ``ValueError`` for a reference that would not read back as itself: an
     empty key or one with whitespace, a key starting with ``/`` or ending in
@@ -108,13 +111,18 @@ class ArtifactRef:
             not self.store or "/" in self.store or re.search(r"\s", self.store)
         ):
             raise ValueError(f"not a store name: {self.store!r}")
-        if self.pin is not None and not _PIN.fullmatch(self.pin):
-            raise ValueError(f"a pin is a 64-digit lowercase hex digest: {self.pin!r}")
+        if self.pin is not None:
+            if not _PIN.fullmatch(self.pin):
+                raise ValueError(f"a pin is a 64-digit hex digest: {self.pin!r}")
+            object.__setattr__(self, "pin", self.pin.lower())
 
     @classmethod
-    def parse(cls, text: str) -> ArtifactRef:
+    def parse(cls, text: str, *, require_prefix: bool = True) -> ArtifactRef:
         """The reference ``text`` spells, with the whole name as ``key``
         (``store`` is ``None``; see :meth:`locate`).
+
+        ``require_prefix=False`` also reads a name without ``artifact:``, the
+        ``<store>/<key>@<sha256>`` that an records in a take's manifest.
 
         Anything it refuses raises ``ValueError("not an artifact reference: ...")``,
         chained to the key's own error when that is the reason.
@@ -125,11 +133,18 @@ class ArtifactRef:
         Traceback (most recent call last):
         ...
         ValueError: not an artifact reference: 'take.srt'
+        >>> ArtifactRef.parse("takes/a", require_prefix=False)
+        ArtifactRef(key='takes/a', store=None, pin=None)
         """
-        matched = _REF.fullmatch(text.strip())
+        if not isinstance(text, str):
+            raise TypeError(f"an artifact reference is text, not {type(text).__name__}")
+        stripped = text.strip()
+        matched = _REF.fullmatch(stripped)
+        if matched is None and not require_prefix:
+            matched = _NAME.fullmatch(stripped)
         if matched is None:
             raise ValueError(f"not an artifact reference: {text!r}")
-        name, pin = matched["name"], None
+        name, pin = matched["name"] if matched.re is _REF else matched[0], None
         if pinned := _PINNED.fullmatch(name):
             name, pin = pinned["key"], pinned["pin"]
         try:
@@ -142,8 +157,6 @@ class ArtifactRef:
         store = "" if self.store is None else f"{self.store}/"
         pin = "" if self.pin is None else f"@{self.pin}"
         return f"{ARTIFACT_REF_PREFIX}{store}{self.key}{pin}"
-
-    __str__ = format
 
     def locate(self, mall: Mapping[str, Any], *, default_store: str) -> ArtifactRef:
         """This reference with its ``store`` decided against ``mall``.
@@ -169,7 +182,9 @@ class ArtifactRef:
             and head in mall
             and (
                 _holds_key(mall[head], rest)
-                or not _holds_key(mall.get(default_store) or {}, self.key)
+                # ``is None``, not truthiness: ``bool(store)`` lists a catalog
+                or (default := mall.get(default_store)) is None
+                or not _holds_key(default, self.key)
             )
         ):
             return replace(self, store=head, key=rest)

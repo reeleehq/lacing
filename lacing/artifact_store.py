@@ -216,10 +216,11 @@ def resolve_in_mall(
     store's :meth:`ArtifactStore.resolve`.
 
     Raises:
-        KeyError: the store is not in ``mall`` (the message names those that
-            are), or what :meth:`ArtifactStore.resolve` raises.
+        LookupError: the store is not in ``mall`` (the message names those
+            that are); a plain ``LookupError``, so ``except KeyError`` still
+            tells "no such key" from "no such store".
         TypeError: the store has no ``resolve`` method.
-        ValueError: ``ref`` text is not a reference, or a pin mismatch.
+        KeyError, ValueError: what :meth:`ArtifactStore.resolve` raises.
 
     >>> from lacing import Artifact
     >>> takes = ArtifactStore.in_memory()
@@ -234,7 +235,7 @@ def resolve_in_mall(
         ref = ArtifactRef.parse(ref)
     located = ref.locate(mall, default_store=default_store)
     if located.store not in mall:
-        raise KeyError(
+        raise LookupError(
             f"{ref}: no store {located.store!r} in the mall, whose stores are "
             f"{', '.join(map(repr, mall))}"
         )
@@ -352,7 +353,7 @@ class ArtifactStore(MutableMapping):
         pin is the store's content hash: the SHA-256 hex digest of the bytes, as
         :meth:`save` and :meth:`put_blob` compute it. The record is the one at
         the key if it still holds those bytes, else the first a scan of
-        :meth:`keys_with_content` finds, else ``None``; only the fallback scans.
+        catalog scan finds, else ``None``; only that fallback scans.
 
         With ``read=False`` it only checks that the bytes exist
         (:meth:`has_blob`) and leaves ``data`` as ``None``, so a caller that
@@ -363,7 +364,8 @@ class ArtifactStore(MutableMapping):
         Raises:
             KeyError: no record at the key (unpinned), a record with no content
                 yet, no blob store (``blobs=None``), or no bytes for the content.
-            ValueError: ``ref`` text is not a reference, or the bytes read do
+            ValueError: ``ref`` text is not a reference, the record at the key
+                is damaged (unpinned; pydantic's error), or the bytes read do
                 not hash to the pin.
 
         >>> from lacing import Artifact, ArtifactRef
@@ -394,17 +396,15 @@ class ArtifactStore(MutableMapping):
             raise ValueError(f"{ref}: the stored bytes do not hash to the pin")
         holder = next(self._records_with_content(ref.pin, [ref.key]), None)
         if holder is None:
-            keys = self.keys_with_content(ref.pin)
+            keys = self._keys_with_content(ref.pin)
             holder = next(self._records_with_content(ref.pin, keys), None)
         key, record = holder or (None, None)
         return ResolvedArtifact(key, record, ref.pin, data)
 
-    def keys_with_content(self, content_hash: str) -> Iterator[str]:
-        """Yield, lazily, the catalog keys whose record names ``content_hash``.
-
-        Records that cannot be read (damaged, or deleted while the scan runs)
-        are skipped.
-        """
+    def _keys_with_content(self, content_hash: str) -> Iterator[str]:
+        """Yield, lazily, the catalog keys whose record names ``content_hash``,
+        skipping records that cannot be read. Iterates the live catalog: do not
+        delete while it runs."""
         # A full catalog scan: a store with a content-hash index can override this.
         for key, _ in self._records_with_content(content_hash, self):
             yield key
