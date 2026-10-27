@@ -20,6 +20,8 @@ lacing.digest
    
       annotation_value_digest
       annotation_body_digest
+      value_digest_matches
+      accepted_value_digests
       registered_derived_paths
    
    .. rubric:: Exceptions

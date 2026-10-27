@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=e95a51ae"></script>
+    <script src="../../_static/documentation_options.js?v=7ada5fdd"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.61" />
+  <meta name="docsearch:version" content="0.0.63" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -850,13 +850,33 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">Changing :data:`VALUE_FIELDS` or the canonicalisation is a **breaking cache</span>
 <span class="sd">invalidation event** for every consumer: every digest changes at once. Bump</span>
 <span class="sd">the scheme string when you do it, so the change is legible in a trace.</span>
+
+<span class="sd">Verifying a recorded digest: use :func:`value_digest_matches`</span>
+<span class="sd">-------------------------------------------------------------</span>
+<span class="sd">Which body fields ``v2`` leaves out depends on the :class:`lacing.Derived`</span>
+<span class="sd">markers registered when the digest is computed, so a recorded digest is checked</span>
+<span class="sd">with :func:`value_digest_matches`, whose docstring says what it accepts and why</span>
+<span class="sd">(lacing#89).</span>
+
+<span class="sd">The verifier must register the same markers as the producer, or the producer</span>
+<span class="sd">none; otherwise a match it should find reads changed (a spurious miss, never a</span>
+<span class="sd">wrong hit). So a marker *added to a schema that already had one* is a spurious</span>
+<span class="sd">miss, unless the trace recorded the exclusion set.</span>
+
+<span class="sd">A digest of the exclusion set in the scheme tag would not help: a trace records</span>
+<span class="sd">one scheme for parents of many body schemas. A trace that records each entry's</span>
+<span class="sd">exclusion set ``D'`` itself can verify under it, through</span>
+<span class="sd">``resolve_derived=lambda uri: D'``, but only while ``D'`` is a subset of today's</span>
+<span class="sd">derived paths: a marker since removed means the field now counts, and verifying</span>
+<span class="sd">under the old ``D'`` would be a wrong hit. That is a trace-format concern for</span>
+<span class="sd">consumers.</span>
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Iterator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Sequence</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>  <span class="c1"># pragma: no cover - typing only, keeps this module import-light</span>
@@ -866,6 +886,8 @@ window.runMermaid = runMermaid;</script>
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">"annotation_value_digest"</span><span class="p">,</span>
     <span class="s2">"annotation_body_digest"</span><span class="p">,</span>
+    <span class="s2">"value_digest_matches"</span><span class="p">,</span>
+    <span class="s2">"accepted_value_digests"</span><span class="p">,</span>
     <span class="s2">"NonStringBodyKeyError"</span><span class="p">,</span>
     <span class="s2">"VALUE_FIELDS"</span><span class="p">,</span>
     <span class="s2">"BODY_FIELDS"</span><span class="p">,</span>
@@ -949,7 +971,8 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">``v2`` leaves the body's :class:`lacing.Derived` fields out (see</span>
 <span class="sd">:mod:`lacing.derived`); ``v1`` digested the whole body. A trace that recorded a</span>
-<span class="sd">``v1`` digest is still verifiable: pass ``scheme="lacing/annotation-value-digest/v1"``."""</span>
+<span class="sd">``v1`` digest is still verifiable: pass ``scheme="lacing/annotation-value-digest/v1"``.</span>
+<span class="sd">Verify a recorded digest with :func:`value_digest_matches`, not by recomputing it."""</span>
 
 <span class="n">_V1_SCHEME</span> <span class="o">=</span> <span class="s2">"lacing/annotation-value-digest/v1"</span>
 
@@ -979,8 +1002,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    A body with no derived fields (no marker, or a schema that is not</span>
 <span class="sd">    registered) digests exactly as under ``v1``, so only marked schemas change</span>
-<span class="sd">    digest. The verifier must therefore have registered the same body schemas as</span>
-<span class="sd">    the producer, or it computes a different (stale-reading) digest.</span>
+<span class="sd">    digest. To check a digest a trace recorded, call :func:`value_digest_matches`.</span>
 
 <span class="sd">    ``scheme`` selects which computation to run, so a digest recorded under an</span>
 <span class="sd">    older scheme can be re-verified (see :data:`VALUE_DIGEST_SCHEMES`).</span>
@@ -1032,19 +1054,92 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    ... )</span>
 <span class="sd">    False</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">scheme</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALUE_DIGEST_SCHEMES</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"unknown value digest scheme </span><span class="si">{</span><span class="n">scheme</span><span class="si">!r}</span><span class="s2">; known: </span><span class="si">{</span><span class="n">VALUE_DIGEST_SCHEMES</span><span class="si">}</span><span class="s2">"</span>
-        <span class="p">)</span>
-    <span class="n">payload</span> <span class="o">=</span> <span class="n">_payload</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="n">VALUE_FIELDS</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">scheme</span> <span class="o">==</span> <span class="n">VALUE_DIGEST_SCHEME</span><span class="p">:</span>
-        <span class="n">resolve</span> <span class="o">=</span> <span class="n">resolve_derived</span> <span class="ow">or</span> <span class="n">registered_derived_paths</span>
-        <span class="n">paths</span> <span class="o">=</span> <span class="n">resolve</span><span class="p">(</span><span class="n">annotation</span><span class="o">.</span><span class="n">body_schema_uri</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">paths</span><span class="p">:</span>
-            <span class="n">_drop_derived</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"body"</span><span class="p">],</span> <span class="n">paths</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">scheme</span> <span class="o">=</span> <span class="n">_V1_SCHEME</span>  <span class="c1"># nothing to leave out: byte-identical to v1</span>
-    <span class="k">return</span> <span class="n">_digest</span><span class="p">(</span><span class="n">scheme</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">_value_digests</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="n">scheme</span><span class="p">,</span> <span class="n">resolve_derived</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="value_digest_matches">
+<a class="viewcode-back" href="../../_autosummary/lacing.digest.html#lacing.value_digest_matches">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">value_digest_matches</span><span class="p">(</span>
+    <span class="n">annotation</span><span class="p">:</span> <span class="s2">"Annotation"</span><span class="p">,</span>
+    <span class="n">recorded</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">scheme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">VALUE_DIGEST_SCHEME</span><span class="p">,</span>
+    <span class="n">resolve_derived</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Collection</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether ``recorded``, a value digest a trace stored under ``scheme``, still</span>
+<span class="sd">    describes ``annotation``'s value.</span>
+
+<span class="sd">    The check a freshness verifier makes, instead of comparing</span>
+<span class="sd">    :func:`annotation_value_digest` with ``recorded`` by hand. Besides the</span>
+<span class="sd">    digest computed now, it accepts the two a producer that did not know the</span>
+<span class="sd">    body's :class:`lacing.Derived` paths (no marker yet, or schema not</span>
+<span class="sd">    registered) would have recorded for the same value, both ``v1``-tagged: the</span>
+<span class="sd">    whole current body (nothing changed since), and the current body with the</span>
+<span class="sd">    derived fields dropped (they were absent then and have been filled since,</span>
+<span class="sd">    the change ``v2`` exists to ignore). It does so under ``v1`` as well, where</span>
+<span class="sd">    the whole-body digest is the computed one: which fields are derivable</span>
+<span class="sd">    belongs to the schema, not to the scheme.</span>
+
+<span class="sd">    None of these is a wrong cache hit. With ``D`` today's derived paths, the</span>
+<span class="sd">    whole-body digest matches only if the recorded body *is* the current one,</span>
+<span class="sd">    and the dropped one only if it is the current body minus ``D``. Dropping</span>
+<span class="sd">    only deletes, so either way the two bodies agree outside ``D``, which is</span>
+<span class="sd">    exactly what the ``v2`` digest already accepts under ``D``.</span>
+
+<span class="sd">    &gt;&gt;&gt; from uuid import uuid4</span>
+<span class="sd">    &gt;&gt;&gt; from lacing import Annotation, MediaRef, Provenance</span>
+<span class="sd">    &gt;&gt;&gt; from lacing import RationalTime, TimeInterval</span>
+<span class="sd">    &gt;&gt;&gt; def make(body):</span>
+<span class="sd">    ...     return Annotation(</span>
+<span class="sd">    ...         id=uuid4(), tier="panels",</span>
+<span class="sd">    ...         reference=MediaRef(</span>
+<span class="sd">    ...             asset_id="sha256:abc",</span>
+<span class="sd">    ...             interval=TimeInterval(RationalTime(0), RationalTime(24000)),</span>
+<span class="sd">    ...         ),</span>
+<span class="sd">    ...         body=body,</span>
+<span class="sd">    ...         body_schema_uri="annot://schema/panel/v1",</span>
+<span class="sd">    ...         provenance=Provenance(</span>
+<span class="sd">    ...             was_generated_by="agent:m@1",</span>
+<span class="sd">    ...             was_attributed_to="thor",</span>
+<span class="sd">    ...             generated_at_time=RationalTime.now(),</span>
+<span class="sd">    ...         ),</span>
+<span class="sd">    ...     )</span>
+<span class="sd">    &gt;&gt;&gt; recorded = annotation_value_digest(make({"artifact_id": "a1"}))</span>
+
+<span class="sd">    The schema then gains a marker (``asset_id`` derives from ``artifact_id``),</span>
+<span class="sd">    and the derived field is filled:</span>
+
+<span class="sd">    &gt;&gt;&gt; marked = lambda uri: {("asset_id",)}</span>
+<span class="sd">    &gt;&gt;&gt; filled = make({"artifact_id": "a1", "asset_id": "sha256:h"})</span>
+<span class="sd">    &gt;&gt;&gt; annotation_value_digest(filled, resolve_derived=marked) == recorded</span>
+<span class="sd">    False</span>
+<span class="sd">    &gt;&gt;&gt; value_digest_matches(filled, recorded, resolve_derived=marked)</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; value_digest_matches(</span>
+<span class="sd">    ...     make({"artifact_id": "a2"}), recorded, resolve_derived=marked</span>
+<span class="sd">    ... )</span>
+<span class="sd">    False</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">recorded</span> <span class="ow">in</span> <span class="n">_value_digests</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="n">scheme</span><span class="p">,</span> <span class="n">resolve_derived</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="accepted_value_digests">
+<a class="viewcode-back" href="../../_autosummary/lacing.digest.html#lacing.accepted_value_digests">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">accepted_value_digests</span><span class="p">(</span>
+    <span class="n">annotation</span><span class="p">:</span> <span class="s2">"Annotation"</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">scheme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">VALUE_DIGEST_SCHEME</span><span class="p">,</span>
+    <span class="n">resolve_derived</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Collection</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Every digest :func:`value_digest_matches` accepts for ``annotation``.</span>
+
+<span class="sd">    For a verifier that memoizes per annotation and scheme and checks many</span>
+<span class="sd">    recorded digests against one set; ``value_digest_matches`` stays the lazy</span>
+<span class="sd">    one-off check.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">_value_digests</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="n">scheme</span><span class="p">,</span> <span class="n">resolve_derived</span><span class="p">))</span></div>
 
 
 
@@ -1139,11 +1234,45 @@ window.runMermaid = runMermaid;</script>
 <span class="c1"># --- internals ---------------------------------------------------------------</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_drop_derived</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Delete ``paths`` from the (already dumped, hence private) ``body`` in place."""</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_value_digests</span><span class="p">(</span>
+    <span class="n">annotation</span><span class="p">:</span> <span class="s2">"Annotation"</span><span class="p">,</span>
+    <span class="n">scheme</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">resolve_derived</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Collection</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The digest of ``annotation`` under ``scheme``, then (lazily) the digests a</span>
+<span class="sd">    producer unaware of the derived paths would have recorded under the same tag</span>
+<span class="sd">    for the same value. See :func:`value_digest_matches` for why those are safe.</span>
+
+<span class="sd">    The first digest costs what it always did: the body is dropped in place, and</span>
+<span class="sd">    the whole body is dumped again only when a caller asks for a fallback."""</span>
+    <span class="k">if</span> <span class="n">scheme</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALUE_DIGEST_SCHEMES</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"unknown value digest scheme </span><span class="si">{</span><span class="n">scheme</span><span class="si">!r}</span><span class="s2">; known: </span><span class="si">{</span><span class="n">VALUE_DIGEST_SCHEMES</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="n">_payload</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="n">VALUE_FIELDS</span><span class="p">)</span>
+    <span class="n">is_v1</span> <span class="o">=</span> <span class="n">scheme</span> <span class="o">==</span> <span class="n">_V1_SCHEME</span>
+    <span class="k">if</span> <span class="n">is_v1</span><span class="p">:</span>  <span class="c1"># v1 digests the whole body, and never consults the resolver for it</span>
+        <span class="k">yield</span> <span class="n">_digest</span><span class="p">(</span><span class="n">_V1_SCHEME</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
+    <span class="n">paths</span> <span class="o">=</span> <span class="p">(</span><span class="n">resolve_derived</span> <span class="ow">or</span> <span class="n">registered_derived_paths</span><span class="p">)(</span><span class="n">annotation</span><span class="o">.</span><span class="n">body_schema_uri</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">paths</span><span class="p">:</span>  <span class="c1"># nothing to leave out: byte-identical to v1</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_v1</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">_digest</span><span class="p">(</span><span class="n">_V1_SCHEME</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="n">dropped_any</span> <span class="o">=</span> <span class="n">_drop_derived</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"body"</span><span class="p">],</span> <span class="n">paths</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_v1</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">_digest</span><span class="p">(</span><span class="n">VALUE_DIGEST_SCHEME</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
+        <span class="n">whole</span> <span class="o">=</span> <span class="n">_payload</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="n">VALUE_FIELDS</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">_digest</span><span class="p">(</span><span class="n">_V1_SCHEME</span><span class="p">,</span> <span class="n">whole</span><span class="p">)</span>  <span class="c1"># whole body, unchanged since</span>
+    <span class="k">if</span> <span class="n">dropped_any</span><span class="p">:</span>  <span class="c1"># else it is the whole-body digest again</span>
+        <span class="k">yield</span> <span class="n">_digest</span><span class="p">(</span><span class="n">_V1_SCHEME</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>  <span class="c1"># derived fields absent when recorded</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_drop_derived</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Delete ``paths`` from the (already dumped, hence private) ``body`` in place;</span>
+<span class="sd">    return whether any was there."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.derived</span><span class="w"> </span><span class="kn">import</span> <span class="n">drop_paths</span>
 
-    <span class="n">drop_paths</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">drop_paths</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">})</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_payload</span><span class="p">(</span><span class="n">annotation</span><span class="p">:</span> <span class="s2">"Annotation"</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>

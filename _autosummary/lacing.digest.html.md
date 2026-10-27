@@ -139,6 +139,26 @@ Changing [`VALUE_FIELDS`](#lacing.digest.VALUE_FIELDS) or the canonicalisation i
 invalidation event\*\* for every consumer: every digest changes at once. Bump
 the scheme string when you do it, so the change is legible in a trace.
 
+## Verifying a recorded digest: use [`value_digest_matches()`](#lacing.digest.value_digest_matches)
+
+Which body fields `v2` leaves out depends on the [`lacing.Derived`](lacing.html.md#lacing.Derived)
+markers registered when the digest is computed, so a recorded digest is checked
+with [`value_digest_matches()`](#lacing.digest.value_digest_matches), whose docstring says what it accepts and why
+(lacing#89).
+
+The verifier must register the same markers as the producer, or the producer
+none; otherwise a match it should find reads changed (a spurious miss, never a
+wrong hit). So a marker *added to a schema that already had one* is a spurious
+miss, unless the trace recorded the exclusion set.
+
+A digest of the exclusion set in the scheme tag would not help: a trace records
+one scheme for parents of many body schemas. A trace that records each entry’s
+exclusion set `D'` itself can verify under it, through
+`resolve_derived=lambda uri: D'`, but only while `D'` is a subset of today’s
+derived paths: a marker since removed means the field now counts, and verifying
+under the old `D'` would be a wrong hit. That is a trace-format concern for
+consumers.
+
 ### Module Attributes
 
 | [`VALUE_FIELDS`](#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                          |
@@ -153,6 +173,8 @@ the scheme string when you do it, so the change is legible in a trace.
 | [`annotation_value_digest`](#lacing.digest.annotation_value_digest)(annotation, \*[, ...])   | Return the SHA-256 hex digest of `annotation`'s value.                                                                           |
 |---------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
 | [`annotation_body_digest`](#lacing.digest.annotation_body_digest)(annotation)               | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                 |
+| [`value_digest_matches`](#lacing.digest.value_digest_matches)(annotation, recorded, \*)   | Whether `recorded`, a value digest a trace stored under `scheme`, still describes `annotation`'s value.                          |
+| [`accepted_value_digests`](#lacing.digest.accepted_value_digests)(annotation, \*[, ...])    | Every digest [`value_digest_matches()`](#lacing.digest.value_digest_matches) accepts for `annotation`.                   |
 | [`registered_derived_paths`](#lacing.digest.registered_derived_paths)(uri)                    | The [`lacing.Derived`](lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`. |
 
 ### Exceptions
@@ -197,6 +219,7 @@ Domain-separation tag mixed into [`annotation_value_digest()`](#lacing.digest.an
 `v2` leaves the body’s [`lacing.Derived`](lacing.html.md#lacing.Derived) fields out (see
 [`lacing.derived`](lacing.derived.html.md#module-lacing.derived)); `v1` digested the whole body. A trace that recorded a
 `v1` digest is still verifiable: pass `scheme="lacing/annotation-value-digest/v1"`.
+Verify a recorded digest with [`value_digest_matches()`](#lacing.digest.value_digest_matches), not by recomputing it.
 
 ### lacing.digest.VALUE_DIGEST_SCHEMES *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ('lacing/annotation-value-digest/v1', 'lacing/annotation-value-digest/v2')*
 
@@ -207,6 +230,17 @@ the latest excludes derived fields.
 
 Annotation fields that constitute its *value*. See the module docstring for
 why each is in, and why `id` and `provenance` are out.
+
+### lacing.digest.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
+
+Every digest [`value_digest_matches()`](#lacing.digest.value_digest_matches) accepts for `annotation`.
+
+For a verifier that memoizes per annotation and scheme and checks many
+recorded digests against one set; `value_digest_matches` stays the lazy
+one-off check.
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### lacing.digest.annotation_body_digest(annotation)
 
@@ -297,8 +331,7 @@ derivable from another field of the body does not change what a render reads.
 
 A body with no derived fields (no marker, or a schema that is not
 registered) digests exactly as under `v1`, so only marked schemas change
-digest. The verifier must therefore have registered the same body schemas as
-the producer, or it computes a different (stale-reading) digest.
+digest. To check a digest a trace recorded, call [`value_digest_matches()`](#lacing.digest.value_digest_matches).
 
 `scheme` selects which computation to run, so a digest recorded under an
 older scheme can be re-verified (see [`VALUE_DIGEST_SCHEMES`](#lacing.digest.VALUE_DIGEST_SCHEMES)).
@@ -369,3 +402,66 @@ module stays stdlib-only at import time.
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
+
+### lacing.digest.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
+
+Whether `recorded`, a value digest a trace stored under `scheme`, still
+describes `annotation`’s value.
+
+The check a freshness verifier makes, instead of comparing
+[`annotation_value_digest()`](#lacing.digest.annotation_value_digest) with `recorded` by hand. Besides the
+digest computed now, it accepts the two a producer that did not know the
+body’s [`lacing.Derived`](lacing.html.md#lacing.Derived) paths (no marker yet, or schema not
+registered) would have recorded for the same value, both `v1`-tagged: the
+whole current body (nothing changed since), and the current body with the
+derived fields dropped (they were absent then and have been filled since,
+the change `v2` exists to ignore). It does so under `v1` as well, where
+the whole-body digest is the computed one: which fields are derivable
+belongs to the schema, not to the scheme.
+
+None of these is a wrong cache hit. With `D` today’s derived paths, the
+whole-body digest matches only if the recorded body *is* the current one,
+and the dropped one only if it is the current body minus `D`. Dropping
+only deletes, so either way the two bodies agree outside `D`, which is
+exactly what the `v2` digest already accepts under `D`.
+
+```pycon
+>>> from uuid import uuid4
+>>> from lacing import Annotation, MediaRef, Provenance
+>>> from lacing import RationalTime, TimeInterval
+>>> def make(body):
+...     return Annotation(
+...         id=uuid4(), tier="panels",
+...         reference=MediaRef(
+...             asset_id="sha256:abc",
+...             interval=TimeInterval(RationalTime(0), RationalTime(24000)),
+...         ),
+...         body=body,
+...         body_schema_uri="annot://schema/panel/v1",
+...         provenance=Provenance(
+...             was_generated_by="agent:m@1",
+...             was_attributed_to="thor",
+...             generated_at_time=RationalTime.now(),
+...         ),
+...     )
+>>> recorded = annotation_value_digest(make({"artifact_id": "a1"}))
+```
+
+The schema then gains a marker (`asset_id` derives from `artifact_id`),
+and the derived field is filled:
+
+```pycon
+>>> marked = lambda uri: {("asset_id",)}
+>>> filled = make({"artifact_id": "a1", "asset_id": "sha256:h"})
+>>> annotation_value_digest(filled, resolve_derived=marked) == recorded
+False
+>>> value_digest_matches(filled, recorded, resolve_derived=marked)
+True
+>>> value_digest_matches(
+...     make({"artifact_id": "a2"}), recorded, resolve_derived=marked
+... )
+False
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)

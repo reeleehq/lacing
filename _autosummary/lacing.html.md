@@ -22,6 +22,8 @@ full story. `.claude/skills/` contains the rules.
 | [`hash_file`](#lacing.hash_file)(path, \*[, chunk_size])                 | Return the canonical `asset_id` (SHA-256 hex) for the file at `path`.                                                                                                                        |
 | [`annotation_value_digest`](#lacing.annotation_value_digest)(annotation, \*[, ...])    | Return the SHA-256 hex digest of `annotation`'s value.                                                                                                                                       |
 | [`annotation_body_digest`](#lacing.annotation_body_digest)(annotation)                | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                                                                             |
+| [`value_digest_matches`](#lacing.value_digest_matches)(annotation, recorded, \*)    | Whether `recorded`, a value digest a trace stored under `scheme`, still describes `annotation`'s value.                                                                                      |
+| [`accepted_value_digests`](#lacing.accepted_value_digests)(annotation, \*[, ...])     | Every digest [`value_digest_matches()`](#lacing.value_digest_matches) accepts for `annotation`.                                                                               |
 | [`register_store_migration`](#lacing.register_store_migration)(\*, store_kind, ...)     | Register a forward store migration from `from_version` to `to_version`.                                                                                                                      |
 | [`migrate_annot_file`](#lacing.migrate_annot_file)(path, \*[, to_version])        | Migrate a `.annot` file in place, returning `(from, to)` versions.                                                                                                                           |
 | [`replay_oplog`](#lacing.replay_oplog)(log, \*[, until_clock, ...])         | Rebuild a store by replaying `log` up to (and including) `until_clock`.                                                                                                                      |
@@ -1278,6 +1280,17 @@ Bases: [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError)
 
 Raised when an annotation’s body_schema_uri has no registered model.
 
+### lacing.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
+
+Every digest [`value_digest_matches()`](#lacing.value_digest_matches) accepts for `annotation`.
+
+For a verifier that memoizes per annotation and scheme and checks many
+recorded digests against one set; `value_digest_matches` stays the lazy
+one-off check.
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 ### lacing.annotation_body_digest(annotation)
 
 Return the SHA-256 hex digest of `{body, body_schema_uri}` only.
@@ -1367,8 +1380,7 @@ derivable from another field of the body does not change what a render reads.
 
 A body with no derived fields (no marker, or a schema that is not
 registered) digests exactly as under `v1`, so only marked schemas change
-digest. The verifier must therefore have registered the same body schemas as
-the producer, or it computes a different (stale-reading) digest.
+digest. To check a digest a trace recorded, call [`value_digest_matches()`](#lacing.value_digest_matches).
 
 `scheme` selects which computation to run, so a digest recorded under an
 older scheme can be re-verified (see `VALUE_DIGEST_SCHEMES`).
@@ -1822,6 +1834,69 @@ or [`UnknownBodySchemaError`](#lacing.UnknownBodySchemaError) if the URI isn’t
 
 * **Return type:**
   `BaseModel`
+
+### lacing.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
+
+Whether `recorded`, a value digest a trace stored under `scheme`, still
+describes `annotation`’s value.
+
+The check a freshness verifier makes, instead of comparing
+[`annotation_value_digest()`](#lacing.annotation_value_digest) with `recorded` by hand. Besides the
+digest computed now, it accepts the two a producer that did not know the
+body’s [`lacing.Derived`](#lacing.Derived) paths (no marker yet, or schema not
+registered) would have recorded for the same value, both `v1`-tagged: the
+whole current body (nothing changed since), and the current body with the
+derived fields dropped (they were absent then and have been filled since,
+the change `v2` exists to ignore). It does so under `v1` as well, where
+the whole-body digest is the computed one: which fields are derivable
+belongs to the schema, not to the scheme.
+
+None of these is a wrong cache hit. With `D` today’s derived paths, the
+whole-body digest matches only if the recorded body *is* the current one,
+and the dropped one only if it is the current body minus `D`. Dropping
+only deletes, so either way the two bodies agree outside `D`, which is
+exactly what the `v2` digest already accepts under `D`.
+
+```pycon
+>>> from uuid import uuid4
+>>> from lacing import Annotation, MediaRef, Provenance
+>>> from lacing import RationalTime, TimeInterval
+>>> def make(body):
+...     return Annotation(
+...         id=uuid4(), tier="panels",
+...         reference=MediaRef(
+...             asset_id="sha256:abc",
+...             interval=TimeInterval(RationalTime(0), RationalTime(24000)),
+...         ),
+...         body=body,
+...         body_schema_uri="annot://schema/panel/v1",
+...         provenance=Provenance(
+...             was_generated_by="agent:m@1",
+...             was_attributed_to="thor",
+...             generated_at_time=RationalTime.now(),
+...         ),
+...     )
+>>> recorded = annotation_value_digest(make({"artifact_id": "a1"}))
+```
+
+The schema then gains a marker (`asset_id` derives from `artifact_id`),
+and the derived field is filled:
+
+```pycon
+>>> marked = lambda uri: {("asset_id",)}
+>>> filled = make({"artifact_id": "a1", "asset_id": "sha256:h"})
+>>> annotation_value_digest(filled, resolve_derived=marked) == recorded
+False
+>>> value_digest_matches(filled, recorded, resolve_derived=marked)
+True
+>>> value_digest_matches(
+...     make({"artifact_id": "a2"}), recorded, resolve_derived=marked
+... )
+False
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 ### Modules
 

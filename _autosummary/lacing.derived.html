@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=e95a51ae"></script>
+    <script src="../_static/documentation_options.js?v=7ada5fdd"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.61" />
+  <meta name="docsearch:version" content="0.0.63" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -498,7 +498,7 @@ Field names and aliases are both read as spellings of a field, as in
 <td><p>The paths, from the root of a <code class="docutils literal notranslate"><span class="pre">model</span></code> body, of its <a class="reference internal" href="#lacing.derived.Derived" title="lacing.derived.Derived"><code class="xref py py-class docutils literal notranslate"><span class="pre">Derived</span></code></a> fields.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.derived.drop_paths" title="lacing.derived.drop_paths"><code class="xref py py-obj docutils literal notranslate"><span class="pre">drop_paths</span></code></a>(value, paths)</p></td>
-<td><p>Delete, in place, the entries of the JSON-like <code class="docutils literal notranslate"><span class="pre">value</span></code> named by <code class="docutils literal notranslate"><span class="pre">paths</span></code>.</p></td>
+<td><p>Delete, in place, the entries of the JSON-like <code class="docutils literal notranslate"><span class="pre">value</span></code> named by <code class="docutils literal notranslate"><span class="pre">paths</span></code>; return whether any was there to delete.</p></td>
 </tr>
 </tbody>
 </table>
@@ -561,10 +561,11 @@ name, <code class="docutils literal notranslate"><span class="pre">alias</span><
 <dl class="py function">
 <dt class="sig sig-object py" id="lacing.derived.drop_paths">
 <span class="sig-prename descclassname"><span class="pre">lacing.derived.</span></span><span class="sig-name descname"><span class="pre">drop_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paths</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/derived.html#drop_paths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.derived.drop_paths" title="Link to this definition">#</a></dt>
-<dd><p>Delete, in place, the entries of the JSON-like <code class="docutils literal notranslate"><span class="pre">value</span></code> named by <code class="docutils literal notranslate"><span class="pre">paths</span></code>.</p>
+<dd><p>Delete, in place, the entries of the JSON-like <code class="docutils literal notranslate"><span class="pre">value</span></code> named by <code class="docutils literal notranslate"><span class="pre">paths</span></code>;
+return whether any was there to delete.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>

@@ -12,6 +12,8 @@
       hash_file
       annotation_value_digest
       annotation_body_digest
+      value_digest_matches
+      accepted_value_digests
       register_store_migration
       migrate_annot_file
       replay_oplog

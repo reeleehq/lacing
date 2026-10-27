@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=e95a51ae"></script>
+    <script src="../_static/documentation_options.js?v=7ada5fdd"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.61" />
+  <meta name="docsearch:version" content="0.0.63" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -575,6 +575,24 @@ property.)</p>
 <p>Changing <a class="reference internal" href="#lacing.digest.VALUE_FIELDS" title="lacing.digest.VALUE_FIELDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">VALUE_FIELDS</span></code></a> or the canonicalisation is a **breaking cache
 invalidation event** for every consumer: every digest changes at once. Bump
 the scheme string when you do it, so the change is legible in a trace.</p>
+</section>
+<section id="verifying-a-recorded-digest-use-value-digest-matches">
+<h2>Verifying a recorded digest: use <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a><a class="headerlink" href="#verifying-a-recorded-digest-use-value-digest-matches" title="Link to this heading">#</a></h2>
+<p>Which body fields <code class="docutils literal notranslate"><span class="pre">v2</span></code> leaves out depends on the <a class="reference internal" href="lacing.html#lacing.Derived" title="lacing.Derived"><code class="xref py py-class docutils literal notranslate"><span class="pre">lacing.Derived</span></code></a>
+markers registered when the digest is computed, so a recorded digest is checked
+with <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a>, whose docstring says what it accepts and why
+(lacing#89).</p>
+<p>The verifier must register the same markers as the producer, or the producer
+none; otherwise a match it should find reads changed (a spurious miss, never a
+wrong hit). So a marker <em>added to a schema that already had one</em> is a spurious
+miss, unless the trace recorded the exclusion set.</p>
+<p>A digest of the exclusion set in the scheme tag would not help: a trace records
+one scheme for parents of many body schemas. A trace that records each entry’s
+exclusion set <code class="docutils literal notranslate"><span class="pre">D'</span></code> itself can verify under it, through
+<code class="docutils literal notranslate"><span class="pre">resolve_derived=lambda</span> <span class="pre">uri:</span> <span class="pre">D'</span></code>, but only while <code class="docutils literal notranslate"><span class="pre">D'</span></code> is a subset of today’s
+derived paths: a marker since removed means the field now counts, and verifying
+under the old <code class="docutils literal notranslate"><span class="pre">D'</span></code> would be a wrong hit. That is a trace-format concern for
+consumers.</p>
 <p class="rubric">Module Attributes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
@@ -604,6 +622,12 @@ the scheme string when you do it, so the change is legible in a trace.</p>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.digest.annotation_body_digest" title="lacing.digest.annotation_body_digest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">annotation_body_digest</span></code></a>(annotation)</p></td>
 <td><p>Return the SHA-256 hex digest of <code class="docutils literal notranslate"><span class="pre">{body,</span> <span class="pre">body_schema_uri}</span></code> only.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-obj docutils literal notranslate"><span class="pre">value_digest_matches</span></code></a>(annotation, recorded, *)</p></td>
+<td><p>Whether <code class="docutils literal notranslate"><span class="pre">recorded</span></code>, a value digest a trace stored under <code class="docutils literal notranslate"><span class="pre">scheme</span></code>, still describes <code class="docutils literal notranslate"><span class="pre">annotation</span></code>'s value.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.digest.accepted_value_digests" title="lacing.digest.accepted_value_digests"><code class="xref py py-obj docutils literal notranslate"><span class="pre">accepted_value_digests</span></code></a>(annotation, *[, ...])</p></td>
+<td><p>Every digest <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> accepts for <code class="docutils literal notranslate"><span class="pre">annotation</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.digest.registered_derived_paths" title="lacing.digest.registered_derived_paths"><code class="xref py py-obj docutils literal notranslate"><span class="pre">registered_derived_paths</span></code></a>(uri)</p></td>
 <td><p>The <a class="reference internal" href="lacing.html#lacing.Derived" title="lacing.Derived"><code class="xref py py-class docutils literal notranslate"><span class="pre">lacing.Derived</span></code></a> paths of the body schema registered at <code class="docutils literal notranslate"><span class="pre">uri</span></code>.</p></td>
@@ -659,7 +683,8 @@ test) and the model can import from it, not vice versa.</p>
 <dd><p>Domain-separation tag mixed into <a class="reference internal" href="#lacing.digest.annotation_value_digest" title="lacing.digest.annotation_value_digest"><code class="xref py py-func docutils literal notranslate"><span class="pre">annotation_value_digest()</span></code></a> by default.</p>
 <p><code class="docutils literal notranslate"><span class="pre">v2</span></code> leaves the body’s <a class="reference internal" href="lacing.html#lacing.Derived" title="lacing.Derived"><code class="xref py py-class docutils literal notranslate"><span class="pre">lacing.Derived</span></code></a> fields out (see
 <a class="reference internal" href="lacing.derived.html#module-lacing.derived" title="lacing.derived"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.derived</span></code></a>); <code class="docutils literal notranslate"><span class="pre">v1</span></code> digested the whole body. A trace that recorded a
-<code class="docutils literal notranslate"><span class="pre">v1</span></code> digest is still verifiable: pass <code class="docutils literal notranslate"><span class="pre">scheme=&quot;lacing/annotation-value-digest/v1&quot;</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">v1</span></code> digest is still verifiable: pass <code class="docutils literal notranslate"><span class="pre">scheme=&quot;lacing/annotation-value-digest/v1&quot;</span></code>.
+Verify a recorded digest with <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a>, not by recomputing it.</p>
 </dd></dl>
 
 <dl class="py data">
@@ -674,6 +699,20 @@ the latest excludes derived fields.</p>
 <span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">VALUE_FIELDS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('body',</span> <span class="pre">'body_schema_uri',</span> <span class="pre">'confidence',</span> <span class="pre">'reference',</span> <span class="pre">'tier')</span></span><a class="headerlink" href="#lacing.digest.VALUE_FIELDS" title="Link to this definition">#</a></dt>
 <dd><p>Annotation fields that constitute its <em>value</em>. See the module docstring for
 why each is in, and why <code class="docutils literal notranslate"><span class="pre">id</span></code> and <code class="docutils literal notranslate"><span class="pre">provenance</span></code> are out.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.digest.accepted_value_digests">
+<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">accepted_value_digests</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing/annotation-value-digest/v2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_derived</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/digest.html#accepted_value_digests"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.digest.accepted_value_digests" title="Link to this definition">#</a></dt>
+<dd><p>Every digest <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> accepts for <code class="docutils literal notranslate"><span class="pre">annotation</span></code>.</p>
+<p>For a verifier that memoizes per annotation and scheme and checks many
+recorded digests against one set; <code class="docutils literal notranslate"><span class="pre">value_digest_matches</span></code> stays the lazy
+one-off check.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">frozenset</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -762,8 +801,7 @@ body’s <a class="reference internal" href="lacing.html#lacing.Derived" title="
 derivable from another field of the body does not change what a render reads.</p>
 <p>A body with no derived fields (no marker, or a schema that is not
 registered) digests exactly as under <code class="docutils literal notranslate"><span class="pre">v1</span></code>, so only marked schemas change
-digest. The verifier must therefore have registered the same body schemas as
-the producer, or it computes a different (stale-reading) digest.</p>
+digest. To check a digest a trace recorded, call <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a>.</p>
 <p><code class="docutils literal notranslate"><span class="pre">scheme</span></code> selects which computation to run, so a digest recorded under an
 older scheme can be re-verified (see <a class="reference internal" href="#lacing.digest.VALUE_DIGEST_SCHEMES" title="lacing.digest.VALUE_DIGEST_SCHEMES"><code class="xref py py-data docutils literal notranslate"><span class="pre">VALUE_DIGEST_SCHEMES</span></code></a>).
 <code class="docutils literal notranslate"><span class="pre">resolve_derived</span></code> maps a <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code> to the paths to leave out; the
@@ -834,6 +872,68 @@ module stays stdlib-only at import time.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.digest.value_digest_matches">
+<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">value_digest_matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recorded</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing/annotation-value-digest/v2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_derived</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/digest.html#value_digest_matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.digest.value_digest_matches" title="Link to this definition">#</a></dt>
+<dd><p>Whether <code class="docutils literal notranslate"><span class="pre">recorded</span></code>, a value digest a trace stored under <code class="docutils literal notranslate"><span class="pre">scheme</span></code>, still
+describes <code class="docutils literal notranslate"><span class="pre">annotation</span></code>’s value.</p>
+<p>The check a freshness verifier makes, instead of comparing
+<a class="reference internal" href="#lacing.digest.annotation_value_digest" title="lacing.digest.annotation_value_digest"><code class="xref py py-func docutils literal notranslate"><span class="pre">annotation_value_digest()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">recorded</span></code> by hand. Besides the
+digest computed now, it accepts the two a producer that did not know the
+body’s <a class="reference internal" href="lacing.html#lacing.Derived" title="lacing.Derived"><code class="xref py py-class docutils literal notranslate"><span class="pre">lacing.Derived</span></code></a> paths (no marker yet, or schema not
+registered) would have recorded for the same value, both <code class="docutils literal notranslate"><span class="pre">v1</span></code>-tagged: the
+whole current body (nothing changed since), and the current body with the
+derived fields dropped (they were absent then and have been filled since,
+the change <code class="docutils literal notranslate"><span class="pre">v2</span></code> exists to ignore). It does so under <code class="docutils literal notranslate"><span class="pre">v1</span></code> as well, where
+the whole-body digest is the computed one: which fields are derivable
+belongs to the schema, not to the scheme.</p>
+<p>None of these is a wrong cache hit. With <code class="docutils literal notranslate"><span class="pre">D</span></code> today’s derived paths, the
+whole-body digest matches only if the recorded body <em>is</em> the current one,
+and the dropped one only if it is the current body minus <code class="docutils literal notranslate"><span class="pre">D</span></code>. Dropping
+only deletes, so either way the two bodies agree outside <code class="docutils literal notranslate"><span class="pre">D</span></code>, which is
+exactly what the <code class="docutils literal notranslate"><span class="pre">v2</span></code> digest already accepts under <code class="docutils literal notranslate"><span class="pre">D</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">MediaRef</span><span class="p">,</span> <span class="n">Provenance</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">TimeInterval</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">make</span><span class="p">(</span><span class="n">body</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">Annotation</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="nb">id</span><span class="o">=</span><span class="n">uuid4</span><span class="p">(),</span> <span class="n">tier</span><span class="o">=</span><span class="s2">"panels"</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="n">reference</span><span class="o">=</span><span class="n">MediaRef</span><span class="p">(</span>
+<span class="gp">... </span>            <span class="n">asset_id</span><span class="o">=</span><span class="s2">"sha256:abc"</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">interval</span><span class="o">=</span><span class="n">TimeInterval</span><span class="p">(</span><span class="n">RationalTime</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">RationalTime</span><span class="p">(</span><span class="mi">24000</span><span class="p">)),</span>
+<span class="gp">... </span>        <span class="p">),</span>
+<span class="gp">... </span>        <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="n">body_schema_uri</span><span class="o">=</span><span class="s2">"annot://schema/panel/v1"</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="n">provenance</span><span class="o">=</span><span class="n">Provenance</span><span class="p">(</span>
+<span class="gp">... </span>            <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"agent:m@1"</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">was_attributed_to</span><span class="o">=</span><span class="s2">"thor"</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">generated_at_time</span><span class="o">=</span><span class="n">RationalTime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
+<span class="gp">... </span>        <span class="p">),</span>
+<span class="gp">... </span>    <span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">recorded</span> <span class="o">=</span> <span class="n">annotation_value_digest</span><span class="p">(</span><span class="n">make</span><span class="p">({</span><span class="s2">"artifact_id"</span><span class="p">:</span> <span class="s2">"a1"</span><span class="p">}))</span>
+</pre></div>
+</div>
+<p>The schema then gains a marker (<code class="docutils literal notranslate"><span class="pre">asset_id</span></code> derives from <code class="docutils literal notranslate"><span class="pre">artifact_id</span></code>),
+and the derived field is filled:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">marked</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">uri</span><span class="p">:</span> <span class="p">{(</span><span class="s2">"asset_id"</span><span class="p">,)}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">filled</span> <span class="o">=</span> <span class="n">make</span><span class="p">({</span><span class="s2">"artifact_id"</span><span class="p">:</span> <span class="s2">"a1"</span><span class="p">,</span> <span class="s2">"asset_id"</span><span class="p">:</span> <span class="s2">"sha256:h"</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">annotation_value_digest</span><span class="p">(</span><span class="n">filled</span><span class="p">,</span> <span class="n">resolve_derived</span><span class="o">=</span><span class="n">marked</span><span class="p">)</span> <span class="o">==</span> <span class="n">recorded</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">value_digest_matches</span><span class="p">(</span><span class="n">filled</span><span class="p">,</span> <span class="n">recorded</span><span class="p">,</span> <span class="n">resolve_derived</span><span class="o">=</span><span class="n">marked</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">value_digest_matches</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">make</span><span class="p">({</span><span class="s2">"artifact_id"</span><span class="p">:</span> <span class="s2">"a2"</span><span class="p">}),</span> <span class="n">recorded</span><span class="p">,</span> <span class="n">resolve_derived</span><span class="o">=</span><span class="n">marked</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
@@ -888,15 +988,18 @@ module stays stdlib-only at import time.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reference-two-functions-not-a-boolean"><code class="docutils literal notranslate"><span class="pre">reference</span></code>: two functions, not a boolean</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stability-guarantees-and-their-limits">Stability guarantees, and their limits</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-safety-claim-stated-precisely">The safety claim, stated precisely</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#verifying-a-recorded-digest-use-value-digest-matches">Verifying a recorded digest: use <code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.BODY_DIGEST_SCHEME"><code class="docutils literal notranslate"><span class="pre">BODY_DIGEST_SCHEME</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.BODY_FIELDS"><code class="docutils literal notranslate"><span class="pre">BODY_FIELDS</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.NonStringBodyKeyError"><code class="docutils literal notranslate"><span class="pre">NonStringBodyKeyError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.VALUE_DIGEST_SCHEME"><code class="docutils literal notranslate"><span class="pre">VALUE_DIGEST_SCHEME</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.VALUE_DIGEST_SCHEMES"><code class="docutils literal notranslate"><span class="pre">VALUE_DIGEST_SCHEMES</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.VALUE_FIELDS"><code class="docutils literal notranslate"><span class="pre">VALUE_FIELDS</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.accepted_value_digests"><code class="docutils literal notranslate"><span class="pre">accepted_value_digests()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.annotation_body_digest"><code class="docutils literal notranslate"><span class="pre">annotation_body_digest()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.annotation_value_digest"><code class="docutils literal notranslate"><span class="pre">annotation_value_digest()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.registered_derived_paths"><code class="docutils literal notranslate"><span class="pre">registered_derived_paths()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.value_digest_matches"><code class="docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a></li>
 </ul>
   </nav></div>
 

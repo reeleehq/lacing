@@ -56,7 +56,7 @@ Field names and aliases are both read as spellings of a field, as in
 
 | [`derived_paths`](#lacing.derived.derived_paths)(model)     | The paths, from the root of a `model` body, of its [`Derived`](#lacing.derived.Derived) fields.   |
 |---------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
-| [`drop_paths`](#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`.                                              |
+| [`drop_paths`](#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`; return whether any was there to delete.      |
 
 ### Classes
 
@@ -99,7 +99,8 @@ name, `alias` and `serialization_alias` all count, as in
 
 ### lacing.derived.drop_paths(value, paths)
 
-Delete, in place, the entries of the JSON-like `value` named by `paths`.
+Delete, in place, the entries of the JSON-like `value` named by `paths`;
+return whether any was there to delete.
 
 * **Return type:**
-  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
