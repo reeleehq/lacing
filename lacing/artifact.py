@@ -149,11 +149,15 @@ class Rights(BaseModel):
     artifact either has no record (we made it) or says where it came from.
     Text fields are ``None`` or non-blank; a blank string is refused.
 
-    Caveat: an artifact catalog is keyed by ``asset_id`` (the content hash), so
-    two records for the *same bytes* are one row and the last write wins. A
-    rights-less record written after an acquired one with identical bytes
-    replaces it, rights included. Writers that re-record bytes they already
-    hold must carry the existing ``rights`` forward.
+    An artifact catalog is often keyed by ``asset_id`` (the content hash), so
+    two records for the *same bytes* are one row. By default
+    :class:`lacing.ArtifactStore` keeps the existing ``rights`` when a record
+    with ``rights=None`` replaces one for the same bytes (its default
+    ``on_write`` policy, :func:`lacing.keep_rights`; lacing#60): the bytes'
+    obligations do not lapse because someone recorded them again. An explicit
+    ``rights`` replaces the old one; to clear rights, delete the record first.
+    ``on_write=None`` restores last-write-wins, and a policy that refuses such
+    a write instead is a small function passed as ``on_write``.
     """
 
     model_config = {"frozen": True, "extra": "forbid"}

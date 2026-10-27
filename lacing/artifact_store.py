@@ -58,11 +58,12 @@ import hashlib
 import os
 import stat
 from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from functools import partial
 from pathlib import Path
 from typing import Any, NamedTuple
 
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 
 from dol import Files, filt_iter, wrap_kvs
 
@@ -137,7 +138,16 @@ def _s3_kwargs_to_v1(s3_kwargs: dict) -> dict:
     return kwargs
 
 
-__all__ = ["ArtifactStore", "ResolvedArtifact", "content_hash_of", "resolve_in_mall"]
+__all__ = [
+    "ArtifactStore",
+    "ResolvedArtifact",
+    "content_hash_of",
+    "keep_rights",
+    "resolve_in_mall",
+]
+
+#: ``on_write(record, previous) -> record``: see :class:`ArtifactStore`.
+WritePolicy = Callable[[BaseModel, Callable[[], BaseModel | None]], BaseModel]
 
 
 def _mk_sql_refcount(sql_store) -> Callable[[str], int]:
@@ -177,8 +187,8 @@ def content_hash_of(record: Any) -> str | None:
     >>> content_hash_of(Record(content_hash="c1")), content_hash_of(Record())
     ('c1', None)
     """
-    for field in ("asset_id", "content_hash"):
-        value = getattr(record, field, None)
+    for name in ("asset_id", "content_hash"):
+        value = getattr(record, name, None)
         if isinstance(value, str):
             return value
     return None
@@ -186,6 +196,75 @@ def content_hash_of(record: Any) -> str | None:
 
 # ``from_sql`` takes a ``content_hash_of`` argument, which shadows the function.
 _default_content_hash_of = content_hash_of
+
+
+def keep_rights(
+    record: BaseModel,
+    previous: Callable[[], BaseModel | None],
+    *,
+    content_hash: Callable[[Any], str | None] = content_hash_of,
+) -> BaseModel:
+    """``record``, carrying forward the ``rights`` of the record it replaces when
+    it states none for the same bytes (lacing#60; the choice is in lacing#94).
+
+    :class:`ArtifactStore`'s default ``on_write`` policy. Identical bytes carry
+    the same third-party obligations whoever records them again, and
+    ``rights is None`` reads as "we made this", so a rights-less re-record must
+    not erase them. An explicit ``rights`` replaces the old one; other bytes
+    (another :func:`content_hash_of`) do not inherit; to clear rights on
+    purpose, delete the record first.
+
+    ``previous`` is called only when a carry is possible: ``record`` is a
+    pydantic model with a ``rights`` field set to ``None`` and a content hash.
+    Anything else (a dict, a record without ``rights``, a record filed before
+    its bytes exist) is returned as given, without reading the catalog. A
+    rights-less record *with* a content hash costs one catalog read. The
+    guarantee holds for one writer at a time: the read and the write are not
+    atomic. ``content_hash`` reads a record's hash (:meth:`ArtifactStore.from_sql`
+    passes its own accessor).
+
+    Raises:
+        ValueError: the carried ``rights`` do not validate on ``record``'s
+            type, or the replaced record cannot be read. Refusing the write
+            beats silently erasing obligations.
+
+    >>> from lacing import Artifact, Rights
+    >>> def made(rights=None):
+    ...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",
+    ...                                was_attributed_to="u", rights=rights)
+    >>> acquired = made(Rights(provider="openverse"))
+    >>> keep_rights(made(), lambda: acquired).rights.provider
+    'openverse'
+    >>> keep_rights(made(), lambda: None).rights is None  # a new key
+    True
+    """
+    if not isinstance(record, BaseModel):
+        return record
+    if "rights" not in type(record).model_fields or record.rights is not None:
+        return record  # nothing to keep: no field, or a statement of its own
+    hash_ = content_hash(record)
+    if hash_ is None:
+        return record  # no bytes yet, so nothing to be "the same bytes" as
+    replaced = previous()
+    kept = getattr(replaced, "rights", None)
+    if kept is None or content_hash(replaced) != hash_:
+        return record
+    if isinstance(kept, BaseModel):
+        kept = kept.model_dump()
+    rights_type = type(record).model_fields["rights"].annotation
+    try:
+        # Validate only the carried value: re-validating the whole record from
+        # its dump would refuse valid records (computed or excluded fields).
+        carried = TypeAdapter(rights_type).validate_python(kept)
+    except ValueError as error:
+        raise ValueError(
+            f"A rights-less {type(record).__name__} for content {hash_} "
+            f"replaces a record with rights, and those rights cannot be carried "
+            f"forward onto it ({error}). Refusing the write rather than erasing "
+            f"the obligations: state the rights explicitly, or delete the old "
+            f"record first."
+        ) from error
+    return record.model_copy(update={"rights": carried})
 
 
 class ResolvedArtifact(NamedTuple):
@@ -262,8 +341,9 @@ class ArtifactStore(MutableMapping):
 
     Args:
         catalog: Injected ``id -> record`` store. Records are pydantic models
-            (``lacing.Artifact`` by default, but any ``BaseModel`` works — the
-            store does not inspect the record's shape).
+            (``lacing.Artifact`` by default, but any ``BaseModel`` works). The
+            store itself does not inspect the record's shape; the default
+            ``on_write`` policy reads a ``rights`` field when there is one.
         blobs: Injected ``content_hash -> bytes`` store, or ``None`` for a
             catalog-only store (Stage-1 metadata persistence). Blob methods
             raise / no-op when it is ``None``. This is the *raw* backend:
@@ -271,6 +351,16 @@ class ArtifactStore(MutableMapping):
             containment check, so go through :meth:`delete_blob` and
             :meth:`iter_blobs` (and the read methods) rather than touching
             ``store.blobs`` directly (lacing#55).
+        on_write: Keyword-only. ``on_write(record, previous) -> record``, the
+            policy every catalog write through the facade (``store[k] = r``,
+            :meth:`save`, ``update``) passes through. ``previous()`` reads the
+            record being replaced: ``None`` for a new key; it raises
+            ``ValueError`` when that record cannot be read (it may hold rights,
+            so delete it to write over it). The default,
+            :func:`keep_rights`, keeps the ``rights`` of a record replaced by a
+            rights-less one for the same bytes (lacing#60); ``None`` writes
+            records as given (last write wins). Writes straight to
+            ``catalog`` bypass it.
 
     Construct one with :meth:`in_memory` or :meth:`from_directory` rather than
     wiring the backing stores by hand, unless you are injecting a custom
@@ -279,6 +369,7 @@ class ArtifactStore(MutableMapping):
 
     catalog: MutableMapping[str, BaseModel]
     blobs: MutableMapping[str, bytes] | None = None
+    on_write: WritePolicy | None = field(default=keep_rights, kw_only=True)
 
     # -- catalog: the MutableMapping surface (artifact_id -> record) --------
 
@@ -286,7 +377,7 @@ class ArtifactStore(MutableMapping):
         return self.catalog[artifact_id]
 
     def __setitem__(self, artifact_id: str, record: BaseModel) -> None:
-        self.catalog[artifact_id] = record
+        self.catalog[artifact_id] = self._admitted(artifact_id, record)
 
     def __delitem__(self, artifact_id: str) -> None:
         del self.catalog[artifact_id]
@@ -321,6 +412,7 @@ class ArtifactStore(MutableMapping):
         Raises:
             RuntimeError: ``data`` was given but no blob store is configured.
         """
+        record = self._admitted(artifact_id, record)  # a refusal leaves no blob
         content_hash: str | None = None
         if data is not None:
             if self.blobs is None:
@@ -333,6 +425,26 @@ class ArtifactStore(MutableMapping):
             self.blobs[content_hash] = data  # content-addressed -> idempotent
         self.catalog[artifact_id] = record
         return content_hash
+
+    def _admitted(self, artifact_id: str, record: BaseModel) -> BaseModel:
+        """``record`` as the ``on_write`` policy admits it at ``artifact_id``."""
+        if self.on_write is None:
+            return record
+        return self.on_write(record, lambda: self._replaced(artifact_id))
+
+    def _replaced(self, artifact_id: str) -> BaseModel | None:
+        """The record at ``artifact_id`` that a write is about to replace;
+        ``None`` for a new key. A damaged record raises: it may hold rights."""
+        try:
+            return self.catalog[artifact_id]
+        except KeyError:
+            return None
+        except ValueError as error:
+            raise ValueError(
+                f"The record at {artifact_id!r} cannot be read "
+                f"({type(error).__name__}), and it may hold rights the write "
+                f"would erase: delete it first to write over it."
+            ) from error
 
     def index(self) -> dict[str, BaseModel]:
         """Return the whole catalog as a plain dict (e.g. for UI hydration)."""
@@ -711,13 +823,14 @@ class ArtifactStore(MutableMapping):
     # -- constructors ------------------------------------------------------
 
     @classmethod
-    def in_memory(cls) -> ArtifactStore:
+    def in_memory(cls, *, on_write: WritePolicy | None = keep_rights) -> ArtifactStore:
         """An ArtifactStore backed entirely by in-memory dicts.
 
         For tests, scratch work, and as the trivial reference backend. Nothing
-        persists across processes.
+        persists across processes. ``on_write`` is the write policy (see
+        :class:`ArtifactStore`).
         """
-        return cls(catalog={}, blobs={})
+        return cls(catalog={}, blobs={}, on_write=on_write)
 
     @classmethod
     def from_directory(
@@ -727,6 +840,7 @@ class ArtifactStore(MutableMapping):
         record_type: type[BaseModel] = Artifact,
         blob_delete_func: Callable[[str], Any] | None = None,
         catalog_delete_func: Callable[[str], Any] | None = None,
+        on_write: WritePolicy | None = keep_rights,
     ) -> ArtifactStore:
         """An ArtifactStore persisted under ``root``.
 
@@ -757,6 +871,7 @@ class ArtifactStore(MutableMapping):
                 ``None`` keeps ``dol.Files``' default (move to the OS trash,
                 a sensible default for records); pass ``os.remove`` for a
                 delete that is final.
+            on_write: The write policy (see :class:`ArtifactStore`).
         """
         root = Path(root)
         catalog_dir = root / "catalog"
@@ -779,7 +894,7 @@ class ArtifactStore(MutableMapping):
             obj_of_data=lambda raw: record_type.model_validate_json(raw),
         )
         blobs = Files(str(blob_dir), delete_func=blob_delete_func)
-        return cls(catalog=catalog, blobs=blobs)
+        return cls(catalog=catalog, blobs=blobs, on_write=on_write)
 
     def count_refs(self, content_hash: str) -> int:
         """How many catalog records point at ``content_hash`` (a blob).
@@ -823,6 +938,7 @@ class ArtifactStore(MutableMapping):
         *,
         catalog: "MutableMapping[str, BaseModel] | None" = None,
         prefix: str | None = None,
+        on_write: WritePolicy | None = keep_rights,
         **s3_kwargs,
     ) -> ArtifactStore:
         """An ArtifactStore with **blobs in an S3-compatible object store**
@@ -843,6 +959,7 @@ class ArtifactStore(MutableMapping):
             catalog: The ``id -> record`` catalog ``MutableMapping``. Defaults
                 to ``{}`` (in-memory).
             prefix: Optional key prefix within the bucket (e.g. ``"blobs"``).
+            on_write: The write policy (see :class:`ArtifactStore`).
             **s3_kwargs: Forwarded to ``s3dol.s3_store`` — ``endpoint_url``
                 (set for R2 / MinIO / Supabase), ``region_name``, ``profile``,
                 ``credentials``, ``preset``, ``anon``, ``on_missing_bucket``.
@@ -859,7 +976,9 @@ class ArtifactStore(MutableMapping):
         blobs = s3_store(
             bucket_name, prefix=prefix or "", **_s3_kwargs_to_v1(s3_kwargs)
         )
-        return cls(catalog={} if catalog is None else catalog, blobs=blobs)
+        return cls(
+            catalog={} if catalog is None else catalog, blobs=blobs, on_write=on_write
+        )
 
     @classmethod
     def from_sql(
@@ -870,6 +989,7 @@ class ArtifactStore(MutableMapping):
         record_type: type[BaseModel] = Artifact,
         collection_name: str = "artifact_catalog",
         content_hash_of: "Callable[[BaseModel], str | None] | None" = None,
+        on_write: WritePolicy | None = keep_rights,
         **db_kwargs,
     ) -> ArtifactStore:
         """An ArtifactStore with a **SQL-backed catalog** (durable, queryable)
@@ -908,6 +1028,7 @@ class ArtifactStore(MutableMapping):
                 Artifact field), then ``content_hash``. Pass a callable for a
                 record whose hash lives elsewhere; records without a hash store
                 an empty string.
+            on_write: The write policy (see :class:`ArtifactStore`).
             **db_kwargs: Forwarded to ``sqldol.SQLAlchemyStore`` /
                 SQLAlchemy's ``create_engine`` (e.g. ``connect_args``,
                 ``pool_size``).
@@ -920,6 +1041,8 @@ class ArtifactStore(MutableMapping):
 
         if content_hash_of is None:
             content_hash_of = _default_content_hash_of
+        elif on_write is keep_rights:  # match records by the same accessor
+            on_write = partial(keep_rights, content_hash=content_hash_of)
 
         raw = SQLAlchemyStore(
             uri=uri,
@@ -954,7 +1077,7 @@ class ArtifactStore(MutableMapping):
         # Attach the GC reference-count capability so ``count_refs`` resolves it
         # to a single indexed query (the probe pattern; see ``count_refs``).
         catalog.refcount_by_content_hash = _mk_sql_refcount(raw)
-        return cls(catalog=catalog, blobs=blobs)
+        return cls(catalog=catalog, blobs=blobs, on_write=on_write)
 
     @classmethod
     def from_aws(
@@ -967,6 +1090,7 @@ class ArtifactStore(MutableMapping):
         prefix: str | None = None,
         s3_kwargs: "dict | None" = None,
         sql_kwargs: "dict | None" = None,
+        on_write: WritePolicy | None = keep_rights,
     ) -> ArtifactStore:
         """The production pairing: **S3-compatible blobs + SQL catalog**.
 
@@ -986,6 +1110,7 @@ class ArtifactStore(MutableMapping):
                 ``endpoint_url`` for R2/MinIO/Supabase, ``region_name``, …).
             sql_kwargs: Extra kwargs forwarded to :meth:`from_sql`
                 (``content_hash_of``, SQLAlchemy engine kwargs, …).
+            on_write: The write policy (see :class:`ArtifactStore`).
         """
         s3_store = cls.from_s3(bucket_name, prefix=prefix, **(s3_kwargs or {}))
         return cls.from_sql(
@@ -993,6 +1118,7 @@ class ArtifactStore(MutableMapping):
             blobs=s3_store.blobs,
             record_type=record_type,
             collection_name=collection_name,
+            on_write=on_write,
             **(sql_kwargs or {}),
         )
 
