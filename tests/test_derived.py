@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
+from itertools import product
 from typing import Annotated
 from uuid import uuid4
 
@@ -15,10 +17,12 @@ from lacing import (
     Provenance,
     RationalTime,
     TimeInterval,
+    accepted_value_digests,
     annotation_value_digest,
     derived_paths,
     value_digest_matches,
 )
+from lacing.derived import drop_paths
 from lacing.digest import VALUE_DIGEST_SCHEME, VALUE_DIGEST_SCHEMES
 from lacing import schema as schema_module
 from lacing.schema import register_body_schema
@@ -293,12 +297,29 @@ def test_a_current_digest_matches_itself(registered):
     assert value_digest_matches(unregistered, annotation_value_digest(unregistered))
 
 
-def test_v1_traces_match_only_the_whole_body(registered):
+def test_an_unchanged_body_recorded_unmarked_with_the_derived_field_matches(
+    registered,
+):
+    """Only the whole-body candidate can match here: the derived field was
+    present when recorded, so dropping it from the current body changes it."""
+    body = {"images": [{"artifact_id": "a1", "asset_id": "h"}]}
+    schema_module._BODY_REGISTRY.pop(URI)
+    recorded = _recorded_before_the_marker(body)
+    register_body_schema(URI, Body)
+    assert value_digest_matches(_ann(body), recorded)
+
+
+def test_v1_traces_accept_a_filled_derived_field_not_a_changed_source(registered):
+    def boom(uri):
+        raise AssertionError("v1 digest must not consult the resolver")
+
     before = _ann({"images": [{"artifact_id": "a1"}]})
-    recorded = annotation_value_digest(before, scheme=V1)
+    recorded = annotation_value_digest(before, scheme=V1, resolve_derived=boom)
     assert value_digest_matches(before, recorded, scheme=V1)
     filled = _ann({"images": [{"artifact_id": "a1", "asset_id": "h"}]})
-    assert not value_digest_matches(filled, recorded, scheme=V1)
+    assert value_digest_matches(filled, recorded, scheme=V1)
+    moved = _ann({"images": [{"artifact_id": "a2", "asset_id": "h"}]})
+    assert not value_digest_matches(moved, recorded, scheme=V1)
 
 
 def test_matching_uses_the_injected_resolver():
@@ -314,3 +335,54 @@ def test_matching_uses_the_injected_resolver():
 def test_matching_refuses_an_unknown_scheme():
     with pytest.raises(ValueError, match="unknown value digest scheme"):
         value_digest_matches(_ann({}), "0" * 64, scheme="nope")
+
+
+def _bodies():
+    """A few dozen ``Body`` values that differ in derived and non-derived fields."""
+    images = [
+        [],
+        [{"artifact_id": "a1"}],  # derived field absent
+        [{"artifact_id": "a1", "asset_id": "h"}],
+        [{"artifact_id": "a1", "asset_id": "h2"}],  # derived field different
+        [{"artifact_id": "a1", "asset_id": None}],  # a different scalar
+        [{"artifact_id": "a2", "asset_id": "h"}],  # source changed
+    ]
+    for imgs, root, maybe in product(images, (None, "root", "other"), (None, "m")):
+        body = {"images": deepcopy(imgs)}
+        if root is not None:
+            body["asset_id"] = root  # NOT derived at the root
+        if maybe is not None:
+            body["maybe"] = maybe
+        yield body
+
+
+def test_matching_is_sound_across_every_pair(registered):
+    """A match, under either scheme, only ever means the recorded and current
+    bodies agree outside today's derived paths: never a wrong hit."""
+    bodies = list(_bodies())
+    schema_module._BODY_REGISTRY.pop(URI)  # producer side: no marker known
+    recorded = {
+        scheme: [annotation_value_digest(_ann(b), scheme=scheme) for b in bodies]
+        for scheme in VALUE_DIGEST_SCHEMES
+    }
+    register_body_schema(URI, Body)
+    paths = derived_paths(Body)
+
+    def dropped(body):
+        out = deepcopy(_ann(body).model_dump(mode="json")["body"])
+        drop_paths(out, paths)
+        return out
+
+    stripped = [dropped(b) for b in bodies]
+    fallback_hits = 0
+    for scheme in VALUE_DIGEST_SCHEMES:
+        for c, current in enumerate(bodies):
+            ann = _ann(current)
+            accepted = accepted_value_digests(ann, scheme=scheme)
+            for r, digest in enumerate(recorded[scheme]):
+                matches = value_digest_matches(ann, digest, scheme=scheme)
+                assert matches == (digest in accepted)
+                if matches:
+                    assert stripped[r] == stripped[c], (scheme, bodies[r], current)
+                    fallback_hits += bodies[r] != current
+    assert fallback_hits  # not vacuous: some differing bodies do match
