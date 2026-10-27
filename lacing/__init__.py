@@ -77,6 +77,8 @@ from lacing.digest import (
     NonStringBodyKeyError,
     annotation_body_digest,
     annotation_value_digest,
+    value_digest_matches,
+    accepted_value_digests,
 )
 from lacing.store import (
     IntervalAnnotationStore,
@@ -127,6 +129,8 @@ __all__ = [
     # annotation; these two address an annotation's VALUE, for freshness.)
     "annotation_value_digest",
     "annotation_body_digest",
+    "value_digest_matches",
+    "accepted_value_digests",
     "NonStringBodyKeyError",
     # allen
     "AllenRelation",

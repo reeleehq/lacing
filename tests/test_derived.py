@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
+from itertools import product
 from typing import Annotated
 from uuid import uuid4
 
@@ -15,9 +17,12 @@ from lacing import (
     Provenance,
     RationalTime,
     TimeInterval,
+    accepted_value_digests,
     annotation_value_digest,
     derived_paths,
+    value_digest_matches,
 )
+from lacing.derived import drop_paths
 from lacing.digest import VALUE_DIGEST_SCHEME, VALUE_DIGEST_SCHEMES
 from lacing import schema as schema_module
 from lacing.schema import register_body_schema
@@ -235,3 +240,185 @@ def test_bad_marker_source():
 
 def test_scheme_constants():
     assert VALUE_DIGEST_SCHEME == VALUE_DIGEST_SCHEMES[-1] != V1
+
+
+# --- verifying a recorded digest across a marker addition (lacing#89) ---------
+
+
+def _recorded_before_the_marker(body):
+    """What a producer that had not registered the schema stored under v2."""
+    assert not schema_module.is_registered(URI)
+    return annotation_value_digest(_ann(body))
+
+
+def test_a_digest_recorded_before_the_marker_still_matches(registered):
+    body = {"images": [{"artifact_id": "a1"}], "asset_id": "root"}
+    schema_module._BODY_REGISTRY.pop(URI)  # producer side: no marker known
+    recorded = _recorded_before_the_marker(body)
+    register_body_schema(URI, Body)
+
+    assert annotation_value_digest(_ann(body)) != recorded  # the bug: reads changed
+    assert value_digest_matches(_ann(body), recorded)
+    filled = {"images": [{"artifact_id": "a1", "asset_id": "h"}], "asset_id": "root"}
+    assert value_digest_matches(_ann(filled), recorded)
+
+
+def test_a_pre_marker_digest_still_sees_real_changes(registered):
+    schema_module._BODY_REGISTRY.pop(URI)
+    recorded = _recorded_before_the_marker({"images": [{"artifact_id": "a1"}]})
+    register_body_schema(URI, Body)
+
+    for changed in (
+        {"images": [{"artifact_id": "a2", "asset_id": "h"}]},  # source moved
+        {"images": [{"artifact_id": "a1", "asset_id": "h"}], "asset_id": "x"},
+        {"images": [{"artifact_id": "a1"}, {"artifact_id": "a3"}]},
+    ):
+        assert not value_digest_matches(_ann(changed), recorded), changed
+
+
+def test_a_derived_value_recorded_unmarked_then_changed_reads_changed(registered):
+    """The whole-body candidates need the derived field absent or unchanged:
+    an unmarked producer that recorded ``asset_id="h"`` cannot vouch for
+    ``asset_id="other"``. A spurious miss, not a wrong hit."""
+    schema_module._BODY_REGISTRY.pop(URI)
+    recorded = _recorded_before_the_marker(
+        {"images": [{"artifact_id": "a1", "asset_id": "h"}]}
+    )
+    register_body_schema(URI, Body)
+    assert not value_digest_matches(
+        _ann({"images": [{"artifact_id": "a1", "asset_id": "other"}]}), recorded
+    )
+
+
+def test_a_current_digest_matches_itself(registered):
+    ann = _ann({"images": [{"artifact_id": "a1", "asset_id": "h"}]})
+    assert value_digest_matches(ann, annotation_value_digest(ann))
+    unregistered = _ann({"x": 1}, uri="annot://schema/nope/v1")
+    assert value_digest_matches(unregistered, annotation_value_digest(unregistered))
+
+
+def test_an_unchanged_body_recorded_unmarked_with_the_derived_field_matches(
+    registered,
+):
+    """Only the whole-body candidate can match here: the derived field was
+    present when recorded, so dropping it from the current body changes it."""
+    body = {"images": [{"artifact_id": "a1", "asset_id": "h"}]}
+    schema_module._BODY_REGISTRY.pop(URI)
+    recorded = _recorded_before_the_marker(body)
+    register_body_schema(URI, Body)
+    assert value_digest_matches(_ann(body), recorded)
+
+
+def test_v1_traces_accept_a_filled_derived_field_not_a_changed_source(registered):
+    def boom(uri):
+        raise AssertionError("v1 digest must not consult the resolver")
+
+    before = _ann({"images": [{"artifact_id": "a1"}]})
+    recorded = annotation_value_digest(before, scheme=V1, resolve_derived=boom)
+    assert value_digest_matches(before, recorded, scheme=V1)
+    filled = _ann({"images": [{"artifact_id": "a1", "asset_id": "h"}]})
+    assert value_digest_matches(filled, recorded, scheme=V1)
+    moved = _ann({"images": [{"artifact_id": "a2", "asset_id": "h"}]})
+    assert not value_digest_matches(moved, recorded, scheme=V1)
+
+
+def test_matching_uses_the_injected_resolver():
+    uri = "annot://schema/nope/v1"
+    recorded = annotation_value_digest(_ann({"x": 1}, uri=uri))
+    only_y = lambda uri: {("y",)}
+    assert value_digest_matches(
+        _ann({"x": 1, "y": 9}, uri=uri), recorded, resolve_derived=only_y
+    )
+    assert not value_digest_matches(_ann({"x": 1, "y": 9}, uri=uri), recorded)
+
+
+def test_matching_refuses_an_unknown_scheme():
+    with pytest.raises(ValueError, match="unknown value digest scheme"):
+        value_digest_matches(_ann({}), "0" * 64, scheme="nope")
+
+
+def _bodies():
+    """A few dozen ``Body`` values that differ in derived and non-derived fields."""
+    images = [
+        [],
+        [{"artifact_id": "a1"}],  # derived field absent
+        [{"artifact_id": "a1", "asset_id": "h"}],
+        [{"artifact_id": "a1", "asset_id": "h2"}],  # derived field different
+        [{"artifact_id": "a1", "asset_id": None}],  # a different scalar
+        [{"artifact_id": "a2", "asset_id": "h"}],  # source changed
+    ]
+    by_name = [
+        None,
+        {"k": {"artifact_id": "a1"}},
+        {"k": {"artifact_id": "a1", "asset_id": "h"}},
+    ]
+    for imgs, root, maybe, named in product(
+        images, (None, "root", "other"), (None, "m"), by_name
+    ):
+        body = {"images": deepcopy(imgs)}
+        if named is not None:
+            body["by_name"] = deepcopy(named)
+        if root is not None:
+            body["asset_id"] = root  # NOT derived at the root
+        if maybe is not None:
+            body["maybe"] = maybe
+        yield body
+
+
+def test_matching_is_sound_across_every_pair(registered):
+    """A match, under either scheme, only ever means the recorded and current
+    bodies agree outside today's derived paths: never a wrong hit."""
+    bodies = list(_bodies())
+    # Recorded by a producer that knew no marker, and by one that knew today's.
+    schema_module._BODY_REGISTRY.pop(URI)
+    recorded = {
+        scheme: [
+            (r, annotation_value_digest(_ann(b), scheme=scheme))
+            for r, b in enumerate(bodies)
+        ]
+        for scheme in VALUE_DIGEST_SCHEMES
+    }
+    register_body_schema(URI, Body)
+    for scheme in VALUE_DIGEST_SCHEMES:
+        recorded[scheme] += [
+            (r, annotation_value_digest(_ann(b), scheme=scheme))
+            for r, b in enumerate(bodies)
+        ]
+
+    def dropped(body):
+        """Today's derived fields removed, by hand: the oracle shares no code
+        with the implementation."""
+        out = deepcopy(_ann(body).model_dump(mode="json")["body"])
+        out.pop("maybe", None)
+        for image in [*out.get("images", []), *out.get("by_name", {}).values()]:
+            image.pop("asset_id", None)
+        return out
+
+    stripped = [dropped(b) for b in bodies]
+    fallback_hits = 0
+    for scheme in VALUE_DIGEST_SCHEMES:
+        for c, current in enumerate(bodies):
+            ann = _ann(current)
+            accepted = accepted_value_digests(ann, scheme=scheme)
+            for r, digest in recorded[scheme]:
+                matches = value_digest_matches(ann, digest, scheme=scheme)
+                assert matches == (digest in accepted)
+                if matches:
+                    assert stripped[r] == stripped[c], (scheme, bodies[r], current)
+                    fallback_hits += bodies[r] != current
+    assert fallback_hits  # not vacuous: some differing bodies do match
+    # The hand-written oracle above is right only for these paths.
+    assert derived_paths(Body) == {
+        ("images", None, "asset_id"),
+        ("by_name", None, "asset_id"),
+        ("maybe",),
+    }
+
+
+def test_drop_paths_reports_whether_anything_was_dropped():
+    paths = {("images", None, "asset_id"), ("maybe",)}
+    unfilled = {"images": [{"artifact_id": "a1"}]}
+    assert drop_paths(unfilled, paths) is False
+    filled = {"images": [{"artifact_id": "a1"}, {"artifact_id": "a2", "asset_id": "h"}]}
+    assert drop_paths(filled, paths) is True
+    assert filled == {"images": [{"artifact_id": "a1"}, {"artifact_id": "a2"}]}
