@@ -10,6 +10,7 @@ optionally pretending the build is newer by monkeypatching
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 from uuid import uuid4
 
 import pytest
@@ -167,6 +168,29 @@ class TestUpgradeOnOpen:
         with pytest.raises(SchemaMismatchError) as exc:
             SqliteStore(path, migrate=True)
         assert "newer than this build" in str(exc.value)
+
+    @pytest.mark.parametrize("stamp", ["1", "99"], ids=["older", "newer"])
+    def test_a_refused_open_closes_its_connection(
+        self, tmp_path, monkeypatch, stamp, opened_sqlite_connections
+    ):
+        """lacing#91: the refused connection must not wait for GC. Callers
+        (nw) retry with ``migrate=True``, and on Windows an open handle
+        blocks deleting the file."""
+        path = tmp_path / "a.annot"
+        _write_v1_file(path)
+        with closing(sqlite3.connect(path)) as conn, conn:
+            conn.execute(
+                "UPDATE meta SET value = ? WHERE key = 'schema_version'", (stamp,)
+            )
+        _pretend_build_expects(monkeypatch, 2)
+        opened_sqlite_connections.clear()
+
+        with pytest.raises(SchemaMismatchError):
+            SqliteStore(path)
+
+        [refused] = opened_sqlite_connections
+        with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+            refused.execute("SELECT 1")
 
 
 class TestLadderMechanics:

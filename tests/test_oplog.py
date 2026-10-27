@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from uuid import uuid4
 
 import pytest
@@ -389,3 +390,19 @@ class TestStateAt:
         body = r.json()
         names = {t["name"] for t in body["tiers"]}
         assert "phon" in names
+
+
+def test_sqlite_oplog_failed_open_closes_its_connection(
+    tmp_path, opened_sqlite_connections
+):
+    """lacing#91: a file that is not a database fails the DDL; the handle
+    must not wait for GC."""
+    path = tmp_path / "not-a-db.annot"
+    path.write_bytes(b"this is not a sqlite file" * 100)
+
+    with pytest.raises(sqlite3.DatabaseError):
+        SqliteOpLog(str(path))
+
+    [refused] = opened_sqlite_connections
+    with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+        refused.execute("SELECT 1")

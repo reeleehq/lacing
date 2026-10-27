@@ -362,7 +362,13 @@ class PostgresStore:
         else:
             self._conn = psycopg.connect(conninfo, autocommit=autocommit)
 
-        self._init_schema(rate)
+        try:
+            self._init_schema(rate)
+        except BaseException:
+            # A refused open must hand its connection back (to the pool, when
+            # pooled) instead of leaking it until GC.
+            self.close()
+            raise
 
     # --- schema --------------------------------------------------------
 

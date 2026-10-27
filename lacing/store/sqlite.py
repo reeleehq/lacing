@@ -173,7 +173,13 @@ class SqliteStore:
             isolation_level=None,  # autocommit; we use explicit transactions
         )
         self._conn.row_factory = sqlite3.Row
-        self._init_schema(migrate=migrate)
+        try:
+            self._init_schema(migrate=migrate)
+        except BaseException:
+            # A refused open must not leave the handle to GC: callers retry
+            # with ``migrate=True``, and on Windows it blocks deleting the file.
+            self.close()
+            raise
 
     # --- low-level ------------------------------------------------------
 

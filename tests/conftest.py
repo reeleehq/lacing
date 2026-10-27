@@ -9,6 +9,7 @@ binary is available, those tests are skipped automatically.
 from __future__ import annotations
 
 import shutil
+import sqlite3
 
 import pytest
 
@@ -43,3 +44,20 @@ def pytest_collection_modifyitems(config, items):  # pragma: no cover
     for item in items:
         if "postgres_store" in getattr(item, "fixturenames", ()):
             item.add_marker(skip_pg)
+
+
+@pytest.fixture
+def opened_sqlite_connections(monkeypatch) -> list[sqlite3.Connection]:
+    """Every connection ``sqlite3.connect`` opens during the test, in order.
+
+    For asserting a failed constructor closed its handle (lacing#91).
+    """
+    opened: list[sqlite3.Connection] = []
+    real_connect = sqlite3.connect
+
+    def recording_connect(*args, **kwargs):
+        opened.append(real_connect(*args, **kwargs))
+        return opened[-1]
+
+    monkeypatch.setattr(sqlite3, "connect", recording_connect)
+    return opened
