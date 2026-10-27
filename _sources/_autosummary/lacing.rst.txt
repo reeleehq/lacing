@@ -8,6 +8,7 @@
 
    .. autosummary::
    
+      keep_rights
       resolve_in_mall
       content_hash_of
       hash_bytes

@@ -1,4 +1,4 @@
-> built 2026-10-27 18:21 UTC from df9ed72 (main) · lacing 0.0.63. Details: build_info.json
+> built 2026-10-27 18:27 UTC from cd83a62 (main) · lacing 0.0.64. Details: build_info.json
 
 # index.html.md
 
@@ -1459,11 +1459,15 @@ Semantics worth the trap they avoid:
 artifact either has no record (we made it) or says where it came from.
 Text fields are `None` or non-blank; a blank string is refused.
 
-Caveat: an artifact catalog is keyed by `asset_id` (the content hash), so
-two records for the *same bytes* are one row and the last write wins. A
-rights-less record written after an acquired one with identical bytes
-replaces it, rights included. Writers that re-record bytes they already
-hold must carry the existing `rights` forward.
+An artifact catalog is often keyed by `asset_id` (the content hash), so
+two records for the *same bytes* are one row. By default
+[`lacing.ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore) keeps the existing `rights` when a record
+with `rights=None` replaces one for the same bytes (its default
+`on_write` policy, [`lacing.keep_rights()`](_autosummary/lacing.html.md#lacing.keep_rights); lacing#60): the bytes’
+obligations do not lapse because someone recorded them again. An explicit
+`rights` replaces the old one; to clear rights, delete the record first.
+`on_write=None` restores last-write-wins, and a policy that refuses such
+a write instead is a small function passed as `on_write`.
 
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
 
@@ -1688,17 +1692,18 @@ True
 
 ### Functions
 
-| [`content_hash_of`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.content_hash_of)(record)                       | The content hash naming `record`'s bytes in the blob store, if it has one.                                  |
-|------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| [`resolve_in_mall`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.resolve_in_mall)(ref, mall, \*, default_store) | What `ref` names in `mall` (store names -> [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)). |
+| [`content_hash_of`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.content_hash_of)(record)                           | The content hash naming `record`'s bytes in the blob store, if it has one.                                                                        |
+|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`keep_rights`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.keep_rights)(record, previous, \*[, content_hash]) | `record`, carrying forward the `rights` of the record it replaces when it states none for the same bytes (lacing#60; the choice is in lacing#94). |
+| [`resolve_in_mall`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.resolve_in_mall)(ref, mall, \*, default_store)     | What `ref` names in `mall` (store names -> [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)).                                       |
 
 ### Classes
 
-| [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)(catalog[, blobs])                   | Facade over an artifact `catalog` and an optional `blobs` store.                     |
+| [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)(catalog[, blobs, on_write])         | Facade over an artifact `catalog` and an optional `blobs` store.                     |
 |----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
 | [`ResolvedArtifact`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ResolvedArtifact)(key, record, content_hash, data) | What [`ArtifactStore.resolve()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.resolve) found. |
 
-### *class* lacing.artifact_store.ArtifactStore(catalog, blobs=None)
+### *class* lacing.artifact_store.ArtifactStore(catalog, blobs=None, \*, on_write=<function keep_rights>)
 
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
@@ -1713,8 +1718,9 @@ into the mapping protocol.
 
 * **Parameters:**
   * **catalog** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), `BaseModel`]) – Injected `id -> record` store. Records are pydantic models
-    (`lacing.Artifact` by default, but any `BaseModel` works — the
-    store does not inspect the record’s shape).
+    (`lacing.Artifact` by default, but any `BaseModel` works). The
+    store itself does not inspect the record’s shape; the default
+    `on_write` policy reads a `rights` field when there is one.
   * **blobs** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Injected `content_hash -> bytes` store, or `None` for a
     catalog-only store (Stage-1 metadata persistence). Blob methods
     raise / no-op when it is `None`. This is the *raw* backend:
@@ -1722,6 +1728,16 @@ into the mapping protocol.
     containment check, so go through [`delete_blob()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.delete_blob) and
     [`iter_blobs()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.iter_blobs) (and the read methods) rather than touching
     `store.blobs` directly (lacing#55).
+  * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Keyword-only. `on_write(record, previous) -> record`, the
+    policy every catalog write through the facade (`store[k] = r`,
+    [`save()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.save), `update`) passes through. `previous()` reads the
+    record being replaced: `None` for a new key; it raises
+    `ValueError` when that record cannot be read (it may hold rights,
+    so delete it to write over it). The default,
+    [`keep_rights()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.keep_rights), keeps the `rights` of a record replaced by a
+    rights-less one for the same bytes (lacing#60); `None` writes
+    records as given (last write wins). Writes straight to
+    `catalog` bypass it.
 
 Construct one with [`in_memory()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.in_memory) or [`from_directory()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.from_directory) rather than
 wiring the backing stores by hand, unless you are injecting a custom
@@ -1845,7 +1861,7 @@ filesystem to escape; the key passes through to their `del`.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-#### *classmethod* from_aws(bucket_name, uri, \*, record_type=<class 'lacing.artifact.Artifact'>, collection_name='artifact_catalog', prefix=None, s3_kwargs=None, sql_kwargs=None)
+#### *classmethod* from_aws(bucket_name, uri, \*, record_type=<class 'lacing.artifact.Artifact'>, collection_name='artifact_catalog', prefix=None, s3_kwargs=None, sql_kwargs=None, on_write=<function keep_rights>)
 
 The production pairing: **S3-compatible blobs + SQL catalog**.
 
@@ -1865,10 +1881,11 @@ a smoke test. Vendor specifics live only in the two kwargs dicts.
     `endpoint_url` for R2/MinIO/Supabase, `region_name`, …).
   * **sql_kwargs** ([`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Extra kwargs forwarded to [`from_sql()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.from_sql)
     (`content_hash_of`, SQLAlchemy engine kwargs, …).
+  * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The write policy (see [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)).
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
 
-#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None, catalog_delete_func=None)
+#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None, catalog_delete_func=None, on_write=<function keep_rights>)
 
 An ArtifactStore persisted under `root`.
 
@@ -1899,10 +1916,11 @@ follows a symlinked directory out of `catalog/`. See
     `None` keeps `dol.Files`’ default (move to the OS trash,
     a sensible default for records); pass `os.remove` for a
     delete that is final.
+  * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The write policy (see [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)).
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
 
-#### *classmethod* from_s3(bucket_name, , catalog=None, prefix=None, \*\*s3_kwargs)
+#### *classmethod* from_s3(bucket_name, \*, catalog=None, prefix=None, on_write=<function keep_rights>, \*\*s3_kwargs)
 
 An ArtifactStore with **blobs in an S3-compatible object store**
 (AWS S3 / Cloudflare R2 / MinIO / Supabase) via `s3dol`.
@@ -1922,6 +1940,7 @@ Postgres-backed `MutableMapping`) for production.
   * **catalog** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The `id -> record` catalog `MutableMapping`. Defaults
     to `{}` (in-memory).
   * **prefix** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Optional key prefix within the bucket (e.g. `"blobs"`).
+  * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The write policy (see [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)).
   * **\*\*s3_kwargs** – Forwarded to `s3dol.s3_store` — `endpoint_url`
     (set for R2 / MinIO / Supabase), `region_name`, `profile`,
     `credentials`, `preset`, `anon`, `on_missing_bucket`.
@@ -1935,7 +1954,7 @@ Postgres-backed `MutableMapping`) for production.
 Requires `s3dol>=1` (and `boto3`) — imported lazily so the
 dependency is only needed when this constructor is used.
 
-#### *classmethod* from_sql(uri, \*, blobs=None, record_type=<class 'lacing.artifact.Artifact'>, collection_name='artifact_catalog', content_hash_of=None, \*\*db_kwargs)
+#### *classmethod* from_sql(uri, \*, blobs=None, record_type=<class 'lacing.artifact.Artifact'>, collection_name='artifact_catalog', content_hash_of=None, on_write=<function keep_rights>, \*\*db_kwargs)
 
 An ArtifactStore with a **SQL-backed catalog** (durable, queryable)
 via `sqldol` — the SQL counterpart of [`from_s3()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.from_s3)’s object store.
@@ -1975,6 +1994,7 @@ persistence; see [`from_aws()`](_autosummary/lacing.artifact_store.html.md#lacin
     Artifact field), then `content_hash`. Pass a callable for a
     record whose hash lives elsewhere; records without a hash store
     an empty string.
+  * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The write policy (see [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)).
   * **\*\*db_kwargs** – Forwarded to `sqldol.SQLAlchemyStore` /
     SQLAlchemy’s `create_engine` (e.g. `connect_args`,
     `pool_size`).
@@ -2010,12 +2030,13 @@ filesystem to escape, so their keys pass through unfiltered.
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
-#### *classmethod* in_memory()
+#### *classmethod* in_memory(\*, on_write=<function keep_rights>)
 
 An ArtifactStore backed entirely by in-memory dicts.
 
 For tests, scratch work, and as the trivial reference backend. Nothing
-persists across processes.
+persists across processes. `on_write` is the write policy (see
+[`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)).
 
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
@@ -2060,6 +2081,46 @@ iterated as they are.
 
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### on_write(previous, \*, content_hash=<function content_hash_of>)
+
+`record`, carrying forward the `rights` of the record it replaces when
+it states none for the same bytes (lacing#60; the choice is in lacing#94).
+
+[`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)’s default `on_write` policy. Identical bytes carry
+the same third-party obligations whoever records them again, and
+`rights is None` reads as “we made this”, so a rights-less re-record must
+not erase them. An explicit `rights` replaces the old one; other bytes
+(another [`content_hash_of()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.content_hash_of)) do not inherit; to clear rights on
+purpose, delete the record first.
+
+`previous` is called only when a carry is possible: `record` is a
+pydantic model with a `rights` field set to `None` and a content hash.
+Anything else (a dict, a record without `rights`, a record filed before
+its bytes exist) is returned as given, without reading the catalog. A
+rights-less record *with* a content hash costs one catalog read. The
+guarantee holds for one writer at a time: the read and the write are not
+atomic. `content_hash` reads a record’s hash ([`ArtifactStore.from_sql()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.from_sql)
+passes its own accessor).
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – the carried `rights` do not validate on `record`’s
+      type, or the replaced record cannot be read. Refusing the write
+      beats silently erasing obligations.
+* **Return type:**
+  `BaseModel`
+
+```pycon
+>>> from lacing import Artifact, Rights
+>>> def made(rights=None):
+...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",
+...                                was_attributed_to="u", rights=rights)
+>>> acquired = made(Rights(provider="openverse"))
+>>> keep_rights(made(), lambda: acquired).rights.provider
+'openverse'
+>>> keep_rights(made(), lambda: None).rights is None  # a new key
+True
+```
 
 #### put_blob(data)
 
@@ -2221,6 +2282,46 @@ filed before its bytes exist).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### lacing.artifact_store.keep_rights(record, previous, \*, content_hash=<function content_hash_of>)
+
+`record`, carrying forward the `rights` of the record it replaces when
+it states none for the same bytes (lacing#60; the choice is in lacing#94).
+
+[`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)’s default `on_write` policy. Identical bytes carry
+the same third-party obligations whoever records them again, and
+`rights is None` reads as “we made this”, so a rights-less re-record must
+not erase them. An explicit `rights` replaces the old one; other bytes
+(another [`content_hash_of()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.content_hash_of)) do not inherit; to clear rights on
+purpose, delete the record first.
+
+`previous` is called only when a carry is possible: `record` is a
+pydantic model with a `rights` field set to `None` and a content hash.
+Anything else (a dict, a record without `rights`, a record filed before
+its bytes exist) is returned as given, without reading the catalog. A
+rights-less record *with* a content hash costs one catalog read. The
+guarantee holds for one writer at a time: the read and the write are not
+atomic. `content_hash` reads a record’s hash ([`ArtifactStore.from_sql()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.from_sql)
+passes its own accessor).
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – the carried `rights` do not validate on `record`’s
+      type, or the replaced record cannot be read. Refusing the write
+      beats silently erasing obligations.
+* **Return type:**
+  `BaseModel`
+
+```pycon
+>>> from lacing import Artifact, Rights
+>>> def made(rights=None):
+...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",
+...                                was_attributed_to="u", rights=rights)
+>>> acquired = made(Rights(provider="openverse"))
+>>> keep_rights(made(), lambda: acquired).rights.provider
+'openverse'
+>>> keep_rights(made(), lambda: None).rights is None  # a new key
+True
+```
 
 ### lacing.artifact_store.resolve_in_mall(ref, mall, , default_store, read=True)
 
@@ -3507,42 +3608,43 @@ full story. `.claude/skills/` contains the rules.
 
 ### Functions
 
-| [`resolve_in_mall`](_autosummary/lacing.html.md#lacing.resolve_in_mall)(ref, mall, \*, default_store)     | What `ref` names in `mall` (store names -> [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)).                                                                                  |
-|----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`content_hash_of`](_autosummary/lacing.html.md#lacing.content_hash_of)(record)                           | The content hash naming `record`'s bytes in the blob store, if it has one.                                                                                                                   |
-| [`hash_bytes`](_autosummary/lacing.html.md#lacing.hash_bytes)(data)                                  | Return the canonical `asset_id` (SHA-256 hex) for `data`.                                                                                                                                    |
-| [`hash_file`](_autosummary/lacing.html.md#lacing.hash_file)(path, \*[, chunk_size])                 | Return the canonical `asset_id` (SHA-256 hex) for the file at `path`.                                                                                                                        |
-| [`annotation_value_digest`](_autosummary/lacing.html.md#lacing.annotation_value_digest)(annotation, \*[, ...])    | Return the SHA-256 hex digest of `annotation`'s value.                                                                                                                                       |
-| [`annotation_body_digest`](_autosummary/lacing.html.md#lacing.annotation_body_digest)(annotation)                | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                                                                             |
-| [`value_digest_matches`](_autosummary/lacing.html.md#lacing.value_digest_matches)(annotation, recorded, \*)    | Whether `recorded`, a value digest a trace stored under `scheme`, still describes `annotation`'s value.                                                                                      |
-| [`accepted_value_digests`](_autosummary/lacing.html.md#lacing.accepted_value_digests)(annotation, \*[, ...])     | Every digest [`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value_digest_matches) accepts for `annotation`.                                                                               |
-| [`register_store_migration`](_autosummary/lacing.html.md#lacing.register_store_migration)(\*, store_kind, ...)     | Register a forward store migration from `from_version` to `to_version`.                                                                                                                      |
-| [`migrate_annot_file`](_autosummary/lacing.html.md#lacing.migrate_annot_file)(path, \*[, to_version])        | Migrate a `.annot` file in place, returning `(from, to)` versions.                                                                                                                           |
-| [`replay_oplog`](_autosummary/lacing.html.md#lacing.replay_oplog)(log, \*[, until_clock, ...])         | Rebuild a store by replaying `log` up to (and including) `until_clock`.                                                                                                                      |
-| [`register_processor`](_autosummary/lacing.html.md#lacing.register_processor)([func, name])                  | Register a processor under `name` (defaults to the function name).                                                                                                                           |
-| [`registered_processors`](_autosummary/lacing.html.md#lacing.registered_processors)()                           | Names of every registered processor, sorted.                                                                                                                                                 |
-| [`run_processor_async`](_autosummary/lacing.html.md#lacing.run_processor_async)(name, \*, store, oplog, ...)  | Run a processor in the current event loop.                                                                                                                                                   |
-| [`run_processor_sync`](_autosummary/lacing.html.md#lacing.run_processor_sync)(name, \*, store, oplog, ...)   | Run a processor synchronously and return its result.                                                                                                                                         |
-| [`get_tracer`](_autosummary/lacing.html.md#lacing.get_tracer)([name, version])                       | Return a tracer or a no-op fallback.                                                                                                                                                         |
-| [`maybe_span`](_autosummary/lacing.html.md#lacing.maybe_span)(tracer, name, \*\*attributes)          | Open a span on `tracer`, attaching `attributes` if supported.                                                                                                                                |
-| [`traced`](_autosummary/lacing.html.md#lacing.traced)(tracer[, span_name, record_args])          | Decorator: wrap a function in a span on `tracer`.                                                                                                                                            |
-| [`instrument_otel`](_autosummary/lacing.html.md#lacing.instrument_otel)(app, \*[, tracer_name])           | Add OpenTelemetry instrumentation to a FastAPI app.                                                                                                                                          |
-| [`is_otel_active`](_autosummary/lacing.html.md#lacing.is_otel_active)()                                  | Quick check: is OTel installed AND a TracerProvider configured?                                                                                                                              |
-| [`cohen_kappa`](_autosummary/lacing.html.md#lacing.cohen_kappa)(a, b)                                 | Cohen's kappa for two annotators on a categorical label.                                                                                                                                     |
-| [`krippendorff_alpha`](_autosummary/lacing.html.md#lacing.krippendorff_alpha)(annotations, \*[, distance])   | Krippendorff's α across any number of annotators.                                                                                                                                            |
-| [`interval_iou`](_autosummary/lacing.html.md#lacing.interval_iou)(a, b)                                | Intersection-over-Union for two time intervals.                                                                                                                                              |
-| [`boundary_iou`](_autosummary/lacing.html.md#lacing.boundary_iou)(a, b)                                | Mean IoU between two sets of intervals via greedy best-match.                                                                                                                                |
-| [`register_body_schema`](_autosummary/lacing.html.md#lacing.register_body_schema)(uri, model)                  | Register `model` as the validator for `uri`.                                                                                                                                                 |
-| [`on_register`](_autosummary/lacing.html.md#lacing.on_register)(listener, \*[, replay])               | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                            |
-| [`body_locations`](_autosummary/lacing.html.md#lacing.body_locations)(uri)                               | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`. |
-| [`derived_paths`](_autosummary/lacing.html.md#lacing.derived_paths)(model)                              | The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.html.md#lacing.Derived) fields.                                                                          |
-| [`location_fields`](_autosummary/lacing.html.md#lacing.location_fields)(model)                            | `{field spelling: kind}` for the [`Location`](_autosummary/lacing.html.md#lacing.Location)-marked fields of `model` and of the models nested in it.                                          |
-| [`register_migration`](_autosummary/lacing.html.md#lacing.register_migration)(\*, schema_name, ...)          | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                      |
-| [`json_schema`](_autosummary/lacing.html.md#lacing.json_schema)(uri)                                  | Return the JSON Schema for the body model registered at `uri`.                                                                                                                               |
-| [`export_json_schemas`](_autosummary/lacing.html.md#lacing.export_json_schemas)(target_dir, \*[, ...])        | Write every registered schema as JSON files under `target_dir`.                                                                                                                              |
-| [`render_artifact_exhibit`](_autosummary/lacing.html.md#lacing.render_artifact_exhibit)(annotations, \*, out_dir) | Render an annotation graph as a human-readable artifact exhibit.                                                                                                                             |
-| [`migrate`](_autosummary/lacing.html.md#lacing.migrate)(body, \*, from_uri, to_uri)               | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                             |
-| [`validate_body`](_autosummary/lacing.html.md#lacing.validate_body)(body, uri)                          | Validate `body` against the schema registered for `uri`.                                                                                                                                     |
+| [`keep_rights`](_autosummary/lacing.html.md#lacing.keep_rights)(record, previous, \*[, content_hash])   | `record`, carrying forward the `rights` of the record it replaces when it states none for the same bytes (lacing#60; the choice is in lacing#94).                                            |
+|------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`resolve_in_mall`](_autosummary/lacing.html.md#lacing.resolve_in_mall)(ref, mall, \*, default_store)       | What `ref` names in `mall` (store names -> [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)).                                                                                  |
+| [`content_hash_of`](_autosummary/lacing.html.md#lacing.content_hash_of)(record)                             | The content hash naming `record`'s bytes in the blob store, if it has one.                                                                                                                   |
+| [`hash_bytes`](_autosummary/lacing.html.md#lacing.hash_bytes)(data)                                    | Return the canonical `asset_id` (SHA-256 hex) for `data`.                                                                                                                                    |
+| [`hash_file`](_autosummary/lacing.html.md#lacing.hash_file)(path, \*[, chunk_size])                   | Return the canonical `asset_id` (SHA-256 hex) for the file at `path`.                                                                                                                        |
+| [`annotation_value_digest`](_autosummary/lacing.html.md#lacing.annotation_value_digest)(annotation, \*[, ...])      | Return the SHA-256 hex digest of `annotation`'s value.                                                                                                                                       |
+| [`annotation_body_digest`](_autosummary/lacing.html.md#lacing.annotation_body_digest)(annotation)                  | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                                                                             |
+| [`value_digest_matches`](_autosummary/lacing.html.md#lacing.value_digest_matches)(annotation, recorded, \*)      | Whether `recorded`, a value digest a trace stored under `scheme`, still describes `annotation`'s value.                                                                                      |
+| [`accepted_value_digests`](_autosummary/lacing.html.md#lacing.accepted_value_digests)(annotation, \*[, ...])       | Every digest [`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value_digest_matches) accepts for `annotation`.                                                                               |
+| [`register_store_migration`](_autosummary/lacing.html.md#lacing.register_store_migration)(\*, store_kind, ...)       | Register a forward store migration from `from_version` to `to_version`.                                                                                                                      |
+| [`migrate_annot_file`](_autosummary/lacing.html.md#lacing.migrate_annot_file)(path, \*[, to_version])          | Migrate a `.annot` file in place, returning `(from, to)` versions.                                                                                                                           |
+| [`replay_oplog`](_autosummary/lacing.html.md#lacing.replay_oplog)(log, \*[, until_clock, ...])           | Rebuild a store by replaying `log` up to (and including) `until_clock`.                                                                                                                      |
+| [`register_processor`](_autosummary/lacing.html.md#lacing.register_processor)([func, name])                    | Register a processor under `name` (defaults to the function name).                                                                                                                           |
+| [`registered_processors`](_autosummary/lacing.html.md#lacing.registered_processors)()                             | Names of every registered processor, sorted.                                                                                                                                                 |
+| [`run_processor_async`](_autosummary/lacing.html.md#lacing.run_processor_async)(name, \*, store, oplog, ...)    | Run a processor in the current event loop.                                                                                                                                                   |
+| [`run_processor_sync`](_autosummary/lacing.html.md#lacing.run_processor_sync)(name, \*, store, oplog, ...)     | Run a processor synchronously and return its result.                                                                                                                                         |
+| [`get_tracer`](_autosummary/lacing.html.md#lacing.get_tracer)([name, version])                         | Return a tracer or a no-op fallback.                                                                                                                                                         |
+| [`maybe_span`](_autosummary/lacing.html.md#lacing.maybe_span)(tracer, name, \*\*attributes)            | Open a span on `tracer`, attaching `attributes` if supported.                                                                                                                                |
+| [`traced`](_autosummary/lacing.html.md#lacing.traced)(tracer[, span_name, record_args])            | Decorator: wrap a function in a span on `tracer`.                                                                                                                                            |
+| [`instrument_otel`](_autosummary/lacing.html.md#lacing.instrument_otel)(app, \*[, tracer_name])             | Add OpenTelemetry instrumentation to a FastAPI app.                                                                                                                                          |
+| [`is_otel_active`](_autosummary/lacing.html.md#lacing.is_otel_active)()                                    | Quick check: is OTel installed AND a TracerProvider configured?                                                                                                                              |
+| [`cohen_kappa`](_autosummary/lacing.html.md#lacing.cohen_kappa)(a, b)                                   | Cohen's kappa for two annotators on a categorical label.                                                                                                                                     |
+| [`krippendorff_alpha`](_autosummary/lacing.html.md#lacing.krippendorff_alpha)(annotations, \*[, distance])     | Krippendorff's α across any number of annotators.                                                                                                                                            |
+| [`interval_iou`](_autosummary/lacing.html.md#lacing.interval_iou)(a, b)                                  | Intersection-over-Union for two time intervals.                                                                                                                                              |
+| [`boundary_iou`](_autosummary/lacing.html.md#lacing.boundary_iou)(a, b)                                  | Mean IoU between two sets of intervals via greedy best-match.                                                                                                                                |
+| [`register_body_schema`](_autosummary/lacing.html.md#lacing.register_body_schema)(uri, model)                    | Register `model` as the validator for `uri`.                                                                                                                                                 |
+| [`on_register`](_autosummary/lacing.html.md#lacing.on_register)(listener, \*[, replay])                 | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                            |
+| [`body_locations`](_autosummary/lacing.html.md#lacing.body_locations)(uri)                                 | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`. |
+| [`derived_paths`](_autosummary/lacing.html.md#lacing.derived_paths)(model)                                | The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.html.md#lacing.Derived) fields.                                                                          |
+| [`location_fields`](_autosummary/lacing.html.md#lacing.location_fields)(model)                              | `{field spelling: kind}` for the [`Location`](_autosummary/lacing.html.md#lacing.Location)-marked fields of `model` and of the models nested in it.                                          |
+| [`register_migration`](_autosummary/lacing.html.md#lacing.register_migration)(\*, schema_name, ...)            | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                      |
+| [`json_schema`](_autosummary/lacing.html.md#lacing.json_schema)(uri)                                    | Return the JSON Schema for the body model registered at `uri`.                                                                                                                               |
+| [`export_json_schemas`](_autosummary/lacing.html.md#lacing.export_json_schemas)(target_dir, \*[, ...])          | Write every registered schema as JSON files under `target_dir`.                                                                                                                              |
+| [`render_artifact_exhibit`](_autosummary/lacing.html.md#lacing.render_artifact_exhibit)(annotations, \*, out_dir)   | Render an annotation graph as a human-readable artifact exhibit.                                                                                                                             |
+| [`migrate`](_autosummary/lacing.html.md#lacing.migrate)(body, \*, from_uri, to_uri)                 | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                             |
+| [`validate_body`](_autosummary/lacing.html.md#lacing.validate_body)(body, uri)                            | Validate `body` against the schema registered for `uri`.                                                                                                                                     |
 
 ### Classes
 
@@ -3558,7 +3660,7 @@ full story. `.claude/skills/` contains the rules.
 | [`Provenance`](_autosummary/lacing.html.md#lacing.Provenance)(\*, was_generated_by, ...[, ...])      | W3C PROV-O subset, embedded inline on every annotation.                                                                                                                                                            |
 | [`Artifact`](_autosummary/lacing.html.md#lacing.Artifact)(\*, asset_id, kind[, path, url, ...])    | A content-addressed generated file with provenance.                                                                                                                                                                |
 | [`Rights`](_autosummary/lacing.html.md#lacing.Rights)(\*, provider[, id, title, license, ...])   | Who owns the bytes of an *acquired* artifact, and on what terms.                                                                                                                                                   |
-| [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)(catalog[, blobs])                   | Facade over an artifact `catalog` and an optional `blobs` store.                                                                                                                                                   |
+| [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)(catalog[, blobs, on_write])         | Facade over an artifact `catalog` and an optional `blobs` store.                                                                                                                                                   |
 | [`ResolvedArtifact`](_autosummary/lacing.html.md#lacing.ResolvedArtifact)(key, record, content_hash, data) | What [`ArtifactStore.resolve()`](_autosummary/lacing.html.md#lacing.ArtifactStore.resolve) found.                                                                                                                               |
 | [`ArtifactRef`](_autosummary/lacing.html.md#lacing.ArtifactRef)(key[, store, pin])                    | A reference to an artifact: its `key`, the `store` that files it when known, and the content `pin` when it names one: the store's content hash, 64 hex digits of SHA-256 (an `Artifact.asset_id`), kept lowercase. |
 | [`AllenRelation`](_autosummary/lacing.html.md#lacing.AllenRelation)(\*values)                           | The thirteen Allen relations.                                                                                                                                                                                      |
@@ -3738,7 +3840,7 @@ ArtifactRef(key='takes/a', store=None, pin=None)
 * **Return type:**
   [`ArtifactRef`](_autosummary/lacing.artifact_ref.html.md#lacing.artifact_ref.ArtifactRef)
 
-### *class* lacing.ArtifactStore(catalog, blobs=None)
+### *class* lacing.ArtifactStore(catalog, blobs=None, \*, on_write=<function keep_rights>)
 
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
@@ -3753,8 +3855,9 @@ into the mapping protocol.
 
 * **Parameters:**
   * **catalog** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), `BaseModel`]) – Injected `id -> record` store. Records are pydantic models
-    (`lacing.Artifact` by default, but any `BaseModel` works — the
-    store does not inspect the record’s shape).
+    (`lacing.Artifact` by default, but any `BaseModel` works). The
+    store itself does not inspect the record’s shape; the default
+    `on_write` policy reads a `rights` field when there is one.
   * **blobs** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Injected `content_hash -> bytes` store, or `None` for a
     catalog-only store (Stage-1 metadata persistence). Blob methods
     raise / no-op when it is `None`. This is the *raw* backend:
@@ -3762,6 +3865,16 @@ into the mapping protocol.
     containment check, so go through [`delete_blob()`](_autosummary/lacing.html.md#lacing.ArtifactStore.delete_blob) and
     [`iter_blobs()`](_autosummary/lacing.html.md#lacing.ArtifactStore.iter_blobs) (and the read methods) rather than touching
     `store.blobs` directly (lacing#55).
+  * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Keyword-only. `on_write(record, previous) -> record`, the
+    policy every catalog write through the facade (`store[k] = r`,
+    [`save()`](_autosummary/lacing.html.md#lacing.ArtifactStore.save), `update`) passes through. `previous()` reads the
+    record being replaced: `None` for a new key; it raises
+    `ValueError` when that record cannot be read (it may hold rights,
+    so delete it to write over it). The default,
+    [`keep_rights()`](_autosummary/lacing.html.md#lacing.keep_rights), keeps the `rights` of a record replaced by a
+    rights-less one for the same bytes (lacing#60); `None` writes
+    records as given (last write wins). Writes straight to
+    `catalog` bypass it.
 
 Construct one with [`in_memory()`](_autosummary/lacing.html.md#lacing.ArtifactStore.in_memory) or [`from_directory()`](_autosummary/lacing.html.md#lacing.ArtifactStore.from_directory) rather than
 wiring the backing stores by hand, unless you are injecting a custom
@@ -3885,7 +3998,7 @@ filesystem to escape; the key passes through to their `del`.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-#### *classmethod* from_aws(bucket_name, uri, \*, record_type=<class 'lacing.artifact.Artifact'>, collection_name='artifact_catalog', prefix=None, s3_kwargs=None, sql_kwargs=None)
+#### *classmethod* from_aws(bucket_name, uri, \*, record_type=<class 'lacing.artifact.Artifact'>, collection_name='artifact_catalog', prefix=None, s3_kwargs=None, sql_kwargs=None, on_write=<function keep_rights>)
 
 The production pairing: **S3-compatible blobs + SQL catalog**.
 
@@ -3905,10 +4018,11 @@ a smoke test. Vendor specifics live only in the two kwargs dicts.
     `endpoint_url` for R2/MinIO/Supabase, `region_name`, …).
   * **sql_kwargs** ([`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Extra kwargs forwarded to [`from_sql()`](_autosummary/lacing.html.md#lacing.ArtifactStore.from_sql)
     (`content_hash_of`, SQLAlchemy engine kwargs, …).
+  * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The write policy (see [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)).
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
 
-#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None, catalog_delete_func=None)
+#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None, catalog_delete_func=None, on_write=<function keep_rights>)
 
 An ArtifactStore persisted under `root`.
 
@@ -3939,10 +4053,11 @@ follows a symlinked directory out of `catalog/`. See
     `None` keeps `dol.Files`’ default (move to the OS trash,
     a sensible default for records); pass `os.remove` for a
     delete that is final.
+  * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The write policy (see [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)).
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
 
-#### *classmethod* from_s3(bucket_name, , catalog=None, prefix=None, \*\*s3_kwargs)
+#### *classmethod* from_s3(bucket_name, \*, catalog=None, prefix=None, on_write=<function keep_rights>, \*\*s3_kwargs)
 
 An ArtifactStore with **blobs in an S3-compatible object store**
 (AWS S3 / Cloudflare R2 / MinIO / Supabase) via `s3dol`.
@@ -3962,6 +4077,7 @@ Postgres-backed `MutableMapping`) for production.
   * **catalog** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The `id -> record` catalog `MutableMapping`. Defaults
     to `{}` (in-memory).
   * **prefix** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Optional key prefix within the bucket (e.g. `"blobs"`).
+  * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The write policy (see [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)).
   * **\*\*s3_kwargs** – Forwarded to `s3dol.s3_store` — `endpoint_url`
     (set for R2 / MinIO / Supabase), `region_name`, `profile`,
     `credentials`, `preset`, `anon`, `on_missing_bucket`.
@@ -3975,7 +4091,7 @@ Postgres-backed `MutableMapping`) for production.
 Requires `s3dol>=1` (and `boto3`) — imported lazily so the
 dependency is only needed when this constructor is used.
 
-#### *classmethod* from_sql(uri, \*, blobs=None, record_type=<class 'lacing.artifact.Artifact'>, collection_name='artifact_catalog', content_hash_of=None, \*\*db_kwargs)
+#### *classmethod* from_sql(uri, \*, blobs=None, record_type=<class 'lacing.artifact.Artifact'>, collection_name='artifact_catalog', content_hash_of=None, on_write=<function keep_rights>, \*\*db_kwargs)
 
 An ArtifactStore with a **SQL-backed catalog** (durable, queryable)
 via `sqldol` — the SQL counterpart of [`from_s3()`](_autosummary/lacing.html.md#lacing.ArtifactStore.from_s3)’s object store.
@@ -4015,6 +4131,7 @@ persistence; see [`from_aws()`](_autosummary/lacing.html.md#lacing.ArtifactStore
     Artifact field), then `content_hash`. Pass a callable for a
     record whose hash lives elsewhere; records without a hash store
     an empty string.
+  * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The write policy (see [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)).
   * **\*\*db_kwargs** – Forwarded to `sqldol.SQLAlchemyStore` /
     SQLAlchemy’s `create_engine` (e.g. `connect_args`,
     `pool_size`).
@@ -4050,12 +4167,13 @@ filesystem to escape, so their keys pass through unfiltered.
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
-#### *classmethod* in_memory()
+#### *classmethod* in_memory(\*, on_write=<function keep_rights>)
 
 An ArtifactStore backed entirely by in-memory dicts.
 
 For tests, scratch work, and as the trivial reference backend. Nothing
-persists across processes.
+persists across processes. `on_write` is the write policy (see
+[`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)).
 
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
@@ -4100,6 +4218,46 @@ iterated as they are.
 
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### on_write(previous, \*, content_hash=<function content_hash_of>)
+
+`record`, carrying forward the `rights` of the record it replaces when
+it states none for the same bytes (lacing#60; the choice is in lacing#94).
+
+[`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)’s default `on_write` policy. Identical bytes carry
+the same third-party obligations whoever records them again, and
+`rights is None` reads as “we made this”, so a rights-less re-record must
+not erase them. An explicit `rights` replaces the old one; other bytes
+(another [`content_hash_of()`](_autosummary/lacing.html.md#lacing.content_hash_of)) do not inherit; to clear rights on
+purpose, delete the record first.
+
+`previous` is called only when a carry is possible: `record` is a
+pydantic model with a `rights` field set to `None` and a content hash.
+Anything else (a dict, a record without `rights`, a record filed before
+its bytes exist) is returned as given, without reading the catalog. A
+rights-less record *with* a content hash costs one catalog read. The
+guarantee holds for one writer at a time: the read and the write are not
+atomic. `content_hash` reads a record’s hash ([`ArtifactStore.from_sql()`](_autosummary/lacing.html.md#lacing.ArtifactStore.from_sql)
+passes its own accessor).
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – the carried `rights` do not validate on `record`’s
+      type, or the replaced record cannot be read. Refusing the write
+      beats silently erasing obligations.
+* **Return type:**
+  `BaseModel`
+
+```pycon
+>>> from lacing import Artifact, Rights
+>>> def made(rights=None):
+...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",
+...                                was_attributed_to="u", rights=rights)
+>>> acquired = made(Rights(provider="openverse"))
+>>> keep_rights(made(), lambda: acquired).rights.provider
+'openverse'
+>>> keep_rights(made(), lambda: None).rights is None  # a new key
+True
+```
 
 #### put_blob(data)
 
@@ -4774,11 +4932,15 @@ Semantics worth the trap they avoid:
 artifact either has no record (we made it) or says where it came from.
 Text fields are `None` or non-blank; a blank string is refused.
 
-Caveat: an artifact catalog is keyed by `asset_id` (the content hash), so
-two records for the *same bytes* are one row and the last write wins. A
-rights-less record written after an acquired one with identical bytes
-replaces it, rights included. Writers that re-record bytes they already
-hold must carry the existing `rights` forward.
+An artifact catalog is often keyed by `asset_id` (the content hash), so
+two records for the *same bytes* are one row. By default
+[`lacing.ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore) keeps the existing `rights` when a record
+with `rights=None` replaces one for the same bytes (its default
+`on_write` policy, [`lacing.keep_rights()`](_autosummary/lacing.html.md#lacing.keep_rights); lacing#60): the bytes’
+obligations do not lapse because someone recorded them again. An explicit
+`rights` replaces the old one; to clear rights, delete the record first.
+`on_write=None` restores last-write-wins, and a policy that refuses such
+a write instead is a small function passed as `on_write`.
 
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
 
@@ -5251,6 +5413,46 @@ the registered model has.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+### lacing.keep_rights(record, previous, \*, content_hash=<function content_hash_of>)
+
+`record`, carrying forward the `rights` of the record it replaces when
+it states none for the same bytes (lacing#60; the choice is in lacing#94).
+
+[`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)’s default `on_write` policy. Identical bytes carry
+the same third-party obligations whoever records them again, and
+`rights is None` reads as “we made this”, so a rights-less re-record must
+not erase them. An explicit `rights` replaces the old one; other bytes
+(another [`content_hash_of()`](_autosummary/lacing.html.md#lacing.content_hash_of)) do not inherit; to clear rights on
+purpose, delete the record first.
+
+`previous` is called only when a carry is possible: `record` is a
+pydantic model with a `rights` field set to `None` and a content hash.
+Anything else (a dict, a record without `rights`, a record filed before
+its bytes exist) is returned as given, without reading the catalog. A
+rights-less record *with* a content hash costs one catalog read. The
+guarantee holds for one writer at a time: the read and the write are not
+atomic. `content_hash` reads a record’s hash ([`ArtifactStore.from_sql()`](_autosummary/lacing.html.md#lacing.ArtifactStore.from_sql)
+passes its own accessor).
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – the carried `rights` do not validate on `record`’s
+      type, or the replaced record cannot be read. Refusing the write
+      beats silently erasing obligations.
+* **Return type:**
+  `BaseModel`
+
+```pycon
+>>> from lacing import Artifact, Rights
+>>> def made(rights=None):
+...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",
+...                                was_attributed_to="u", rights=rights)
+>>> acquired = made(Rights(provider="openverse"))
+>>> keep_rights(made(), lambda: acquired).rights.provider
+'openverse'
+>>> keep_rights(made(), lambda: None).rights is None  # a new key
+True
+```
 
 ### lacing.krippendorff_alpha(annotations, \*, distance=<function \_nominal_distance>)
 
@@ -8702,7 +8904,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-10-27 18:21 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/df9ed72e502e1c9985ff5d76f723126cc433ce50"><code>df9ed72</code></a> on branch <code>main</code>, for **lacing 0.0.63** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 18:27 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/cd83a62a6358804bc8a4d44eeae7f366ec8139a0"><code>cd83a62</code></a> on branch <code>main</code>, for **lacing 0.0.64** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -8711,7 +8913,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/df9ed72e502e1c9985ff5d76f723126cc433ce50"><code>df9ed72e502e1c9985ff5d76f723126cc433ce50</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/cd83a62a6358804bc8a4d44eeae7f366ec8139a0"><code>cd83a62a6358804bc8a4d44eeae7f366ec8139a0</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -8722,9 +8924,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40557947435">40557947435</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40559606651">40559606651</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>df9ed72e502e1c9985ff5d76f723126cc433ce50</code> (in the history of the built commit) |
+| Event commit | <code>cd83a62a6358804bc8a4d44eeae7f366ec8139a0</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -8749,13 +8951,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.63/">0.0.63</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.64/">0.0.64</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout df9ed72e502e1c9985ff5d76f723126cc433ce50
+git checkout cd83a62a6358804bc8a4d44eeae7f366ec8139a0
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

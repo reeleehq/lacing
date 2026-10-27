@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=7ada5fdd"></script>
+    <script src="../../_static/documentation_options.js?v=b153cf10"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.63" />
+  <meta name="docsearch:version" content="0.0.64" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -772,11 +772,12 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">stat</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">MutableMapping</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">NamedTuple</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">TypeAdapter</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dol</span><span class="w"> </span><span class="kn">import</span> <span class="n">Files</span><span class="p">,</span> <span class="n">filt_iter</span><span class="p">,</span> <span class="n">wrap_kvs</span>
 
@@ -851,7 +852,16 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">kwargs</span>
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"ArtifactStore"</span><span class="p">,</span> <span class="s2">"ResolvedArtifact"</span><span class="p">,</span> <span class="s2">"content_hash_of"</span><span class="p">,</span> <span class="s2">"resolve_in_mall"</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"ArtifactStore"</span><span class="p">,</span>
+    <span class="s2">"ResolvedArtifact"</span><span class="p">,</span>
+    <span class="s2">"content_hash_of"</span><span class="p">,</span>
+    <span class="s2">"keep_rights"</span><span class="p">,</span>
+    <span class="s2">"resolve_in_mall"</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1">#: ``on_write(record, previous) -&gt; record``: see :class:`ArtifactStore`.</span>
+<span class="n">WritePolicy</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">BaseModel</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]],</span> <span class="n">BaseModel</span><span class="p">]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_mk_sql_refcount</span><span class="p">(</span><span class="n">sql_store</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
@@ -893,8 +903,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    &gt;&gt;&gt; content_hash_of(Record(content_hash="c1")), content_hash_of(Record())</span>
 <span class="sd">    ('c1', None)</span>
 <span class="sd">    """</span>
-    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"asset_id"</span><span class="p">,</span> <span class="s2">"content_hash"</span><span class="p">):</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"asset_id"</span><span class="p">,</span> <span class="s2">"content_hash"</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">value</span>
     <span class="k">return</span> <span class="kc">None</span></div>
@@ -903,6 +913,78 @@ window.runMermaid = runMermaid;</script>
 
 <span class="c1"># ``from_sql`` takes a ``content_hash_of`` argument, which shadows the function.</span>
 <span class="n">_default_content_hash_of</span> <span class="o">=</span> <span class="n">content_hash_of</span>
+
+
+<div class="viewcode-block" id="keep_rights">
+<a class="viewcode-back" href="../../_autosummary/lacing.artifact_store.html#lacing.keep_rights">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">keep_rights</span><span class="p">(</span>
+    <span class="n">record</span><span class="p">:</span> <span class="n">BaseModel</span><span class="p">,</span>
+    <span class="n">previous</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">BaseModel</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">content_hash</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="n">content_hash_of</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseModel</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``record``, carrying forward the ``rights`` of the record it replaces when</span>
+<span class="sd">    it states none for the same bytes (lacing#60; the choice is in lacing#94).</span>
+
+<span class="sd">    :class:`ArtifactStore`'s default ``on_write`` policy. Identical bytes carry</span>
+<span class="sd">    the same third-party obligations whoever records them again, and</span>
+<span class="sd">    ``rights is None`` reads as "we made this", so a rights-less re-record must</span>
+<span class="sd">    not erase them. An explicit ``rights`` replaces the old one; other bytes</span>
+<span class="sd">    (another :func:`content_hash_of`) do not inherit; to clear rights on</span>
+<span class="sd">    purpose, delete the record first.</span>
+
+<span class="sd">    ``previous`` is called only when a carry is possible: ``record`` is a</span>
+<span class="sd">    pydantic model with a ``rights`` field set to ``None`` and a content hash.</span>
+<span class="sd">    Anything else (a dict, a record without ``rights``, a record filed before</span>
+<span class="sd">    its bytes exist) is returned as given, without reading the catalog. A</span>
+<span class="sd">    rights-less record *with* a content hash costs one catalog read. The</span>
+<span class="sd">    guarantee holds for one writer at a time: the read and the write are not</span>
+<span class="sd">    atomic. ``content_hash`` reads a record's hash (:meth:`ArtifactStore.from_sql`</span>
+<span class="sd">    passes its own accessor).</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: the carried ``rights`` do not validate on ``record``'s</span>
+<span class="sd">            type, or the replaced record cannot be read. Refusing the write</span>
+<span class="sd">            beats silently erasing obligations.</span>
+
+<span class="sd">    &gt;&gt;&gt; from lacing import Artifact, Rights</span>
+<span class="sd">    &gt;&gt;&gt; def made(rights=None):</span>
+<span class="sd">    ...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",</span>
+<span class="sd">    ...                                was_attributed_to="u", rights=rights)</span>
+<span class="sd">    &gt;&gt;&gt; acquired = made(Rights(provider="openverse"))</span>
+<span class="sd">    &gt;&gt;&gt; keep_rights(made(), lambda: acquired).rights.provider</span>
+<span class="sd">    'openverse'</span>
+<span class="sd">    &gt;&gt;&gt; keep_rights(made(), lambda: None).rights is None  # a new key</span>
+<span class="sd">    True</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">record</span>
+    <span class="k">if</span> <span class="s2">"rights"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">type</span><span class="p">(</span><span class="n">record</span><span class="p">)</span><span class="o">.</span><span class="n">model_fields</span> <span class="ow">or</span> <span class="n">record</span><span class="o">.</span><span class="n">rights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">record</span>  <span class="c1"># nothing to keep: no field, or a statement of its own</span>
+    <span class="n">hash_</span> <span class="o">=</span> <span class="n">content_hash</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">hash_</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">record</span>  <span class="c1"># no bytes yet, so nothing to be "the same bytes" as</span>
+    <span class="n">replaced</span> <span class="o">=</span> <span class="n">previous</span><span class="p">()</span>
+    <span class="n">kept</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">replaced</span><span class="p">,</span> <span class="s2">"rights"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">kept</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">content_hash</span><span class="p">(</span><span class="n">replaced</span><span class="p">)</span> <span class="o">!=</span> <span class="n">hash_</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">record</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kept</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">):</span>
+        <span class="n">kept</span> <span class="o">=</span> <span class="n">kept</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span>
+    <span class="n">rights_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">record</span><span class="p">)</span><span class="o">.</span><span class="n">model_fields</span><span class="p">[</span><span class="s2">"rights"</span><span class="p">]</span><span class="o">.</span><span class="n">annotation</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Validate only the carried value: re-validating the whole record from</span>
+        <span class="c1"># its dump would refuse valid records (computed or excluded fields).</span>
+        <span class="n">carried</span> <span class="o">=</span> <span class="n">TypeAdapter</span><span class="p">(</span><span class="n">rights_type</span><span class="p">)</span><span class="o">.</span><span class="n">validate_python</span><span class="p">(</span><span class="n">kept</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"A rights-less </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">record</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> for content </span><span class="si">{</span><span class="n">hash_</span><span class="si">}</span><span class="s2"> "</span>
+            <span class="sa">f</span><span class="s2">"replaces a record with rights, and those rights cannot be carried "</span>
+            <span class="sa">f</span><span class="s2">"forward onto it (</span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">). Refusing the write rather than erasing "</span>
+            <span class="sa">f</span><span class="s2">"the obligations: state the rights explicitly, or delete the old "</span>
+            <span class="sa">f</span><span class="s2">"record first."</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+    <span class="k">return</span> <span class="n">record</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"rights"</span><span class="p">:</span> <span class="n">carried</span><span class="p">})</span></div>
+
 
 
 <div class="viewcode-block" id="ResolvedArtifact">
@@ -987,8 +1069,9 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    Args:</span>
 <span class="sd">        catalog: Injected ``id -&gt; record`` store. Records are pydantic models</span>
-<span class="sd">            (``lacing.Artifact`` by default, but any ``BaseModel`` works — the</span>
-<span class="sd">            store does not inspect the record's shape).</span>
+<span class="sd">            (``lacing.Artifact`` by default, but any ``BaseModel`` works). The</span>
+<span class="sd">            store itself does not inspect the record's shape; the default</span>
+<span class="sd">            ``on_write`` policy reads a ``rights`` field when there is one.</span>
 <span class="sd">        blobs: Injected ``content_hash -&gt; bytes`` store, or ``None`` for a</span>
 <span class="sd">            catalog-only store (Stage-1 metadata persistence). Blob methods</span>
 <span class="sd">            raise / no-op when it is ``None``. This is the *raw* backend:</span>
@@ -996,6 +1079,16 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            containment check, so go through :meth:`delete_blob` and</span>
 <span class="sd">            :meth:`iter_blobs` (and the read methods) rather than touching</span>
 <span class="sd">            ``store.blobs`` directly (lacing#55).</span>
+<span class="sd">        on_write: Keyword-only. ``on_write(record, previous) -&gt; record``, the</span>
+<span class="sd">            policy every catalog write through the facade (``store[k] = r``,</span>
+<span class="sd">            :meth:`save`, ``update``) passes through. ``previous()`` reads the</span>
+<span class="sd">            record being replaced: ``None`` for a new key; it raises</span>
+<span class="sd">            ``ValueError`` when that record cannot be read (it may hold rights,</span>
+<span class="sd">            so delete it to write over it). The default,</span>
+<span class="sd">            :func:`keep_rights`, keeps the ``rights`` of a record replaced by a</span>
+<span class="sd">            rights-less one for the same bytes (lacing#60); ``None`` writes</span>
+<span class="sd">            records as given (last write wins). Writes straight to</span>
+<span class="sd">            ``catalog`` bypass it.</span>
 
 <span class="sd">    Construct one with :meth:`in_memory` or :meth:`from_directory` rather than</span>
 <span class="sd">    wiring the backing stores by hand, unless you are injecting a custom</span>
@@ -1004,6 +1097,7 @@ window.runMermaid = runMermaid;</script>
 
     <span class="n">catalog</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">]</span>
     <span class="n">blobs</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">on_write</span><span class="p">:</span> <span class="n">WritePolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">keep_rights</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1"># -- catalog: the MutableMapping surface (artifact_id -&gt; record) --------</span>
 
@@ -1011,7 +1105,7 @@ window.runMermaid = runMermaid;</script>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="p">[</span><span class="n">artifact_id</span><span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">BaseModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="p">[</span><span class="n">artifact_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="p">[</span><span class="n">artifact_id</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_admitted</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="p">[</span><span class="n">artifact_id</span><span class="p">]</span>
@@ -1048,6 +1142,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        Raises:</span>
 <span class="sd">            RuntimeError: ``data`` was given but no blob store is configured.</span>
 <span class="sd">        """</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_admitted</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>  <span class="c1"># a refusal leaves no blob</span>
         <span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1061,6 +1156,26 @@ window.runMermaid = runMermaid;</script>
         <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="p">[</span><span class="n">artifact_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span>
         <span class="k">return</span> <span class="n">content_hash</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_admitted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">BaseModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseModel</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""``record`` as the ``on_write`` policy admits it at ``artifact_id``."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_write</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">record</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_write</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replaced</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_replaced</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseModel</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The record at ``artifact_id`` that a write is about to replace;</span>
+<span class="sd">        ``None`` for a new key. A damaged record raises: it may hold rights."""</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="p">[</span><span class="n">artifact_id</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"The record at </span><span class="si">{</span><span class="n">artifact_id</span><span class="si">!r}</span><span class="s2"> cannot be read "</span>
+                <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">), and it may hold rights the write "</span>
+                <span class="sa">f</span><span class="s2">"would erase: delete it first to write over it."</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
 
 <div class="viewcode-block" id="ArtifactStore.index">
 <a class="viewcode-back" href="../../_autosummary/lacing.artifact_store.html#lacing.ArtifactStore.index">[docs]</a>
@@ -1474,13 +1589,14 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="ArtifactStore.in_memory">
 <a class="viewcode-back" href="../../_autosummary/lacing.artifact_store.html#lacing.ArtifactStore.in_memory">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">in_memory</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArtifactStore</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">in_memory</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">on_write</span><span class="p">:</span> <span class="n">WritePolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">keep_rights</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArtifactStore</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""An ArtifactStore backed entirely by in-memory dicts.</span>
 
 <span class="sd">        For tests, scratch work, and as the trivial reference backend. Nothing</span>
-<span class="sd">        persists across processes.</span>
+<span class="sd">        persists across processes. ``on_write`` is the write policy (see</span>
+<span class="sd">        :class:`ArtifactStore`).</span>
 <span class="sd">        """</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="p">{},</span> <span class="n">blobs</span><span class="o">=</span><span class="p">{})</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="p">{},</span> <span class="n">blobs</span><span class="o">=</span><span class="p">{},</span> <span class="n">on_write</span><span class="o">=</span><span class="n">on_write</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ArtifactStore.from_directory">
@@ -1493,6 +1609,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">record_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]</span> <span class="o">=</span> <span class="n">Artifact</span><span class="p">,</span>
         <span class="n">blob_delete_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">catalog_delete_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">on_write</span><span class="p">:</span> <span class="n">WritePolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">keep_rights</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArtifactStore</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""An ArtifactStore persisted under ``root``.</span>
 
@@ -1523,6 +1640,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">                ``None`` keeps ``dol.Files``' default (move to the OS trash,</span>
 <span class="sd">                a sensible default for records); pass ``os.remove`` for a</span>
 <span class="sd">                delete that is final.</span>
+<span class="sd">            on_write: The write policy (see :class:`ArtifactStore`).</span>
 <span class="sd">        """</span>
         <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
         <span class="n">catalog_dir</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="s2">"catalog"</span>
@@ -1545,7 +1663,7 @@ window.runMermaid = runMermaid;</script>
             <span class="n">obj_of_data</span><span class="o">=</span><span class="k">lambda</span> <span class="n">raw</span><span class="p">:</span> <span class="n">record_type</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span><span class="n">raw</span><span class="p">),</span>
         <span class="p">)</span>
         <span class="n">blobs</span> <span class="o">=</span> <span class="n">Files</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">blob_dir</span><span class="p">),</span> <span class="n">delete_func</span><span class="o">=</span><span class="n">blob_delete_func</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span> <span class="n">blobs</span><span class="o">=</span><span class="n">blobs</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span> <span class="n">blobs</span><span class="o">=</span><span class="n">blobs</span><span class="p">,</span> <span class="n">on_write</span><span class="o">=</span><span class="n">on_write</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ArtifactStore.count_refs">
@@ -1595,6 +1713,7 @@ window.runMermaid = runMermaid;</script>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">catalog</span><span class="p">:</span> <span class="s2">"MutableMapping[str, BaseModel] | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">on_write</span><span class="p">:</span> <span class="n">WritePolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">keep_rights</span><span class="p">,</span>
         <span class="o">**</span><span class="n">s3_kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArtifactStore</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""An ArtifactStore with **blobs in an S3-compatible object store**</span>
@@ -1615,6 +1734,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            catalog: The ``id -&gt; record`` catalog ``MutableMapping``. Defaults</span>
 <span class="sd">                to ``{}`` (in-memory).</span>
 <span class="sd">            prefix: Optional key prefix within the bucket (e.g. ``"blobs"``).</span>
+<span class="sd">            on_write: The write policy (see :class:`ArtifactStore`).</span>
 <span class="sd">            **s3_kwargs: Forwarded to ``s3dol.s3_store`` — ``endpoint_url``</span>
 <span class="sd">                (set for R2 / MinIO / Supabase), ``region_name``, ``profile``,</span>
 <span class="sd">                ``credentials``, ``preset``, ``anon``, ``on_missing_bucket``.</span>
@@ -1631,7 +1751,9 @@ window.runMermaid = runMermaid;</script>
         <span class="n">blobs</span> <span class="o">=</span> <span class="n">s3_store</span><span class="p">(</span>
             <span class="n">bucket_name</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span> <span class="o">**</span><span class="n">_s3_kwargs_to_v1</span><span class="p">(</span><span class="n">s3_kwargs</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="p">{}</span> <span class="k">if</span> <span class="n">catalog</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">catalog</span><span class="p">,</span> <span class="n">blobs</span><span class="o">=</span><span class="n">blobs</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">catalog</span><span class="o">=</span><span class="p">{}</span> <span class="k">if</span> <span class="n">catalog</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">catalog</span><span class="p">,</span> <span class="n">blobs</span><span class="o">=</span><span class="n">blobs</span><span class="p">,</span> <span class="n">on_write</span><span class="o">=</span><span class="n">on_write</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ArtifactStore.from_sql">
@@ -1645,6 +1767,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">record_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]</span> <span class="o">=</span> <span class="n">Artifact</span><span class="p">,</span>
         <span class="n">collection_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"artifact_catalog"</span><span class="p">,</span>
         <span class="n">content_hash_of</span><span class="p">:</span> <span class="s2">"Callable[[BaseModel], str | None] | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">on_write</span><span class="p">:</span> <span class="n">WritePolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">keep_rights</span><span class="p">,</span>
         <span class="o">**</span><span class="n">db_kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArtifactStore</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""An ArtifactStore with a **SQL-backed catalog** (durable, queryable)</span>
@@ -1683,6 +1806,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">                Artifact field), then ``content_hash``. Pass a callable for a</span>
 <span class="sd">                record whose hash lives elsewhere; records without a hash store</span>
 <span class="sd">                an empty string.</span>
+<span class="sd">            on_write: The write policy (see :class:`ArtifactStore`).</span>
 <span class="sd">            **db_kwargs: Forwarded to ``sqldol.SQLAlchemyStore`` /</span>
 <span class="sd">                SQLAlchemy's ``create_engine`` (e.g. ``connect_args``,</span>
 <span class="sd">                ``pool_size``).</span>
@@ -1695,6 +1819,8 @@ window.runMermaid = runMermaid;</script>
 
         <span class="k">if</span> <span class="n">content_hash_of</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">content_hash_of</span> <span class="o">=</span> <span class="n">_default_content_hash_of</span>
+        <span class="k">elif</span> <span class="n">on_write</span> <span class="ow">is</span> <span class="n">keep_rights</span><span class="p">:</span>  <span class="c1"># match records by the same accessor</span>
+            <span class="n">on_write</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">keep_rights</span><span class="p">,</span> <span class="n">content_hash</span><span class="o">=</span><span class="n">content_hash_of</span><span class="p">)</span>
 
         <span class="n">raw</span> <span class="o">=</span> <span class="n">SQLAlchemyStore</span><span class="p">(</span>
             <span class="n">uri</span><span class="o">=</span><span class="n">uri</span><span class="p">,</span>
@@ -1729,7 +1855,7 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># Attach the GC reference-count capability so ``count_refs`` resolves it</span>
         <span class="c1"># to a single indexed query (the probe pattern; see ``count_refs``).</span>
         <span class="n">catalog</span><span class="o">.</span><span class="n">refcount_by_content_hash</span> <span class="o">=</span> <span class="n">_mk_sql_refcount</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span> <span class="n">blobs</span><span class="o">=</span><span class="n">blobs</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span> <span class="n">blobs</span><span class="o">=</span><span class="n">blobs</span><span class="p">,</span> <span class="n">on_write</span><span class="o">=</span><span class="n">on_write</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ArtifactStore.from_aws">
@@ -1745,6 +1871,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">s3_kwargs</span><span class="p">:</span> <span class="s2">"dict | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sql_kwargs</span><span class="p">:</span> <span class="s2">"dict | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">on_write</span><span class="p">:</span> <span class="n">WritePolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">keep_rights</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArtifactStore</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""The production pairing: **S3-compatible blobs + SQL catalog**.</span>
 
@@ -1764,6 +1891,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">                ``endpoint_url`` for R2/MinIO/Supabase, ``region_name``, …).</span>
 <span class="sd">            sql_kwargs: Extra kwargs forwarded to :meth:`from_sql`</span>
 <span class="sd">                (``content_hash_of``, SQLAlchemy engine kwargs, …).</span>
+<span class="sd">            on_write: The write policy (see :class:`ArtifactStore`).</span>
 <span class="sd">        """</span>
         <span class="n">s3_store</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_s3</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">s3_kwargs</span> <span class="ow">or</span> <span class="p">{}))</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_sql</span><span class="p">(</span>
@@ -1771,6 +1899,7 @@ window.runMermaid = runMermaid;</script>
             <span class="n">blobs</span><span class="o">=</span><span class="n">s3_store</span><span class="o">.</span><span class="n">blobs</span><span class="p">,</span>
             <span class="n">record_type</span><span class="o">=</span><span class="n">record_type</span><span class="p">,</span>
             <span class="n">collection_name</span><span class="o">=</span><span class="n">collection_name</span><span class="p">,</span>
+            <span class="n">on_write</span><span class="o">=</span><span class="n">on_write</span><span class="p">,</span>
             <span class="o">**</span><span class="p">(</span><span class="n">sql_kwargs</span> <span class="ow">or</span> <span class="p">{}),</span>
         <span class="p">)</span></div>
 </div>

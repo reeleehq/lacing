@@ -9,6 +9,7 @@ lacing.artifact\_store
    .. autosummary::
    
       content_hash_of
+      keep_rights
       resolve_in_mall
    
    .. rubric:: Classes

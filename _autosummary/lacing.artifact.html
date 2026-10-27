@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=7ada5fdd"></script>
+    <script src="../_static/documentation_options.js?v=b153cf10"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.63" />
+  <meta name="docsearch:version" content="0.0.64" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -635,11 +635,15 @@ consumer. <code class="docutils literal notranslate"><span class="pre">rights</s
 <p><code class="docutils literal notranslate"><span class="pre">provider</span></code> is required, so an empty <code class="docutils literal notranslate"><span class="pre">Rights()</span></code> cannot exist: an
 artifact either has no record (we made it) or says where it came from.
 Text fields are <code class="docutils literal notranslate"><span class="pre">None</span></code> or non-blank; a blank string is refused.</p>
-<p>Caveat: an artifact catalog is keyed by <code class="docutils literal notranslate"><span class="pre">asset_id</span></code> (the content hash), so
-two records for the <em>same bytes</em> are one row and the last write wins. A
-rights-less record written after an acquired one with identical bytes
-replaces it, rights included. Writers that re-record bytes they already
-hold must carry the existing <code class="docutils literal notranslate"><span class="pre">rights</span></code> forward.</p>
+<p>An artifact catalog is often keyed by <code class="docutils literal notranslate"><span class="pre">asset_id</span></code> (the content hash), so
+two records for the <em>same bytes</em> are one row. By default
+<a class="reference internal" href="lacing.html#lacing.ArtifactStore" title="lacing.ArtifactStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">lacing.ArtifactStore</span></code></a> keeps the existing <code class="docutils literal notranslate"><span class="pre">rights</span></code> when a record
+with <code class="docutils literal notranslate"><span class="pre">rights=None</span></code> replaces one for the same bytes (its default
+<code class="docutils literal notranslate"><span class="pre">on_write</span></code> policy, <a class="reference internal" href="lacing.html#lacing.keep_rights" title="lacing.keep_rights"><code class="xref py py-func docutils literal notranslate"><span class="pre">lacing.keep_rights()</span></code></a>; lacing#60): the bytes’
+obligations do not lapse because someone recorded them again. An explicit
+<code class="docutils literal notranslate"><span class="pre">rights</span></code> replaces the old one; to clear rights, delete the record first.
+<code class="docutils literal notranslate"><span class="pre">on_write=None</span></code> restores last-write-wins, and a policy that refuses such
+a write instead is a small function passed as <code class="docutils literal notranslate"><span class="pre">on_write</span></code>.</p>
 <dl class="field-list simple">
 </dl>
 <dl class="py attribute">
