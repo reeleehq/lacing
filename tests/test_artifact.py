@@ -434,16 +434,61 @@ class TestRightsCarryForward:
             store["k"] = Loose(asset_id=acquired.asset_id)
         assert store["k"] == acquired
 
-    def test_a_damaged_previous_record_warns_and_writes(self, tmp_path, caplog):
+    def test_a_damaged_previous_record_refuses_until_deleted(self, tmp_path):
+        """It may hold rights, so a write that could carry them refuses."""
         from lacing import ArtifactStore
 
         store = ArtifactStore.from_directory(tmp_path)
         (tmp_path / "catalog" / "k.json").write_text("{not json")
         made = self._made()
-        with caplog.at_level("WARNING", logger="lacing.artifact_store"):
-            store["k"] = made
-        assert "'k'" in caplog.text
+        with pytest.raises(ValueError, match="delete it first"):
+            store.save("k", made, data=b"x")
+        assert list(store.iter_blobs()) == []  # the refusal left no blob behind
+        del store["k"]
+        store["k"] = made
         assert store["k"] == made
+
+    def test_carrying_validates_only_the_rights(self):
+        """A record whose whole dump does not validate back (a computed field
+        under extra='forbid') still takes carried rights."""
+        from pydantic import BaseModel, ConfigDict, computed_field
+
+        from lacing import ArtifactStore
+
+        class Rendered(BaseModel):
+            model_config = ConfigDict(extra="forbid", frozen=True)
+            asset_id: str
+            rights: Rights | None = None
+
+            @computed_field
+            @property
+            def short(self) -> str:
+                return self.asset_id[:8]
+
+        store = ArtifactStore.in_memory()
+        acquired = self._made(rights=Rights(**_FULL_RIGHTS))
+        store["k"] = acquired
+        store["k"] = Rendered(asset_id=acquired.asset_id)
+        assert store["k"].rights == Rights(**_FULL_RIGHTS)
+
+    def test_from_sql_matches_by_its_own_hash_accessor(self):
+        pytest.importorskip("sqldol")
+        from pydantic import BaseModel
+
+        from lacing import ArtifactStore
+
+        class Clip(BaseModel):
+            digest: str
+            rights: Rights | None = None
+
+        store = ArtifactStore.from_sql(
+            "sqlite:///:memory:",
+            record_type=Clip,
+            content_hash_of=lambda record: record.digest,
+        )
+        store["k"] = Clip(digest="d1", rights=Rights(**_FULL_RIGHTS))
+        store["k"] = Clip(digest="d1")
+        assert store["k"].rights == Rights(**_FULL_RIGHTS)
 
     def test_a_refuse_policy_through_a_constructor(self, tmp_path):
         from lacing import ArtifactStore

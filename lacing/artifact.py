@@ -157,7 +157,7 @@ class Rights(BaseModel):
     obligations do not lapse because someone recorded them again. An explicit
     ``rights`` replaces the old one; to clear rights, delete the record first.
     ``on_write=None`` restores last-write-wins, and a policy that refuses such
-    a write instead is a one-line function passed as ``on_write``.
+    a write instead is a small function passed as ``on_write``.
     """
 
     model_config = {"frozen": True, "extra": "forbid"}

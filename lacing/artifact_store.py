@@ -55,15 +55,15 @@ True
 from __future__ import annotations
 
 import hashlib
-import logging
 import os
 import stat
 from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping
 from dataclasses import dataclass, field
+from functools import partial
 from pathlib import Path
 from typing import Any, NamedTuple
 
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 
 from dol import Files, filt_iter, wrap_kvs
 
@@ -142,12 +142,9 @@ __all__ = [
     "ArtifactStore",
     "ResolvedArtifact",
     "content_hash_of",
-    "WritePolicy",
     "keep_rights",
     "resolve_in_mall",
 ]
-
-logger = logging.getLogger(__name__)
 
 #: ``on_write(record, previous) -> record``: see :class:`ArtifactStore`.
 WritePolicy = Callable[[BaseModel, Callable[[], BaseModel | None]], BaseModel]
@@ -202,7 +199,10 @@ _default_content_hash_of = content_hash_of
 
 
 def keep_rights(
-    record: BaseModel, previous: Callable[[], BaseModel | None]
+    record: BaseModel,
+    previous: Callable[[], BaseModel | None],
+    *,
+    content_hash: Callable[[Any], str | None] = content_hash_of,
 ) -> BaseModel:
     """``record``, carrying forward the ``rights`` of the record it replaces when
     it states none for the same bytes (lacing#60; the choice is in lacing#94).
@@ -217,11 +217,16 @@ def keep_rights(
     ``previous`` is called only when a carry is possible: ``record`` is a
     pydantic model with a ``rights`` field set to ``None`` and a content hash.
     Anything else (a dict, a record without ``rights``, a record filed before
-    its bytes exist) is returned as given, without reading the catalog.
+    its bytes exist) is returned as given, without reading the catalog. A
+    rights-less record *with* a content hash costs one catalog read. The
+    guarantee holds for one writer at a time: the read and the write are not
+    atomic. ``content_hash`` reads a record's hash (:meth:`ArtifactStore.from_sql`
+    passes its own accessor).
 
     Raises:
         ValueError: the carried ``rights`` do not validate on ``record``'s
-            type. Refusing the write beats silently erasing obligations.
+            type, or the replaced record cannot be read. Refusing the write
+            beats silently erasing obligations.
 
     >>> from lacing import Artifact, Rights
     >>> def made(rights=None):
@@ -237,25 +242,29 @@ def keep_rights(
         return record
     if "rights" not in type(record).model_fields or record.rights is not None:
         return record  # nothing to keep: no field, or a statement of its own
-    content_hash = content_hash_of(record)
-    if content_hash is None:
+    hash_ = content_hash(record)
+    if hash_ is None:
         return record  # no bytes yet, so nothing to be "the same bytes" as
     replaced = previous()
     kept = getattr(replaced, "rights", None)
-    if kept is None or content_hash_of(replaced) != content_hash:
+    if kept is None or content_hash(replaced) != hash_:
         return record
     if isinstance(kept, BaseModel):
         kept = kept.model_dump()
+    rights_type = type(record).model_fields["rights"].annotation
     try:
-        return type(record).model_validate({**record.model_dump(), "rights": kept})
+        # Validate only the carried value: re-validating the whole record from
+        # its dump would refuse valid records (computed or excluded fields).
+        carried = TypeAdapter(rights_type).validate_python(kept)
     except ValueError as error:
         raise ValueError(
-            f"A rights-less {type(record).__name__} for content {content_hash} "
+            f"A rights-less {type(record).__name__} for content {hash_} "
             f"replaces a record with rights, and those rights cannot be carried "
             f"forward onto it ({error}). Refusing the write rather than erasing "
             f"the obligations: state the rights explicitly, or delete the old "
             f"record first."
         ) from error
+    return record.model_copy(update={"rights": carried})
 
 
 class ResolvedArtifact(NamedTuple):
@@ -345,8 +354,9 @@ class ArtifactStore(MutableMapping):
         on_write: Keyword-only. ``on_write(record, previous) -> record``, the
             policy every catalog write through the facade (``store[k] = r``,
             :meth:`save`, ``update``) passes through. ``previous()`` reads the
-            record being replaced: ``None`` for a new key, and ``None`` (with
-            a logged warning) when that record cannot be read. The default,
+            record being replaced: ``None`` for a new key; it raises
+            ``ValueError`` when that record cannot be read (it may hold rights,
+            so delete it to write over it). The default,
             :func:`keep_rights`, keeps the ``rights`` of a record replaced by a
             rights-less one for the same bytes (lacing#60); ``None`` writes
             records as given (last write wins). Writes straight to
@@ -367,9 +377,7 @@ class ArtifactStore(MutableMapping):
         return self.catalog[artifact_id]
 
     def __setitem__(self, artifact_id: str, record: BaseModel) -> None:
-        if self.on_write is not None:
-            record = self.on_write(record, lambda: self._replaced(artifact_id))
-        self.catalog[artifact_id] = record
+        self.catalog[artifact_id] = self._admitted(artifact_id, record)
 
     def __delitem__(self, artifact_id: str) -> None:
         del self.catalog[artifact_id]
@@ -404,6 +412,7 @@ class ArtifactStore(MutableMapping):
         Raises:
             RuntimeError: ``data`` was given but no blob store is configured.
         """
+        record = self._admitted(artifact_id, record)  # a refusal leaves no blob
         content_hash: str | None = None
         if data is not None:
             if self.blobs is None:
@@ -414,24 +423,28 @@ class ArtifactStore(MutableMapping):
                 )
             content_hash = hash_bytes(data)
             self.blobs[content_hash] = data  # content-addressed -> idempotent
-        self[artifact_id] = record
+        self.catalog[artifact_id] = record
         return content_hash
+
+    def _admitted(self, artifact_id: str, record: BaseModel) -> BaseModel:
+        """``record`` as the ``on_write`` policy admits it at ``artifact_id``."""
+        if self.on_write is None:
+            return record
+        return self.on_write(record, lambda: self._replaced(artifact_id))
 
     def _replaced(self, artifact_id: str) -> BaseModel | None:
         """The record at ``artifact_id`` that a write is about to replace;
-        ``None`` for a new key, or (with a warning) for a damaged record."""
+        ``None`` for a new key. A damaged record raises: it may hold rights."""
         try:
             return self.catalog[artifact_id]
         except KeyError:
             return None
         except ValueError as error:
-            logger.warning(
-                "The record at %r cannot be read, so the write replacing it "
-                "goes through as given: %s",
-                artifact_id,
-                error,
-            )
-            return None
+            raise ValueError(
+                f"The record at {artifact_id!r} cannot be read "
+                f"({type(error).__name__}), and it may hold rights the write "
+                f"would erase: delete it first to write over it."
+            ) from error
 
     def index(self) -> dict[str, BaseModel]:
         """Return the whole catalog as a plain dict (e.g. for UI hydration)."""
@@ -1028,6 +1041,8 @@ class ArtifactStore(MutableMapping):
 
         if content_hash_of is None:
             content_hash_of = _default_content_hash_of
+        elif on_write is keep_rights:  # match records by the same accessor
+            on_write = partial(keep_rights, content_hash=content_hash_of)
 
         raw = SQLAlchemyStore(
             uri=uri,
