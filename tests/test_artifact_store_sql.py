@@ -204,3 +204,156 @@ def test_sql_catalog_custom_content_hash_extractor():
     store.save("a", _Rec(id="a", sha="hhh"))
     store.save("b", _Rec(id="b", sha="hhh"))
     assert store.count_refs("hhh") == 2
+
+
+# -- pinned reads whose key moved: one indexed query (lacing#96) ---------------
+
+
+def test_sql_keys_by_content_hash_is_the_indexed_lookup():
+    store = ArtifactStore.from_sql("sqlite:///:memory:")
+    a, b = _artifact(b"one"), _artifact(b"two")
+    store.save("k1", a)
+    store.save("k2", a)
+    store.save("k3", b)
+    assert sorted(store.catalog.keys_by_content_hash(a.asset_id)) == ["k1", "k2"]
+    assert store.catalog.keys_by_content_hash("0" * 64) == []
+
+
+def _engine(store: ArtifactStore):
+    """The SQLAlchemy engine behind a ``from_sql`` store's catalog."""
+    return store.catalog.session.get_bind()
+
+
+def test_sql_pinned_read_whose_key_moved_is_a_bounded_number_of_queries():
+    """The holder comes from one indexed query, not one read per row: the
+    statement count does not grow with the catalog."""
+    import sqlalchemy
+
+    store = ArtifactStore.from_sql("sqlite:///:memory:", blobs={})
+    first, second = _artifact(b"v1"), _artifact(b"v2")
+    store.save("k", first, data=b"v1")
+    store.save("z-holder", first)  # sorts last: a scan would read every row first
+    store.save("k", second, data=b"v2")
+    for i in range(50):
+        store.save(f"unrelated-{i}", _artifact(f"other-{i}".encode()))
+
+    statements = []
+
+    def count(conn, cursor, statement, *args):
+        statements.append(statement)
+
+    engine = _engine(store)
+    sqlalchemy.event.listen(engine, "before_cursor_execute", count)
+    try:
+        resolved = store.resolve(f"artifact:k@{first.asset_id}")
+    finally:
+        sqlalchemy.event.remove(engine, "before_cursor_execute", count)
+    assert (resolved.key, resolved.record, resolved.data) == ("z-holder", first, b"v1")
+    # the record at "k", the content-hash lookup, the holder's record
+    assert len(statements) <= 3, statements
+    assert any("WHERE" in s and "content_hash" in s for s in statements), statements
+
+
+# -- the content_hash column is indexed --------------------------------------
+
+
+def _content_hash_indexes(engine, table: str = "artifact_catalog") -> list[dict]:
+    import sqlalchemy
+
+    return [
+        index
+        for index in sqlalchemy.inspect(engine).get_indexes(table)
+        if index["column_names"] == ["content_hash"]
+    ]
+
+
+def test_sql_content_hash_column_is_indexed_and_reopen_keeps_one(tmp_path: Path):
+    uri = f"sqlite:///{tmp_path / 'cat.db'}"
+    store = ArtifactStore.from_sql(uri)
+    art = _artifact()
+    store.save(art.asset_id, art)
+    indexes = _content_hash_indexes(_engine(store))
+    assert [index["name"] for index in indexes] == ["ix_artifact_catalog_content_hash"]
+
+    reopened = ArtifactStore.from_sql(uri)  # checkfirst: no duplicate, no error
+    assert _content_hash_indexes(_engine(reopened)) == indexes
+    assert reopened.count_refs(art.asset_id) == 1
+
+
+def test_sql_index_is_added_to_a_database_created_without_it(tmp_path: Path):
+    uri = f"sqlite:///{tmp_path / 'cat.db'}"
+    store = ArtifactStore.from_sql(uri)
+    engine = _engine(store)
+    with engine.begin() as conn:
+        conn.exec_driver_sql("DROP INDEX ix_artifact_catalog_content_hash")
+    assert _content_hash_indexes(engine) == []
+
+    reopened = ArtifactStore.from_sql(uri)
+    assert len(_content_hash_indexes(_engine(reopened))) == 1
+
+
+def test_sql_index_creation_is_best_effort_on_a_read_only_database(tmp_path: Path):
+    """The index is only a speed-up: a database opened read-only (one created
+    before the index existed) warns and still answers."""
+    path = tmp_path / "cat.db"
+    store = ArtifactStore.from_sql(f"sqlite:///{path}")
+    art = _artifact()
+    store.save(art.asset_id, art)
+    with _engine(store).begin() as conn:
+        conn.exec_driver_sql("DROP INDEX ix_artifact_catalog_content_hash")
+    _engine(store).dispose()
+
+    read_only = f"sqlite:///file:{path}?mode=ro&uri=true"
+    with pytest.warns(UserWarning, match="Could not index"):
+        reopened = ArtifactStore.from_sql(read_only)
+    assert reopened.count_refs(art.asset_id) == 1
+
+
+def test_sql_index_creation_can_be_left_to_the_operator(tmp_path: Path):
+    uri = f"sqlite:///{tmp_path / 'cat.db'}"
+    store = ArtifactStore.from_sql(uri, create_content_hash_index=False)
+    assert _content_hash_indexes(_engine(store)) == []
+
+
+# -- a custom content-hash accessor is the store's, everywhere ----------------
+
+
+class _Shaded(BaseModel):
+    """A record whose ``asset_id`` is not the hash its store files it under."""
+
+    asset_id: str
+    sha: str
+
+
+def test_sql_custom_accessor_drives_resolve_and_count_refs():
+    pin = hash_bytes(b"v1")
+    store = ArtifactStore.from_sql(
+        "sqlite:///:memory:",
+        blobs={},
+        record_type=_Shaded,
+        content_hash_of=lambda r: r.sha,
+    )
+    assert store.put_blob(b"v1") == pin
+    holder = _Shaded(asset_id="unrelated", sha=pin)
+    store.save("holder", holder)
+    # "k" names other bytes under the store's accessor, though its asset_id is
+    # the pin: the default accessor would have taken it for the holder.
+    store.save("k", _Shaded(asset_id=pin, sha="other"))
+
+    resolved = store.resolve(f"artifact:k@{pin}")
+    assert (resolved.key, resolved.record, resolved.data) == ("holder", holder, b"v1")
+    assert store.resolve("artifact:holder").content_hash == pin  # unpinned
+    assert store.count_refs(pin) == 1
+    assert store.count_refs("other") == 1
+
+
+def test_content_hash_of_drives_a_scanning_catalog_too():
+    """``count_refs``'s fallback scan and ``resolve`` agree with ``content_hash_of``."""
+    pin = hash_bytes(b"v1")
+    store = ArtifactStore({}, {}, content_hash_of=lambda r: r.sha)
+    store.put_blob(b"v1")
+    holder = _Shaded(asset_id="unrelated", sha=pin)
+    store.save("holder", holder)
+    store.save("k", _Shaded(asset_id=pin, sha="other"))
+    assert store.resolve(f"artifact:k@{pin}").key == "holder"
+    assert store.count_refs(pin) == 1

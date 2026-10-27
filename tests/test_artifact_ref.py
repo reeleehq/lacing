@@ -284,7 +284,6 @@ def test_the_holder_scan_skips_a_damaged_record(tmp_path):
     store.save("k", first, data=b"v1")
     store.save("k", second, data=b"v2")
     store.save("z-holder", first)
-    assert list(store._keys_with_content(first.asset_id)) == ["z-holder"]
     resolved = store.resolve(ArtifactRef("k", pin=first.asset_id))
     assert (resolved.key, resolved.data) == ("z-holder", b"v1")
 

@@ -111,3 +111,21 @@ def test_pg_persists_across_reopen(postgresql):
     reopened = ArtifactStore.from_sql(uri)
     assert len(reopened) == 1
     assert reopened[art.asset_id] == art
+
+
+def test_pg_content_hash_column_is_indexed_and_reopen_keeps_one(postgresql):
+    import sqlalchemy
+
+    def content_hash_indexes(store):
+        engine = store.catalog.session.get_bind()
+        return [
+            index["name"]
+            for index in sqlalchemy.inspect(engine).get_indexes("artifact_catalog")
+            if index["column_names"] == ["content_hash"]
+        ]
+
+    uri = _pg_uri(postgresql)
+    store = ArtifactStore.from_sql(uri)
+    assert content_hash_indexes(store) == ["ix_artifact_catalog_content_hash"]
+    reopened = ArtifactStore.from_sql(uri)  # checkfirst: no duplicate, no error
+    assert content_hash_indexes(reopened) == ["ix_artifact_catalog_content_hash"]
