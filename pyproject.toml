@@ -50,6 +50,9 @@ dev = [
     "psycopg_pool>=3.2",
     "pytest-postgresql>=6.0",
     "fastapi>=0.100",
+    # tests/test_awareness.py reads the websocket test session's `_send_rx`
+    # stream (receive deadlines, lacing#99), which starlette has since 0.46.
+    "starlette>=0.46",
     "httpx>=0.24",
     "python-multipart>=0.0.6",
     # See the [mcp] extra: `fastmcp`, not `mcp`, is what provides FastMCP now.
