@@ -126,6 +126,30 @@ class TestSchema:
         with pytest.raises(PgSchemaMismatchError):
             PostgresStore(conn_kwargs, rate=48000)
 
+    def test_refused_opens_return_their_pooled_connection(self, postgresql):
+        """lacing#91: a refused open hands its connection back, so repeated
+        refusals cannot drain the pool."""
+        import psycopg
+
+        from lacing.store.postgres import get_pool
+
+        info = postgresql.info
+        conninfo = psycopg.conninfo.make_conninfo(
+            host=info.host,
+            port=info.port,
+            user=info.user,
+            password=info.password or "",
+            dbname=info.dbname,
+        )
+        pool_size = 2
+        get_pool(conninfo, min_size=1, max_size=pool_size, timeout=5)
+        PostgresStore(conninfo, rate=24000).close()
+        for _ in range(pool_size + 1):
+            with pytest.raises(PgSchemaMismatchError):
+                PostgresStore(conninfo, rate=48000)
+        # Would time out waiting for a free connection if the refusals leaked.
+        PostgresStore(conninfo, rate=24000).close()
+
 
 # ---------------------------------------------------------------------------
 # mapping interface

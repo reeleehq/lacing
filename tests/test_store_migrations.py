@@ -168,6 +168,35 @@ class TestUpgradeOnOpen:
             SqliteStore(path, migrate=True)
         assert "newer than this build" in str(exc.value)
 
+    @pytest.mark.parametrize("stamp", ["1", "99"], ids=["older", "newer"])
+    def test_a_refused_open_closes_its_connection(self, tmp_path, monkeypatch, stamp):
+        """lacing#91: the refused connection must not wait for GC. Callers
+        (nw) retry with ``migrate=True``, and on Windows an open handle
+        blocks deleting the file."""
+        path = tmp_path / "a.annot"
+        _write_v1_file(path)
+        with sqlite3.connect(path) as conn:
+            conn.execute(
+                "UPDATE meta SET value = ? WHERE key = 'schema_version'", (stamp,)
+            )
+        _pretend_build_expects(monkeypatch, 2)
+        opened = []
+        real_connect = sqlite3.connect
+
+        def recording_connect(*args, **kwargs):
+            opened.append(real_connect(*args, **kwargs))
+            return opened[-1]
+
+        monkeypatch.setattr(sqlite_module.sqlite3, "connect", recording_connect)
+
+        with pytest.raises(SchemaMismatchError):
+            SqliteStore(path)
+
+        assert len(opened) == 1
+        with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+            opened[0].execute("SELECT 1")
+        path.unlink()  # fails on Windows while a handle is open
+
 
 class TestLadderMechanics:
     def test_already_current_store_is_a_noop(self, tmp_path):
