@@ -9,7 +9,7 @@ Strategy (lacing#99)
 - **One event loop.** The client is entered as a context manager, so every
   socket of a test runs on one portal. Without it each socket gets its own
   event-loop thread, and the relay would push bytes across loops.
-- **Deterministic joins.** ``websocket_connect`` returns once the server has
+- **Settled joins.** ``websocket_connect`` returns once the server has
   *accepted*, which is before it registers the socket in its room. The relay
   sends each existing peer a query byte only after registering the newcomer,
   so :func:`_join` waits for that byte on every peer: after it, a message sent
@@ -19,7 +19,8 @@ Strategy (lacing#99)
 
 With joins settled and queries drained, each test asserts the exact next
 message a socket receives; "this socket got nothing" is shown by the next
-message being a later sentinel.
+message being a later sentinel (which relies on the one event loop handling
+the earlier message first, as the relay's paths are equally long).
 """
 
 from __future__ import annotations
@@ -51,7 +52,9 @@ def client():
 
 
 @pytest.fixture
-def sockets():
+def sockets(client):
+    """The test's sockets, closed before ``client``'s portal shuts down: the
+    dependency fixes teardown order whatever the test's argument order."""
     with ExitStack() as stack:
         yield stack
 
