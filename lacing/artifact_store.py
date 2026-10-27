@@ -150,45 +150,46 @@ __all__ = [
 WritePolicy = Callable[[BaseModel, Callable[[], BaseModel | None]], BaseModel]
 
 
-def _mk_sql_refcount(sql_store) -> Callable[[str], int]:
-    """Build a ``content_hash -> row count`` query over a ``sqldol`` store.
+def _mk_sql_content_hash_queries(
+    sql_store,
+) -> tuple[Callable[[str], int], Callable[[str], list[str]]]:
+    """Index a ``sqldol`` store's ``content_hash`` column and build the two
+    queries that use it: ``(refcount, keys_by_content_hash)``.
 
-    Reaches through the ``sqldol.SQLAlchemyStore`` to its persister's ORM
-    session and counts rows whose indexed ``content_hash`` column matches —
-    one query, not a scan. Used by :meth:`ArtifactStore.from_sql` to wire the
-    GC reference-count capability that :meth:`ArtifactStore.count_refs` probes
-    for. Works identically on SQLite and Postgres (plain SQLAlchemy).
+    ``refcount(content_hash)`` counts the rows naming ``content_hash`` (the GC
+    reference count :meth:`ArtifactStore.count_refs` probes for);
+    ``keys_by_content_hash(content_hash)`` lists their ``artifact_id`` keys (the
+    lookup :meth:`ArtifactStore.resolve` probes for when a pinned key has moved,
+    lacing#96). Each is one query on the index, not a scan.
+
+    ``sqldol`` indexes only its key fields, so the index is created here,
+    idempotently (``checkfirst``): a reopened database keeps the one it has, and
+    one created before the index existed gets it. Reaches through the
+    ``sqldol.SQLAlchemyStore`` to its persister's table and ORM session; plain
+    SQLAlchemy, so the same on SQLite and Postgres.
     """
-    from sqlalchemy import func
+    from sqlalchemy import Index, func
 
     persister = sql_store.store  # the SQLAlchemyPersister behind the dol Store
     table = persister.table.__table__
+    content_hash_column = table.c.content_hash
+    Index(f"ix_{table.name}_content_hash", content_hash_column).create(
+        persister.session.get_bind(), checkfirst=True
+    )
+
+    def rows_naming(content_hash: str, column):
+        return persister.session.query(column).filter(
+            content_hash_column == content_hash
+        )
 
     def refcount(content_hash: str) -> int:
-        return (
-            persister.session.query(func.count())
-            .filter(table.c.content_hash == content_hash)
-            .scalar()
-        )
-
-    return refcount
-
-
-def _mk_sql_keys_by_content_hash(sql_store) -> Callable[[str], list[str]]:
-    """Build a ``content_hash -> [artifact_id, ...]`` query over a ``sqldol``
-    store: the indexed lookup :meth:`ArtifactStore.resolve` probes for when a
-    pinned key has moved (lacing#96), the sibling of :func:`_mk_sql_refcount`.
-    """
-    persister = sql_store.store  # the SQLAlchemyPersister behind the dol Store
-    table = persister.table.__table__
+        return rows_naming(content_hash, func.count()).scalar()
 
     def keys_by_content_hash(content_hash: str) -> list[str]:
-        rows = persister.session.query(table.c.artifact_id).filter(
-            table.c.content_hash == content_hash
-        )
+        rows = rows_naming(content_hash, table.c.artifact_id)
         return [artifact_id for (artifact_id,) in rows]
 
-    return keys_by_content_hash
+    return refcount, keys_by_content_hash
 
 
 def content_hash_of(record: Any) -> str | None:
@@ -237,8 +238,8 @@ def keep_rights(
     its bytes exist) is returned as given, without reading the catalog. A
     rights-less record *with* a content hash costs one catalog read. The
     guarantee holds for one writer at a time: the read and the write are not
-    atomic. ``content_hash`` reads a record's hash (:meth:`ArtifactStore.from_sql`
-    passes its own accessor).
+    atomic. ``content_hash`` reads a record's hash (as the default policy,
+    :class:`ArtifactStore` passes its own ``hash_of``).
 
     Raises:
         ValueError: the carried ``rights`` do not validate on ``record``'s
@@ -378,6 +379,12 @@ class ArtifactStore(MutableMapping):
             rights-less one for the same bytes (lacing#60); ``None`` writes
             records as given (last write wins). Writes straight to
             ``catalog`` bypass it.
+        hash_of: Keyword-only. ``hash_of(record) -> content_hash | None``, how
+            the store reads the blob hash a record names. :meth:`resolve`,
+            :meth:`count_refs` and the default ``on_write`` (:func:`keep_rights`)
+            all use it. Defaults to :func:`content_hash_of`; :meth:`from_sql`
+            sets it from its ``content_hash_of`` argument, so the store and
+            its ``content_hash`` column agree.
 
     Construct one with :meth:`in_memory` or :meth:`from_directory` rather than
     wiring the backing stores by hand, unless you are injecting a custom
@@ -387,6 +394,7 @@ class ArtifactStore(MutableMapping):
     catalog: MutableMapping[str, BaseModel]
     blobs: MutableMapping[str, bytes] | None = None
     on_write: WritePolicy | None = field(default=keep_rights, kw_only=True)
+    hash_of: Callable[[Any], str | None] = field(default=content_hash_of, kw_only=True)
 
     # -- catalog: the MutableMapping surface (artifact_id -> record) --------
 
@@ -447,7 +455,10 @@ class ArtifactStore(MutableMapping):
         """``record`` as the ``on_write`` policy admits it at ``artifact_id``."""
         if self.on_write is None:
             return record
-        return self.on_write(record, lambda: self._replaced(artifact_id))
+        previous = partial(self._replaced, artifact_id)
+        if self.on_write is keep_rights:  # match records by the store's accessor
+            return keep_rights(record, previous, content_hash=self.hash_of)
+        return self.on_write(record, previous)
 
     def _replaced(self, artifact_id: str) -> BaseModel | None:
         """The record at ``artifact_id`` that a write is about to replace;
@@ -477,12 +488,14 @@ class ArtifactStore(MutableMapping):
         through :func:`resolve_in_mall`, which picks the store first.
 
         Unpinned, it reads the record at ``ref.key`` and the bytes its content
-        hash names (:func:`content_hash_of`). Pinned, it reads the pinned bytes
+        hash names (the store's ``hash_of``). Pinned, it reads the pinned bytes
         even when the key has since been saved with other content or removed. A
         pin is the store's content hash: the SHA-256 hex digest of the bytes, as
         :meth:`save` and :meth:`put_blob` compute it. The record is the one at
-        the key if it still holds those bytes, else the first a scan of
-        catalog scan finds, else ``None``; only that fallback scans.
+        the key if it still holds those bytes, else the first other record that
+        does, else ``None``. That other record comes from one indexed lookup
+        when the catalog offers it (the SQL catalog of :meth:`from_sql`), else
+        from a scan of the catalog.
 
         With ``read=False`` it only checks that the bytes exist
         (:meth:`has_blob`) and leaves ``data`` as ``None``, so a caller that
@@ -515,7 +528,7 @@ class ArtifactStore(MutableMapping):
             ref = ArtifactRef.parse(ref)
         if ref.pin is None:
             record = self[ref.key]
-            content_hash = content_hash_of(record)
+            content_hash = self.hash_of(record)
             if content_hash is None:
                 raise KeyError(f"{ref}: the record at {ref.key!r} has no content yet")
             data = self._content(ref, content_hash, read=read)
@@ -525,21 +538,27 @@ class ArtifactStore(MutableMapping):
             raise ValueError(f"{ref}: the stored bytes do not hash to the pin")
         holder = next(self._records_with_content(ref.pin, [ref.key]), None)
         if holder is None:
-            keys = self._keys_with_content(ref.pin)
-            holder = next(self._records_with_content(ref.pin, keys), None)
+            candidates = self._candidate_keys(ref.pin)
+            holder = next(self._records_with_content(ref.pin, candidates), None)
         key, record = holder or (None, None)
         return ResolvedArtifact(key, record, ref.pin, data)
 
     def _keys_with_content(self, content_hash: str) -> Iterator[str]:
-        """Yield, lazily, the catalog keys whose record names ``content_hash``,
-        skipping records that cannot be read. Iterates the live catalog: do not
-        delete while it runs."""
-        # The probe pattern of ``count_refs``: one indexed query when the catalog
-        # offers it (``from_sql``), else a full catalog scan.
-        fast = getattr(self.catalog, "keys_by_content_hash", None)
-        keys = fast(content_hash) if callable(fast) else self
-        for key, _ in self._records_with_content(content_hash, keys):
+        """Yield, lazily, the catalog keys whose record names ``content_hash``
+        (by ``hash_of``), skipping records that cannot be read."""
+        for key, _ in self._records_with_content(
+            content_hash, self._candidate_keys(content_hash)
+        ):
             yield key
+
+    def _candidate_keys(self, content_hash: str) -> Iterable[str]:
+        """The keys that may hold ``content_hash``: the catalog's
+        ``keys_by_content_hash`` when it offers one (one indexed query, read
+        whole), else the live catalog itself, which must not be deleted from
+        while it is iterated. A candidate's record still has to be checked."""
+        # The probe pattern of ``count_refs``.
+        fast = getattr(self.catalog, "keys_by_content_hash", None)
+        return fast(content_hash) if callable(fast) else self
 
     def _records_with_content(
         self, content_hash: str, keys: Iterable[str]
@@ -551,7 +570,7 @@ class ArtifactStore(MutableMapping):
                 record = self[key]
             except (KeyError, ValueError):  # a racing delete, or a damaged record
                 continue
-            if content_hash_of(record) == content_hash:
+            if self.hash_of(record) == content_hash:
                 yield key, record
 
     def _content(
@@ -932,7 +951,9 @@ class ArtifactStore(MutableMapping):
         ``refcount_by_content_hash`` callable, and this method uses it so the
         count is **one indexed query, not a full catalog scan**. Any other
         catalog (dict, ``Files``) falls back to scanning every record. The
-        facade is unchanged either way; only the speed differs.
+        facade is unchanged either way; only the speed differs. The scan reads
+        each record's hash with the store's ``hash_of``, the accessor
+        :meth:`from_sql` also fills its column with, so both agree.
 
         Args:
             content_hash: The blob's content hash (``Artifact.asset_id``).
@@ -944,11 +965,11 @@ class ArtifactStore(MutableMapping):
         fast = getattr(self.catalog, "refcount_by_content_hash", None)
         if callable(fast):
             return fast(content_hash)
-        # Fallback: scan every record (see ``content_hash_of`` for the fields).
+        # Fallback: scan every record.
         return sum(
             1
             for record in self.catalog.values()
-            if content_hash_of(record) == content_hash
+            if self.hash_of(record) == content_hash
         )
 
     @classmethod
@@ -1020,7 +1041,10 @@ class ArtifactStore(MutableMapping):
         :meth:`from_directory` serializes it (``record.model_dump_json`` out,
         ``record_type.model_validate_json`` in), and one indexed ``content_hash``
         column carries the record's blob hash so the GC reference count
-        (:meth:`count_refs`) is a single indexed query rather than a full scan.
+        (:meth:`count_refs`) and the holder of pinned bytes whose key moved
+        (:meth:`resolve`) are each a single indexed query rather than a full
+        scan. The index (``ix_<collection_name>_content_hash``) is created on
+        open when it is missing, so an existing database gains it too.
 
         Because the connection is just a SQLAlchemy URI, the *same* code runs
         on SQLite for tests and on Postgres in production — that is the whole
@@ -1047,7 +1071,9 @@ class ArtifactStore(MutableMapping):
                 ``content_hash`` column. Defaults to ``asset_id`` (the canonical
                 Artifact field), then ``content_hash``. Pass a callable for a
                 record whose hash lives elsewhere; records without a hash store
-                an empty string.
+                an empty string. It becomes the store's ``hash_of`` (see
+                :class:`ArtifactStore`), so :meth:`resolve`, :meth:`count_refs`
+                and :func:`keep_rights` read the same hash as the column.
             on_write: The write policy (see :class:`ArtifactStore`).
             **db_kwargs: Forwarded to ``sqldol.SQLAlchemyStore`` /
                 SQLAlchemy's ``create_engine`` (e.g. ``connect_args``,
@@ -1061,8 +1087,6 @@ class ArtifactStore(MutableMapping):
 
         if content_hash_of is None:
             content_hash_of = _default_content_hash_of
-        elif on_write is keep_rights:  # match records by the same accessor
-            on_write = partial(keep_rights, content_hash=content_hash_of)
 
         raw = SQLAlchemyStore(
             uri=uri,
@@ -1094,11 +1118,15 @@ class ArtifactStore(MutableMapping):
             },
             obj_of_data=lambda row: record_type.model_validate_json(row.record_json),
         )
-        # Attach the GC reference-count capability so ``count_refs`` resolves it
-        # to a single indexed query (the probe pattern; see ``count_refs``).
-        catalog.refcount_by_content_hash = _mk_sql_refcount(raw)
-        catalog.keys_by_content_hash = _mk_sql_keys_by_content_hash(raw)
-        return cls(catalog=catalog, blobs=blobs, on_write=on_write)
+        # Attach the content-hash capabilities that ``count_refs`` and ``resolve``
+        # probe for, so each is a single indexed query (see ``count_refs``).
+        (
+            catalog.refcount_by_content_hash,
+            catalog.keys_by_content_hash,
+        ) = _mk_sql_content_hash_queries(raw)
+        return cls(
+            catalog=catalog, blobs=blobs, on_write=on_write, hash_of=content_hash_of
+        )
 
     @classmethod
     def from_aws(
