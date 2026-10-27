@@ -2,20 +2,18 @@
 
 # About this build
 
-This documentation was built on **2026-10-27 19:47 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/9920939a820859efc757716e7eff42d82a8af6c0"><code>9920939</code></a> on branch <code>main</code>, for **lacing 0.0.66** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 20:20 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/8bd465d6f80297fb040d7a658e15b2d4b0abe8e4"><code>8bd465d</code></a> on branch <code>main</code>, for **lacing 0.0.66** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.66) is ahead of the latest release on PyPI (0.0.65): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/9920939a820859efc757716e7eff42d82a8af6c0"><code>9920939a820859efc757716e7eff42d82a8af6c0</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/8bd465d6f80297fb040d7a658e15b2d4b0abe8e4"><code>8bd465d6f80297fb040d7a658e15b2d4b0abe8e4</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
-| Tags at this commit | <code>0.0.66</code>                                                                                                                                    |
+| Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
 | Remote              | <code>https://github.com/reeleehq/lacing</code>                                                                                                        |
 
@@ -24,9 +22,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40565549277">40565549277</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40573486136">40573486136</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>8416079832725ece8a6ec62062420c4d26fe7a32</code> (in the history of the built commit) |
+| Event commit | <code>8bd465d6f80297fb040d7a658e15b2d4b0abe8e4</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -51,13 +49,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.65/">0.0.65</a>, older than the documented version (0.0.66).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.66/">0.0.66</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 9920939a820859efc757716e7eff42d82a8af6c0
+git checkout 8bd465d6f80297fb040d7a658e15b2d4b0abe8e4
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
