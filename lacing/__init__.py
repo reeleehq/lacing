@@ -72,8 +72,13 @@ from lacing.artifact import (
     hash_bytes,
     hash_file,
 )
-from lacing.artifact_ref import ArtifactRef, is_artifact_ref
-from lacing.artifact_store import ArtifactStore, ResolvedArtifact
+from lacing.artifact_ref import ARTIFACT_REF_PREFIX, ArtifactRef, is_artifact_ref
+from lacing.artifact_store import (
+    ArtifactStore,
+    ResolvedArtifact,
+    content_hash_of,
+    resolve_in_mall,
+)
 from lacing.digest import (
     NonStringBodyKeyError,
     annotation_body_digest,
@@ -124,7 +129,10 @@ __all__ = [
     "ArtifactStore",
     "ResolvedArtifact",
     "ArtifactRef",
+    "ARTIFACT_REF_PREFIX",
     "is_artifact_ref",
+    "resolve_in_mall",
+    "content_hash_of",
     "hash_bytes",
     "hash_file",
     # digest — three digests, three jobs; see lacing/digest.py's docstring.

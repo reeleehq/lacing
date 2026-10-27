@@ -13,7 +13,21 @@ that text, so the spelling cannot drift between them (lacing#90):
 - ``@<sha256>``, optional, pins the content: a pinned reference names those
   bytes, even after the key is re-saved with other content.
 
-:meth:`lacing.ArtifactStore.resolve` reads what a reference names.
+:meth:`lacing.ArtifactStore.resolve` reads what a reference names in one store;
+:func:`lacing.resolve_in_mall` locates its store in a mall first.
+
+The syntax has one ambiguity no parser can remove: an unlocated
+``artifact:takes/a`` names key ``a`` of store ``takes`` today, but key
+``takes/a`` of the default store once that store gains such a key.
+
+Differences from an's ``parse_artifact_ref`` (for its adoption):
+
+- ``artifact:takes/`` (an empty rest) and ``artifact:takes//a`` (a rest that is
+  not a key) go to the default store with the whole name as key.
+- Text without the ``artifact:`` prefix raises ``ValueError``; an sliced the
+  prefix's length off whatever it was given.
+- ``artifact: x`` (a space after the prefix) is refused; reelee's lenient strip
+  of such text stays in reelee.
 
 >>> ref = ArtifactRef.parse("artifact:takes/a@" + "0" * 64)
 >>> ref.key, ref.store, ref.pin == "0" * 64
@@ -46,20 +60,37 @@ _PIN = re.compile(r"[0-9a-f]{64}")
 
 
 def is_artifact_ref(text: str) -> bool:
-    """Whether ``text`` is an ``artifact:`` reference (surrounding space ignored).
+    """Whether :meth:`ArtifactRef.parse` accepts ``text`` (surrounding space ignored).
 
     >>> is_artifact_ref("artifact:transcripts/t"), is_artifact_ref("take.srt")
     (True, False)
     >>> is_artifact_ref("artifact: Hello there.")
     False
     """
-    return _REF.fullmatch(text.strip()) is not None
+    try:
+        ArtifactRef.parse(text)
+    except ValueError:
+        return False
+    return True
+
+
+def _key_problem(key: str) -> str | None:
+    """Why ``key`` cannot be an artifact key, or ``None`` when it can."""
+    if not key or re.search(r"\s", key) or key.startswith("/"):
+        return f"not an artifact key: {key!r}"
+    if _PINNED.fullmatch(key):
+        return (
+            f"artifact key {key!r} ends in `@<sha256>`, which a reference reads "
+            "as a content pin"
+        )
+    return None
 
 
 @dataclass(frozen=True)
 class ArtifactRef:
     """A reference to an artifact: its ``key``, the ``store`` that files it when
-    known, and the content ``pin`` (a SHA-256 hex ``asset_id``) when it names one.
+    known, and the content ``pin`` when it names one: the store's content hash,
+    64 lowercase hex digits of SHA-256 (an ``Artifact.asset_id``).
 
     Raises ``ValueError`` for a reference that would not read back as itself: an
     empty key or one with whitespace, a key starting with ``/`` or ending in
@@ -71,13 +102,8 @@ class ArtifactRef:
     pin: str | None = None
 
     def __post_init__(self) -> None:
-        if not self.key or re.search(r"\s", self.key) or self.key.startswith("/"):
-            raise ValueError(f"not an artifact key: {self.key!r}")
-        if _PINNED.fullmatch(self.key):
-            raise ValueError(
-                f"artifact key {self.key!r} ends in `@<sha256>`, which a "
-                "reference reads as a content pin"
-            )
+        if (problem := _key_problem(self.key)) is not None:
+            raise ValueError(problem)
         if self.store is not None and (
             not self.store or "/" in self.store or re.search(r"\s", self.store)
         ):
@@ -89,6 +115,9 @@ class ArtifactRef:
     def parse(cls, text: str) -> ArtifactRef:
         """The reference ``text`` spells, with the whole name as ``key``
         (``store`` is ``None``; see :meth:`locate`).
+
+        Anything it refuses raises ``ValueError("not an artifact reference: ...")``,
+        chained to the key's own error when that is the reason.
 
         >>> ArtifactRef.parse("  artifact:k  ")
         ArtifactRef(key='k', store=None, pin=None)
@@ -103,7 +132,10 @@ class ArtifactRef:
         name, pin = matched["name"], None
         if pinned := _PINNED.fullmatch(name):
             name, pin = pinned["key"], pinned["pin"]
-        return cls(name, pin=pin)
+        try:
+            return cls(name, pin=pin)
+        except ValueError as error:
+            raise ValueError(f"not an artifact reference: {text!r}") from error
 
     def format(self) -> str:
         """The reference as text: ``artifact:[<store>/]<key>[@<pin>]``."""
@@ -117,7 +149,8 @@ class ArtifactRef:
         """This reference with its ``store`` decided against ``mall``.
 
         A ``store`` already set is kept. Otherwise the key's first segment names
-        a store of ``mall`` when that store holds the rest of the key, or when
+        a store of ``mall`` when the rest is itself a key (so ``takes/`` and
+        ``takes//a`` stay whole) and that store holds it, or when
         ``default_store`` does not hold the whole key (so a pinned reference
         whose key was since deleted still finds its store); else the whole key
         belongs to ``default_store``.
@@ -132,7 +165,7 @@ class ArtifactRef:
             return self
         head, _, rest = self.key.partition("/")
         if (
-            rest
+            _key_problem(rest) is None
             and head in mall
             and (
                 _holds_key(mall[head], rest)

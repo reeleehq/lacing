@@ -57,7 +57,7 @@ from __future__ import annotations
 import hashlib
 import os
 import stat
-from collections.abc import Callable, Iterable, Iterator, MutableMapping
+from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, NamedTuple
@@ -137,7 +137,7 @@ def _s3_kwargs_to_v1(s3_kwargs: dict) -> dict:
     return kwargs
 
 
-__all__ = ["ArtifactStore", "ResolvedArtifact"]
+__all__ = ["ArtifactStore", "ResolvedArtifact", "content_hash_of", "resolve_in_mall"]
 
 
 def _mk_sql_refcount(sql_store) -> Callable[[str], int]:
@@ -164,19 +164,88 @@ def _mk_sql_refcount(sql_store) -> Callable[[str], int]:
     return refcount
 
 
+def content_hash_of(record: Any) -> str | None:
+    """The content hash naming ``record``'s bytes in the blob store, if it has one.
+
+    Its ``asset_id`` (a :class:`lacing.Artifact`) when that is a string, else its
+    ``content_hash`` (reelee's records) when that is, else ``None`` (a record
+    filed before its bytes exist).
+
+    >>> from types import SimpleNamespace as Record
+    >>> content_hash_of(Record(asset_id="a1", content_hash="c1"))
+    'a1'
+    >>> content_hash_of(Record(content_hash="c1")), content_hash_of(Record())
+    ('c1', None)
+    """
+    for field in ("asset_id", "content_hash"):
+        value = getattr(record, field, None)
+        if isinstance(value, str):
+            return value
+    return None
+
+
+# ``from_sql`` takes a ``content_hash_of`` argument, which shadows the function.
+_default_content_hash_of = content_hash_of
+
+
 class ResolvedArtifact(NamedTuple):
-    """What :meth:`ArtifactStore.resolve` read: the catalog ``record`` (``None``
-    for pinned bytes no record holds any more) and the artifact's ``data``."""
+    """What :meth:`ArtifactStore.resolve` found.
 
+    - ``key``: the catalog key whose ``record`` was used; ``None``, as is
+      ``record``, for pinned bytes no record holds any more.
+    - ``content_hash``: the blob's key (the pin, when the reference had one).
+    - ``data``: the bytes, or ``None`` when resolved with ``read=False``.
+    """
+
+    key: str | None
     record: BaseModel | None
-    data: bytes
+    content_hash: str
+    data: bytes | None
 
 
-def _asset_id_of(record: BaseModel, ref: ArtifactRef) -> str:
-    asset_id = getattr(record, "asset_id", None)
-    if not isinstance(asset_id, str):
-        raise ValueError(f"{ref}: its record has no asset_id naming its bytes")
-    return asset_id
+def resolve_in_mall(
+    ref: ArtifactRef | str,
+    mall: Mapping[str, Any],
+    *,
+    default_store: str,
+    read: bool = True,
+) -> ResolvedArtifact:
+    """What ``ref`` names in ``mall`` (store names -> :class:`ArtifactStore`).
+
+    The store is the one :meth:`ArtifactRef.locate` picks; the rest is that
+    store's :meth:`ArtifactStore.resolve`.
+
+    Raises:
+        KeyError: the store is not in ``mall`` (the message names those that
+            are), or what :meth:`ArtifactStore.resolve` raises.
+        TypeError: the store has no ``resolve`` method.
+        ValueError: ``ref`` text is not a reference, or a pin mismatch.
+
+    >>> from lacing import Artifact
+    >>> takes = ArtifactStore.in_memory()
+    >>> art = Artifact.from_bytes(b"x", kind="text", was_generated_by="t",
+    ...                           was_attributed_to="u")
+    >>> _ = takes.save("a", art, data=b"x")
+    >>> mall = {"transcripts": ArtifactStore.in_memory(), "takes": takes}
+    >>> resolve_in_mall("artifact:takes/a", mall, default_store="transcripts").data
+    b'x'
+    """
+    if isinstance(ref, str):
+        ref = ArtifactRef.parse(ref)
+    located = ref.locate(mall, default_store=default_store)
+    if located.store not in mall:
+        raise KeyError(
+            f"{ref}: no store {located.store!r} in the mall, whose stores are "
+            f"{', '.join(map(repr, mall))}"
+        )
+    store = mall[located.store]
+    resolve = getattr(store, "resolve", None)
+    if not callable(resolve):
+        raise TypeError(
+            f"{ref}: the mall's store {located.store!r} is a "
+            f"{type(store).__name__}, which has no resolve method"
+        )
+    return resolve(located, read=read)
 
 
 @dataclass(eq=False)
@@ -270,24 +339,32 @@ class ArtifactStore(MutableMapping):
 
     # -- references ----------------------------------------------------------
 
-    def resolve(self, ref: ArtifactRef | str) -> ResolvedArtifact:
+    def resolve(self, ref: ArtifactRef | str, *, read: bool = True) -> ResolvedArtifact:
         """The record and bytes ``ref`` names in this store.
 
         ``ref`` is an :class:`lacing.ArtifactRef` or its text. Its ``store`` is not
-        consulted: this store is the one it names (pick it with
-        :meth:`ArtifactRef.locate` when references span a mall).
+        consulted: this store is the one it names. References spanning a mall go
+        through :func:`resolve_in_mall`, which picks the store first.
 
-        Unpinned, it reads the record at ``ref.key`` and that record's bytes.
-        Pinned, it reads the pinned bytes, checks that they hash to the pin, and
-        does so even when the key has since been saved with other content or
-        removed. The record is then the one at the key if it still holds those
-        bytes, else any record that does, else ``None``.
+        Unpinned, it reads the record at ``ref.key`` and the bytes its content
+        hash names (:func:`content_hash_of`). Pinned, it reads the pinned bytes
+        even when the key has since been saved with other content or removed. A
+        pin is the store's content hash: the SHA-256 hex digest of the bytes, as
+        :meth:`save` and :meth:`put_blob` compute it. The record is the one at
+        the key if it still holds those bytes, else the first a scan of
+        :meth:`keys_with_content` finds, else ``None``; only the fallback scans.
+
+        With ``read=False`` it only checks that the bytes exist
+        (:meth:`has_blob`) and leaves ``data`` as ``None``, so a caller that
+        streams (a video, say) can use :meth:`iter_blob` or :meth:`blob_path`
+        on ``content_hash``. That mode does **not** check the bytes against the
+        pin; with ``read=True`` a pinned read does.
 
         Raises:
-            KeyError: no record at the key (unpinned), or no bytes for the
-                content named.
-            ValueError: ``ref`` text is not a reference, a record has no
-                ``asset_id``, or the bytes do not hash to the pin.
+            KeyError: no record at the key (unpinned), a record with no content
+                yet, no blob store (``blobs=None``), or no bytes for the content.
+            ValueError: ``ref`` text is not a reference, or the bytes read do
+                not hash to the pin.
 
         >>> from lacing import Artifact, ArtifactRef
         >>> st = ArtifactStore.in_memory()
@@ -300,33 +377,66 @@ class ArtifactStore(MutableMapping):
         >>> _ = st.save("k", second, data=b"v2")
         >>> st.resolve("artifact:k").data, st.resolve(pinned).data
         (b'v2', b'v1')
-        >>> st.resolve(pinned).record is None
+        >>> st.resolve(pinned).key is None  # no record holds v1 any more
         True
         """
         if isinstance(ref, str):
             ref = ArtifactRef.parse(ref)
         if ref.pin is None:
             record = self[ref.key]
-            return ResolvedArtifact(record, self._bytes_of(_asset_id_of(record, ref)))
-        data = self._bytes_of(ref.pin)
-        if hash_bytes(data) != ref.pin:
+            content_hash = content_hash_of(record)
+            if content_hash is None:
+                raise KeyError(f"{ref}: the record at {ref.key!r} has no content yet")
+            data = self._content(ref, content_hash, read=read)
+            return ResolvedArtifact(ref.key, record, content_hash, data)
+        data = self._content(ref, ref.pin, read=read)
+        if data is not None and hash_bytes(data) != ref.pin:
             raise ValueError(f"{ref}: the stored bytes do not hash to the pin")
-        holders = (k for k in [ref.key, *self] if self._holds(k, ref.pin))
-        key = next(holders, None)
-        return ResolvedArtifact(None if key is None else self[key], data)
+        holder = next(self._records_with_content(ref.pin, [ref.key]), None)
+        if holder is None:
+            keys = self.keys_with_content(ref.pin)
+            holder = next(self._records_with_content(ref.pin, keys), None)
+        key, record = holder or (None, None)
+        return ResolvedArtifact(key, record, ref.pin, data)
 
-    def _bytes_of(self, content_hash: str) -> bytes:
+    def keys_with_content(self, content_hash: str) -> Iterator[str]:
+        """Yield, lazily, the catalog keys whose record names ``content_hash``.
+
+        Records that cannot be read (damaged, or deleted while the scan runs)
+        are skipped.
+        """
+        # A full catalog scan: a store with a content-hash index can override this.
+        for key, _ in self._records_with_content(content_hash, self):
+            yield key
+
+    def _records_with_content(
+        self, content_hash: str, keys: Iterable[str]
+    ) -> Iterator[tuple[str, BaseModel]]:
+        """``(key, record)`` for each of ``keys`` whose record names ``content_hash``;
+        unreadable records are skipped."""
+        for key in keys:
+            try:
+                record = self[key]
+            except (KeyError, ValueError):  # a racing delete, or a damaged record
+                continue
+            if content_hash_of(record) == content_hash:
+                yield key, record
+
+    def _content(
+        self, ref: ArtifactRef, content_hash: str, *, read: bool
+    ) -> bytes | None:
+        """The bytes for ``content_hash`` (``None`` unless ``read``); ``KeyError``
+        when there are none."""
+        if self.blobs is None:
+            raise KeyError(f"{ref}: this store has no blob store, so no bytes")
+        if not read:
+            if not self.has_blob(content_hash):
+                raise KeyError(f"{ref}: no bytes for content {content_hash}")
+            return None
         data = self.get_blob(content_hash)
         if data is None:
-            raise KeyError(f"no bytes for content {content_hash}")
+            raise KeyError(f"{ref}: no bytes for content {content_hash}")
         return data
-
-    def _holds(self, artifact_id: str, content_hash: str) -> bool:
-        """Whether the record at ``artifact_id`` is for ``content_hash``."""
-        try:
-            return getattr(self[artifact_id], "asset_id", None) == content_hash
-        except (KeyError, ValueError):  # a damaged record does not stop the search
-            return False
 
     # -- blobs: rich byte methods ------------------------------------------
 
@@ -699,17 +809,12 @@ class ArtifactStore(MutableMapping):
         fast = getattr(self.catalog, "refcount_by_content_hash", None)
         if callable(fast):
             return fast(content_hash)
-        # Fallback: scan every record. Reads the content hash off whichever of
-        # the conventional fields the record carries (``asset_id`` first — the
-        # canonical Artifact field — then ``content_hash``).
-        count = 0
-        for record in self.catalog.values():
-            rec_hash = getattr(record, "asset_id", None) or getattr(
-                record, "content_hash", None
-            )
-            if rec_hash == content_hash:
-                count += 1
-        return count
+        # Fallback: scan every record (see ``content_hash_of`` for the fields).
+        return sum(
+            1
+            for record in self.catalog.values()
+            if content_hash_of(record) == content_hash
+        )
 
     @classmethod
     def from_s3(
@@ -814,11 +919,7 @@ class ArtifactStore(MutableMapping):
         from sqldol.sql_base import SQLAlchemyPersister
 
         if content_hash_of is None:
-
-            def content_hash_of(record: BaseModel) -> str | None:
-                return getattr(record, "asset_id", None) or getattr(
-                    record, "content_hash", None
-                )
+            content_hash_of = _default_content_hash_of
 
         raw = SQLAlchemyStore(
             uri=uri,
