@@ -19,6 +19,7 @@
 - [lacing.adapters.webvtt](_autosummary/lacing.adapters.webvtt.html.md): WebVTT (W3C TimedText) adapter.
 - [lacing.allen](_autosummary/lacing.allen.html.md): Allen’s 13 interval relations as pure predicates.
 - [lacing.artifact](_autosummary/lacing.artifact.html.md): Content-addressed artifact references.
+- [lacing.artifact_ref](_autosummary/lacing.artifact_ref.html.md): One spelling for a reference to an artifact: &#96;artifact:&#91;&lt;store&gt;/&#93;&lt;key&gt;&#91;@&lt;sha256&gt;&#93;&#96;.
 - [lacing.artifact_store](_autosummary/lacing.artifact_store.html.md): Artifact store — a metadata catalog and a blob store behind one facade.
 - [lacing.bodies](_autosummary/lacing.bodies.html.md): Built-in body schemas.
 - [lacing.bodies.character_voice](_autosummary/lacing.bodies.character_voice.html.md): Body schema for per-character voice profiles — the shared voice vocabulary.
@@ -53,7 +54,7 @@
 - [lacing.tracks.subtitle](_autosummary/lacing.tracks.subtitle.html.md): Subtitle / lyric / caption tracks — the (sections, lines, words) trio.
 - [lacing.worker](_autosummary/lacing.worker.html.md): Optional Arq integration — queue processors through Redis.
 - [For AI agents](ai-agents.html.md): &#96;lacing&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-27 18:10 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-27 18:21 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
 
 ## Optional
 

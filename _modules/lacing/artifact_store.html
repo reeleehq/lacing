@@ -771,16 +771,17 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">stat</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">MutableMapping</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">NamedTuple</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dol</span><span class="w"> </span><span class="kn">import</span> <span class="n">Files</span><span class="p">,</span> <span class="n">filt_iter</span><span class="p">,</span> <span class="n">wrap_kvs</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.artifact</span><span class="w"> </span><span class="kn">import</span> <span class="n">Artifact</span><span class="p">,</span> <span class="n">hash_bytes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.artifact_ref</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArtifactRef</span>
 
 
 <span class="c1">#: Pre-v1 ``s3dol.store.S3Store`` kwarg names -&gt; their ``s3dol.s3_store``</span>
@@ -850,7 +851,7 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">kwargs</span>
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"ArtifactStore"</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"ArtifactStore"</span><span class="p">,</span> <span class="s2">"ResolvedArtifact"</span><span class="p">,</span> <span class="s2">"content_hash_of"</span><span class="p">,</span> <span class="s2">"resolve_in_mall"</span><span class="p">]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_mk_sql_refcount</span><span class="p">(</span><span class="n">sql_store</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
@@ -875,6 +876,100 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">refcount</span>
+
+
+<div class="viewcode-block" id="content_hash_of">
+<a class="viewcode-back" href="../../_autosummary/lacing.artifact_store.html#lacing.content_hash_of">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">content_hash_of</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The content hash naming ``record``'s bytes in the blob store, if it has one.</span>
+
+<span class="sd">    Its ``asset_id`` (a :class:`lacing.Artifact`) when that is a string, else its</span>
+<span class="sd">    ``content_hash`` (reelee's records) when that is, else ``None`` (a record</span>
+<span class="sd">    filed before its bytes exist).</span>
+
+<span class="sd">    &gt;&gt;&gt; from types import SimpleNamespace as Record</span>
+<span class="sd">    &gt;&gt;&gt; content_hash_of(Record(asset_id="a1", content_hash="c1"))</span>
+<span class="sd">    'a1'</span>
+<span class="sd">    &gt;&gt;&gt; content_hash_of(Record(content_hash="c1")), content_hash_of(Record())</span>
+<span class="sd">    ('c1', None)</span>
+<span class="sd">    """</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"asset_id"</span><span class="p">,</span> <span class="s2">"content_hash"</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">value</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<span class="c1"># ``from_sql`` takes a ``content_hash_of`` argument, which shadows the function.</span>
+<span class="n">_default_content_hash_of</span> <span class="o">=</span> <span class="n">content_hash_of</span>
+
+
+<div class="viewcode-block" id="ResolvedArtifact">
+<a class="viewcode-back" href="../../_autosummary/lacing.artifact_store.html#lacing.ResolvedArtifact">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ResolvedArtifact</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""What :meth:`ArtifactStore.resolve` found.</span>
+
+<span class="sd">    - ``key``: the catalog key whose ``record`` was used; ``None``, as is</span>
+<span class="sd">      ``record``, for pinned bytes no record holds any more.</span>
+<span class="sd">    - ``content_hash``: the blob's key (the pin, when the reference had one).</span>
+<span class="sd">    - ``data``: the bytes, or ``None`` when resolved with ``read=False``.</span>
+<span class="sd">    """</span>
+
+    <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">record</span><span class="p">:</span> <span class="n">BaseModel</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="resolve_in_mall">
+<a class="viewcode-back" href="../../_autosummary/lacing.artifact_store.html#lacing.resolve_in_mall">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_in_mall</span><span class="p">(</span>
+    <span class="n">ref</span><span class="p">:</span> <span class="n">ArtifactRef</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">mall</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">default_store</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">read</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ResolvedArtifact</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""What ``ref`` names in ``mall`` (store names -&gt; :class:`ArtifactStore`).</span>
+
+<span class="sd">    The store is the one :meth:`ArtifactRef.locate` picks; the rest is that</span>
+<span class="sd">    store's :meth:`ArtifactStore.resolve`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        LookupError: the store is not in ``mall`` (the message names those</span>
+<span class="sd">            that are); a plain ``LookupError``, so ``except KeyError`` still</span>
+<span class="sd">            tells "no such key" from "no such store".</span>
+<span class="sd">        TypeError: the store has no ``resolve`` method.</span>
+<span class="sd">        KeyError, ValueError: what :meth:`ArtifactStore.resolve` raises.</span>
+
+<span class="sd">    &gt;&gt;&gt; from lacing import Artifact</span>
+<span class="sd">    &gt;&gt;&gt; takes = ArtifactStore.in_memory()</span>
+<span class="sd">    &gt;&gt;&gt; art = Artifact.from_bytes(b"x", kind="text", was_generated_by="t",</span>
+<span class="sd">    ...                           was_attributed_to="u")</span>
+<span class="sd">    &gt;&gt;&gt; _ = takes.save("a", art, data=b"x")</span>
+<span class="sd">    &gt;&gt;&gt; mall = {"transcripts": ArtifactStore.in_memory(), "takes": takes}</span>
+<span class="sd">    &gt;&gt;&gt; resolve_in_mall("artifact:takes/a", mall, default_store="transcripts").data</span>
+<span class="sd">    b'x'</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">ArtifactRef</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+    <span class="n">located</span> <span class="o">=</span> <span class="n">ref</span><span class="o">.</span><span class="n">locate</span><span class="p">(</span><span class="n">mall</span><span class="p">,</span> <span class="n">default_store</span><span class="o">=</span><span class="n">default_store</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">located</span><span class="o">.</span><span class="n">store</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">mall</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">LookupError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ref</span><span class="si">}</span><span class="s2">: no store </span><span class="si">{</span><span class="n">located</span><span class="o">.</span><span class="n">store</span><span class="si">!r}</span><span class="s2"> in the mall, whose stores are "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span><span class="w"> </span><span class="n">mall</span><span class="p">))</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">mall</span><span class="p">[</span><span class="n">located</span><span class="o">.</span><span class="n">store</span><span class="p">]</span>
+    <span class="n">resolve</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="s2">"resolve"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">resolve</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ref</span><span class="si">}</span><span class="s2">: the mall's store </span><span class="si">{</span><span class="n">located</span><span class="o">.</span><span class="n">store</span><span class="si">!r}</span><span class="s2"> is a "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">store</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">, which has no resolve method"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">resolve</span><span class="p">(</span><span class="n">located</span><span class="p">,</span> <span class="n">read</span><span class="o">=</span><span class="n">read</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="ArtifactStore">
@@ -973,6 +1068,109 @@ window.runMermaid = runMermaid;</script>
 <span class="w">        </span><span class="sd">"""Return the whole catalog as a plain dict (e.g. for UI hydration)."""</span>
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="p">)</span></div>
 
+
+    <span class="c1"># -- references ----------------------------------------------------------</span>
+
+<div class="viewcode-block" id="ArtifactStore.resolve">
+<a class="viewcode-back" href="../../_autosummary/lacing.artifact_store.html#lacing.ArtifactStore.resolve">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="n">ArtifactRef</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">read</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ResolvedArtifact</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The record and bytes ``ref`` names in this store.</span>
+
+<span class="sd">        ``ref`` is an :class:`lacing.ArtifactRef` or its text. Its ``store`` is not</span>
+<span class="sd">        consulted: this store is the one it names. References spanning a mall go</span>
+<span class="sd">        through :func:`resolve_in_mall`, which picks the store first.</span>
+
+<span class="sd">        Unpinned, it reads the record at ``ref.key`` and the bytes its content</span>
+<span class="sd">        hash names (:func:`content_hash_of`). Pinned, it reads the pinned bytes</span>
+<span class="sd">        even when the key has since been saved with other content or removed. A</span>
+<span class="sd">        pin is the store's content hash: the SHA-256 hex digest of the bytes, as</span>
+<span class="sd">        :meth:`save` and :meth:`put_blob` compute it. The record is the one at</span>
+<span class="sd">        the key if it still holds those bytes, else the first a scan of</span>
+<span class="sd">        catalog scan finds, else ``None``; only that fallback scans.</span>
+
+<span class="sd">        With ``read=False`` it only checks that the bytes exist</span>
+<span class="sd">        (:meth:`has_blob`) and leaves ``data`` as ``None``, so a caller that</span>
+<span class="sd">        streams (a video, say) can use :meth:`iter_blob` or :meth:`blob_path`</span>
+<span class="sd">        on ``content_hash``. That mode does **not** check the bytes against the</span>
+<span class="sd">        pin; with ``read=True`` a pinned read does.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            KeyError: no record at the key (unpinned), a record with no content</span>
+<span class="sd">                yet, no blob store (``blobs=None``), or no bytes for the content.</span>
+<span class="sd">            ValueError: ``ref`` text is not a reference, the record at the key</span>
+<span class="sd">                is damaged (unpinned; pydantic's error), or the bytes read do</span>
+<span class="sd">                not hash to the pin.</span>
+
+<span class="sd">        &gt;&gt;&gt; from lacing import Artifact, ArtifactRef</span>
+<span class="sd">        &gt;&gt;&gt; st = ArtifactStore.in_memory()</span>
+<span class="sd">        &gt;&gt;&gt; first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="t",</span>
+<span class="sd">        ...                             was_attributed_to="u")</span>
+<span class="sd">        &gt;&gt;&gt; _ = st.save("k", first, data=b"v1")</span>
+<span class="sd">        &gt;&gt;&gt; pinned = ArtifactRef("k", pin=first.asset_id)</span>
+<span class="sd">        &gt;&gt;&gt; second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="t",</span>
+<span class="sd">        ...                              was_attributed_to="u")</span>
+<span class="sd">        &gt;&gt;&gt; _ = st.save("k", second, data=b"v2")</span>
+<span class="sd">        &gt;&gt;&gt; st.resolve("artifact:k").data, st.resolve(pinned).data</span>
+<span class="sd">        (b'v2', b'v1')</span>
+<span class="sd">        &gt;&gt;&gt; st.resolve(pinned).key is None  # no record holds v1 any more</span>
+<span class="sd">        True</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">ref</span> <span class="o">=</span> <span class="n">ArtifactRef</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">pin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">ref</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">content_hash</span> <span class="o">=</span> <span class="n">content_hash_of</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">content_hash</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ref</span><span class="si">}</span><span class="s2">: the record at </span><span class="si">{</span><span class="n">ref</span><span class="o">.</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> has no content yet"</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_content</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">content_hash</span><span class="p">,</span> <span class="n">read</span><span class="o">=</span><span class="n">read</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">ResolvedArtifact</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">content_hash</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_content</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">ref</span><span class="o">.</span><span class="n">pin</span><span class="p">,</span> <span class="n">read</span><span class="o">=</span><span class="n">read</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">hash_bytes</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">!=</span> <span class="n">ref</span><span class="o">.</span><span class="n">pin</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ref</span><span class="si">}</span><span class="s2">: the stored bytes do not hash to the pin"</span><span class="p">)</span>
+        <span class="n">holder</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_records_with_content</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">pin</span><span class="p">,</span> <span class="p">[</span><span class="n">ref</span><span class="o">.</span><span class="n">key</span><span class="p">]),</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">holder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keys_with_content</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">pin</span><span class="p">)</span>
+            <span class="n">holder</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_records_with_content</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">pin</span><span class="p">,</span> <span class="n">keys</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">record</span> <span class="o">=</span> <span class="n">holder</span> <span class="ow">or</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ResolvedArtifact</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">ref</span><span class="o">.</span><span class="n">pin</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_keys_with_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield, lazily, the catalog keys whose record names ``content_hash``,</span>
+<span class="sd">        skipping records that cannot be read. Iterates the live catalog: do not</span>
+<span class="sd">        delete while it runs."""</span>
+        <span class="c1"># A full catalog scan: a store with a content-hash index can override this.</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_records_with_content</span><span class="p">(</span><span class="n">content_hash</span><span class="p">,</span> <span class="bp">self</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">key</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_records_with_content</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""``(key, record)`` for each of ``keys`` whose record names ``content_hash``;</span>
+<span class="sd">        unreadable records are skipped."""</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>  <span class="c1"># a racing delete, or a damaged record</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">content_hash_of</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="o">==</span> <span class="n">content_hash</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">key</span><span class="p">,</span> <span class="n">record</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_content</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="n">ArtifactRef</span><span class="p">,</span> <span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">read</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The bytes for ``content_hash`` (``None`` unless ``read``); ``KeyError``</span>
+<span class="sd">        when there are none."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ref</span><span class="si">}</span><span class="s2">: this store has no blob store, so no bytes"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">read</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_blob</span><span class="p">(</span><span class="n">content_hash</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ref</span><span class="si">}</span><span class="s2">: no bytes for content </span><span class="si">{</span><span class="n">content_hash</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_blob</span><span class="p">(</span><span class="n">content_hash</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ref</span><span class="si">}</span><span class="s2">: no bytes for content </span><span class="si">{</span><span class="n">content_hash</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span>
 
     <span class="c1"># -- blobs: rich byte methods ------------------------------------------</span>
 
@@ -1380,17 +1578,12 @@ window.runMermaid = runMermaid;</script>
         <span class="n">fast</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="p">,</span> <span class="s2">"refcount_by_content_hash"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">fast</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">fast</span><span class="p">(</span><span class="n">content_hash</span><span class="p">)</span>
-        <span class="c1"># Fallback: scan every record. Reads the content hash off whichever of</span>
-        <span class="c1"># the conventional fields the record carries (``asset_id`` first — the</span>
-        <span class="c1"># canonical Artifact field — then ``content_hash``).</span>
-        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-            <span class="n">rec_hash</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="s2">"asset_id"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span>
-                <span class="n">record</span><span class="p">,</span> <span class="s2">"content_hash"</span><span class="p">,</span> <span class="kc">None</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">rec_hash</span> <span class="o">==</span> <span class="n">content_hash</span><span class="p">:</span>
-                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">return</span> <span class="n">count</span></div>
+        <span class="c1"># Fallback: scan every record (see ``content_hash_of`` for the fields).</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">content_hash_of</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="o">==</span> <span class="n">content_hash</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ArtifactStore.from_s3">
@@ -1501,11 +1694,7 @@ window.runMermaid = runMermaid;</script>
         <span class="kn">from</span><span class="w"> </span><span class="nn">sqldol.sql_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLAlchemyPersister</span>
 
         <span class="k">if</span> <span class="n">content_hash_of</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-
-            <span class="k">def</span><span class="w"> </span><span class="nf">content_hash_of</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">BaseModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="s2">"asset_id"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span>
-                    <span class="n">record</span><span class="p">,</span> <span class="s2">"content_hash"</span><span class="p">,</span> <span class="kc">None</span>
-                <span class="p">)</span>
+            <span class="n">content_hash_of</span> <span class="o">=</span> <span class="n">_default_content_hash_of</span>
 
         <span class="n">raw</span> <span class="o">=</span> <span class="n">SQLAlchemyStore</span><span class="p">(</span>
             <span class="n">uri</span><span class="o">=</span><span class="n">uri</span><span class="p">,</span>

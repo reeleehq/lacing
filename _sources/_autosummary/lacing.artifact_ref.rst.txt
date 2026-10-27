@@ -1,0 +1,18 @@
+lacing.artifact\_ref
+====================
+
+.. automodule:: lacing.artifact_ref
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      is_artifact_ref
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactRef
+   

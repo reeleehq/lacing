@@ -53,10 +53,17 @@ True
 1
 ```
 
+### Functions
+
+| [`content_hash_of`](#lacing.artifact_store.content_hash_of)(record)                       | The content hash naming `record`'s bytes in the blob store, if it has one.                                  |
+|------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| [`resolve_in_mall`](#lacing.artifact_store.resolve_in_mall)(ref, mall, \*, default_store) | What `ref` names in `mall` (store names -> [`ArtifactStore`](#lacing.artifact_store.ArtifactStore)). |
+
 ### Classes
 
-| [`ArtifactStore`](#lacing.artifact_store.ArtifactStore)(catalog[, blobs])   | Facade over an artifact `catalog` and an optional `blobs` store.   |
-|------------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| [`ArtifactStore`](#lacing.artifact_store.ArtifactStore)(catalog[, blobs])                   | Facade over an artifact `catalog` and an optional `blobs` store.                     |
+|----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| [`ResolvedArtifact`](#lacing.artifact_store.ResolvedArtifact)(key, record, content_hash, data) | What [`ArtifactStore.resolve()`](#lacing.artifact_store.ArtifactStore.resolve) found. |
 
 ### *class* lacing.artifact_store.ArtifactStore(catalog, blobs=None)
 
@@ -468,6 +475,53 @@ their `__setitem__` is the atomicity story there.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
+#### resolve(ref, , read=True)
+
+The record and bytes `ref` names in this store.
+
+`ref` is an [`lacing.ArtifactRef`](lacing.html.md#lacing.ArtifactRef) or its text. Its `store` is not
+consulted: this store is the one it names. References spanning a mall go
+through [`resolve_in_mall()`](#lacing.artifact_store.resolve_in_mall), which picks the store first.
+
+Unpinned, it reads the record at `ref.key` and the bytes its content
+hash names ([`content_hash_of()`](#lacing.artifact_store.content_hash_of)). Pinned, it reads the pinned bytes
+even when the key has since been saved with other content or removed. A
+pin is the store’s content hash: the SHA-256 hex digest of the bytes, as
+[`save()`](#lacing.artifact_store.ArtifactStore.save) and [`put_blob()`](#lacing.artifact_store.ArtifactStore.put_blob) compute it. The record is the one at
+the key if it still holds those bytes, else the first a scan of
+catalog scan finds, else `None`; only that fallback scans.
+
+With `read=False` it only checks that the bytes exist
+([`has_blob()`](#lacing.artifact_store.ArtifactStore.has_blob)) and leaves `data` as `None`, so a caller that
+streams (a video, say) can use [`iter_blob()`](#lacing.artifact_store.ArtifactStore.iter_blob) or [`blob_path()`](#lacing.artifact_store.ArtifactStore.blob_path)
+on `content_hash`. That mode does **not** check the bytes against the
+pin; with `read=True` a pinned read does.
+
+* **Raises:**
+  * [**KeyError**](https://docs.python.org/3/builtins/exceptions.html#KeyError) – no record at the key (unpinned), a record with no content
+        yet, no blob store (`blobs=None`), or no bytes for the content.
+  * [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – `ref` text is not a reference, the record at the key
+        is damaged (unpinned; pydantic’s error), or the bytes read do
+        not hash to the pin.
+* **Return type:**
+  [`ResolvedArtifact`](#lacing.artifact_store.ResolvedArtifact)
+
+```pycon
+>>> from lacing import Artifact, ArtifactRef
+>>> st = ArtifactStore.in_memory()
+>>> first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="t",
+...                             was_attributed_to="u")
+>>> _ = st.save("k", first, data=b"v1")
+>>> pinned = ArtifactRef("k", pin=first.asset_id)
+>>> second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="t",
+...                              was_attributed_to="u")
+>>> _ = st.save("k", second, data=b"v2")
+>>> st.resolve("artifact:k").data, st.resolve(pinned).data
+(b'v2', b'v1')
+>>> st.resolve(pinned).key is None  # no record holds v1 any more
+True
+```
+
 #### save(artifact_id, record, , data=None)
 
 Persist one artifact, optionally with its bytes.
@@ -488,3 +542,76 @@ crash never leaves the catalog pointing at missing bytes. Idempotent on
   The blob’s content hash if `data` was written, else `None`.
 * **Raises:**
   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError) – `data` was given but no blob store is configured.
+
+### *class* lacing.artifact_store.ResolvedArtifact(key, record, content_hash, data)
+
+Bases: [`NamedTuple`](https://docs.python.org/3/library/typing.html#typing.NamedTuple)
+
+What [`ArtifactStore.resolve()`](#lacing.artifact_store.ArtifactStore.resolve) found.
+
+- `key`: the catalog key whose `record` was used; `None`, as is
+  `record`, for pinned bytes no record holds any more.
+- `content_hash`: the blob’s key (the pin, when the reference had one).
+- `data`: the bytes, or `None` when resolved with `read=False`.
+
+#### content_hash *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+Alias for field number 2
+
+#### data *: [bytes](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+
+Alias for field number 3
+
+#### key *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+
+Alias for field number 0
+
+#### record *: BaseModel | [None](https://docs.python.org/3/builtins/constants.html#None)*
+
+Alias for field number 1
+
+### lacing.artifact_store.content_hash_of(record)
+
+The content hash naming `record`’s bytes in the blob store, if it has one.
+
+Its `asset_id` (a [`lacing.Artifact`](lacing.html.md#lacing.Artifact)) when that is a string, else its
+`content_hash` (reelee’s records) when that is, else `None` (a record
+filed before its bytes exist).
+
+```pycon
+>>> from types import SimpleNamespace as Record
+>>> content_hash_of(Record(asset_id="a1", content_hash="c1"))
+'a1'
+>>> content_hash_of(Record(content_hash="c1")), content_hash_of(Record())
+('c1', None)
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### lacing.artifact_store.resolve_in_mall(ref, mall, , default_store, read=True)
+
+What `ref` names in `mall` (store names -> [`ArtifactStore`](#lacing.artifact_store.ArtifactStore)).
+
+The store is the one `ArtifactRef.locate()` picks; the rest is that
+store’s [`ArtifactStore.resolve()`](#lacing.artifact_store.ArtifactStore.resolve).
+
+* **Raises:**
+  * [**LookupError**](https://docs.python.org/3/builtins/exceptions.html#LookupError) – the store is not in `mall` (the message names those
+        that are); a plain `LookupError`, so `except KeyError` still
+        tells “no such key” from “no such store”.
+  * [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError) – the store has no `resolve` method.
+  * [**KeyError**](https://docs.python.org/3/builtins/exceptions.html#KeyError)**,** [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – what [`ArtifactStore.resolve()`](#lacing.artifact_store.ArtifactStore.resolve) raises.
+* **Return type:**
+  [`ResolvedArtifact`](#lacing.artifact_store.ResolvedArtifact)
+
+```pycon
+>>> from lacing import Artifact
+>>> takes = ArtifactStore.in_memory()
+>>> art = Artifact.from_bytes(b"x", kind="text", was_generated_by="t",
+...                           was_attributed_to="u")
+>>> _ = takes.save("a", art, data=b"x")
+>>> mall = {"transcripts": ArtifactStore.in_memory(), "takes": takes}
+>>> resolve_in_mall("artifact:takes/a", mall, default_store="transcripts").data
+b'x'
+```

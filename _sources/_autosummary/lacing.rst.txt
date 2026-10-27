@@ -8,6 +8,8 @@
 
    .. autosummary::
    
+      resolve_in_mall
+      content_hash_of
       hash_bytes
       hash_file
       annotation_value_digest
@@ -58,6 +60,8 @@
       Artifact
       Rights
       ArtifactStore
+      ResolvedArtifact
+      ArtifactRef
       AllenRelation
       IntervalAnnotationStore
       MemoryStore
@@ -93,6 +97,7 @@
    adapters
    allen
    artifact
+   artifact_ref
    artifact_store
    bodies
    cli

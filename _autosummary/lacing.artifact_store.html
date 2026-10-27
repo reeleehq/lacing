@@ -54,7 +54,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="lacing.bodies" href="lacing.bodies.html" />
-    <link rel="prev" title="lacing.artifact" href="lacing.artifact.html" />
+    <link rel="prev" title="lacing.artifact_ref" href="lacing.artifact_ref.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
@@ -333,6 +333,7 @@
 </details></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.allen.html">lacing.allen</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.artifact.html">lacing.artifact</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.artifact_ref.html">lacing.artifact_ref</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">lacing.artifact_store</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.bodies.html">lacing.bodies</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.character_voice.html">lacing.bodies.character_voice</a></li>
@@ -486,11 +487,26 @@ bytes.</p>
 <span class="go">1</span>
 </pre></div>
 </div>
+<p class="rubric">Functions</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.artifact_store.content_hash_of" title="lacing.artifact_store.content_hash_of"><code class="xref py py-obj docutils literal notranslate"><span class="pre">content_hash_of</span></code></a>(record)</p></td>
+<td><p>The content hash naming <code class="docutils literal notranslate"><span class="pre">record</span></code>'s bytes in the blob store, if it has one.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.artifact_store.resolve_in_mall" title="lacing.artifact_store.resolve_in_mall"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolve_in_mall</span></code></a>(ref, mall, *, default_store)</p></td>
+<td><p>What <code class="docutils literal notranslate"><span class="pre">ref</span></code> names in <code class="docutils literal notranslate"><span class="pre">mall</span></code> (store names -&gt; <a class="reference internal" href="#lacing.artifact_store.ArtifactStore" title="lacing.artifact_store.ArtifactStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArtifactStore</span></code></a>).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 <p class="rubric">Classes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.artifact_store.ArtifactStore" title="lacing.artifact_store.ArtifactStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArtifactStore</span></code></a>(catalog[, blobs])</p></td>
 <td><p>Facade over an artifact <code class="docutils literal notranslate"><span class="pre">catalog</span></code> and an optional <code class="docutils literal notranslate"><span class="pre">blobs</span></code> store.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.artifact_store.ResolvedArtifact" title="lacing.artifact_store.ResolvedArtifact"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ResolvedArtifact</span></code></a>(key, record, content_hash, data)</p></td>
+<td><p>What <a class="reference internal" href="#lacing.artifact_store.ArtifactStore.resolve" title="lacing.artifact_store.ArtifactStore.resolve"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ArtifactStore.resolve()</span></code></a> found.</p></td>
 </tr>
 </tbody>
 </table>
@@ -963,6 +979,56 @@ their <code class="docutils literal notranslate"><span class="pre">__setitem__</
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lacing.artifact_store.ArtifactStore.resolve">
+<span class="sig-name descname"><span class="pre">resolve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">read</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/artifact_store.html#ArtifactStore.resolve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.artifact_store.ArtifactStore.resolve" title="Link to this definition">#</a></dt>
+<dd><p>The record and bytes <code class="docutils literal notranslate"><span class="pre">ref</span></code> names in this store.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ref</span></code> is an <a class="reference internal" href="lacing.html#lacing.ArtifactRef" title="lacing.ArtifactRef"><code class="xref py py-class docutils literal notranslate"><span class="pre">lacing.ArtifactRef</span></code></a> or its text. Its <code class="docutils literal notranslate"><span class="pre">store</span></code> is not
+consulted: this store is the one it names. References spanning a mall go
+through <a class="reference internal" href="#lacing.artifact_store.resolve_in_mall" title="lacing.artifact_store.resolve_in_mall"><code class="xref py py-func docutils literal notranslate"><span class="pre">resolve_in_mall()</span></code></a>, which picks the store first.</p>
+<p>Unpinned, it reads the record at <code class="docutils literal notranslate"><span class="pre">ref.key</span></code> and the bytes its content
+hash names (<a class="reference internal" href="#lacing.artifact_store.content_hash_of" title="lacing.artifact_store.content_hash_of"><code class="xref py py-func docutils literal notranslate"><span class="pre">content_hash_of()</span></code></a>). Pinned, it reads the pinned bytes
+even when the key has since been saved with other content or removed. A
+pin is the store’s content hash: the SHA-256 hex digest of the bytes, as
+<a class="reference internal" href="#lacing.artifact_store.ArtifactStore.save" title="lacing.artifact_store.ArtifactStore.save"><code class="xref py py-meth docutils literal notranslate"><span class="pre">save()</span></code></a> and <a class="reference internal" href="#lacing.artifact_store.ArtifactStore.put_blob" title="lacing.artifact_store.ArtifactStore.put_blob"><code class="xref py py-meth docutils literal notranslate"><span class="pre">put_blob()</span></code></a> compute it. The record is the one at
+the key if it still holds those bytes, else the first a scan of
+catalog scan finds, else <code class="docutils literal notranslate"><span class="pre">None</span></code>; only that fallback scans.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">read=False</span></code> it only checks that the bytes exist
+(<a class="reference internal" href="#lacing.artifact_store.ArtifactStore.has_blob" title="lacing.artifact_store.ArtifactStore.has_blob"><code class="xref py py-meth docutils literal notranslate"><span class="pre">has_blob()</span></code></a>) and leaves <code class="docutils literal notranslate"><span class="pre">data</span></code> as <code class="docutils literal notranslate"><span class="pre">None</span></code>, so a caller that
+streams (a video, say) can use <a class="reference internal" href="#lacing.artifact_store.ArtifactStore.iter_blob" title="lacing.artifact_store.ArtifactStore.iter_blob"><code class="xref py py-meth docutils literal notranslate"><span class="pre">iter_blob()</span></code></a> or <a class="reference internal" href="#lacing.artifact_store.ArtifactStore.blob_path" title="lacing.artifact_store.ArtifactStore.blob_path"><code class="xref py py-meth docutils literal notranslate"><span class="pre">blob_path()</span></code></a>
+on <code class="docutils literal notranslate"><span class="pre">content_hash</span></code>. That mode does <strong>not</strong> check the bytes against the
+pin; with <code class="docutils literal notranslate"><span class="pre">read=True</span></code> a pinned read does.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#KeyError" title="(in Python v3.15)"><strong>KeyError</strong></a> – no record at the key (unpinned), a record with no content
+    yet, no blob store (<code class="docutils literal notranslate"><span class="pre">blobs=None</span></code>), or no bytes for the content.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – <code class="docutils literal notranslate"><span class="pre">ref</span></code> text is not a reference, the record at the key
+    is damaged (unpinned; pydantic’s error), or the bytes read do
+    not hash to the pin.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#lacing.artifact_store.ResolvedArtifact" title="lacing.artifact_store.ResolvedArtifact"><code class="xref py py-class docutils literal notranslate"><span class="pre">ResolvedArtifact</span></code></a></span></p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Artifact</span><span class="p">,</span> <span class="n">ArtifactRef</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">st</span> <span class="o">=</span> <span class="n">ArtifactStore</span><span class="o">.</span><span class="n">in_memory</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">first</span> <span class="o">=</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"v1"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"text"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"t"</span><span class="p">,</span>
+<span class="gp">... </span>                            <span class="n">was_attributed_to</span><span class="o">=</span><span class="s2">"u"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"k"</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="sa">b</span><span class="s2">"v1"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pinned</span> <span class="o">=</span> <span class="n">ArtifactRef</span><span class="p">(</span><span class="s2">"k"</span><span class="p">,</span> <span class="n">pin</span><span class="o">=</span><span class="n">first</span><span class="o">.</span><span class="n">asset_id</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">second</span> <span class="o">=</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"v2"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"text"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"t"</span><span class="p">,</span>
+<span class="gp">... </span>                             <span class="n">was_attributed_to</span><span class="o">=</span><span class="s2">"u"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"k"</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="sa">b</span><span class="s2">"v2"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">st</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s2">"artifact:k"</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">pinned</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
+<span class="go">(b'v2', b'v1')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">st</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">pinned</span><span class="p">)</span><span class="o">.</span><span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span>  <span class="c1"># no record holds v1 any more</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lacing.artifact_store.ArtifactStore.save">
 <span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">artifact_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/artifact_store.html#ArtifactStore.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.artifact_store.ArtifactStore.save" title="Link to this definition">#</a></dt>
 <dd><p>Persist one artifact, optionally with its bytes.</p>
@@ -993,6 +1059,98 @@ is responsible for also recording that hash on <code class="docutils literal not
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="lacing.artifact_store.ResolvedArtifact">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.artifact_store.</span></span><span class="sig-name descname"><span class="pre">ResolvedArtifact</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_hash</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/artifact_store.html#ResolvedArtifact"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.artifact_store.ResolvedArtifact" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.NamedTuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">NamedTuple</span></code></a></p>
+<p>What <a class="reference internal" href="#lacing.artifact_store.ArtifactStore.resolve" title="lacing.artifact_store.ArtifactStore.resolve"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ArtifactStore.resolve()</span></code></a> found.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">key</span></code>: the catalog key whose <code class="docutils literal notranslate"><span class="pre">record</span></code> was used; <code class="docutils literal notranslate"><span class="pre">None</span></code>, as is
+<code class="docutils literal notranslate"><span class="pre">record</span></code>, for pinned bytes no record holds any more.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">content_hash</span></code>: the blob’s key (the pin, when the reference had one).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">data</span></code>: the bytes, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when resolved with <code class="docutils literal notranslate"><span class="pre">read=False</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lacing.artifact_store.ResolvedArtifact.content_hash">
+<span class="sig-name descname"><span class="pre">content_hash</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#lacing.artifact_store.ResolvedArtifact.content_hash" title="Link to this definition">#</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lacing.artifact_store.ResolvedArtifact.data">
+<span class="sig-name descname"><span class="pre">data</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#bytes" title="(in Python v3.15)"><span class="pre">bytes</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#lacing.artifact_store.ResolvedArtifact.data" title="Link to this definition">#</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lacing.artifact_store.ResolvedArtifact.key">
+<span class="sig-name descname"><span class="pre">key</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#lacing.artifact_store.ResolvedArtifact.key" title="Link to this definition">#</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lacing.artifact_store.ResolvedArtifact.record">
+<span class="sig-name descname"><span class="pre">record</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">BaseModel</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#lacing.artifact_store.ResolvedArtifact.record" title="Link to this definition">#</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.artifact_store.content_hash_of">
+<span class="sig-prename descclassname"><span class="pre">lacing.artifact_store.</span></span><span class="sig-name descname"><span class="pre">content_hash_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/artifact_store.html#content_hash_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.artifact_store.content_hash_of" title="Link to this definition">#</a></dt>
+<dd><p>The content hash naming <code class="docutils literal notranslate"><span class="pre">record</span></code>’s bytes in the blob store, if it has one.</p>
+<p>Its <code class="docutils literal notranslate"><span class="pre">asset_id</span></code> (a <a class="reference internal" href="lacing.html#lacing.Artifact" title="lacing.Artifact"><code class="xref py py-class docutils literal notranslate"><span class="pre">lacing.Artifact</span></code></a>) when that is a string, else its
+<code class="docutils literal notranslate"><span class="pre">content_hash</span></code> (reelee’s records) when that is, else <code class="docutils literal notranslate"><span class="pre">None</span></code> (a record
+filed before its bytes exist).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimpleNamespace</span> <span class="k">as</span> <span class="n">Record</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">content_hash_of</span><span class="p">(</span><span class="n">Record</span><span class="p">(</span><span class="n">asset_id</span><span class="o">=</span><span class="s2">"a1"</span><span class="p">,</span> <span class="n">content_hash</span><span class="o">=</span><span class="s2">"c1"</span><span class="p">))</span>
+<span class="go">'a1'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">content_hash_of</span><span class="p">(</span><span class="n">Record</span><span class="p">(</span><span class="n">content_hash</span><span class="o">=</span><span class="s2">"c1"</span><span class="p">)),</span> <span class="n">content_hash_of</span><span class="p">(</span><span class="n">Record</span><span class="p">())</span>
+<span class="go">('c1', None)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.artifact_store.resolve_in_mall">
+<span class="sig-prename descclassname"><span class="pre">lacing.artifact_store.</span></span><span class="sig-name descname"><span class="pre">resolve_in_mall</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mall</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/artifact_store.html#resolve_in_mall"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.artifact_store.resolve_in_mall" title="Link to this definition">#</a></dt>
+<dd><p>What <code class="docutils literal notranslate"><span class="pre">ref</span></code> names in <code class="docutils literal notranslate"><span class="pre">mall</span></code> (store names -&gt; <a class="reference internal" href="#lacing.artifact_store.ArtifactStore" title="lacing.artifact_store.ArtifactStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArtifactStore</span></code></a>).</p>
+<p>The store is the one <code class="xref py py-meth docutils literal notranslate"><span class="pre">ArtifactRef.locate()</span></code> picks; the rest is that
+store’s <a class="reference internal" href="#lacing.artifact_store.ArtifactStore.resolve" title="lacing.artifact_store.ArtifactStore.resolve"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ArtifactStore.resolve()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#LookupError" title="(in Python v3.15)"><strong>LookupError</strong></a> – the store is not in <code class="docutils literal notranslate"><span class="pre">mall</span></code> (the message names those
+    that are); a plain <code class="docutils literal notranslate"><span class="pre">LookupError</span></code>, so <code class="docutils literal notranslate"><span class="pre">except</span> <span class="pre">KeyError</span></code> still
+    tells “no such key” from “no such store”.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#TypeError" title="(in Python v3.15)"><strong>TypeError</strong></a> – the store has no <code class="docutils literal notranslate"><span class="pre">resolve</span></code> method.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#KeyError" title="(in Python v3.15)"><strong>KeyError</strong></a><strong>, </strong><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – what <a class="reference internal" href="#lacing.artifact_store.ArtifactStore.resolve" title="lacing.artifact_store.ArtifactStore.resolve"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ArtifactStore.resolve()</span></code></a> raises.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#lacing.artifact_store.ResolvedArtifact" title="lacing.artifact_store.ResolvedArtifact"><code class="xref py py-class docutils literal notranslate"><span class="pre">ResolvedArtifact</span></code></a></span></p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Artifact</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">takes</span> <span class="o">=</span> <span class="n">ArtifactStore</span><span class="o">.</span><span class="n">in_memory</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">art</span> <span class="o">=</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"text"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"t"</span><span class="p">,</span>
+<span class="gp">... </span>                          <span class="n">was_attributed_to</span><span class="o">=</span><span class="s2">"u"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">takes</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">art</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="sa">b</span><span class="s2">"x"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mall</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"transcripts"</span><span class="p">:</span> <span class="n">ArtifactStore</span><span class="o">.</span><span class="n">in_memory</span><span class="p">(),</span> <span class="s2">"takes"</span><span class="p">:</span> <span class="n">takes</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">resolve_in_mall</span><span class="p">(</span><span class="s2">"artifact:takes/a"</span><span class="p">,</span> <span class="n">mall</span><span class="p">,</span> <span class="n">default_store</span><span class="o">=</span><span class="s2">"transcripts"</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
+<span class="go">b'x'</span>
+</pre></div>
+</div>
+</dd></dl>
+
 </section>
 
 
@@ -1006,12 +1164,12 @@ is responsible for also recording that hash on <code class="docutils literal not
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="lacing.artifact.html"
+       href="lacing.artifact_ref.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">lacing.artifact</p>
+        <p class="prev-next-title">lacing.artifact_ref</p>
       </div>
     </a>
     <a class="right-next"
@@ -1060,9 +1218,19 @@ is responsible for also recording that hash on <code class="docutils literal not
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ArtifactStore.iter_blobs"><code class="docutils literal notranslate"><span class="pre">ArtifactStore.iter_blobs()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ArtifactStore.put_blob"><code class="docutils literal notranslate"><span class="pre">ArtifactStore.put_blob()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ArtifactStore.put_blob_stream"><code class="docutils literal notranslate"><span class="pre">ArtifactStore.put_blob_stream()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ArtifactStore.resolve"><code class="docutils literal notranslate"><span class="pre">ArtifactStore.resolve()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ArtifactStore.save"><code class="docutils literal notranslate"><span class="pre">ArtifactStore.save()</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ResolvedArtifact"><code class="docutils literal notranslate"><span class="pre">ResolvedArtifact</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ResolvedArtifact.content_hash"><code class="docutils literal notranslate"><span class="pre">ResolvedArtifact.content_hash</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ResolvedArtifact.data"><code class="docutils literal notranslate"><span class="pre">ResolvedArtifact.data</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ResolvedArtifact.key"><code class="docutils literal notranslate"><span class="pre">ResolvedArtifact.key</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ResolvedArtifact.record"><code class="docutils literal notranslate"><span class="pre">ResolvedArtifact.record</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.content_hash_of"><code class="docutils literal notranslate"><span class="pre">content_hash_of()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.resolve_in_mall"><code class="docutils literal notranslate"><span class="pre">resolve_in_mall()</span></code></a></li>
 </ul>
   </nav></div>
 

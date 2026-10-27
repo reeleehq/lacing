@@ -4,9 +4,17 @@ lacing.artifact\_store
 .. automodule:: lacing.artifact_store
 
    
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      content_hash_of
+      resolve_in_mall
+   
    .. rubric:: Classes
 
    .. autosummary::
    
       ArtifactStore
+      ResolvedArtifact
    

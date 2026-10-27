@@ -17,8 +17,10 @@ full story. `.claude/skills/` contains the rules.
 
 ### Functions
 
-| [`hash_bytes`](#lacing.hash_bytes)(data)                                  | Return the canonical `asset_id` (SHA-256 hex) for `data`.                                                                                                                                    |
+| [`resolve_in_mall`](#lacing.resolve_in_mall)(ref, mall, \*, default_store)     | What `ref` names in `mall` (store names -> [`ArtifactStore`](#lacing.ArtifactStore)).                                                                                  |
 |----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`content_hash_of`](#lacing.content_hash_of)(record)                           | The content hash naming `record`'s bytes in the blob store, if it has one.                                                                                                                   |
+| [`hash_bytes`](#lacing.hash_bytes)(data)                                  | Return the canonical `asset_id` (SHA-256 hex) for `data`.                                                                                                                                    |
 | [`hash_file`](#lacing.hash_file)(path, \*[, chunk_size])                 | Return the canonical `asset_id` (SHA-256 hex) for the file at `path`.                                                                                                                        |
 | [`annotation_value_digest`](#lacing.annotation_value_digest)(annotation, \*[, ...])    | Return the SHA-256 hex digest of `annotation`'s value.                                                                                                                                       |
 | [`annotation_body_digest`](#lacing.annotation_body_digest)(annotation)                | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                                                                             |
@@ -54,30 +56,32 @@ full story. `.claude/skills/` contains the rules.
 
 ### Classes
 
-| [`RationalTime`](#lacing.RationalTime)(value[, rate])                      | A point in time as `value / rate` seconds.                                     |
-|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| [`TimeInterval`](#lacing.TimeInterval)(start, end)                         | A half-open interval `[start, end)`.                                           |
-| [`Tier`](#lacing.Tier)(name, \*[, stereotype, parent, metadata])   | A named annotation layer with optional parent and stereotype.                  |
-| [`TierStereotype`](#lacing.TierStereotype)(\*values)                         | Constraints on how a child tier relates to its parent tier.                    |
-| [`Annotation`](#lacing.Annotation)(\*, id, tier, reference, body, ...)   | The single annotation envelope.                                                |
-| [`MediaRef`](#lacing.MediaRef)(\*[, kind])                             | Reference to a region of a content-addressed media asset.                      |
-| [`NodeRef`](#lacing.NodeRef)(\*[, kind])                              | Reference to a node in a structured scene/document graph.                      |
-| [`AnnotationRef`](#lacing.AnnotationRef)(\*[, kind, interval])              | Reference to another annotation (for discussion threads, review, derivations). |
-| [`Provenance`](#lacing.Provenance)(\*, was_generated_by, ...[, ...])     | W3C PROV-O subset, embedded inline on every annotation.                        |
-| [`Artifact`](#lacing.Artifact)(\*, asset_id, kind[, path, url, ...])   | A content-addressed generated file with provenance.                            |
-| [`Rights`](#lacing.Rights)(\*, provider[, id, title, license, ...])  | Who owns the bytes of an *acquired* artifact, and on what terms.               |
-| [`ArtifactStore`](#lacing.ArtifactStore)(catalog[, blobs])                  | Facade over an artifact `catalog` and an optional `blobs` store.               |
-| [`AllenRelation`](#lacing.AllenRelation)(\*values)                          | The thirteen Allen relations.                                                  |
-| [`IntervalAnnotationStore`](#lacing.IntervalAnnotationStore)(\*args, \*\*kwargs)      | Protocol for any interval-keyed annotation store.                              |
-| [`MemoryStore`](#lacing.MemoryStore)()                                    | `IntervalAnnotationStore` implementation over `intervaltree`.                  |
-| [`MappingStore`](#lacing.MappingStore)(mapping, \*[, codec, tiers_key])    | An `IntervalAnnotationStore` persisted to an injected `MutableMapping`.        |
-| [`SqliteStore`](#lacing.SqliteStore)(path, \*[, check_same_thread, ...])  | SQLite-backed `IntervalAnnotationStore`.                                       |
-| [`OpLog`](#lacing.OpLog)(\*args, \*\*kwargs)                        | Append-only log of mutations.                                                  |
-| [`OpLogEntry`](#lacing.OpLogEntry)(clock, operation, target_id, payload) | One row of the op-log.                                                         |
-| [`InMemoryOpLog`](#lacing.InMemoryOpLog)()                                  | Simple list-backed op-log.                                                     |
-| [`SqliteOpLog`](#lacing.SqliteOpLog)(path, \*[, check_same_thread])       | Op-log backed by a SQLite table.                                               |
-| [`Location`](#lacing.Location)(kind)                                   | Field marker: this body field holds a location of `kind`.                      |
-| [`Derived`](#lacing.Derived)(source)                                  | Field marker: this body field is derivable from the sibling field `source`.    |
+| [`RationalTime`](#lacing.RationalTime)(value[, rate])                       | A point in time as `value / rate` seconds.                                                                                                                                                                         |
+|----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`TimeInterval`](#lacing.TimeInterval)(start, end)                          | A half-open interval `[start, end)`.                                                                                                                                                                               |
+| [`Tier`](#lacing.Tier)(name, \*[, stereotype, parent, metadata])    | A named annotation layer with optional parent and stereotype.                                                                                                                                                      |
+| [`TierStereotype`](#lacing.TierStereotype)(\*values)                          | Constraints on how a child tier relates to its parent tier.                                                                                                                                                        |
+| [`Annotation`](#lacing.Annotation)(\*, id, tier, reference, body, ...)    | The single annotation envelope.                                                                                                                                                                                    |
+| [`MediaRef`](#lacing.MediaRef)(\*[, kind])                              | Reference to a region of a content-addressed media asset.                                                                                                                                                          |
+| [`NodeRef`](#lacing.NodeRef)(\*[, kind])                               | Reference to a node in a structured scene/document graph.                                                                                                                                                          |
+| [`AnnotationRef`](#lacing.AnnotationRef)(\*[, kind, interval])               | Reference to another annotation (for discussion threads, review, derivations).                                                                                                                                     |
+| [`Provenance`](#lacing.Provenance)(\*, was_generated_by, ...[, ...])      | W3C PROV-O subset, embedded inline on every annotation.                                                                                                                                                            |
+| [`Artifact`](#lacing.Artifact)(\*, asset_id, kind[, path, url, ...])    | A content-addressed generated file with provenance.                                                                                                                                                                |
+| [`Rights`](#lacing.Rights)(\*, provider[, id, title, license, ...])   | Who owns the bytes of an *acquired* artifact, and on what terms.                                                                                                                                                   |
+| [`ArtifactStore`](#lacing.ArtifactStore)(catalog[, blobs])                   | Facade over an artifact `catalog` and an optional `blobs` store.                                                                                                                                                   |
+| [`ResolvedArtifact`](#lacing.ResolvedArtifact)(key, record, content_hash, data) | What [`ArtifactStore.resolve()`](#lacing.ArtifactStore.resolve) found.                                                                                                                               |
+| [`ArtifactRef`](#lacing.ArtifactRef)(key[, store, pin])                    | A reference to an artifact: its `key`, the `store` that files it when known, and the content `pin` when it names one: the store's content hash, 64 hex digits of SHA-256 (an `Artifact.asset_id`), kept lowercase. |
+| [`AllenRelation`](#lacing.AllenRelation)(\*values)                           | The thirteen Allen relations.                                                                                                                                                                                      |
+| [`IntervalAnnotationStore`](#lacing.IntervalAnnotationStore)(\*args, \*\*kwargs)       | Protocol for any interval-keyed annotation store.                                                                                                                                                                  |
+| [`MemoryStore`](#lacing.MemoryStore)()                                     | `IntervalAnnotationStore` implementation over `intervaltree`.                                                                                                                                                      |
+| [`MappingStore`](#lacing.MappingStore)(mapping, \*[, codec, tiers_key])     | An `IntervalAnnotationStore` persisted to an injected `MutableMapping`.                                                                                                                                            |
+| [`SqliteStore`](#lacing.SqliteStore)(path, \*[, check_same_thread, ...])   | SQLite-backed `IntervalAnnotationStore`.                                                                                                                                                                           |
+| [`OpLog`](#lacing.OpLog)(\*args, \*\*kwargs)                         | Append-only log of mutations.                                                                                                                                                                                      |
+| [`OpLogEntry`](#lacing.OpLogEntry)(clock, operation, target_id, payload)  | One row of the op-log.                                                                                                                                                                                             |
+| [`InMemoryOpLog`](#lacing.InMemoryOpLog)()                                   | Simple list-backed op-log.                                                                                                                                                                                         |
+| [`SqliteOpLog`](#lacing.SqliteOpLog)(path, \*[, check_same_thread])        | Op-log backed by a SQLite table.                                                                                                                                                                                   |
+| [`Location`](#lacing.Location)(kind)                                    | Field marker: this body field holds a location of `kind`.                                                                                                                                                          |
+| [`Derived`](#lacing.Derived)(source)                                   | Field marker: this body field is derivable from the sibling field `source`.                                                                                                                                        |
 
 ### Exceptions
 
@@ -177,6 +181,72 @@ Use this to attach an annotation to a region of the artifact:
 
 * **Return type:**
   MediaRef
+
+### *class* lacing.ArtifactRef(key, store=None, pin=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+A reference to an artifact: its `key`, the `store` that files it when
+known, and the content `pin` when it names one: the store’s content hash,
+64 hex digits of SHA-256 (an `Artifact.asset_id`), kept lowercase.
+
+Raises `ValueError` for a reference that would not read back as itself: an
+empty key or one with whitespace, a key starting with `/` or ending in
+`@<sha256>`, a store with `/` in it, or a pin that is not 64 hex digits.
+
+#### format()
+
+The reference as text: `artifact:[<store>/]<key>[@<pin>]`.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### locate(mall, , default_store)
+
+This reference with its `store` decided against `mall`.
+
+A `store` already set is kept. Otherwise the key’s first segment names
+a store of `mall` when the rest is itself a key (so `takes/` and
+`takes//a` stay whole) and that store holds it, or when
+`default_store` does not hold the whole key (so a pinned reference
+whose key was since deleted still finds its store); else the whole key
+belongs to `default_store`.
+
+```pycon
+>>> mall = {"transcripts": {}, "takes": {"a": 1}}
+>>> ArtifactRef.parse("artifact:takes/a").locate(mall, default_store="transcripts")
+ArtifactRef(key='a', store='takes', pin=None)
+>>> ArtifactRef.parse("artifact:k").locate(mall, default_store="transcripts")
+ArtifactRef(key='k', store='transcripts', pin=None)
+```
+
+* **Return type:**
+  [`ArtifactRef`](lacing.artifact_ref.html.md#lacing.artifact_ref.ArtifactRef)
+
+#### *classmethod* parse(text, , require_prefix=True)
+
+The reference `text` spells, with the whole name as `key`
+(`store` is `None`; see [`locate()`](#lacing.ArtifactRef.locate)).
+
+`require_prefix=False` also reads a name without `artifact:`, the
+`<store>/<key>@<sha256>` that an records in a take’s manifest.
+
+Anything it refuses raises `ValueError("not an artifact reference: ...")`,
+chained to the key’s own error when that is the reason.
+
+```pycon
+>>> ArtifactRef.parse("  artifact:k  ")
+ArtifactRef(key='k', store=None, pin=None)
+>>> ArtifactRef.parse("take.srt")
+Traceback (most recent call last):
+...
+ValueError: not an artifact reference: 'take.srt'
+>>> ArtifactRef.parse("takes/a", require_prefix=False)
+ArtifactRef(key='takes/a', store=None, pin=None)
+```
+
+* **Return type:**
+  [`ArtifactRef`](lacing.artifact_ref.html.md#lacing.artifact_ref.ArtifactRef)
 
 ### *class* lacing.ArtifactStore(catalog, blobs=None)
 
@@ -587,6 +657,53 @@ their `__setitem__` is the atomicity story there.
   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError) – no blob store is configured.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### resolve(ref, , read=True)
+
+The record and bytes `ref` names in this store.
+
+`ref` is an [`lacing.ArtifactRef`](#lacing.ArtifactRef) or its text. Its `store` is not
+consulted: this store is the one it names. References spanning a mall go
+through [`resolve_in_mall()`](#lacing.resolve_in_mall), which picks the store first.
+
+Unpinned, it reads the record at `ref.key` and the bytes its content
+hash names ([`content_hash_of()`](#lacing.content_hash_of)). Pinned, it reads the pinned bytes
+even when the key has since been saved with other content or removed. A
+pin is the store’s content hash: the SHA-256 hex digest of the bytes, as
+[`save()`](#lacing.ArtifactStore.save) and [`put_blob()`](#lacing.ArtifactStore.put_blob) compute it. The record is the one at
+the key if it still holds those bytes, else the first a scan of
+catalog scan finds, else `None`; only that fallback scans.
+
+With `read=False` it only checks that the bytes exist
+([`has_blob()`](#lacing.ArtifactStore.has_blob)) and leaves `data` as `None`, so a caller that
+streams (a video, say) can use [`iter_blob()`](#lacing.ArtifactStore.iter_blob) or [`blob_path()`](#lacing.ArtifactStore.blob_path)
+on `content_hash`. That mode does **not** check the bytes against the
+pin; with `read=True` a pinned read does.
+
+* **Raises:**
+  * [**KeyError**](https://docs.python.org/3/builtins/exceptions.html#KeyError) – no record at the key (unpinned), a record with no content
+        yet, no blob store (`blobs=None`), or no bytes for the content.
+  * [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – `ref` text is not a reference, the record at the key
+        is damaged (unpinned; pydantic’s error), or the bytes read do
+        not hash to the pin.
+* **Return type:**
+  [`ResolvedArtifact`](lacing.artifact_store.html.md#lacing.artifact_store.ResolvedArtifact)
+
+```pycon
+>>> from lacing import Artifact, ArtifactRef
+>>> st = ArtifactStore.in_memory()
+>>> first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="t",
+...                             was_attributed_to="u")
+>>> _ = st.save("k", first, data=b"v1")
+>>> pinned = ArtifactRef("k", pin=first.asset_id)
+>>> second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="t",
+...                              was_attributed_to="u")
+>>> _ = st.save("k", second, data=b"v2")
+>>> st.resolve("artifact:k").data, st.resolve(pinned).data
+(b'v2', b'v1')
+>>> st.resolve(pinned).key is None  # no record holds v1 any more
+True
+```
 
 #### save(artifact_id, record, , data=None)
 
@@ -1105,6 +1222,33 @@ the epoch. Producers stamp [`now()`](#lacing.RationalTime.now) there.
 * **Return type:**
   [`RationalTime`](lacing.time.html.md#lacing.time.RationalTime)
 
+### *class* lacing.ResolvedArtifact(key, record, content_hash, data)
+
+Bases: [`NamedTuple`](https://docs.python.org/3/library/typing.html#typing.NamedTuple)
+
+What [`ArtifactStore.resolve()`](#lacing.ArtifactStore.resolve) found.
+
+- `key`: the catalog key whose `record` was used; `None`, as is
+  `record`, for pinned bytes no record holds any more.
+- `content_hash`: the blob’s key (the pin, when the reference had one).
+- `data`: the bytes, or `None` when resolved with `read=False`.
+
+#### content_hash *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+Alias for field number 2
+
+#### data *: [bytes](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+
+Alias for field number 3
+
+#### key *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+
+Alias for field number 0
+
+#### record *: BaseModel | [None](https://docs.python.org/3/builtins/constants.html#None)*
+
+Alias for field number 1
+
 ### *class* lacing.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None)
 
 Bases: `BaseModel`
@@ -1481,6 +1625,25 @@ Edge cases:
 : If only one category appears across both annotators, both observed
   and expected agreement are 1.0; we return 1.0 by convention.
 
+### lacing.content_hash_of(record)
+
+The content hash naming `record`’s bytes in the blob store, if it has one.
+
+Its `asset_id` (a [`lacing.Artifact`](#lacing.Artifact)) when that is a string, else its
+`content_hash` (reelee’s records) when that is, else `None` (a record
+filed before its bytes exist).
+
+```pycon
+>>> from types import SimpleNamespace as Record
+>>> content_hash_of(Record(asset_id="a1", content_hash="c1"))
+'a1'
+>>> content_hash_of(Record(content_hash="c1")), content_hash_of(Record())
+('c1', None)
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### lacing.derived_paths(model)
 
 The paths, from the root of a `model` body, of its [`Derived`](#lacing.Derived) fields.
@@ -1795,6 +1958,33 @@ Rebuild a store by replaying `log` up to (and including) `until_clock`.
   body schemas or tier parents are still applied; the caller is
   responsible for any post-replay validation.
 
+### lacing.resolve_in_mall(ref, mall, , default_store, read=True)
+
+What `ref` names in `mall` (store names -> [`ArtifactStore`](#lacing.ArtifactStore)).
+
+The store is the one [`ArtifactRef.locate()`](#lacing.ArtifactRef.locate) picks; the rest is that
+store’s [`ArtifactStore.resolve()`](#lacing.ArtifactStore.resolve).
+
+* **Raises:**
+  * [**LookupError**](https://docs.python.org/3/builtins/exceptions.html#LookupError) – the store is not in `mall` (the message names those
+        that are); a plain `LookupError`, so `except KeyError` still
+        tells “no such key” from “no such store”.
+  * [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError) – the store has no `resolve` method.
+  * [**KeyError**](https://docs.python.org/3/builtins/exceptions.html#KeyError)**,** [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – what [`ArtifactStore.resolve()`](#lacing.ArtifactStore.resolve) raises.
+* **Return type:**
+  [`ResolvedArtifact`](lacing.artifact_store.html.md#lacing.artifact_store.ResolvedArtifact)
+
+```pycon
+>>> from lacing import Artifact
+>>> takes = ArtifactStore.in_memory()
+>>> art = Artifact.from_bytes(b"x", kind="text", was_generated_by="t",
+...                           was_attributed_to="u")
+>>> _ = takes.save("a", art, data=b"x")
+>>> mall = {"transcripts": ArtifactStore.in_memory(), "takes": takes}
+>>> resolve_in_mall("artifact:takes/a", mall, default_store="transcripts").data
+b'x'
+```
+
 ### *async* lacing.run_processor_async(name, , store, oplog, \*\*kwargs)
 
 Run a processor in the current event loop. For async callers.
@@ -1900,25 +2090,26 @@ False
 
 ### Modules
 
-| [`adapters`](lacing.adapters.html.md#module-lacing.adapters)             | I/O adapter registry.                                                     |
-|----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| [`allen`](lacing.allen.html.md#module-lacing.allen)                   | Allen's 13 interval relations as pure predicates.                         |
-| [`artifact`](lacing.artifact.html.md#module-lacing.artifact)             | Content-addressed artifact references.                                    |
-| [`artifact_store`](lacing.artifact_store.html.md#module-lacing.artifact_store) | Artifact store — a metadata catalog and a blob store behind one facade.   |
-| [`bodies`](lacing.bodies.html.md#module-lacing.bodies)                 | Built-in body schemas.                                                    |
-| [`cli`](lacing.cli.html.md#module-lacing.cli)                       | Command-line interface for lacing.                                        |
-| [`derived`](lacing.derived.html.md#module-lacing.derived)               | Which body fields are *derived* from another field of the same object.    |
-| [`digest`](lacing.digest.html.md#module-lacing.digest)                 | Content digests over an annotation's *value* — the freshness primitive.   |
-| [`exhibit`](lacing.exhibit.html.md#module-lacing.exhibit)               | Artifact exhibit — render an annotation graph as a readable document.     |
-| [`locations`](lacing.locations.html.md#module-lacing.locations)           | Which body fields hold locations (urls, file paths).                      |
-| [`model`](lacing.model.html.md#module-lacing.model)                   | Annotation envelope, references, and provenance.                          |
-| [`oplog`](lacing.oplog.html.md#module-lacing.oplog)                   | Operation log for time-travel debug + audit.                              |
-| [`otel`](lacing.otel.html.md#module-lacing.otel)                     | Optional OpenTelemetry instrumentation for the lacing server.             |
-| [`processors`](lacing.processors.html.md#module-lacing.processors)         | Background processors — pluggable jobs that run against a store + op-log. |
-| [`quality`](lacing.quality.html.md#module-lacing.quality)               | Inter-annotator agreement and boundary metrics.                           |
-| [`schema`](lacing.schema.html.md#module-lacing.schema)                 | Body schema registry, JSON Schema export, and migrations.                 |
-| [`store`](lacing.store.html.md#module-lacing.store)                   | Interval-keyed annotation stores.                                         |
-| [`tier`](lacing.tier.html.md#module-lacing.tier)                     | Tiers and the five ELAN stereotypes.                                      |
-| [`time`](lacing.time.html.md#module-lacing.time)                     | Rational time and half-open intervals — the foundations.                  |
-| [`tracks`](lacing.tracks.html.md#module-lacing.tracks)                 | High-level "track-shaped" facades on top of `lacing`.                     |
-| [`worker`](lacing.worker.html.md#module-lacing.worker)                 | Optional Arq integration — queue processors through Redis.                |
+| [`adapters`](lacing.adapters.html.md#module-lacing.adapters)             | I/O adapter registry.                                                               |
+|----------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| [`allen`](lacing.allen.html.md#module-lacing.allen)                   | Allen's 13 interval relations as pure predicates.                                   |
+| [`artifact`](lacing.artifact.html.md#module-lacing.artifact)             | Content-addressed artifact references.                                              |
+| [`artifact_ref`](lacing.artifact_ref.html.md#module-lacing.artifact_ref)     | One spelling for a reference to an artifact: `artifact:[<store>/]<key>[@<sha256>]`. |
+| [`artifact_store`](lacing.artifact_store.html.md#module-lacing.artifact_store) | Artifact store — a metadata catalog and a blob store behind one facade.             |
+| [`bodies`](lacing.bodies.html.md#module-lacing.bodies)                 | Built-in body schemas.                                                              |
+| [`cli`](lacing.cli.html.md#module-lacing.cli)                       | Command-line interface for lacing.                                                  |
+| [`derived`](lacing.derived.html.md#module-lacing.derived)               | Which body fields are *derived* from another field of the same object.              |
+| [`digest`](lacing.digest.html.md#module-lacing.digest)                 | Content digests over an annotation's *value* — the freshness primitive.             |
+| [`exhibit`](lacing.exhibit.html.md#module-lacing.exhibit)               | Artifact exhibit — render an annotation graph as a readable document.               |
+| [`locations`](lacing.locations.html.md#module-lacing.locations)           | Which body fields hold locations (urls, file paths).                                |
+| [`model`](lacing.model.html.md#module-lacing.model)                   | Annotation envelope, references, and provenance.                                    |
+| [`oplog`](lacing.oplog.html.md#module-lacing.oplog)                   | Operation log for time-travel debug + audit.                                        |
+| [`otel`](lacing.otel.html.md#module-lacing.otel)                     | Optional OpenTelemetry instrumentation for the lacing server.                       |
+| [`processors`](lacing.processors.html.md#module-lacing.processors)         | Background processors — pluggable jobs that run against a store + op-log.           |
+| [`quality`](lacing.quality.html.md#module-lacing.quality)               | Inter-annotator agreement and boundary metrics.                                     |
+| [`schema`](lacing.schema.html.md#module-lacing.schema)                 | Body schema registry, JSON Schema export, and migrations.                           |
+| [`store`](lacing.store.html.md#module-lacing.store)                   | Interval-keyed annotation stores.                                                   |
+| [`tier`](lacing.tier.html.md#module-lacing.tier)                     | Tiers and the five ELAN stereotypes.                                                |
+| [`time`](lacing.time.html.md#module-lacing.time)                     | Rational time and half-open intervals — the foundations.                            |
+| [`tracks`](lacing.tracks.html.md#module-lacing.tracks)                 | High-level "track-shaped" facades on top of `lacing`.                               |
+| [`worker`](lacing.worker.html.md#module-lacing.worker)                 | Optional Arq integration — queue processors through Redis.                          |

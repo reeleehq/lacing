@@ -17,6 +17,7 @@
 - [lacing.adapters.webvtt](lacing.adapters.webvtt.html.md): WebVTT (W3C TimedText) adapter.
 - [lacing.allen](lacing.allen.html.md): Allen’s 13 interval relations as pure predicates.
 - [lacing.artifact](lacing.artifact.html.md): Content-addressed artifact references.
+- [lacing.artifact_ref](lacing.artifact_ref.html.md): One spelling for a reference to an artifact: &#96;artifact:&#91;&lt;store&gt;/&#93;&lt;key&gt;&#91;@&lt;sha256&gt;&#93;&#96;.
 - [lacing.artifact_store](lacing.artifact_store.html.md): Artifact store — a metadata catalog and a blob store behind one facade.
 - [lacing.bodies](lacing.bodies.html.md): Built-in body schemas.
 - [lacing.bodies.character_voice](lacing.bodies.character_voice.html.md): Body schema for per-character voice profiles — the shared voice vocabulary.
