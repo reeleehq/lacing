@@ -60,13 +60,14 @@ import stat
 from collections.abc import Callable, Iterable, Iterator, MutableMapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from pydantic import BaseModel
 
 from dol import Files, filt_iter, wrap_kvs
 
 from lacing.artifact import Artifact, hash_bytes
+from lacing.artifact_ref import ArtifactRef
 
 
 #: Pre-v1 ``s3dol.store.S3Store`` kwarg names -> their ``s3dol.s3_store``
@@ -136,7 +137,7 @@ def _s3_kwargs_to_v1(s3_kwargs: dict) -> dict:
     return kwargs
 
 
-__all__ = ["ArtifactStore"]
+__all__ = ["ArtifactStore", "ResolvedArtifact"]
 
 
 def _mk_sql_refcount(sql_store) -> Callable[[str], int]:
@@ -161,6 +162,21 @@ def _mk_sql_refcount(sql_store) -> Callable[[str], int]:
         )
 
     return refcount
+
+
+class ResolvedArtifact(NamedTuple):
+    """What :meth:`ArtifactStore.resolve` read: the catalog ``record`` (``None``
+    for pinned bytes no record holds any more) and the artifact's ``data``."""
+
+    record: BaseModel | None
+    data: bytes
+
+
+def _asset_id_of(record: BaseModel, ref: ArtifactRef) -> str:
+    asset_id = getattr(record, "asset_id", None)
+    if not isinstance(asset_id, str):
+        raise ValueError(f"{ref}: its record has no asset_id naming its bytes")
+    return asset_id
 
 
 @dataclass(eq=False)
@@ -251,6 +267,66 @@ class ArtifactStore(MutableMapping):
     def index(self) -> dict[str, BaseModel]:
         """Return the whole catalog as a plain dict (e.g. for UI hydration)."""
         return dict(self.catalog)
+
+    # -- references ----------------------------------------------------------
+
+    def resolve(self, ref: ArtifactRef | str) -> ResolvedArtifact:
+        """The record and bytes ``ref`` names in this store.
+
+        ``ref`` is an :class:`lacing.ArtifactRef` or its text. Its ``store`` is not
+        consulted: this store is the one it names (pick it with
+        :meth:`ArtifactRef.locate` when references span a mall).
+
+        Unpinned, it reads the record at ``ref.key`` and that record's bytes.
+        Pinned, it reads the pinned bytes, checks that they hash to the pin, and
+        does so even when the key has since been saved with other content or
+        removed. The record is then the one at the key if it still holds those
+        bytes, else any record that does, else ``None``.
+
+        Raises:
+            KeyError: no record at the key (unpinned), or no bytes for the
+                content named.
+            ValueError: ``ref`` text is not a reference, a record has no
+                ``asset_id``, or the bytes do not hash to the pin.
+
+        >>> from lacing import Artifact, ArtifactRef
+        >>> st = ArtifactStore.in_memory()
+        >>> first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="t",
+        ...                             was_attributed_to="u")
+        >>> _ = st.save("k", first, data=b"v1")
+        >>> pinned = ArtifactRef("k", pin=first.asset_id)
+        >>> second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="t",
+        ...                              was_attributed_to="u")
+        >>> _ = st.save("k", second, data=b"v2")
+        >>> st.resolve("artifact:k").data, st.resolve(pinned).data
+        (b'v2', b'v1')
+        >>> st.resolve(pinned).record is None
+        True
+        """
+        if isinstance(ref, str):
+            ref = ArtifactRef.parse(ref)
+        if ref.pin is None:
+            record = self[ref.key]
+            return ResolvedArtifact(record, self._bytes_of(_asset_id_of(record, ref)))
+        data = self._bytes_of(ref.pin)
+        if hash_bytes(data) != ref.pin:
+            raise ValueError(f"{ref}: the stored bytes do not hash to the pin")
+        holders = (k for k in [ref.key, *self] if self._holds(k, ref.pin))
+        key = next(holders, None)
+        return ResolvedArtifact(None if key is None else self[key], data)
+
+    def _bytes_of(self, content_hash: str) -> bytes:
+        data = self.get_blob(content_hash)
+        if data is None:
+            raise KeyError(f"no bytes for content {content_hash}")
+        return data
+
+    def _holds(self, artifact_id: str, content_hash: str) -> bool:
+        """Whether the record at ``artifact_id`` is for ``content_hash``."""
+        try:
+            return getattr(self[artifact_id], "asset_id", None) == content_hash
+        except (KeyError, ValueError):  # a damaged record does not stop the search
+            return False
 
     # -- blobs: rich byte methods ------------------------------------------
 
