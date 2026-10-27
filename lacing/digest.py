@@ -136,13 +136,26 @@ the boundary is, because an unbounded version of it would be false:
 Changing :data:`VALUE_FIELDS` or the canonicalisation is a **breaking cache
 invalidation event** for every consumer: every digest changes at once. Bump
 the scheme string when you do it, so the change is legible in a trace.
+
+Verifying a recorded digest: use :func:`value_digest_matches`
+-------------------------------------------------------------
+Under ``v2`` the scheme string alone does not fix the computation: which body
+fields are left out depends on the :class:`lacing.Derived` markers registered
+*when the digest is computed*. A digest recorded before a schema gained a marker
+(or by a process that had not registered the schema) covers the whole body, so
+comparing it with a freshly computed one reads *changed* although nothing did
+(lacing#89). :func:`value_digest_matches` also accepts the two digests such a
+producer could have recorded for the same value, and neither can be a wrong hit:
+see its docstring. Naming the exclusion set in the scheme tag would not help: a
+trace records one scheme for parents of many body schemas, and a verifier cannot
+recompute under an exclusion set it no longer has.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Iterator
 from typing import TYPE_CHECKING, Any, Sequence
 
 if TYPE_CHECKING:  # pragma: no cover - typing only, keeps this module import-light
@@ -155,6 +168,7 @@ __all__ = [
     "NonStringBodyKeyError",
     "VALUE_FIELDS",
     "BODY_FIELDS",
+    "value_digest_matches",
     "VALUE_DIGEST_SCHEME",
     "VALUE_DIGEST_SCHEMES",
     "BODY_DIGEST_SCHEME",
@@ -232,7 +246,9 @@ VALUE_DIGEST_SCHEME = "lacing/annotation-value-digest/v2"
 
 ``v2`` leaves the body's :class:`lacing.Derived` fields out (see
 :mod:`lacing.derived`); ``v1`` digested the whole body. A trace that recorded a
-``v1`` digest is still verifiable: pass ``scheme="lacing/annotation-value-digest/v1"``."""
+``v1`` digest is still verifiable: pass ``scheme="lacing/annotation-value-digest/v1"``.
+The tag does not record *which* fields were left out, so verify a recorded digest
+with :func:`value_digest_matches`, not by recomputing and comparing."""
 
 _V1_SCHEME = "lacing/annotation-value-digest/v1"
 
@@ -260,8 +276,8 @@ def annotation_value_digest(
 
     A body with no derived fields (no marker, or a schema that is not
     registered) digests exactly as under ``v1``, so only marked schemas change
-    digest. The verifier must therefore have registered the same body schemas as
-    the producer, or it computes a different (stale-reading) digest.
+    digest. To check a digest a trace recorded, call :func:`value_digest_matches`:
+    it also accepts a digest recorded before the marker existed.
 
     ``scheme`` selects which computation to run, so a digest recorded under an
     older scheme can be re-verified (see :data:`VALUE_DIGEST_SCHEMES`).
@@ -313,19 +329,70 @@ def annotation_value_digest(
     ... )
     False
     """
-    if scheme not in VALUE_DIGEST_SCHEMES:
-        raise ValueError(
-            f"unknown value digest scheme {scheme!r}; known: {VALUE_DIGEST_SCHEMES}"
-        )
-    payload = _payload(annotation, VALUE_FIELDS)
-    if scheme == VALUE_DIGEST_SCHEME:
-        resolve = resolve_derived or registered_derived_paths
-        paths = resolve(annotation.body_schema_uri)
-        if paths:
-            _drop_derived(payload["body"], paths)
-        else:
-            scheme = _V1_SCHEME  # nothing to leave out: byte-identical to v1
-    return _digest(scheme, payload)
+    return next(_value_digests(annotation, scheme, resolve_derived))
+
+
+def value_digest_matches(
+    annotation: "Annotation",
+    recorded: str,
+    *,
+    scheme: str = VALUE_DIGEST_SCHEME,
+    resolve_derived: Callable[[str], Collection[Sequence[str | None]]] | None = None,
+) -> bool:
+    """Whether ``recorded``, a value digest a trace stored under ``scheme``, still
+    describes ``annotation``'s value.
+
+    The check a freshness verifier makes, instead of comparing
+    :func:`annotation_value_digest` with ``recorded`` by hand. Under ``v2`` it
+    also accepts what a producer that did not know the body's
+    :class:`lacing.Derived` paths (no marker yet, or schema not registered)
+    recorded under the same tag, a ``v1``-style digest of the whole body:
+
+    - the whole current body: nothing changed since;
+    - the current body with the derived fields dropped: the derived fields were
+      absent then and have been filled since, which is the change ``v2`` exists
+      to ignore.
+
+    Neither is a wrong cache hit. Both mean the recorded body held every
+    non-derived field exactly as it is now. A digest recorded under a
+    *different* non-empty exclusion set still reads changed: a spurious miss,
+    which costs a recompute and nothing else.
+
+    >>> from uuid import uuid4
+    >>> from lacing import Annotation, MediaRef, Provenance
+    >>> from lacing import RationalTime, TimeInterval
+    >>> def make(body):
+    ...     return Annotation(
+    ...         id=uuid4(), tier="panels",
+    ...         reference=MediaRef(
+    ...             asset_id="sha256:abc",
+    ...             interval=TimeInterval(RationalTime(0), RationalTime(24000)),
+    ...         ),
+    ...         body=body,
+    ...         body_schema_uri="annot://schema/panel/v1",
+    ...         provenance=Provenance(
+    ...             was_generated_by="agent:m@1",
+    ...             was_attributed_to="thor",
+    ...             generated_at_time=RationalTime.now(),
+    ...         ),
+    ...     )
+    >>> recorded = annotation_value_digest(make({"artifact_id": "a1"}))
+
+    The schema then gains a marker (``asset_id`` derives from ``artifact_id``),
+    and the derived field is filled:
+
+    >>> marked = lambda uri: {("asset_id",)}
+    >>> filled = make({"artifact_id": "a1", "asset_id": "sha256:h"})
+    >>> annotation_value_digest(filled, resolve_derived=marked) == recorded
+    False
+    >>> value_digest_matches(filled, recorded, resolve_derived=marked)
+    True
+    >>> value_digest_matches(
+    ...     make({"artifact_id": "a2"}), recorded, resolve_derived=marked
+    ... )
+    False
+    """
+    return recorded in _value_digests(annotation, scheme, resolve_derived)
 
 
 def annotation_body_digest(annotation: "Annotation") -> str:
@@ -411,6 +478,33 @@ def registered_derived_paths(uri: str) -> frozenset[tuple[str | None, ...]]:
 
 
 # --- internals ---------------------------------------------------------------
+
+
+def _value_digests(
+    annotation: "Annotation",
+    scheme: str,
+    resolve_derived: Callable[[str], Collection[Sequence[str | None]]] | None,
+) -> Iterator[str]:
+    """The digest of ``annotation`` under ``scheme``, then (lazily) the digests a
+    producer unaware of the derived paths would have recorded under the same tag
+    for the same value. See :func:`value_digest_matches` for why those are safe."""
+    if scheme not in VALUE_DIGEST_SCHEMES:
+        raise ValueError(
+            f"unknown value digest scheme {scheme!r}; known: {VALUE_DIGEST_SCHEMES}"
+        )
+    payload = _payload(annotation, VALUE_FIELDS)
+    paths = ()
+    if scheme == VALUE_DIGEST_SCHEME:
+        paths = (resolve_derived or registered_derived_paths)(
+            annotation.body_schema_uri
+        )
+    if not paths:  # nothing to leave out: byte-identical to v1
+        yield _digest(_V1_SCHEME, payload)
+        return
+    _drop_derived(payload["body"], paths)
+    yield _digest(VALUE_DIGEST_SCHEME, payload)
+    yield _digest(_V1_SCHEME, _payload(annotation, VALUE_FIELDS))  # whole body
+    yield _digest(_V1_SCHEME, payload)  # derived fields absent when recorded
 
 
 def _drop_derived(body: Any, paths: Collection[Sequence[str | None]]) -> None:

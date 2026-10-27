@@ -17,6 +17,7 @@ from lacing import (
     TimeInterval,
     annotation_value_digest,
     derived_paths,
+    value_digest_matches,
 )
 from lacing.digest import VALUE_DIGEST_SCHEME, VALUE_DIGEST_SCHEMES
 from lacing import schema as schema_module
@@ -235,3 +236,81 @@ def test_bad_marker_source():
 
 def test_scheme_constants():
     assert VALUE_DIGEST_SCHEME == VALUE_DIGEST_SCHEMES[-1] != V1
+
+
+# --- verifying a recorded digest across a marker addition (lacing#89) ---------
+
+
+def _recorded_before_the_marker(body):
+    """What a producer that had not registered the schema stored under v2."""
+    assert not schema_module.is_registered(URI)
+    return annotation_value_digest(_ann(body))
+
+
+def test_a_digest_recorded_before_the_marker_still_matches(registered):
+    body = {"images": [{"artifact_id": "a1"}], "asset_id": "root"}
+    schema_module._BODY_REGISTRY.pop(URI)  # producer side: no marker known
+    recorded = _recorded_before_the_marker(body)
+    register_body_schema(URI, Body)
+
+    assert annotation_value_digest(_ann(body)) != recorded  # the bug: reads changed
+    assert value_digest_matches(_ann(body), recorded)
+    filled = {"images": [{"artifact_id": "a1", "asset_id": "h"}], "asset_id": "root"}
+    assert value_digest_matches(_ann(filled), recorded)
+
+
+def test_a_pre_marker_digest_still_sees_real_changes(registered):
+    schema_module._BODY_REGISTRY.pop(URI)
+    recorded = _recorded_before_the_marker({"images": [{"artifact_id": "a1"}]})
+    register_body_schema(URI, Body)
+
+    for changed in (
+        {"images": [{"artifact_id": "a2", "asset_id": "h"}]},  # source moved
+        {"images": [{"artifact_id": "a1", "asset_id": "h"}], "asset_id": "x"},
+        {"images": [{"artifact_id": "a1"}, {"artifact_id": "a3"}]},
+    ):
+        assert not value_digest_matches(_ann(changed), recorded), changed
+
+
+def test_a_derived_value_recorded_unmarked_then_changed_reads_changed(registered):
+    """The whole-body candidates need the derived field absent or unchanged:
+    an unmarked producer that recorded ``asset_id="h"`` cannot vouch for
+    ``asset_id="other"``. A spurious miss, not a wrong hit."""
+    schema_module._BODY_REGISTRY.pop(URI)
+    recorded = _recorded_before_the_marker(
+        {"images": [{"artifact_id": "a1", "asset_id": "h"}]}
+    )
+    register_body_schema(URI, Body)
+    assert not value_digest_matches(
+        _ann({"images": [{"artifact_id": "a1", "asset_id": "other"}]}), recorded
+    )
+
+
+def test_a_current_digest_matches_itself(registered):
+    ann = _ann({"images": [{"artifact_id": "a1", "asset_id": "h"}]})
+    assert value_digest_matches(ann, annotation_value_digest(ann))
+    unregistered = _ann({"x": 1}, uri="annot://schema/nope/v1")
+    assert value_digest_matches(unregistered, annotation_value_digest(unregistered))
+
+
+def test_v1_traces_match_only_the_whole_body(registered):
+    before = _ann({"images": [{"artifact_id": "a1"}]})
+    recorded = annotation_value_digest(before, scheme=V1)
+    assert value_digest_matches(before, recorded, scheme=V1)
+    filled = _ann({"images": [{"artifact_id": "a1", "asset_id": "h"}]})
+    assert not value_digest_matches(filled, recorded, scheme=V1)
+
+
+def test_matching_uses_the_injected_resolver():
+    uri = "annot://schema/nope/v1"
+    recorded = annotation_value_digest(_ann({"x": 1}, uri=uri))
+    only_y = lambda uri: {("y",)}
+    assert value_digest_matches(
+        _ann({"x": 1, "y": 9}, uri=uri), recorded, resolve_derived=only_y
+    )
+    assert not value_digest_matches(_ann({"x": 1, "y": 9}, uri=uri), recorded)
+
+
+def test_matching_refuses_an_unknown_scheme():
+    with pytest.raises(ValueError, match="unknown value digest scheme"):
+        value_digest_matches(_ann({}), "0" * 64, scheme="nope")
