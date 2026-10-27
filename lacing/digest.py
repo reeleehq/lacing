@@ -144,20 +144,22 @@ markers registered when the digest is computed, so a recorded digest is checked
 with :func:`value_digest_matches`, whose docstring says what it accepts and why
 (lacing#89).
 
-The verifier must register at least the Derived markers the producer did, or a
-match it should find reads changed (a spurious miss, never a wrong hit). A
-marker *added to a schema that already had one* is likewise a spurious miss,
-unless the trace recorded the exclusion set.
+The verifier must register the same markers as the producer, or the producer
+none; otherwise a match it should find reads changed (a spurious miss, never a
+wrong hit). So a marker *added to a schema that already had one* is a spurious
+miss, unless the trace recorded the exclusion set.
 
 A digest of the exclusion set in the scheme tag would not help: a trace records
 one scheme for parents of many body schemas. A trace that records each entry's
 exclusion set ``D'`` itself can verify under it, through
-``resolve_derived=lambda uri: D'``; that is a trace-format concern for consumers.
+``resolve_derived=lambda uri: D'``, but only while ``D'`` is a subset of today's
+derived paths: a marker since removed means the field now counts, and verifying
+under the old ``D'`` would be a wrong hit. That is a trace-format concern for
+consumers.
 """
 
 from __future__ import annotations
 
-import copy
 import hashlib
 import json
 from collections.abc import Callable, Collection, Iterator
@@ -507,7 +509,10 @@ def _value_digests(
 ) -> Iterator[str]:
     """The digest of ``annotation`` under ``scheme``, then (lazily) the digests a
     producer unaware of the derived paths would have recorded under the same tag
-    for the same value. See :func:`value_digest_matches` for why those are safe."""
+    for the same value. See :func:`value_digest_matches` for why those are safe.
+
+    The first digest costs what it always did: the body is dropped in place, and
+    the whole body is dumped again only when a caller asks for a fallback."""
     if scheme not in VALUE_DIGEST_SCHEMES:
         raise ValueError(
             f"unknown value digest scheme {scheme!r}; known: {VALUE_DIGEST_SCHEMES}"
@@ -521,19 +526,21 @@ def _value_digests(
         if not is_v1:
             yield _digest(_V1_SCHEME, payload)
         return
-    dropped = {**payload, "body": copy.deepcopy(payload["body"])}
-    _drop_derived(dropped["body"], paths)
+    dropped_any = _drop_derived(payload["body"], paths)
     if not is_v1:
-        yield _digest(VALUE_DIGEST_SCHEME, dropped)
-        yield _digest(_V1_SCHEME, payload)  # whole body, unchanged since
-    yield _digest(_V1_SCHEME, dropped)  # derived fields absent when recorded
+        yield _digest(VALUE_DIGEST_SCHEME, payload)
+        whole = _payload(annotation, VALUE_FIELDS)
+        yield _digest(_V1_SCHEME, whole)  # whole body, unchanged since
+    if dropped_any:  # else it is the whole-body digest again
+        yield _digest(_V1_SCHEME, payload)  # derived fields absent when recorded
 
 
-def _drop_derived(body: Any, paths: Collection[Sequence[str | None]]) -> None:
-    """Delete ``paths`` from the (already dumped, hence private) ``body`` in place."""
+def _drop_derived(body: Any, paths: Collection[Sequence[str | None]]) -> bool:
+    """Delete ``paths`` from the (already dumped, hence private) ``body`` in place;
+    return whether any was there."""
     from lacing.derived import drop_paths
 
-    drop_paths(body, {tuple(path) for path in paths})
+    return drop_paths(body, {tuple(path) for path in paths})
 
 
 def _payload(annotation: "Annotation", fields: Sequence[str]) -> dict[str, Any]:

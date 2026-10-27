@@ -347,8 +347,17 @@ def _bodies():
         [{"artifact_id": "a1", "asset_id": None}],  # a different scalar
         [{"artifact_id": "a2", "asset_id": "h"}],  # source changed
     ]
-    for imgs, root, maybe in product(images, (None, "root", "other"), (None, "m")):
+    by_name = [
+        None,
+        {"k": {"artifact_id": "a1"}},
+        {"k": {"artifact_id": "a1", "asset_id": "h"}},
+    ]
+    for imgs, root, maybe, named in product(
+        images, (None, "root", "other"), (None, "m"), by_name
+    ):
         body = {"images": deepcopy(imgs)}
+        if named is not None:
+            body["by_name"] = deepcopy(named)
         if root is not None:
             body["asset_id"] = root  # NOT derived at the root
         if maybe is not None:
@@ -360,17 +369,29 @@ def test_matching_is_sound_across_every_pair(registered):
     """A match, under either scheme, only ever means the recorded and current
     bodies agree outside today's derived paths: never a wrong hit."""
     bodies = list(_bodies())
-    schema_module._BODY_REGISTRY.pop(URI)  # producer side: no marker known
+    # Recorded by a producer that knew no marker, and by one that knew today's.
+    schema_module._BODY_REGISTRY.pop(URI)
     recorded = {
-        scheme: [annotation_value_digest(_ann(b), scheme=scheme) for b in bodies]
+        scheme: [
+            (r, annotation_value_digest(_ann(b), scheme=scheme))
+            for r, b in enumerate(bodies)
+        ]
         for scheme in VALUE_DIGEST_SCHEMES
     }
     register_body_schema(URI, Body)
-    paths = derived_paths(Body)
+    for scheme in VALUE_DIGEST_SCHEMES:
+        recorded[scheme] += [
+            (r, annotation_value_digest(_ann(b), scheme=scheme))
+            for r, b in enumerate(bodies)
+        ]
 
     def dropped(body):
+        """Today's derived fields removed, by hand: the oracle shares no code
+        with the implementation."""
         out = deepcopy(_ann(body).model_dump(mode="json")["body"])
-        drop_paths(out, paths)
+        out.pop("maybe", None)
+        for image in [*out.get("images", []), *out.get("by_name", {}).values()]:
+            image.pop("asset_id", None)
         return out
 
     stripped = [dropped(b) for b in bodies]
@@ -379,10 +400,25 @@ def test_matching_is_sound_across_every_pair(registered):
         for c, current in enumerate(bodies):
             ann = _ann(current)
             accepted = accepted_value_digests(ann, scheme=scheme)
-            for r, digest in enumerate(recorded[scheme]):
+            for r, digest in recorded[scheme]:
                 matches = value_digest_matches(ann, digest, scheme=scheme)
                 assert matches == (digest in accepted)
                 if matches:
                     assert stripped[r] == stripped[c], (scheme, bodies[r], current)
                     fallback_hits += bodies[r] != current
     assert fallback_hits  # not vacuous: some differing bodies do match
+    # The hand-written oracle above is right only for these paths.
+    assert derived_paths(Body) == {
+        ("images", None, "asset_id"),
+        ("by_name", None, "asset_id"),
+        ("maybe",),
+    }
+
+
+def test_drop_paths_reports_whether_anything_was_dropped():
+    paths = {("images", None, "asset_id"), ("maybe",)}
+    unfilled = {"images": [{"artifact_id": "a1"}]}
+    assert drop_paths(unfilled, paths) is False
+    filled = {"images": [{"artifact_id": "a1"}, {"artifact_id": "a2", "asset_id": "h"}]}
+    assert drop_paths(filled, paths) is True
+    assert filled == {"images": [{"artifact_id": "a1"}, {"artifact_id": "a2"}]}

@@ -163,23 +163,26 @@ def derived_paths(model: type[BaseModel]) -> frozenset[DerivedPath]:
     return frozenset(out)
 
 
-def drop_paths(value: Any, paths: frozenset[DerivedPath] | set[DerivedPath]) -> None:
-    """Delete, in place, the entries of the JSON-like ``value`` named by ``paths``."""
-    for path in paths:
-        _drop(value, path)
+def drop_paths(value: Any, paths: frozenset[DerivedPath] | set[DerivedPath]) -> bool:
+    """Delete, in place, the entries of the JSON-like ``value`` named by ``paths``;
+    return whether any was there to delete."""
+    return any([_drop(value, path) for path in paths])  # a list: drop every path
 
 
-def _drop(value: Any, path: DerivedPath) -> None:
+def _drop(value: Any, path: DerivedPath) -> bool:
     head, *rest = path
+    dropped = False
     if isinstance(value, dict):
         targets = list(value) if head is ANY_ITEM else [head]
         for key in targets:
             if key not in value:
                 continue
             if rest:
-                _drop(value[key], tuple(rest))
+                dropped |= _drop(value[key], tuple(rest))
             else:
                 del value[key]
+                dropped = True
     elif isinstance(value, list) and head is ANY_ITEM and rest:
         for item in value:
-            _drop(item, tuple(rest))
+            dropped |= _drop(item, tuple(rest))
+    return dropped
