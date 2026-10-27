@@ -142,7 +142,7 @@ def test_top_level_imports_work():
 
 # --- Rights (lacing#34) -------------------------------------------------------
 
-from lacing import Rights  # noqa: E402
+from lacing import Rights, keep_rights  # noqa: E402
 
 # An Artifact serialised by lacing 0.0.47, before ``rights`` existed. Frozen
 # here so a future change cannot silently break loading of deployed rows.
@@ -272,3 +272,217 @@ class TestRights:
         store[a.asset_id] = a
         reopened = ArtifactStore.from_directory(tmp_path, record_type=Artifact)
         assert reopened[a.asset_id].rights == Rights(**_FULL_RIGHTS)
+
+
+class TestRightsCarryForward:
+    """lacing#60: a rights-less re-record of the same bytes keeps the rights."""
+
+    @staticmethod
+    def _made(data=b"x", rights=None):
+        return Artifact.from_bytes(
+            data,
+            kind="image",
+            was_generated_by="t",
+            was_attributed_to="u",
+            rights=rights,
+        )
+
+    @pytest.fixture(params=["memory", "directory"])
+    def store(self, request, tmp_path):
+        from lacing import ArtifactStore
+
+        if request.param == "memory":
+            return ArtifactStore.in_memory()
+        return ArtifactStore.from_directory(tmp_path, record_type=Artifact)
+
+    def test_a_rights_less_write_keeps_the_rights(self, store):
+        acquired = self._made(rights=Rights(**_FULL_RIGHTS))
+        store[acquired.asset_id] = acquired
+        rendered = self._made(b"x")  # same bytes, "we made this"
+        store[rendered.asset_id] = rendered
+        assert store[acquired.asset_id].rights == Rights(**_FULL_RIGHTS)
+        store.save(acquired.asset_id, rendered, data=b"x")
+        assert store[acquired.asset_id].rights == Rights(**_FULL_RIGHTS)
+
+    def test_an_explicit_rights_replaces(self, store):
+        store["k"] = self._made(rights=Rights(**_FULL_RIGHTS))
+        other = Rights(provider="other")
+        store["k"] = self._made(rights=other)
+        assert store["k"].rights == other
+
+    def test_other_bytes_under_the_same_key_do_not_inherit(self, store):
+        store["k"] = self._made(b"x", rights=Rights(**_FULL_RIGHTS))
+        store["k"] = self._made(b"y")
+        assert store["k"].rights is None
+
+    def test_deleting_first_clears_the_rights(self, store):
+        acquired = self._made(rights=Rights(**_FULL_RIGHTS))
+        store["k"] = acquired
+        del store["k"]
+        store["k"] = self._made()
+        assert store["k"].rights is None
+
+    def test_records_without_a_rights_field_are_untouched(self):
+        from pydantic import BaseModel
+
+        from lacing import ArtifactStore
+
+        class Note(BaseModel):
+            asset_id: str
+
+        store = ArtifactStore.in_memory()
+        store["k"] = self._made(rights=Rights(**_FULL_RIGHTS))
+        store["k"] = Note(asset_id=self._made().asset_id)
+        assert store["k"] == Note(asset_id=self._made().asset_id)
+
+    def test_reelee_records_carry_by_content_hash(self):
+        from pydantic import BaseModel
+
+        from lacing import ArtifactStore
+
+        class Take(BaseModel):  # reelee names its bytes `content_hash`
+            content_hash: str | None = None
+            rights: Rights | None = None
+
+        store = ArtifactStore.in_memory()
+        store["k"] = Take(content_hash="c1", rights=Rights(**_FULL_RIGHTS))
+        store["k"] = Take(content_hash="c1")
+        assert store["k"].rights == Rights(**_FULL_RIGHTS)
+
+    def test_no_content_hash_means_no_carry_and_no_read(self):
+        from pydantic import BaseModel
+
+        from lacing import ArtifactStore
+
+        class Pending(BaseModel):  # filed before its bytes exist
+            rights: Rights | None = None
+
+        catalog = _CountingDict()
+        store = ArtifactStore(catalog, on_write=keep_rights)
+        store["k"] = Pending(rights=Rights(**_FULL_RIGHTS))
+        catalog.reads = 0
+        store["k"] = Pending()
+        assert catalog.reads == 0
+        assert store["k"].rights is None
+
+    def test_writes_that_cannot_carry_do_not_read_the_catalog(self):
+        from pydantic import BaseModel
+
+        from lacing import ArtifactStore
+
+        class Note(BaseModel):
+            asset_id: str
+
+        catalog = _CountingDict()
+        store = ArtifactStore(catalog)
+        store["k"] = self._made(rights=Rights(**_FULL_RIGHTS))
+        store["k"] = self._made(rights=Rights(provider="other"))  # explicit
+        store["k"] = Note(asset_id=self._made().asset_id)  # no rights field
+        store["d"] = {"any": "dict"}
+        assert catalog.reads == 0
+        # Other bytes cannot be told apart without reading the old record once.
+        store["k"] = self._made(rights=Rights(**_FULL_RIGHTS))
+        store["k"] = self._made(b"y")
+        assert catalog.reads == 1
+
+    def test_the_policy_reads_previous_only_when_a_carry_is_possible(self):
+        def previous():
+            raise AssertionError("previous() read for a write that cannot carry")
+
+        explicit = self._made(rights=Rights(provider="other"))
+        assert keep_rights(explicit, previous) is explicit
+        assert keep_rights({"a": 1}, previous) == {"a": 1}
+
+    def test_on_write_none_is_last_write_wins(self, tmp_path):
+        from lacing import ArtifactStore
+
+        for store in (
+            ArtifactStore.in_memory(on_write=None),
+            ArtifactStore.from_directory(tmp_path, on_write=None),
+        ):
+            store["k"] = self._made(rights=Rights(**_FULL_RIGHTS))
+            store["k"] = self._made()
+            assert store["k"].rights is None
+
+    def test_dict_records_write_as_given(self):
+        from lacing import ArtifactStore
+
+        store = ArtifactStore.in_memory()
+        store["k"] = {"rights": "mine", "asset_id": "a"}
+        store["k"] = {"rights": None, "asset_id": "a"}
+        assert store["k"] == {"rights": None, "asset_id": "a"}
+
+    def test_update_goes_through_the_policy(self, store):
+        acquired = self._made(rights=Rights(**_FULL_RIGHTS))
+        store["k"] = acquired
+        store.update({"k": self._made()})
+        assert store["k"].rights == Rights(**_FULL_RIGHTS)
+
+    def test_rights_that_do_not_validate_refuse_the_write(self):
+        from pydantic import BaseModel
+
+        from lacing import ArtifactStore
+
+        class Loose(BaseModel):  # its `rights` is not a Rights
+            asset_id: str
+            rights: str | None = None
+
+        store = ArtifactStore.in_memory()
+        acquired = self._made(rights=Rights(**_FULL_RIGHTS))
+        store["k"] = acquired
+        with pytest.raises(ValueError, match=acquired.asset_id):
+            store["k"] = Loose(asset_id=acquired.asset_id)
+        assert store["k"] == acquired
+
+    def test_a_damaged_previous_record_warns_and_writes(self, tmp_path, caplog):
+        from lacing import ArtifactStore
+
+        store = ArtifactStore.from_directory(tmp_path)
+        (tmp_path / "catalog" / "k.json").write_text("{not json")
+        made = self._made()
+        with caplog.at_level("WARNING", logger="lacing.artifact_store"):
+            store["k"] = made
+        assert "'k'" in caplog.text
+        assert store["k"] == made
+
+    def test_a_refuse_policy_through_a_constructor(self, tmp_path):
+        from lacing import ArtifactStore
+
+        def refuse(record, previous):
+            old = previous()
+            if record.rights is None and getattr(old, "rights", None) is not None:
+                raise ValueError("state the rights")
+            return record
+
+        store = ArtifactStore.from_directory(tmp_path, on_write=refuse)
+        store["k"] = self._made(rights=Rights(**_FULL_RIGHTS))
+        with pytest.raises(ValueError, match="state the rights"):
+            store["k"] = self._made()
+        assert store["k"].rights == Rights(**_FULL_RIGHTS)
+
+    def test_from_sql_passes_on_write_through(self):
+        pytest.importorskip("sqldol")
+        from lacing import ArtifactStore
+
+        seen = []
+
+        def spy(record, previous):
+            seen.append(previous())
+            return record
+
+        store = ArtifactStore.from_sql("sqlite:///:memory:", on_write=spy)
+        acquired = self._made(rights=Rights(**_FULL_RIGHTS))
+        store["k"] = acquired
+        store["k"] = self._made()
+        assert seen == [None, acquired]
+        assert store["k"].rights is None
+
+
+class _CountingDict(dict):
+    """A dict catalog that counts its reads."""
+
+    reads = 0
+
+    def __getitem__(self, key):
+        self.reads += 1
+        return super().__getitem__(key)

@@ -77,6 +77,7 @@ from lacing.artifact_store import (
     ArtifactStore,
     ResolvedArtifact,
     content_hash_of,
+    keep_rights,
     resolve_in_mall,
 )
 from lacing.digest import (
@@ -127,6 +128,7 @@ __all__ = [
     "ArtifactKind",
     "Rights",
     "ArtifactStore",
+    "keep_rights",
     "ResolvedArtifact",
     "ArtifactRef",
     "ARTIFACT_REF_PREFIX",
