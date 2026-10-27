@@ -204,3 +204,31 @@ def test_sql_catalog_custom_content_hash_extractor():
     store.save("a", _Rec(id="a", sha="hhh"))
     store.save("b", _Rec(id="b", sha="hhh"))
     assert store.count_refs("hhh") == 2
+
+
+# -- pinned reads whose key moved: one indexed query (lacing#96) ---------------
+
+
+def test_sql_keys_by_content_hash_is_the_indexed_lookup():
+    store = ArtifactStore.from_sql("sqlite:///:memory:")
+    a, b = _artifact(b"one"), _artifact(b"two")
+    store.save("k1", a)
+    store.save("k2", a)
+    store.save("k3", b)
+    assert sorted(store.catalog.keys_by_content_hash(a.asset_id)) == ["k1", "k2"]
+    assert store.catalog.keys_by_content_hash("0" * 64) == []
+
+
+def test_sql_pinned_read_whose_key_moved_does_not_scan(monkeypatch):
+    store = ArtifactStore.from_sql("sqlite:///:memory:", blobs={})
+    first, second = _artifact(b"v1"), _artifact(b"v2")
+    store.save("k", first, data=b"v1")
+    store.save("holder", first)
+    store.save("k", second, data=b"v2")
+
+    def no_scan(self):
+        raise AssertionError("the catalog was scanned")
+
+    monkeypatch.setattr(type(store.catalog), "__iter__", no_scan)
+    resolved = store.resolve(f"artifact:k@{first.asset_id}")
+    assert (resolved.key, resolved.record, resolved.data) == ("holder", first, b"v1")

@@ -174,6 +174,23 @@ def _mk_sql_refcount(sql_store) -> Callable[[str], int]:
     return refcount
 
 
+def _mk_sql_keys_by_content_hash(sql_store) -> Callable[[str], list[str]]:
+    """Build a ``content_hash -> [artifact_id, ...]`` query over a ``sqldol``
+    store: the indexed lookup :meth:`ArtifactStore.resolve` probes for when a
+    pinned key has moved (lacing#96), the sibling of :func:`_mk_sql_refcount`.
+    """
+    persister = sql_store.store  # the SQLAlchemyPersister behind the dol Store
+    table = persister.table.__table__
+
+    def keys_by_content_hash(content_hash: str) -> list[str]:
+        rows = persister.session.query(table.c.artifact_id).filter(
+            table.c.content_hash == content_hash
+        )
+        return [artifact_id for (artifact_id,) in rows]
+
+    return keys_by_content_hash
+
+
 def content_hash_of(record: Any) -> str | None:
     """The content hash naming ``record``'s bytes in the blob store, if it has one.
 
@@ -517,8 +534,11 @@ class ArtifactStore(MutableMapping):
         """Yield, lazily, the catalog keys whose record names ``content_hash``,
         skipping records that cannot be read. Iterates the live catalog: do not
         delete while it runs."""
-        # A full catalog scan: a store with a content-hash index can override this.
-        for key, _ in self._records_with_content(content_hash, self):
+        # The probe pattern of ``count_refs``: one indexed query when the catalog
+        # offers it (``from_sql``), else a full catalog scan.
+        fast = getattr(self.catalog, "keys_by_content_hash", None)
+        keys = fast(content_hash) if callable(fast) else self
+        for key, _ in self._records_with_content(content_hash, keys):
             yield key
 
     def _records_with_content(
@@ -1077,6 +1097,7 @@ class ArtifactStore(MutableMapping):
         # Attach the GC reference-count capability so ``count_refs`` resolves it
         # to a single indexed query (the probe pattern; see ``count_refs``).
         catalog.refcount_by_content_hash = _mk_sql_refcount(raw)
+        catalog.keys_by_content_hash = _mk_sql_keys_by_content_hash(raw)
         return cls(catalog=catalog, blobs=blobs, on_write=on_write)
 
     @classmethod
