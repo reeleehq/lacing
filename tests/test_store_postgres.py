@@ -126,30 +126,6 @@ class TestSchema:
         with pytest.raises(PgSchemaMismatchError):
             PostgresStore(conn_kwargs, rate=48000)
 
-    def test_refused_opens_return_their_pooled_connection(self, postgresql):
-        """lacing#91: a refused open hands its connection back, so repeated
-        refusals cannot drain the pool."""
-        import psycopg
-
-        from lacing.store.postgres import get_pool
-
-        info = postgresql.info
-        conninfo = psycopg.conninfo.make_conninfo(
-            host=info.host,
-            port=info.port,
-            user=info.user,
-            password=info.password or "",
-            dbname=info.dbname,
-        )
-        pool_size = 2
-        get_pool(conninfo, min_size=1, max_size=pool_size, timeout=5)
-        PostgresStore(conninfo, rate=24000).close()
-        for _ in range(pool_size + 1):
-            with pytest.raises(PgSchemaMismatchError):
-                PostgresStore(conninfo, rate=48000)
-        # Would time out waiting for a free connection if the refusals leaked.
-        PostgresStore(conninfo, rate=24000).close()
-
 
 # ---------------------------------------------------------------------------
 # mapping interface
@@ -681,6 +657,31 @@ class TestMultiTenant:
 
 
 class TestPooling:
+    def test_refused_opens_return_their_pooled_connection(self, postgresql):
+        """lacing#91: a refused open hands its connection back, so repeated
+        refusals cannot drain the pool."""
+        pytest.importorskip("psycopg_pool")
+        from lacing.store.postgres import close_all_pools, get_pool
+        import psycopg
+
+        # A conninfo of its own, so the small pool below is the one used,
+        # not one an earlier test registered for the same database.
+        conninfo = psycopg.conninfo.make_conninfo(
+            **_conn_kwargs(postgresql), application_name=f"lacing-91-{uuid4()}"
+        )
+        pool_size = 2
+        try:
+            pool = get_pool(conninfo, min_size=1, max_size=pool_size, timeout=5)
+            assert pool.max_size == pool_size
+            PostgresStore(conninfo, rate=24000).close()
+            for _ in range(pool_size + 1):
+                with pytest.raises(PgSchemaMismatchError):
+                    PostgresStore(conninfo, rate=48000)
+            # Times out waiting for a free connection if the refusals leaked.
+            PostgresStore(conninfo, rate=24000).close()
+        finally:
+            close_all_pools()
+
     def test_pool_reuse_across_reopens(self, postgresql):
         """A string conninfo with pooling reuses one pool across open/close
         cycles (the nw per-op pattern)."""

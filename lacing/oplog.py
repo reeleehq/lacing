@@ -212,7 +212,12 @@ class SqliteOpLog:
         )
         self._conn.row_factory = sqlite3.Row
         self._lock = threading.RLock()
-        self._init_schema()
+        try:
+            self._init_schema()
+        except BaseException:
+            # Same rule as SqliteStore: a failed open closes its handle.
+            self.close()
+            raise
 
     def _init_schema(self) -> None:
         with self._lock:
