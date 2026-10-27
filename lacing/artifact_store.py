@@ -151,7 +151,7 @@ WritePolicy = Callable[[BaseModel, Callable[[], BaseModel | None]], BaseModel]
 
 
 def _mk_sql_content_hash_queries(
-    sql_store,
+    sql_store, *, create_index: bool = True
 ) -> tuple[Callable[[str], int], Callable[[str], list[str]]]:
     """Index a ``sqldol`` store's ``content_hash`` column and build the two
     queries that use it: ``(refcount, keys_by_content_hash)``.
@@ -162,20 +162,22 @@ def _mk_sql_content_hash_queries(
     lookup :meth:`ArtifactStore.resolve` probes for when a pinned key has moved,
     lacing#96). Each is one query on the index, not a scan.
 
-    ``sqldol`` indexes only its key fields, so the index is created here,
-    idempotently (``checkfirst``): a reopened database keeps the one it has, and
-    one created before the index existed gets it. Reaches through the
+    ``sqldol`` indexes only its key fields, so the index is created here
+    (``create_index``), ``IF NOT EXISTS``: a reopened database keeps the one it
+    has, one created before the index existed gets it, and two processes
+    opening at once do not collide. Creating it is best-effort, since it is
+    only a speed-up: a read-only connection or a non-owner warns and carries on
+    with unindexed (correct, slower) queries. Reaches through the
     ``sqldol.SQLAlchemyStore`` to its persister's table and ORM session; plain
     SQLAlchemy, so the same on SQLite and Postgres.
     """
-    from sqlalchemy import Index, func
+    from sqlalchemy import func
 
     persister = sql_store.store  # the SQLAlchemyPersister behind the dol Store
     table = persister.table.__table__
     content_hash_column = table.c.content_hash
-    Index(f"ix_{table.name}_content_hash", content_hash_column).create(
-        persister.session.get_bind(), checkfirst=True
-    )
+    if create_index:
+        _create_index_if_absent(persister.session.get_bind(), content_hash_column)
 
     def rows_naming(content_hash: str, column):
         return persister.session.query(column).filter(
@@ -190,6 +192,48 @@ def _mk_sql_content_hash_queries(
         return [artifact_id for (artifact_id,) in rows]
 
     return refcount, keys_by_content_hash
+
+
+_MAX_INDEX_NAME = 63  # Postgres' identifier limit, the tightest of the backends
+
+
+def _index_name(table_name: str, column_name: str) -> str:
+    """``ix_<table>_<column>``, shortened with a digest of the table name when
+    that would exceed :data:`_MAX_INDEX_NAME`.
+
+    >>> _index_name("artifact_catalog", "content_hash")
+    'ix_artifact_catalog_content_hash'
+    >>> len(_index_name("t" * 60, "content_hash")) <= _MAX_INDEX_NAME
+    True
+    """
+    name = f"ix_{table_name}_{column_name}"
+    if len(name) <= _MAX_INDEX_NAME:
+        return name
+    digest = hashlib.sha256(table_name.encode()).hexdigest()[:12]
+    return f"ix_{digest}_{column_name}"
+
+
+def _create_index_if_absent(bind, column) -> None:
+    """Best-effort ``CREATE INDEX IF NOT EXISTS`` on ``column``; warns instead of
+    raising, since the index only speeds queries up."""
+    import warnings
+
+    from sqlalchemy import Index
+    from sqlalchemy.exc import SQLAlchemyError
+    from sqlalchemy.schema import CreateIndex
+
+    index = Index(_index_name(column.table.name, column.name), column)
+    try:
+        with bind.begin() as conn:
+            conn.execute(CreateIndex(index, if_not_exists=True))
+    except SQLAlchemyError as error:
+        warnings.warn(
+            f"Could not index {column.table.name}.{column.name} ({error}); "
+            "content-hash lookups stay correct but scan the table. On a large "
+            "Postgres table, create it out of band with CREATE INDEX "
+            "CONCURRENTLY and pass create_content_hash_index=False.",
+            stacklevel=4,
+        )
 
 
 def content_hash_of(record: Any) -> str | None:
@@ -239,7 +283,7 @@ def keep_rights(
     rights-less record *with* a content hash costs one catalog read. The
     guarantee holds for one writer at a time: the read and the write are not
     atomic. ``content_hash`` reads a record's hash (as the default policy,
-    :class:`ArtifactStore` passes its own ``hash_of``).
+    :class:`ArtifactStore` passes its own ``content_hash_of``).
 
     Raises:
         ValueError: the carried ``rights`` do not validate on ``record``'s
@@ -377,9 +421,11 @@ class ArtifactStore(MutableMapping):
             so delete it to write over it). The default,
             :func:`keep_rights`, keeps the ``rights`` of a record replaced by a
             rights-less one for the same bytes (lacing#60); ``None`` writes
-            records as given (last write wins). Writes straight to
+            records as given (last write wins). The default policy matches
+            records by the store's ``content_hash_of``; a policy that wraps
+            :func:`keep_rights` passes it on itself (``content_hash=``). Writes straight to
             ``catalog`` bypass it.
-        hash_of: Keyword-only. ``hash_of(record) -> content_hash | None``, how
+        content_hash_of: Keyword-only. ``content_hash_of(record) -> str | None``, how
             the store reads the blob hash a record names. :meth:`resolve`,
             :meth:`count_refs` and the default ``on_write`` (:func:`keep_rights`)
             all use it. Defaults to :func:`content_hash_of`; :meth:`from_sql`
@@ -394,7 +440,9 @@ class ArtifactStore(MutableMapping):
     catalog: MutableMapping[str, BaseModel]
     blobs: MutableMapping[str, bytes] | None = None
     on_write: WritePolicy | None = field(default=keep_rights, kw_only=True)
-    hash_of: Callable[[Any], str | None] = field(default=content_hash_of, kw_only=True)
+    content_hash_of: Callable[[Any], str | None] = field(
+        default=_default_content_hash_of, kw_only=True
+    )
 
     # -- catalog: the MutableMapping surface (artifact_id -> record) --------
 
@@ -457,7 +505,7 @@ class ArtifactStore(MutableMapping):
             return record
         previous = partial(self._replaced, artifact_id)
         if self.on_write is keep_rights:  # match records by the store's accessor
-            return keep_rights(record, previous, content_hash=self.hash_of)
+            return keep_rights(record, previous, content_hash=self.content_hash_of)
         return self.on_write(record, previous)
 
     def _replaced(self, artifact_id: str) -> BaseModel | None:
@@ -488,7 +536,7 @@ class ArtifactStore(MutableMapping):
         through :func:`resolve_in_mall`, which picks the store first.
 
         Unpinned, it reads the record at ``ref.key`` and the bytes its content
-        hash names (the store's ``hash_of``). Pinned, it reads the pinned bytes
+        hash names (the store's ``content_hash_of``). Pinned, it reads the pinned bytes
         even when the key has since been saved with other content or removed. A
         pin is the store's content hash: the SHA-256 hex digest of the bytes, as
         :meth:`save` and :meth:`put_blob` compute it. The record is the one at
@@ -528,7 +576,7 @@ class ArtifactStore(MutableMapping):
             ref = ArtifactRef.parse(ref)
         if ref.pin is None:
             record = self[ref.key]
-            content_hash = self.hash_of(record)
+            content_hash = self.content_hash_of(record)
             if content_hash is None:
                 raise KeyError(f"{ref}: the record at {ref.key!r} has no content yet")
             data = self._content(ref, content_hash, read=read)
@@ -542,14 +590,6 @@ class ArtifactStore(MutableMapping):
             holder = next(self._records_with_content(ref.pin, candidates), None)
         key, record = holder or (None, None)
         return ResolvedArtifact(key, record, ref.pin, data)
-
-    def _keys_with_content(self, content_hash: str) -> Iterator[str]:
-        """Yield, lazily, the catalog keys whose record names ``content_hash``
-        (by ``hash_of``), skipping records that cannot be read."""
-        for key, _ in self._records_with_content(
-            content_hash, self._candidate_keys(content_hash)
-        ):
-            yield key
 
     def _candidate_keys(self, content_hash: str) -> Iterable[str]:
         """The keys that may hold ``content_hash``: the catalog's
@@ -570,7 +610,7 @@ class ArtifactStore(MutableMapping):
                 record = self[key]
             except (KeyError, ValueError):  # a racing delete, or a damaged record
                 continue
-            if self.hash_of(record) == content_hash:
+            if self.content_hash_of(record) == content_hash:
                 yield key, record
 
     def _content(
@@ -952,7 +992,7 @@ class ArtifactStore(MutableMapping):
         count is **one indexed query, not a full catalog scan**. Any other
         catalog (dict, ``Files``) falls back to scanning every record. The
         facade is unchanged either way; only the speed differs. The scan reads
-        each record's hash with the store's ``hash_of``, the accessor
+        each record's hash with the store's ``content_hash_of``, the accessor
         :meth:`from_sql` also fills its column with, so both agree.
 
         Args:
@@ -969,7 +1009,7 @@ class ArtifactStore(MutableMapping):
         return sum(
             1
             for record in self.catalog.values()
-            if self.hash_of(record) == content_hash
+            if self.content_hash_of(record) == content_hash
         )
 
     @classmethod
@@ -1031,6 +1071,7 @@ class ArtifactStore(MutableMapping):
         collection_name: str = "artifact_catalog",
         content_hash_of: "Callable[[BaseModel], str | None] | None" = None,
         on_write: WritePolicy | None = keep_rights,
+        create_content_hash_index: bool = True,
         **db_kwargs,
     ) -> ArtifactStore:
         """An ArtifactStore with a **SQL-backed catalog** (durable, queryable)
@@ -1071,10 +1112,14 @@ class ArtifactStore(MutableMapping):
                 ``content_hash`` column. Defaults to ``asset_id`` (the canonical
                 Artifact field), then ``content_hash``. Pass a callable for a
                 record whose hash lives elsewhere; records without a hash store
-                an empty string. It becomes the store's ``hash_of`` (see
+                an empty string. It becomes the store's ``content_hash_of`` (see
                 :class:`ArtifactStore`), so :meth:`resolve`, :meth:`count_refs`
                 and :func:`keep_rights` read the same hash as the column.
             on_write: The write policy (see :class:`ArtifactStore`).
+            create_content_hash_index: Create the ``content_hash`` index on open
+                (best-effort, ``IF NOT EXISTS``). Pass ``False`` where the index
+                is managed out of band, e.g. built ``CONCURRENTLY`` on a large
+                Postgres table, which a plain build would lock for writes.
             **db_kwargs: Forwarded to ``sqldol.SQLAlchemyStore`` /
                 SQLAlchemy's ``create_engine`` (e.g. ``connect_args``,
                 ``pool_size``).
@@ -1123,9 +1168,12 @@ class ArtifactStore(MutableMapping):
         (
             catalog.refcount_by_content_hash,
             catalog.keys_by_content_hash,
-        ) = _mk_sql_content_hash_queries(raw)
+        ) = _mk_sql_content_hash_queries(raw, create_index=create_content_hash_index)
         return cls(
-            catalog=catalog, blobs=blobs, on_write=on_write, hash_of=content_hash_of
+            catalog=catalog,
+            blobs=blobs,
+            on_write=on_write,
+            content_hash_of=content_hash_of,
         )
 
     @classmethod

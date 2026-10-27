@@ -232,7 +232,7 @@ def test_sql_pinned_read_whose_key_moved_is_a_bounded_number_of_queries():
     store = ArtifactStore.from_sql("sqlite:///:memory:", blobs={})
     first, second = _artifact(b"v1"), _artifact(b"v2")
     store.save("k", first, data=b"v1")
-    store.save("holder", first)
+    store.save("z-holder", first)  # sorts last: a scan would read every row first
     store.save("k", second, data=b"v2")
     for i in range(50):
         store.save(f"unrelated-{i}", _artifact(f"other-{i}".encode()))
@@ -248,9 +248,10 @@ def test_sql_pinned_read_whose_key_moved_is_a_bounded_number_of_queries():
         resolved = store.resolve(f"artifact:k@{first.asset_id}")
     finally:
         sqlalchemy.event.remove(engine, "before_cursor_execute", count)
-    assert (resolved.key, resolved.record, resolved.data) == ("holder", first, b"v1")
+    assert (resolved.key, resolved.record, resolved.data) == ("z-holder", first, b"v1")
     # the record at "k", the content-hash lookup, the holder's record
     assert len(statements) <= 3, statements
+    assert any("WHERE" in s and "content_hash" in s for s in statements), statements
 
 
 # -- the content_hash column is indexed --------------------------------------
@@ -291,22 +292,27 @@ def test_sql_index_is_added_to_a_database_created_without_it(tmp_path: Path):
     assert len(_content_hash_indexes(_engine(reopened))) == 1
 
 
-@pytest.mark.parametrize(
-    "select", ["artifact_id", "count(*)"], ids=["keys", "refcount"]
-)
-def test_sql_content_hash_queries_use_the_index(tmp_path: Path, select: str):
-    store = ArtifactStore.from_sql(f"sqlite:///{tmp_path / 'cat.db'}")
-    for i in range(20):
-        art = _artifact(f"bytes-{i}".encode())
-        store.save(art.asset_id, art)
-    with _engine(store).connect() as conn:
-        plan = conn.exec_driver_sql(
-            f"EXPLAIN QUERY PLAN SELECT {select} FROM artifact_catalog "
-            f"WHERE content_hash = ?",
-            ("0" * 64,),
-        ).fetchall()
-    details = " | ".join(str(row[-1]) for row in plan)
-    assert "USING" in details and "ix_artifact_catalog_content_hash" in details, details
+def test_sql_index_creation_is_best_effort_on_a_read_only_database(tmp_path: Path):
+    """The index is only a speed-up: a database opened read-only (one created
+    before the index existed) warns and still answers."""
+    path = tmp_path / "cat.db"
+    store = ArtifactStore.from_sql(f"sqlite:///{path}")
+    art = _artifact()
+    store.save(art.asset_id, art)
+    with _engine(store).begin() as conn:
+        conn.exec_driver_sql("DROP INDEX ix_artifact_catalog_content_hash")
+    _engine(store).dispose()
+
+    read_only = f"sqlite:///file:{path}?mode=ro&uri=true"
+    with pytest.warns(UserWarning, match="Could not index"):
+        reopened = ArtifactStore.from_sql(read_only)
+    assert reopened.count_refs(art.asset_id) == 1
+
+
+def test_sql_index_creation_can_be_left_to_the_operator(tmp_path: Path):
+    uri = f"sqlite:///{tmp_path / 'cat.db'}"
+    store = ArtifactStore.from_sql(uri, create_content_hash_index=False)
+    assert _content_hash_indexes(_engine(store)) == []
 
 
 # -- a custom content-hash accessor is the store's, everywhere ----------------
@@ -341,10 +347,10 @@ def test_sql_custom_accessor_drives_resolve_and_count_refs():
     assert store.count_refs("other") == 1
 
 
-def test_hash_of_drives_a_scanning_catalog_too():
-    """``count_refs``'s fallback scan and ``resolve`` agree with ``hash_of``."""
+def test_content_hash_of_drives_a_scanning_catalog_too():
+    """``count_refs``'s fallback scan and ``resolve`` agree with ``content_hash_of``."""
     pin = hash_bytes(b"v1")
-    store = ArtifactStore({}, {}, hash_of=lambda r: r.sha)
+    store = ArtifactStore({}, {}, content_hash_of=lambda r: r.sha)
     store.put_blob(b"v1")
     holder = _Shaded(asset_id="unrelated", sha=pin)
     store.save("holder", holder)
