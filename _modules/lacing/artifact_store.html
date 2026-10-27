@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=b153cf10"></script>
+    <script src="../../_static/documentation_options.js?v=22d3c163"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.64" />
+  <meta name="docsearch:version" content="0.0.66" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -864,28 +864,90 @@ window.runMermaid = runMermaid;</script>
 <span class="n">WritePolicy</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">BaseModel</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]],</span> <span class="n">BaseModel</span><span class="p">]</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_mk_sql_refcount</span><span class="p">(</span><span class="n">sql_store</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Build a ``content_hash -&gt; row count`` query over a ``sqldol`` store.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_mk_sql_content_hash_queries</span><span class="p">(</span>
+    <span class="n">sql_store</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">create_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">int</span><span class="p">],</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">"""Index a ``sqldol`` store's ``content_hash`` column and build the two</span>
+<span class="sd">    queries that use it: ``(refcount, keys_by_content_hash)``.</span>
 
-<span class="sd">    Reaches through the ``sqldol.SQLAlchemyStore`` to its persister's ORM</span>
-<span class="sd">    session and counts rows whose indexed ``content_hash`` column matches —</span>
-<span class="sd">    one query, not a scan. Used by :meth:`ArtifactStore.from_sql` to wire the</span>
-<span class="sd">    GC reference-count capability that :meth:`ArtifactStore.count_refs` probes</span>
-<span class="sd">    for. Works identically on SQLite and Postgres (plain SQLAlchemy).</span>
+<span class="sd">    ``refcount(content_hash)`` counts the rows naming ``content_hash`` (the GC</span>
+<span class="sd">    reference count :meth:`ArtifactStore.count_refs` probes for);</span>
+<span class="sd">    ``keys_by_content_hash(content_hash)`` lists their ``artifact_id`` keys (the</span>
+<span class="sd">    lookup :meth:`ArtifactStore.resolve` probes for when a pinned key has moved,</span>
+<span class="sd">    lacing#96). Each is one query on the index, not a scan.</span>
+
+<span class="sd">    ``sqldol`` indexes only its key fields, so the index is created here</span>
+<span class="sd">    (``create_index``), ``IF NOT EXISTS``: a reopened database keeps the one it</span>
+<span class="sd">    has, one created before the index existed gets it, and two processes</span>
+<span class="sd">    opening at once do not collide. Creating it is best-effort, since it is</span>
+<span class="sd">    only a speed-up: a read-only connection or a non-owner warns and carries on</span>
+<span class="sd">    with unindexed (correct, slower) queries. Reaches through the</span>
+<span class="sd">    ``sqldol.SQLAlchemyStore`` to its persister's table and ORM session; plain</span>
+<span class="sd">    SQLAlchemy, so the same on SQLite and Postgres.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">func</span>
 
     <span class="n">persister</span> <span class="o">=</span> <span class="n">sql_store</span><span class="o">.</span><span class="n">store</span>  <span class="c1"># the SQLAlchemyPersister behind the dol Store</span>
     <span class="n">table</span> <span class="o">=</span> <span class="n">persister</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">__table__</span>
+    <span class="n">content_hash_column</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">content_hash</span>
+    <span class="k">if</span> <span class="n">create_index</span><span class="p">:</span>
+        <span class="n">_create_index_if_absent</span><span class="p">(</span><span class="n">persister</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">get_bind</span><span class="p">(),</span> <span class="n">content_hash_column</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">refcount</span><span class="p">(</span><span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="n">persister</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">())</span>
-            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">content_hash</span> <span class="o">==</span> <span class="n">content_hash</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">scalar</span><span class="p">()</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rows_naming</span><span class="p">(</span><span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">column</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">persister</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">column</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">content_hash_column</span> <span class="o">==</span> <span class="n">content_hash</span>
         <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">refcount</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">refcount</span><span class="p">(</span><span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">rows_naming</span><span class="p">(</span><span class="n">content_hash</span><span class="p">,</span> <span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">())</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">keys_by_content_hash</span><span class="p">(</span><span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">rows_naming</span><span class="p">(</span><span class="n">content_hash</span><span class="p">,</span> <span class="n">table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">artifact_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">artifact_id</span> <span class="k">for</span> <span class="p">(</span><span class="n">artifact_id</span><span class="p">,)</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">refcount</span><span class="p">,</span> <span class="n">keys_by_content_hash</span>
+
+
+<span class="n">_MAX_INDEX_NAME</span> <span class="o">=</span> <span class="mi">63</span>  <span class="c1"># Postgres' identifier limit, the tightest of the backends</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_index_name</span><span class="p">(</span><span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">column_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``ix_&lt;table&gt;_&lt;column&gt;``, shortened with a digest of the table name when</span>
+<span class="sd">    that would exceed :data:`_MAX_INDEX_NAME`.</span>
+
+<span class="sd">    &gt;&gt;&gt; _index_name("artifact_catalog", "content_hash")</span>
+<span class="sd">    'ix_artifact_catalog_content_hash'</span>
+<span class="sd">    &gt;&gt;&gt; len(_index_name("t" * 60, "content_hash")) &lt;= _MAX_INDEX_NAME</span>
+<span class="sd">    True</span>
+<span class="sd">    """</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"ix_</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">_MAX_INDEX_NAME</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">name</span>
+    <span class="n">digest</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">table_name</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">12</span><span class="p">]</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"ix_</span><span class="si">{</span><span class="n">digest</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_index_if_absent</span><span class="p">(</span><span class="n">bind</span><span class="p">,</span> <span class="n">column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Best-effort ``CREATE INDEX IF NOT EXISTS`` on ``column``; warns instead of</span>
+<span class="sd">    raising, since the index only speeds queries up."""</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Index</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.exc</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLAlchemyError</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">CreateIndex</span>
+
+    <span class="n">index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">_index_name</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">column</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">bind</span><span class="o">.</span><span class="n">begin</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">CreateIndex</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">if_not_exists</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="k">except</span> <span class="n">SQLAlchemyError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Could not index </span><span class="si">{</span><span class="n">column</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">column</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">); "</span>
+            <span class="s2">"content-hash lookups stay correct but scan the table. On a large "</span>
+            <span class="s2">"Postgres table, create it out of band with CREATE INDEX "</span>
+            <span class="s2">"CONCURRENTLY and pass create_content_hash_index=False."</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="p">)</span>
 
 
 <div class="viewcode-block" id="content_hash_of">
@@ -939,8 +1001,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    its bytes exist) is returned as given, without reading the catalog. A</span>
 <span class="sd">    rights-less record *with* a content hash costs one catalog read. The</span>
 <span class="sd">    guarantee holds for one writer at a time: the read and the write are not</span>
-<span class="sd">    atomic. ``content_hash`` reads a record's hash (:meth:`ArtifactStore.from_sql`</span>
-<span class="sd">    passes its own accessor).</span>
+<span class="sd">    atomic. ``content_hash`` reads a record's hash (as the default policy,</span>
+<span class="sd">    :class:`ArtifactStore` passes its own ``content_hash_of``).</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: the carried ``rights`` do not validate on ``record``'s</span>
@@ -1087,8 +1149,16 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            so delete it to write over it). The default,</span>
 <span class="sd">            :func:`keep_rights`, keeps the ``rights`` of a record replaced by a</span>
 <span class="sd">            rights-less one for the same bytes (lacing#60); ``None`` writes</span>
-<span class="sd">            records as given (last write wins). Writes straight to</span>
+<span class="sd">            records as given (last write wins). The default policy matches</span>
+<span class="sd">            records by the store's ``content_hash_of``; a policy that wraps</span>
+<span class="sd">            :func:`keep_rights` passes it on itself (``content_hash=``). Writes straight to</span>
 <span class="sd">            ``catalog`` bypass it.</span>
+<span class="sd">        content_hash_of: Keyword-only. ``content_hash_of(record) -&gt; str | None``, how</span>
+<span class="sd">            the store reads the blob hash a record names. :meth:`resolve`,</span>
+<span class="sd">            :meth:`count_refs` and the default ``on_write`` (:func:`keep_rights`)</span>
+<span class="sd">            all use it. Defaults to :func:`content_hash_of`; :meth:`from_sql`</span>
+<span class="sd">            sets it from its ``content_hash_of`` argument, so the store and</span>
+<span class="sd">            its ``content_hash`` column agree.</span>
 
 <span class="sd">    Construct one with :meth:`in_memory` or :meth:`from_directory` rather than</span>
 <span class="sd">    wiring the backing stores by hand, unless you are injecting a custom</span>
@@ -1098,6 +1168,9 @@ window.runMermaid = runMermaid;</script>
     <span class="n">catalog</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">]</span>
     <span class="n">blobs</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">on_write</span><span class="p">:</span> <span class="n">WritePolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">keep_rights</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">content_hash_of</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">_default_content_hash_of</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
 
     <span class="c1"># -- catalog: the MutableMapping surface (artifact_id -&gt; record) --------</span>
 
@@ -1161,7 +1234,10 @@ window.runMermaid = runMermaid;</script>
 <span class="w">        </span><span class="sd">"""``record`` as the ``on_write`` policy admits it at ``artifact_id``."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_write</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">record</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_write</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replaced</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">))</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_replaced</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_write</span> <span class="ow">is</span> <span class="n">keep_rights</span><span class="p">:</span>  <span class="c1"># match records by the store's accessor</span>
+            <span class="k">return</span> <span class="n">keep_rights</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">previous</span><span class="p">,</span> <span class="n">content_hash</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">content_hash_of</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_write</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">previous</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_replaced</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseModel</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""The record at ``artifact_id`` that a write is about to replace;</span>
@@ -1196,12 +1272,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        through :func:`resolve_in_mall`, which picks the store first.</span>
 
 <span class="sd">        Unpinned, it reads the record at ``ref.key`` and the bytes its content</span>
-<span class="sd">        hash names (:func:`content_hash_of`). Pinned, it reads the pinned bytes</span>
+<span class="sd">        hash names (the store's ``content_hash_of``). Pinned, it reads the pinned bytes</span>
 <span class="sd">        even when the key has since been saved with other content or removed. A</span>
 <span class="sd">        pin is the store's content hash: the SHA-256 hex digest of the bytes, as</span>
 <span class="sd">        :meth:`save` and :meth:`put_blob` compute it. The record is the one at</span>
-<span class="sd">        the key if it still holds those bytes, else the first a scan of</span>
-<span class="sd">        catalog scan finds, else ``None``; only that fallback scans.</span>
+<span class="sd">        the key if it still holds those bytes, else the first other record that</span>
+<span class="sd">        does, else ``None``. That other record comes from one indexed lookup</span>
+<span class="sd">        when the catalog offers it (the SQL catalog of :meth:`from_sql`), else</span>
+<span class="sd">        from a scan of the catalog.</span>
 
 <span class="sd">        With ``read=False`` it only checks that the bytes exist</span>
 <span class="sd">        (:meth:`has_blob`) and leaves ``data`` as ``None``, so a caller that</span>
@@ -1234,7 +1312,7 @@ window.runMermaid = runMermaid;</script>
             <span class="n">ref</span> <span class="o">=</span> <span class="n">ArtifactRef</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">pin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">ref</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
-            <span class="n">content_hash</span> <span class="o">=</span> <span class="n">content_hash_of</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+            <span class="n">content_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">content_hash_of</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">content_hash</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ref</span><span class="si">}</span><span class="s2">: the record at </span><span class="si">{</span><span class="n">ref</span><span class="o">.</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> has no content yet"</span><span class="p">)</span>
             <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_content</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">content_hash</span><span class="p">,</span> <span class="n">read</span><span class="o">=</span><span class="n">read</span><span class="p">)</span>
@@ -1244,19 +1322,20 @@ window.runMermaid = runMermaid;</script>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ref</span><span class="si">}</span><span class="s2">: the stored bytes do not hash to the pin"</span><span class="p">)</span>
         <span class="n">holder</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_records_with_content</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">pin</span><span class="p">,</span> <span class="p">[</span><span class="n">ref</span><span class="o">.</span><span class="n">key</span><span class="p">]),</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">holder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keys_with_content</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">pin</span><span class="p">)</span>
-            <span class="n">holder</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_records_with_content</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">pin</span><span class="p">,</span> <span class="n">keys</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">candidates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_keys</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">pin</span><span class="p">)</span>
+            <span class="n">holder</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_records_with_content</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">pin</span><span class="p">,</span> <span class="n">candidates</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">key</span><span class="p">,</span> <span class="n">record</span> <span class="o">=</span> <span class="n">holder</span> <span class="ow">or</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ResolvedArtifact</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">ref</span><span class="o">.</span><span class="n">pin</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_keys_with_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Yield, lazily, the catalog keys whose record names ``content_hash``,</span>
-<span class="sd">        skipping records that cannot be read. Iterates the live catalog: do not</span>
-<span class="sd">        delete while it runs."""</span>
-        <span class="c1"># A full catalog scan: a store with a content-hash index can override this.</span>
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_records_with_content</span><span class="p">(</span><span class="n">content_hash</span><span class="p">,</span> <span class="bp">self</span><span class="p">):</span>
-            <span class="k">yield</span> <span class="n">key</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_candidate_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""The keys that may hold ``content_hash``: the catalog's</span>
+<span class="sd">        ``keys_by_content_hash`` when it offers one (one indexed query, read</span>
+<span class="sd">        whole), else the live catalog itself, which must not be deleted from</span>
+<span class="sd">        while it is iterated. A candidate's record still has to be checked."""</span>
+        <span class="c1"># The probe pattern of ``count_refs``.</span>
+        <span class="n">fast</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="p">,</span> <span class="s2">"keys_by_content_hash"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fast</span><span class="p">(</span><span class="n">content_hash</span><span class="p">)</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">fast</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_records_with_content</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
@@ -1268,7 +1347,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
             <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>  <span class="c1"># a racing delete, or a damaged record</span>
                 <span class="k">continue</span>
-            <span class="k">if</span> <span class="n">content_hash_of</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="o">==</span> <span class="n">content_hash</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">content_hash_of</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="o">==</span> <span class="n">content_hash</span><span class="p">:</span>
                 <span class="k">yield</span> <span class="n">key</span><span class="p">,</span> <span class="n">record</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_content</span><span class="p">(</span>
@@ -1684,7 +1763,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        ``refcount_by_content_hash`` callable, and this method uses it so the</span>
 <span class="sd">        count is **one indexed query, not a full catalog scan**. Any other</span>
 <span class="sd">        catalog (dict, ``Files``) falls back to scanning every record. The</span>
-<span class="sd">        facade is unchanged either way; only the speed differs.</span>
+<span class="sd">        facade is unchanged either way; only the speed differs. The scan reads</span>
+<span class="sd">        each record's hash with the store's ``content_hash_of``, the accessor</span>
+<span class="sd">        :meth:`from_sql` also fills its column with, so both agree.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            content_hash: The blob's content hash (``Artifact.asset_id``).</span>
@@ -1696,11 +1777,11 @@ window.runMermaid = runMermaid;</script>
         <span class="n">fast</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="p">,</span> <span class="s2">"refcount_by_content_hash"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">fast</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">fast</span><span class="p">(</span><span class="n">content_hash</span><span class="p">)</span>
-        <span class="c1"># Fallback: scan every record (see ``content_hash_of`` for the fields).</span>
+        <span class="c1"># Fallback: scan every record.</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span>
             <span class="mi">1</span>
             <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">content_hash_of</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="o">==</span> <span class="n">content_hash</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">content_hash_of</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="o">==</span> <span class="n">content_hash</span>
         <span class="p">)</span></div>
 
 
@@ -1768,6 +1849,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">collection_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"artifact_catalog"</span><span class="p">,</span>
         <span class="n">content_hash_of</span><span class="p">:</span> <span class="s2">"Callable[[BaseModel], str | None] | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">on_write</span><span class="p">:</span> <span class="n">WritePolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">keep_rights</span><span class="p">,</span>
+        <span class="n">create_content_hash_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="o">**</span><span class="n">db_kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArtifactStore</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""An ArtifactStore with a **SQL-backed catalog** (durable, queryable)</span>
@@ -1778,7 +1860,10 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        :meth:`from_directory` serializes it (``record.model_dump_json`` out,</span>
 <span class="sd">        ``record_type.model_validate_json`` in), and one indexed ``content_hash``</span>
 <span class="sd">        column carries the record's blob hash so the GC reference count</span>
-<span class="sd">        (:meth:`count_refs`) is a single indexed query rather than a full scan.</span>
+<span class="sd">        (:meth:`count_refs`) and the holder of pinned bytes whose key moved</span>
+<span class="sd">        (:meth:`resolve`) are each a single indexed query rather than a full</span>
+<span class="sd">        scan. The index (``ix_&lt;collection_name&gt;_content_hash``) is created on</span>
+<span class="sd">        open when it is missing, so an existing database gains it too.</span>
 
 <span class="sd">        Because the connection is just a SQLAlchemy URI, the *same* code runs</span>
 <span class="sd">        on SQLite for tests and on Postgres in production — that is the whole</span>
@@ -1805,8 +1890,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">                ``content_hash`` column. Defaults to ``asset_id`` (the canonical</span>
 <span class="sd">                Artifact field), then ``content_hash``. Pass a callable for a</span>
 <span class="sd">                record whose hash lives elsewhere; records without a hash store</span>
-<span class="sd">                an empty string.</span>
+<span class="sd">                an empty string. It becomes the store's ``content_hash_of`` (see</span>
+<span class="sd">                :class:`ArtifactStore`), so :meth:`resolve`, :meth:`count_refs`</span>
+<span class="sd">                and :func:`keep_rights` read the same hash as the column.</span>
 <span class="sd">            on_write: The write policy (see :class:`ArtifactStore`).</span>
+<span class="sd">            create_content_hash_index: Create the ``content_hash`` index on open</span>
+<span class="sd">                (best-effort, ``IF NOT EXISTS``). Pass ``False`` where the index</span>
+<span class="sd">                is managed out of band, e.g. built ``CONCURRENTLY`` on a large</span>
+<span class="sd">                Postgres table, which a plain build would lock for writes.</span>
 <span class="sd">            **db_kwargs: Forwarded to ``sqldol.SQLAlchemyStore`` /</span>
 <span class="sd">                SQLAlchemy's ``create_engine`` (e.g. ``connect_args``,</span>
 <span class="sd">                ``pool_size``).</span>
@@ -1819,8 +1910,6 @@ window.runMermaid = runMermaid;</script>
 
         <span class="k">if</span> <span class="n">content_hash_of</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">content_hash_of</span> <span class="o">=</span> <span class="n">_default_content_hash_of</span>
-        <span class="k">elif</span> <span class="n">on_write</span> <span class="ow">is</span> <span class="n">keep_rights</span><span class="p">:</span>  <span class="c1"># match records by the same accessor</span>
-            <span class="n">on_write</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">keep_rights</span><span class="p">,</span> <span class="n">content_hash</span><span class="o">=</span><span class="n">content_hash_of</span><span class="p">)</span>
 
         <span class="n">raw</span> <span class="o">=</span> <span class="n">SQLAlchemyStore</span><span class="p">(</span>
             <span class="n">uri</span><span class="o">=</span><span class="n">uri</span><span class="p">,</span>
@@ -1852,10 +1941,18 @@ window.runMermaid = runMermaid;</script>
             <span class="p">},</span>
             <span class="n">obj_of_data</span><span class="o">=</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="n">record_type</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">record_json</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="c1"># Attach the GC reference-count capability so ``count_refs`` resolves it</span>
-        <span class="c1"># to a single indexed query (the probe pattern; see ``count_refs``).</span>
-        <span class="n">catalog</span><span class="o">.</span><span class="n">refcount_by_content_hash</span> <span class="o">=</span> <span class="n">_mk_sql_refcount</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span> <span class="n">blobs</span><span class="o">=</span><span class="n">blobs</span><span class="p">,</span> <span class="n">on_write</span><span class="o">=</span><span class="n">on_write</span><span class="p">)</span></div>
+        <span class="c1"># Attach the content-hash capabilities that ``count_refs`` and ``resolve``</span>
+        <span class="c1"># probe for, so each is a single indexed query (see ``count_refs``).</span>
+        <span class="p">(</span>
+            <span class="n">catalog</span><span class="o">.</span><span class="n">refcount_by_content_hash</span><span class="p">,</span>
+            <span class="n">catalog</span><span class="o">.</span><span class="n">keys_by_content_hash</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">_mk_sql_content_hash_queries</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">create_index</span><span class="o">=</span><span class="n">create_content_hash_index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span>
+            <span class="n">blobs</span><span class="o">=</span><span class="n">blobs</span><span class="p">,</span>
+            <span class="n">on_write</span><span class="o">=</span><span class="n">on_write</span><span class="p">,</span>
+            <span class="n">content_hash_of</span><span class="o">=</span><span class="n">content_hash_of</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ArtifactStore.from_aws">

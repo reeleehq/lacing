@@ -2,18 +2,20 @@
 
 # About this build
 
-This documentation was built on **2026-10-27 18:27 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/cd83a62a6358804bc8a4d44eeae7f366ec8139a0"><code>cd83a62</code></a> on branch <code>main</code>, for **lacing 0.0.64** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 19:47 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/9920939a820859efc757716e7eff42d82a8af6c0"><code>9920939</code></a> on branch <code>main</code>, for **lacing 0.0.66** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.66) is ahead of the latest release on PyPI (0.0.65): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/cd83a62a6358804bc8a4d44eeae7f366ec8139a0"><code>cd83a62a6358804bc8a4d44eeae7f366ec8139a0</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/9920939a820859efc757716e7eff42d82a8af6c0"><code>9920939a820859efc757716e7eff42d82a8af6c0</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
-| Tags at this commit | none                                                                                                                                                   |
+| Tags at this commit | <code>0.0.66</code>                                                                                                                                    |
 | Working tree        | clean                                                                                                                                                  |
 | Remote              | <code>https://github.com/reeleehq/lacing</code>                                                                                                        |
 
@@ -22,9 +24,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40559606651">40559606651</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/40565549277">40565549277</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>cd83a62a6358804bc8a4d44eeae7f366ec8139a0</code> (in the history of the built commit) |
+| Event commit | <code>8416079832725ece8a6ec62062420c4d26fe7a32</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -49,13 +51,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.64/">0.0.64</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.65/">0.0.65</a>, older than the documented version (0.0.66).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout cd83a62a6358804bc8a4d44eeae7f366ec8139a0
+git checkout 9920939a820859efc757716e7eff42d82a8af6c0
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

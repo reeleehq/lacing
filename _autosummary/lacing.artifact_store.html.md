@@ -62,11 +62,11 @@ True
 
 ### Classes
 
-| [`ArtifactStore`](#lacing.artifact_store.ArtifactStore)(catalog[, blobs, on_write])         | Facade over an artifact `catalog` and an optional `blobs` store.                     |
+| [`ArtifactStore`](#lacing.artifact_store.ArtifactStore)(catalog[, blobs, on_write, ...])    | Facade over an artifact `catalog` and an optional `blobs` store.                     |
 |----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
 | [`ResolvedArtifact`](#lacing.artifact_store.ResolvedArtifact)(key, record, content_hash, data) | What [`ArtifactStore.resolve()`](#lacing.artifact_store.ArtifactStore.resolve) found. |
 
-### *class* lacing.artifact_store.ArtifactStore(catalog, blobs=None, \*, on_write=<function keep_rights>)
+### *class* lacing.artifact_store.ArtifactStore(catalog, blobs=None, \*, on_write=<function keep_rights>, content_hash_of=<function content_hash_of>)
 
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
@@ -99,8 +99,16 @@ into the mapping protocol.
     so delete it to write over it). The default,
     [`keep_rights()`](#lacing.artifact_store.keep_rights), keeps the `rights` of a record replaced by a
     rights-less one for the same bytes (lacing#60); `None` writes
-    records as given (last write wins). Writes straight to
+    records as given (last write wins). The default policy matches
+    records by the store’s `content_hash_of`; a policy that wraps
+    [`keep_rights()`](#lacing.artifact_store.keep_rights) passes it on itself (`content_hash=`). Writes straight to
     `catalog` bypass it.
+  * **content_hash_of** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Any`](https://docs.python.org/3/library/typing.html#typing.Any)], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – Keyword-only. `content_hash_of(record) -> str | None`, how
+    the store reads the blob hash a record names. [`resolve()`](#lacing.artifact_store.ArtifactStore.resolve),
+    [`count_refs()`](#lacing.artifact_store.ArtifactStore.count_refs) and the default `on_write` ([`keep_rights()`](#lacing.artifact_store.keep_rights))
+    all use it. Defaults to [`content_hash_of()`](#lacing.artifact_store.content_hash_of); [`from_sql()`](#lacing.artifact_store.ArtifactStore.from_sql)
+    sets it from its `content_hash_of` argument, so the store and
+    its `content_hash` column agree.
 
 Construct one with [`in_memory()`](#lacing.artifact_store.ArtifactStore.in_memory) or [`from_directory()`](#lacing.artifact_store.ArtifactStore.from_directory) rather than
 wiring the backing stores by hand, unless you are injecting a custom
@@ -164,6 +172,25 @@ through a descriptor and has no such window.
 * **Return type:**
   [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### content_hash_of()
+
+The content hash naming `record`’s bytes in the blob store, if it has one.
+
+Its `asset_id` (a [`lacing.Artifact`](lacing.html.md#lacing.Artifact)) when that is a string, else its
+`content_hash` (reelee’s records) when that is, else `None` (a record
+filed before its bytes exist).
+
+```pycon
+>>> from types import SimpleNamespace as Record
+>>> content_hash_of(Record(asset_id="a1", content_hash="c1"))
+'a1'
+>>> content_hash_of(Record(content_hash="c1")), content_hash_of(Record())
+('c1', None)
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### count_refs(content_hash)
 
 How many catalog records point at `content_hash` (a blob).
@@ -181,7 +208,9 @@ backend that can answer the count cheaply — the SQL catalog from
 `refcount_by_content_hash` callable, and this method uses it so the
 count is **one indexed query, not a full catalog scan**. Any other
 catalog (dict, `Files`) falls back to scanning every record. The
-facade is unchanged either way; only the speed differs.
+facade is unchanged either way; only the speed differs. The scan reads
+each record’s hash with the store’s `content_hash_of`, the accessor
+[`from_sql()`](#lacing.artifact_store.ArtifactStore.from_sql) also fills its column with, so both agree.
 
 * **Parameters:**
   **content_hash** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The blob’s content hash (`Artifact.asset_id`).
@@ -317,7 +346,7 @@ Postgres-backed `MutableMapping`) for production.
 Requires `s3dol>=1` (and `boto3`) — imported lazily so the
 dependency is only needed when this constructor is used.
 
-#### *classmethod* from_sql(uri, \*, blobs=None, record_type=<class 'lacing.artifact.Artifact'>, collection_name='artifact_catalog', content_hash_of=None, on_write=<function keep_rights>, \*\*db_kwargs)
+#### *classmethod* from_sql(uri, \*, blobs=None, record_type=<class 'lacing.artifact.Artifact'>, collection_name='artifact_catalog', content_hash_of=None, on_write=<function keep_rights>, create_content_hash_index=True, \*\*db_kwargs)
 
 An ArtifactStore with a **SQL-backed catalog** (durable, queryable)
 via `sqldol` — the SQL counterpart of [`from_s3()`](#lacing.artifact_store.ArtifactStore.from_s3)’s object store.
@@ -327,7 +356,10 @@ one `TEXT` column holds the record serialized exactly as
 [`from_directory()`](#lacing.artifact_store.ArtifactStore.from_directory) serializes it (`record.model_dump_json` out,
 `record_type.model_validate_json` in), and one indexed `content_hash`
 column carries the record’s blob hash so the GC reference count
-([`count_refs()`](#lacing.artifact_store.ArtifactStore.count_refs)) is a single indexed query rather than a full scan.
+([`count_refs()`](#lacing.artifact_store.ArtifactStore.count_refs)) and the holder of pinned bytes whose key moved
+([`resolve()`](#lacing.artifact_store.ArtifactStore.resolve)) are each a single indexed query rather than a full
+scan. The index (`ix_<collection_name>_content_hash`) is created on
+open when it is missing, so an existing database gains it too.
 
 Because the connection is just a SQLAlchemy URI, the *same* code runs
 on SQLite for tests and on Postgres in production — that is the whole
@@ -356,8 +388,14 @@ persistence; see [`from_aws()`](#lacing.artifact_store.ArtifactStore.from_aws) f
     `content_hash` column. Defaults to `asset_id` (the canonical
     Artifact field), then `content_hash`. Pass a callable for a
     record whose hash lives elsewhere; records without a hash store
-    an empty string.
+    an empty string. It becomes the store’s `content_hash_of` (see
+    [`ArtifactStore`](#lacing.artifact_store.ArtifactStore)), so [`resolve()`](#lacing.artifact_store.ArtifactStore.resolve), [`count_refs()`](#lacing.artifact_store.ArtifactStore.count_refs)
+    and [`keep_rights()`](#lacing.artifact_store.keep_rights) read the same hash as the column.
   * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The write policy (see [`ArtifactStore`](#lacing.artifact_store.ArtifactStore)).
+  * **create_content_hash_index** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – Create the `content_hash` index on open
+    (best-effort, `IF NOT EXISTS`). Pass `False` where the index
+    is managed out of band, e.g. built `CONCURRENTLY` on a large
+    Postgres table, which a plain build would lock for writes.
   * **\*\*db_kwargs** – Forwarded to `sqldol.SQLAlchemyStore` /
     SQLAlchemy’s `create_engine` (e.g. `connect_args`,
     `pool_size`).
@@ -463,8 +501,8 @@ Anything else (a dict, a record without `rights`, a record filed before
 its bytes exist) is returned as given, without reading the catalog. A
 rights-less record *with* a content hash costs one catalog read. The
 guarantee holds for one writer at a time: the read and the write are not
-atomic. `content_hash` reads a record’s hash ([`ArtifactStore.from_sql()`](#lacing.artifact_store.ArtifactStore.from_sql)
-passes its own accessor).
+atomic. `content_hash` reads a record’s hash (as the default policy,
+[`ArtifactStore`](#lacing.artifact_store.ArtifactStore) passes its own `content_hash_of`).
 
 * **Raises:**
   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – the carried `rights` do not validate on `record`’s
@@ -541,12 +579,14 @@ consulted: this store is the one it names. References spanning a mall go
 through [`resolve_in_mall()`](#lacing.artifact_store.resolve_in_mall), which picks the store first.
 
 Unpinned, it reads the record at `ref.key` and the bytes its content
-hash names ([`content_hash_of()`](#lacing.artifact_store.content_hash_of)). Pinned, it reads the pinned bytes
+hash names (the store’s `content_hash_of`). Pinned, it reads the pinned bytes
 even when the key has since been saved with other content or removed. A
 pin is the store’s content hash: the SHA-256 hex digest of the bytes, as
 [`save()`](#lacing.artifact_store.ArtifactStore.save) and [`put_blob()`](#lacing.artifact_store.ArtifactStore.put_blob) compute it. The record is the one at
-the key if it still holds those bytes, else the first a scan of
-catalog scan finds, else `None`; only that fallback scans.
+the key if it still holds those bytes, else the first other record that
+does, else `None`. That other record comes from one indexed lookup
+when the catalog offers it (the SQL catalog of [`from_sql()`](#lacing.artifact_store.ArtifactStore.from_sql)), else
+from a scan of the catalog.
 
 With `read=False` it only checks that the bytes exist
 ([`has_blob()`](#lacing.artifact_store.ArtifactStore.has_blob)) and leaves `data` as `None`, so a caller that
@@ -664,8 +704,8 @@ Anything else (a dict, a record without `rights`, a record filed before
 its bytes exist) is returned as given, without reading the catalog. A
 rights-less record *with* a content hash costs one catalog read. The
 guarantee holds for one writer at a time: the read and the write are not
-atomic. `content_hash` reads a record’s hash ([`ArtifactStore.from_sql()`](#lacing.artifact_store.ArtifactStore.from_sql)
-passes its own accessor).
+atomic. `content_hash` reads a record’s hash (as the default policy,
+[`ArtifactStore`](#lacing.artifact_store.ArtifactStore) passes its own `content_hash_of`).
 
 * **Raises:**
   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – the carried `rights` do not validate on `record`’s
