@@ -472,6 +472,6 @@ score = boundary_iou(
 
 ## License
 
-MIT.
+Apache-2.0 — see [LICENSE]().
 
 <p class="epythet-aggregates">This documentation as a single file: <a href="lacing.md">lacing.md</a> (Markdown, for agents).</p>
