@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=5c6fbccc"></script>
+    <script src="../../../_static/documentation_options.js?v=f81738d5"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.80" />
+  <meta name="docsearch:version" content="0.0.81" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -736,10 +736,26 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">Time</span>
 <span class="sd">----</span>
-<span class="sd">OTIO ``RationalTime`` maps to lacing ``RationalTime`` directly — same</span>
-<span class="sd">``(value, rate)`` shape. We re-quantize to the requested project rate</span>
-<span class="sd">on load if needed; raises ``LossyTimeConversionError`` on inexact</span>
-<span class="sd">conversions.</span>
+<span class="sd">OTIO ``RationalTime`` has lacing's ``(value, rate)`` shape but stores both</span>
+<span class="sd">members as doubles. No time crosses this adapter as float seconds</span>
+<span class="sd">(lacing#134):</span>
+
+<span class="sd">- **dump** writes each lacing time with its own integers,</span>
+<span class="sd">  ``opentime.RationalTime(value=t.value, rate=t.rate)``. Gap and clip</span>
+<span class="sd">  durations are computed exactly, at the least common multiple of the</span>
+<span class="sd">  rates involved, so a 48 kHz or ``30000``-rate NTSC timeline survives.</span>
+<span class="sd">  Integers at or above 2**53 are not exact as doubles and raise</span>
+<span class="sd">  ``LossyTimeConversionError``.</span>
+<span class="sd">- **load** turns each OTIO double into an exact ``Fraction`` once, at the</span>
+<span class="sd">  boundary (:func:`_otio_double_to_fraction`): an integral double is that</span>
+<span class="sd">  integer; otherwise the rational closest to it with denominator at most</span>
+<span class="sd">  ``1001`` whose nearest double *is* that double, which recovers values</span>
+<span class="sd">  such as ``1/3`` and NTSC rates written as ``24000/1001``</span>
+<span class="sd">  (``23.976023976023978``); failing that, the double's exact binary value.</span>
+<span class="sd">  Track positions accumulate as ``Fraction`` seconds and are quantised once</span>
+<span class="sd">  to the requested ``rate`` with ``RationalTime.from_seconds``, which raises</span>
+<span class="sd">  ``LossyTimeConversionError`` when a time is not exact at that rate (it</span>
+<span class="sd">  never rounds).</span>
 
 <span class="sd">Lossy on dump</span>
 <span class="sd">-------------</span>
@@ -755,7 +771,9 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fractions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fraction</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
 
@@ -764,14 +782,29 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">MediaRef</span><span class="p">,</span> <span class="n">Provenance</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntervalAnnotationStore</span><span class="p">,</span> <span class="n">MemoryStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tier</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tier</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.time</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_RATE</span><span class="p">,</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">TimeInterval</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.time</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DEFAULT_RATE</span><span class="p">,</span>
+    <span class="n">LossyTimeConversionError</span><span class="p">,</span>
+    <span class="n">RationalTime</span><span class="p">,</span>
+    <span class="n">TimeInterval</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">ADAPTER_NAME</span> <span class="o">=</span> <span class="s2">"otio"</span>
-<span class="n">ADAPTER_VERSION</span> <span class="o">=</span> <span class="s2">"1.0.0"</span>
+<span class="c1"># 1.1.0: dumped times keep lacing's own rate instead of milliseconds (lacing#134).</span>
+<span class="n">ADAPTER_VERSION</span> <span class="o">=</span> <span class="s2">"1.1.0"</span>
 <span class="n">GENERATED_BY</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">adapter_generator_id</span><span class="p">(</span><span class="n">ADAPTER_NAME</span><span class="p">,</span> <span class="n">ADAPTER_VERSION</span><span class="p">))</span>
 <span class="n">BODY_SCHEMA_URI_CLIP</span> <span class="o">=</span> <span class="s2">"annot://schema/otio-clip/v1"</span>
 <span class="n">BODY_SCHEMA_URI_MARKER</span> <span class="o">=</span> <span class="s2">"annot://schema/otio-marker/v1"</span>
 <span class="n">DEFAULT_ASSET_ID</span> <span class="o">=</span> <span class="s2">"otio:unspecified"</span>
+
+<span class="n">_NTSC_DENOMINATOR</span> <span class="o">=</span> <span class="mi">1001</span>
+<span class="sd">"""Largest denominator :func:`_otio_double_to_fraction` recovers on its own from</span>
+<span class="sd">a non-integral double: the NTSC family of rates (``k * 1000 / 1001``) written as</span>
+<span class="sd">doubles (``23.976023976023978``). Finer times are recovered with the load rate as</span>
+<span class="sd">a hint (:func:`_otio_seconds`)."""</span>
+
+<span class="n">_MAX_EXACT_DOUBLE_INT</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">53</span>
+<span class="sd">"""Integers with magnitude below this are exactly representable as doubles."""</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_require_otio</span><span class="p">():</span>
@@ -785,23 +818,86 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">opentimelineio</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_otio_rationaltime_to_lacing</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RationalTime</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Convert an ``opentimelineio.opentime.RationalTime`` to lacing's.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_otio_double_to_fraction</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Fraction</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The exact rational an OTIO double stands for — the load boundary rule.</span>
 
-<span class="sd">    OTIO uses floats for ``value`` and ``rate`` even though they're</span>
-<span class="sd">    semantically rational. We quantize to integer ticks at ``rate``.</span>
+<span class="sd">    - An integral double is that integer (the usual case: ``24.0``,</span>
+<span class="sd">      ``48000.0``, ``1001.0``).</span>
+<span class="sd">    - Otherwise, the rational closest to ``x`` with denominator at most</span>
+<span class="sd">      ``_NTSC_DENOMINATOR``, if its nearest double is exactly ``x``.</span>
+<span class="sd">      Rationals with such small denominators are far apart compared with the</span>
+<span class="sd">      spacing of doubles, so at most one of them rounds to ``x``: this</span>
+<span class="sd">      recovers ``1/3`` from ``0.333...`` and ``24000/1001`` from</span>
+<span class="sd">      ``23.976023976023978``, the values the writer meant.</span>
+<span class="sd">    - Otherwise, the exact binary value of ``x``.</span>
+
+<span class="sd">    No step rounds: every result converts back to ``x`` exactly.</span>
 <span class="sd">    """</span>
-    <span class="c1"># OTIO float values are typically integers; round-trip through Fraction.</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">fractions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fraction</span>
+    <span class="n">exact</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># exact binary value; raises on nan/inf</span>
+    <span class="k">if</span> <span class="n">exact</span><span class="o">.</span><span class="n">denominator</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">exact</span>
+    <span class="n">simple</span> <span class="o">=</span> <span class="n">exact</span><span class="o">.</span><span class="n">limit_denominator</span><span class="p">(</span><span class="n">_NTSC_DENOMINATOR</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">simple</span><span class="p">)</span> <span class="o">==</span> <span class="n">x</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">simple</span>
+    <span class="k">return</span> <span class="n">exact</span>
 
-    <span class="n">val</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">)))</span>
-    <span class="n">src_rate</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">rate</span><span class="p">)))</span>
-    <span class="n">seconds</span> <span class="o">=</span> <span class="n">val</span> <span class="o">/</span> <span class="n">src_rate</span>
-    <span class="k">return</span> <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_otio_seconds</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">grid</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Fraction</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""An ``opentime.RationalTime`` as exact ``Fraction`` seconds.</span>
+
+<span class="sd">    ``grid`` is the lacing rate being loaded at: when ``t`` is a non-integral</span>
+<span class="sd">    double (OTIO's own ``from_seconds`` writes rate ``1.0``), the multiple of</span>
+<span class="sd">    ``1/grid`` whose double is ``t.value`` is the time the writer meant, so it</span>
+<span class="sd">    is preferred over the double's binary value. Never rounds: the result</span>
+<span class="sd">    always converts back to ``t`` exactly.</span>
+<span class="sd">    """</span>
+    <span class="n">rate</span> <span class="o">=</span> <span class="n">_otio_double_to_fraction</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">rate</span><span class="p">)</span>
+    <span class="n">seconds</span> <span class="o">=</span> <span class="n">_otio_double_to_fraction</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">/</span> <span class="n">rate</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">seconds</span> <span class="o">*</span> <span class="n">grid</span><span class="p">)</span><span class="o">.</span><span class="n">denominator</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">on_grid</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">seconds</span> <span class="o">*</span> <span class="n">grid</span><span class="p">),</span> <span class="n">grid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">on_grid</span> <span class="o">*</span> <span class="n">rate</span><span class="p">)</span> <span class="o">==</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">on_grid</span>
+    <span class="k">return</span> <span class="n">seconds</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_quantise</span><span class="p">(</span><span class="n">seconds</span><span class="p">:</span> <span class="n">Fraction</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RationalTime</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``seconds`` at ``rate``; on loss, the error names a rate that would work."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">LossyTimeConversionError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">LossyTimeConversionError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">; load at a rate that is a multiple of </span><span class="si">{</span><span class="n">seconds</span><span class="o">.</span><span class="n">denominator</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_otio_rationaltime_to_lacing</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RationalTime</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Convert an ``opentime.RationalTime`` to lacing's, at ``rate``.</span>
+
+<span class="sd">    Raises ``LossyTimeConversionError`` when the time is not exact at ``rate``.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">_quantise</span><span class="p">(</span><span class="n">_otio_seconds</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="n">rate</span><span class="p">),</span> <span class="n">rate</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_lacing_to_otio_rationaltime</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">otio_module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">otio_module</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">RationalTime</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">),</span> <span class="n">rate</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">rate</span><span class="p">))</span>
+<span class="w">    </span><span class="sd">"""Convert a lacing ``RationalTime`` to OTIO's, keeping its integers.</span>
+
+<span class="sd">    Raises ``LossyTimeConversionError`` if ``value`` or ``rate`` is too large</span>
+<span class="sd">    to be held exactly by OTIO's doubles.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">_MAX_EXACT_DOUBLE_INT</span> <span class="ow">or</span> <span class="n">t</span><span class="o">.</span><span class="n">rate</span> <span class="o">&gt;=</span> <span class="n">_MAX_EXACT_DOUBLE_INT</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">LossyTimeConversionError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="si">!r}</span><span class="s2"> cannot be held exactly by OTIO's double-based RationalTime"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">otio_module</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">RationalTime</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">rate</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_exact_at_common_rate</span><span class="p">(</span><span class="n">seconds</span><span class="p">:</span> <span class="n">Fraction</span><span class="p">,</span> <span class="o">*</span><span class="n">times</span><span class="p">:</span> <span class="n">RationalTime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RationalTime</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``seconds`` at the least common multiple of the rates of ``times``.</span>
+
+<span class="sd">    Exact by construction when ``seconds`` is a sum or difference of</span>
+<span class="sd">    ``times``.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">lcm</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">rate</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">times</span><span class="p">)))</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_media_url</span><span class="p">(</span><span class="n">clip</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
@@ -839,7 +935,8 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    Args:</span>
 <span class="sd">        source: Path or bytes containing OTIO JSON.</span>
-<span class="sd">        rate: Quantization rate.</span>
+<span class="sd">        rate: Rate of the loaded times. Every OTIO time must be exact at</span>
+<span class="sd">            it; otherwise ``LossyTimeConversionError`` is raised.</span>
 <span class="sd">        asset_id: Override media reference for every clip. None = use</span>
 <span class="sd">            each clip's own ``media_reference.target_url``.</span>
 <span class="sd">        attribution: ``Provenance.was_attributed_to`` value.</span>
@@ -871,37 +968,27 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span>
 
     <span class="c1"># --- per-track clips + markers -----------------------------------</span>
-    <span class="n">track_offset_seconds</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-
     <span class="k">for</span> <span class="n">track</span> <span class="ow">in</span> <span class="n">timeline</span><span class="o">.</span><span class="n">tracks</span><span class="p">:</span>
         <span class="n">tier_name</span> <span class="o">=</span> <span class="n">track</span><span class="o">.</span><span class="n">name</span> <span class="ow">or</span> <span class="s2">"untitled"</span>
         <span class="n">_ensure_tier</span><span class="p">(</span><span class="n">tier_name</span><span class="p">)</span>
 
-        <span class="c1"># Walk children, accumulating a track-position cursor.</span>
-        <span class="n">cursor</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="c1"># Walk children, accumulating the track position as exact seconds.</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">track</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="s2">"source_range"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">child</span><span class="o">.</span><span class="n">source_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">duration_seconds</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">source_range</span><span class="o">.</span><span class="n">duration</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span>
-                    <span class="n">child</span><span class="o">.</span><span class="n">source_range</span><span class="o">.</span><span class="n">duration</span><span class="o">.</span><span class="n">rate</span>
-                <span class="p">)</span>
+                <span class="n">duration</span> <span class="o">=</span> <span class="n">_otio_seconds</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">source_range</span><span class="o">.</span><span class="n">duration</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
             <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="s2">"duration"</span><span class="p">):</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">duration_seconds</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">duration</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span>
-                        <span class="n">child</span><span class="o">.</span><span class="n">duration</span><span class="p">()</span><span class="o">.</span><span class="n">rate</span>
-                    <span class="p">)</span>
-                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pragma: no cover  — defensive</span>
-                    <span class="n">duration_seconds</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">duration</span> <span class="o">=</span> <span class="n">_otio_seconds</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">duration</span><span class="p">(),</span> <span class="n">grid</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">duration_seconds</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">duration</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
             <span class="n">schema</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="s2">"schema_name"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="s2">""</span><span class="p">)()</span>
             <span class="k">if</span> <span class="n">schema</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"Clip"</span><span class="p">):</span>
                 <span class="n">clip_asset</span> <span class="o">=</span> <span class="n">asset_id</span> <span class="ow">or</span> <span class="n">_media_url</span><span class="p">(</span><span class="n">child</span><span class="p">)</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">"otio:clip:</span><span class="si">{</span><span class="n">child</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span>
-                <span class="n">start</span> <span class="o">=</span> <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">cursor</span><span class="p">),</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
-                <span class="n">end</span> <span class="o">=</span> <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds</span><span class="p">(</span>
-                    <span class="nb">repr</span><span class="p">(</span><span class="n">cursor</span> <span class="o">+</span> <span class="n">duration_seconds</span><span class="p">),</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span>
+                <span class="n">interval</span> <span class="o">=</span> <span class="n">TimeInterval</span><span class="p">(</span>
+                    <span class="n">_quantise</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">rate</span><span class="p">),</span>
+                    <span class="n">_quantise</span><span class="p">(</span><span class="n">cursor</span> <span class="o">+</span> <span class="n">duration</span><span class="p">,</span> <span class="n">rate</span><span class="p">),</span>
                 <span class="p">)</span>
-                <span class="n">interval</span> <span class="o">=</span> <span class="n">TimeInterval</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
 
                 <span class="n">clip_metadata</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="nb">dict</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="s2">"metadata"</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
@@ -928,16 +1015,16 @@ window.runMermaid = runMermaid;</script>
 
                 <span class="c1"># Markers on this clip — placed at clip-relative source_range start</span>
                 <span class="c1"># offset onto the track timeline.</span>
+                <span class="k">if</span> <span class="n">child</span><span class="o">.</span><span class="n">source_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">clip_source_start</span> <span class="o">=</span> <span class="n">_otio_seconds</span><span class="p">(</span>
+                        <span class="n">child</span><span class="o">.</span><span class="n">source_range</span><span class="o">.</span><span class="n">start_time</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="n">rate</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">clip_source_start</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">marker</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="s2">"markers"</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]:</span>
-                    <span class="n">marker_start_in_clip</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span>
-                        <span class="n">marker</span><span class="o">.</span><span class="n">marked_range</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">value</span>
-                    <span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">marker</span><span class="o">.</span><span class="n">marked_range</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">rate</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">child</span><span class="o">.</span><span class="n">source_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">clip_source_start</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span>
-                            <span class="n">child</span><span class="o">.</span><span class="n">source_range</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">value</span>
-                        <span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">source_range</span><span class="o">.</span><span class="n">start_time</span><span class="o">.</span><span class="n">rate</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">clip_source_start</span> <span class="o">=</span> <span class="mf">0.0</span>
+                    <span class="n">marker_start_in_clip</span> <span class="o">=</span> <span class="n">_otio_seconds</span><span class="p">(</span>
+                        <span class="n">marker</span><span class="o">.</span><span class="n">marked_range</span><span class="o">.</span><span class="n">start_time</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="n">rate</span>
+                    <span class="p">)</span>
                     <span class="n">marker_track_pos</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">+</span> <span class="p">(</span>
                         <span class="n">marker_start_in_clip</span> <span class="o">-</span> <span class="n">clip_source_start</span>
                     <span class="p">)</span>
@@ -954,7 +1041,7 @@ window.runMermaid = runMermaid;</script>
                         <span class="n">otio_module</span><span class="o">=</span><span class="n">otio</span><span class="p">,</span>
                     <span class="p">)</span>
 
-            <span class="n">cursor</span> <span class="o">+=</span> <span class="n">duration_seconds</span>
+            <span class="n">cursor</span> <span class="o">+=</span> <span class="n">duration</span>
 
         <span class="c1"># Markers on the track itself: where dump puts a tier's point</span>
         <span class="c1"># annotations, so they come back on that tier (lacing#132).</span>
@@ -971,8 +1058,6 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">otio_module</span><span class="o">=</span><span class="n">otio</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="n">track_offset_seconds</span><span class="p">[</span><span class="n">tier_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">cursor</span>
-
     <span class="k">return</span> <span class="n">store</span></div>
 
 
@@ -988,13 +1073,17 @@ window.runMermaid = runMermaid;</script>
     <span class="n">now</span><span class="p">:</span> <span class="n">RationalTime</span><span class="p">,</span>
     <span class="n">ensure_tier</span><span class="p">,</span>
     <span class="n">otio_module</span><span class="p">,</span>
-    <span class="n">track_pos</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">track_pos</span><span class="p">:</span> <span class="n">Fraction</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Insert a point Annotation for an OTIO Marker."""</span>
+<span class="w">    </span><span class="sd">"""Insert a point Annotation for an OTIO Marker.</span>
+
+<span class="sd">    ``track_pos`` is the marker's track position in exact seconds; ``None``</span>
+<span class="sd">    means use the marker's own ``marked_range.start_time``.</span>
+<span class="sd">    """</span>
     <span class="n">ensure_tier</span><span class="p">(</span><span class="n">tier_name</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">track_pos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">t</span> <span class="o">=</span> <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">track_pos</span><span class="p">),</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">_quantise</span><span class="p">(</span><span class="n">track_pos</span><span class="p">,</span> <span class="n">rate</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">t</span> <span class="o">=</span> <span class="n">_otio_rationaltime_to_lacing</span><span class="p">(</span><span class="n">marker</span><span class="o">.</span><span class="n">marked_range</span><span class="o">.</span><span class="n">start_time</span><span class="p">,</span> <span class="n">rate</span><span class="p">)</span>
 
@@ -1092,63 +1181,66 @@ window.runMermaid = runMermaid;</script>
 
     <span class="k">for</span> <span class="n">tier_name</span> <span class="ow">in</span> <span class="n">ordered</span><span class="p">:</span>
         <span class="n">anns</span> <span class="o">=</span> <span class="n">by_tier</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tier_name</span><span class="p">,</span> <span class="p">[])</span>
-        <span class="n">anns_sorted</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">anns</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">interval</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">to_fraction</span><span class="p">()))</span>
+        <span class="n">anns_sorted</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">anns</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">interval</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">to_fraction</span><span class="p">())</span>
 
         <span class="n">track</span> <span class="o">=</span> <span class="n">otio</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Track</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">tier_name</span><span class="p">)</span>
-        <span class="n">cursor</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">cursor</span><span class="p">:</span> <span class="n">RationalTime</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># end of the last item on the track</span>
         <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="n">anns_sorted</span><span class="p">:</span>
             <span class="n">iv</span> <span class="o">=</span> <span class="n">ann</span><span class="o">.</span><span class="n">interval</span>
             <span class="k">assert</span> <span class="n">iv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-            <span class="n">start_s</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">iv</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">to_fraction</span><span class="p">())</span>
-            <span class="n">end_s</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">iv</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">to_fraction</span><span class="p">())</span>
+            <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">iv</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">iv</span><span class="o">.</span><span class="n">end</span>
 
             <span class="n">kind</span> <span class="o">=</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"kind"</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">"marker"</span> <span class="ow">or</span> <span class="n">iv</span><span class="o">.</span><span class="n">is_point</span><span class="p">:</span>
                 <span class="c1"># Markers can't go on a Track directly without a host —</span>
                 <span class="c1"># attach to a Gap or the track itself.</span>
-                <span class="n">marker_t</span> <span class="o">=</span> <span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">RationalTime</span><span class="p">(</span>
-                    <span class="n">value</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">iv</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">to_fraction</span><span class="p">())</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
-                    <span class="n">rate</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span>
-                <span class="p">)</span>
                 <span class="n">marker</span> <span class="o">=</span> <span class="n">otio</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Marker</span><span class="p">(</span>
                     <span class="n">name</span><span class="o">=</span><span class="n">_otio_name</span><span class="p">(</span><span class="n">ann</span><span class="p">),</span>
                     <span class="n">marked_range</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">TimeRange</span><span class="p">(</span>
-                        <span class="n">start_time</span><span class="o">=</span><span class="n">marker_t</span><span class="p">,</span>
-                        <span class="n">duration</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">RationalTime</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">),</span>
+                        <span class="n">start_time</span><span class="o">=</span><span class="n">_lacing_to_otio_rationaltime</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">otio</span><span class="p">),</span>
+                        <span class="n">duration</span><span class="o">=</span><span class="n">_lacing_to_otio_rationaltime</span><span class="p">(</span>
+                            <span class="n">RationalTime</span><span class="o">.</span><span class="n">zero</span><span class="p">(</span><span class="n">start</span><span class="o">.</span><span class="n">rate</span><span class="p">),</span> <span class="n">otio</span>
+                        <span class="p">),</span>
                     <span class="p">),</span>
                 <span class="p">)</span>
                 <span class="n">track</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span>
                 <span class="k">continue</span>
 
             <span class="c1"># Insert a gap if needed.</span>
-            <span class="n">gap_seconds</span> <span class="o">=</span> <span class="n">start_s</span> <span class="o">-</span> <span class="n">cursor</span>
-            <span class="k">if</span> <span class="n">gap_seconds</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cursor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">cursor</span> <span class="o">=</span> <span class="n">RationalTime</span><span class="o">.</span><span class="n">zero</span><span class="p">(</span><span class="n">start</span><span class="o">.</span><span class="n">rate</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;</span> <span class="n">cursor</span><span class="p">:</span>
+                <span class="n">gap</span> <span class="o">=</span> <span class="n">_exact_at_common_rate</span><span class="p">(</span>
+                    <span class="n">start</span><span class="o">.</span><span class="n">to_fraction</span><span class="p">()</span> <span class="o">-</span> <span class="n">cursor</span><span class="o">.</span><span class="n">to_fraction</span><span class="p">(),</span> <span class="n">start</span><span class="p">,</span> <span class="n">cursor</span>
+                <span class="p">)</span>
                 <span class="n">track</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="n">otio</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Gap</span><span class="p">(</span>
                         <span class="n">source_range</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">TimeRange</span><span class="p">(</span>
-                            <span class="n">start_time</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">RationalTime</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">),</span>
-                            <span class="n">duration</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">RationalTime</span><span class="p">(</span>
-                                <span class="n">value</span><span class="o">=</span><span class="n">gap_seconds</span> <span class="o">*</span> <span class="mf">1000.0</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="mf">1000.0</span>
+                            <span class="n">start_time</span><span class="o">=</span><span class="n">_lacing_to_otio_rationaltime</span><span class="p">(</span>
+                                <span class="n">RationalTime</span><span class="o">.</span><span class="n">zero</span><span class="p">(</span><span class="n">gap</span><span class="o">.</span><span class="n">rate</span><span class="p">),</span> <span class="n">otio</span>
                             <span class="p">),</span>
+                            <span class="n">duration</span><span class="o">=</span><span class="n">_lacing_to_otio_rationaltime</span><span class="p">(</span><span class="n">gap</span><span class="p">,</span> <span class="n">otio</span><span class="p">),</span>
                         <span class="p">),</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
-                <span class="n">cursor</span> <span class="o">=</span> <span class="n">start_s</span>
+                <span class="n">cursor</span> <span class="o">=</span> <span class="n">start</span>
 
-            <span class="n">duration_seconds</span> <span class="o">=</span> <span class="n">end_s</span> <span class="o">-</span> <span class="n">start_s</span>
+            <span class="n">duration</span> <span class="o">=</span> <span class="n">_exact_at_common_rate</span><span class="p">(</span>
+                <span class="n">end</span><span class="o">.</span><span class="n">to_fraction</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="o">.</span><span class="n">to_fraction</span><span class="p">(),</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span>
+            <span class="p">)</span>
             <span class="n">asset_url</span> <span class="o">=</span> <span class="n">ann</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">asset_id</span>  <span class="c1"># type: ignore[union-attr]</span>
             <span class="n">clip</span> <span class="o">=</span> <span class="n">otio</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Clip</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="n">_otio_name</span><span class="p">(</span><span class="n">ann</span><span class="p">),</span>
                 <span class="n">media_reference</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">ExternalReference</span><span class="p">(</span><span class="n">target_url</span><span class="o">=</span><span class="n">asset_url</span><span class="p">),</span>
                 <span class="n">source_range</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">TimeRange</span><span class="p">(</span>
-                    <span class="n">start_time</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">RationalTime</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">),</span>
-                    <span class="n">duration</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">RationalTime</span><span class="p">(</span>
-                        <span class="n">value</span><span class="o">=</span><span class="n">duration_seconds</span> <span class="o">*</span> <span class="mf">1000.0</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="mf">1000.0</span>
+                    <span class="n">start_time</span><span class="o">=</span><span class="n">_lacing_to_otio_rationaltime</span><span class="p">(</span>
+                        <span class="n">RationalTime</span><span class="o">.</span><span class="n">zero</span><span class="p">(</span><span class="n">duration</span><span class="o">.</span><span class="n">rate</span><span class="p">),</span> <span class="n">otio</span>
                     <span class="p">),</span>
+                    <span class="n">duration</span><span class="o">=</span><span class="n">_lacing_to_otio_rationaltime</span><span class="p">(</span><span class="n">duration</span><span class="p">,</span> <span class="n">otio</span><span class="p">),</span>
                 <span class="p">),</span>
             <span class="p">)</span>
             <span class="n">track</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">clip</span><span class="p">)</span>
-            <span class="n">cursor</span> <span class="o">=</span> <span class="n">end_s</span>
+            <span class="n">cursor</span> <span class="o">=</span> <span class="n">end</span>
 
         <span class="n">timeline</span><span class="o">.</span><span class="n">tracks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">track</span><span class="p">)</span>
 
@@ -1177,7 +1269,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">description</span><span class="o">=</span><span class="p">(</span>
         <span class="s2">"OpenTimelineIO (Academy Software Foundation). Maps tracks to tiers, "</span>
         <span class="s2">"clips to interval annotations, and markers to point annotations. "</span>
-        <span class="s2">"Native RationalTime parity — no float precision loss at the boundary."</span>
+        <span class="s2">"Times keep their integer (value, rate) both ways — no float seconds."</span>
     <span class="p">),</span>
 <span class="p">)</span>
 </pre></div>

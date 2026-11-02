@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=5c6fbccc"></script>
+    <script src="../_static/documentation_options.js?v=f81738d5"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.80" />
+  <meta name="docsearch:version" content="0.0.81" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -467,10 +467,27 @@ off.</p>
 </section>
 <section id="time">
 <h2>Time<a class="headerlink" href="#time" title="Link to this heading">#</a></h2>
-<p>OTIO <code class="docutils literal notranslate"><span class="pre">RationalTime</span></code> maps to lacing <code class="docutils literal notranslate"><span class="pre">RationalTime</span></code> directly — same
-<code class="docutils literal notranslate"><span class="pre">(value,</span> <span class="pre">rate)</span></code> shape. We re-quantize to the requested project rate
-on load if needed; raises <code class="docutils literal notranslate"><span class="pre">LossyTimeConversionError</span></code> on inexact
-conversions.</p>
+<p>OTIO <code class="docutils literal notranslate"><span class="pre">RationalTime</span></code> has lacing’s <code class="docutils literal notranslate"><span class="pre">(value,</span> <span class="pre">rate)</span></code> shape but stores both
+members as doubles. No time crosses this adapter as float seconds
+(lacing#134):</p>
+<ul class="simple">
+<li><p><strong>dump</strong> writes each lacing time with its own integers,
+<code class="docutils literal notranslate"><span class="pre">opentime.RationalTime(value=t.value,</span> <span class="pre">rate=t.rate)</span></code>. Gap and clip
+durations are computed exactly, at the least common multiple of the
+rates involved, so a 48 kHz or <code class="docutils literal notranslate"><span class="pre">30000</span></code>-rate NTSC timeline survives.
+Integers at or above 2**53 are not exact as doubles and raise
+<code class="docutils literal notranslate"><span class="pre">LossyTimeConversionError</span></code>.</p></li>
+<li><p><strong>load</strong> turns each OTIO double into an exact <code class="docutils literal notranslate"><span class="pre">Fraction</span></code> once, at the
+boundary (<code class="xref py py-func docutils literal notranslate"><span class="pre">_otio_double_to_fraction()</span></code>): an integral double is that
+integer; otherwise the rational closest to it with denominator at most
+<code class="docutils literal notranslate"><span class="pre">1001</span></code> whose nearest double <em>is</em> that double, which recovers values
+such as <code class="docutils literal notranslate"><span class="pre">1/3</span></code> and NTSC rates written as <code class="docutils literal notranslate"><span class="pre">24000/1001</span></code>
+(<code class="docutils literal notranslate"><span class="pre">23.976023976023978</span></code>); failing that, the double’s exact binary value.
+Track positions accumulate as <code class="docutils literal notranslate"><span class="pre">Fraction</span></code> seconds and are quantised once
+to the requested <code class="docutils literal notranslate"><span class="pre">rate</span></code> with <code class="docutils literal notranslate"><span class="pre">RationalTime.from_seconds</span></code>, which raises
+<code class="docutils literal notranslate"><span class="pre">LossyTimeConversionError</span></code> when a time is not exact at that rate (it
+never rounds).</p></li>
+</ul>
 </section>
 <section id="lossy-on-dump">
 <h2>Lossy on dump<a class="headerlink" href="#lossy-on-dump" title="Link to this heading">#</a></h2>
@@ -531,7 +548,8 @@ track’s tier, which is where <a class="reference internal" href="#lacing.adapt
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>source</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#bytes" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathLike</span></code></a></span>) – Path or bytes containing OTIO JSON.</p></li>
-<li><p><strong>rate</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Quantization rate.</p></li>
+<li><p><strong>rate</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Rate of the loaded times. Every OTIO time must be exact at
+it; otherwise <code class="docutils literal notranslate"><span class="pre">LossyTimeConversionError</span></code> is raised.</p></li>
 <li><p><strong>asset_id</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Override media reference for every clip. None = use
 each clip’s own <code class="docutils literal notranslate"><span class="pre">media_reference.target_url</span></code>.</p></li>
 <li><p><strong>attribution</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – <code class="docutils literal notranslate"><span class="pre">Provenance.was_attributed_to</span></code> value.</p></li>

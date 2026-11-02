@@ -23,10 +23,26 @@ OTIO                                     ↔ lacing
 
 ## Time
 
-OTIO `RationalTime` maps to lacing `RationalTime` directly — same
-`(value, rate)` shape. We re-quantize to the requested project rate
-on load if needed; raises `LossyTimeConversionError` on inexact
-conversions.
+OTIO `RationalTime` has lacing’s `(value, rate)` shape but stores both
+members as doubles. No time crosses this adapter as float seconds
+(lacing#134):
+
+- **dump** writes each lacing time with its own integers,
+  `opentime.RationalTime(value=t.value, rate=t.rate)`. Gap and clip
+  durations are computed exactly, at the least common multiple of the
+  rates involved, so a 48 kHz or `30000`-rate NTSC timeline survives.
+  Integers at or above 2\*\*53 are not exact as doubles and raise
+  `LossyTimeConversionError`.
+- **load** turns each OTIO double into an exact `Fraction` once, at the
+  boundary (`_otio_double_to_fraction()`): an integral double is that
+  integer; otherwise the rational closest to it with denominator at most
+  `1001` whose nearest double *is* that double, which recovers values
+  such as `1/3` and NTSC rates written as `24000/1001`
+  (`23.976023976023978`); failing that, the double’s exact binary value.
+  Track positions accumulate as `Fraction` seconds and are quantised once
+  to the requested `rate` with `RationalTime.from_seconds`, which raises
+  `LossyTimeConversionError` when a time is not exact at that rate (it
+  never rounds).
 
 ## Lossy on dump
 
@@ -75,7 +91,8 @@ track’s tier, which is where [`dump()`](#lacing.adapters.otio.dump) writes a t
 
 * **Parameters:**
   * **source** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike)) – Path or bytes containing OTIO JSON.
-  * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – Quantization rate.
+  * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – Rate of the loaded times. Every OTIO time must be exact at
+    it; otherwise `LossyTimeConversionError` is raised.
   * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Override media reference for every clip. None = use
     each clip’s own `media_reference.target_url`.
   * **attribution** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to` value.

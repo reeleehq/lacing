@@ -1,4 +1,4 @@
-> built 2026-11-02 17:44 UTC from dc0f421 (main) · lacing 0.0.80. Details: build_info.json
+> built 2026-11-02 18:01 UTC from bd61ff9 (main) · lacing 0.0.81. Details: build_info.json
 
 # index.html.md
 
@@ -941,10 +941,26 @@ OTIO                                     ↔ lacing
 
 ## Time
 
-OTIO `RationalTime` maps to lacing `RationalTime` directly — same
-`(value, rate)` shape. We re-quantize to the requested project rate
-on load if needed; raises `LossyTimeConversionError` on inexact
-conversions.
+OTIO `RationalTime` has lacing’s `(value, rate)` shape but stores both
+members as doubles. No time crosses this adapter as float seconds
+(lacing#134):
+
+- **dump** writes each lacing time with its own integers,
+  `opentime.RationalTime(value=t.value, rate=t.rate)`. Gap and clip
+  durations are computed exactly, at the least common multiple of the
+  rates involved, so a 48 kHz or `30000`-rate NTSC timeline survives.
+  Integers at or above 2\*\*53 are not exact as doubles and raise
+  `LossyTimeConversionError`.
+- **load** turns each OTIO double into an exact `Fraction` once, at the
+  boundary (`_otio_double_to_fraction()`): an integral double is that
+  integer; otherwise the rational closest to it with denominator at most
+  `1001` whose nearest double *is* that double, which recovers values
+  such as `1/3` and NTSC rates written as `24000/1001`
+  (`23.976023976023978`); failing that, the double’s exact binary value.
+  Track positions accumulate as `Fraction` seconds and are quantised once
+  to the requested `rate` with `RationalTime.from_seconds`, which raises
+  `LossyTimeConversionError` when a time is not exact at that rate (it
+  never rounds).
 
 ## Lossy on dump
 
@@ -993,7 +1009,8 @@ track’s tier, which is where [`dump()`](_autosummary/lacing.adapters.otio.html
 
 * **Parameters:**
   * **source** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike)) – Path or bytes containing OTIO JSON.
-  * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – Quantization rate.
+  * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – Rate of the loaded times. Every OTIO time must be exact at
+    it; otherwise `LossyTimeConversionError` is raised.
   * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Override media reference for every clip. None = use
     each clip’s own `media_reference.target_url`.
   * **attribution** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to` value.
@@ -9727,16 +9744,18 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-02 17:44 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/dc0f421e022c15849cc377f6e844d5736262ee6c"><code>dc0f421</code></a> on branch <code>main</code>, for **lacing 0.0.80** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 18:01 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/bd61ff924e6df5448f50ee14ba3c80be28da1b80"><code>bd61ff9</code></a> on branch <code>main</code>, for **lacing 0.0.81** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.81) is behind the latest release on PyPI (0.0.82): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/dc0f421e022c15849cc377f6e844d5736262ee6c"><code>dc0f421e022c15849cc377f6e844d5736262ee6c</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/bd61ff924e6df5448f50ee14ba3c80be28da1b80"><code>bd61ff924e6df5448f50ee14ba3c80be28da1b80</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -9747,9 +9766,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41493580116">41493580116</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41496028174">41496028174</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>dc0f421e022c15849cc377f6e844d5736262ee6c</code> (in the history of the built commit) |
+| Event commit | <code>bd61ff924e6df5448f50ee14ba3c80be28da1b80</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9774,13 +9793,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.80/">0.0.80</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.82/">0.0.82</a>, newer than the documented version (0.0.81).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout dc0f421e022c15849cc377f6e844d5736262ee6c
+git checkout bd61ff924e6df5448f50ee14ba3c80be28da1b80
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
