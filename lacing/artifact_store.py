@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import stat
 from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping
 from dataclasses import dataclass, field
@@ -66,6 +67,7 @@ from typing import Any, NamedTuple
 from pydantic import BaseModel, TypeAdapter
 
 from dol import Files, filt_iter, wrap_kvs
+from dol.atomic import atomic_write
 
 from lacing.artifact import Artifact, hash_bytes
 from lacing.artifact_ref import ArtifactRef
@@ -856,14 +858,16 @@ class ArtifactStore(MutableMapping):
         yield from _ContainedDirStore(self.blobs)
 
     def interrupted_writes(self) -> list[Path]:
-        """The staging files of blob writes that never finished (lacing#104).
+        """The staging files of writes that never finished (lacing#104, #118).
 
         :meth:`put_blob_stream` (and so :meth:`put_blob`) spools into a hidden
-        ``.blob-*.part`` file beside the blobs and renames it into place when
-        the bytes are complete; a failed write unlinks it. A process killed
-        mid-write (SIGKILL, power loss) cannot, and the file, possibly a whole
-        video, stays where no listing sees it. This lists those files, for a
-        collector to delete.
+        ``.blob-*.part`` file beside the blobs, and a filesystem catalog writes
+        each record through ``dol.atomic_write`` (a hidden
+        ``.<name>.<hex>.tmp`` sibling); both rename into place when complete,
+        and a failed write unlinks its file. A process killed mid-write
+        (SIGKILL, power loss) cannot, and the file, possibly a whole video,
+        stays where no listing sees it. This lists those files, for a collector
+        to delete.
 
         It also lists writes **in flight right now**: a collector should spare
         a file modified recently (``an cache gc`` does, by mtime). Paths are
@@ -872,12 +876,17 @@ class ArtifactStore(MutableMapping):
         not exist.
 
         Raises:
-            OSError: the blob folder exists but cannot be listed (not a
-                directory, no permission). Nothing is known, so a collector
-                should delete nothing.
+            OSError: a folder exists but cannot be listed (not a directory, no
+                permission). Nothing is known, so a collector should delete
+                nothing.
         """
-        rootdir = getattr(self.blobs, "rootdir", None)
-        return [] if rootdir is None else _spool_files(Path(rootdir).absolute())
+        blob_root = getattr(self.blobs, "rootdir", None)
+        catalog_root = getattr(self.catalog, "rootdir", None)
+        blob_temps = [] if blob_root is None else _spool_files(Path(blob_root))
+        catalog_temps = (
+            [] if catalog_root is None else _atomic_write_temps(Path(catalog_root))
+        )
+        return sorted(p.absolute() for p in {*blob_temps, *catalog_temps})
 
     def blob_location(self, content_hash: str) -> "str | Path | None":
         """Resolve the cheapest *servable* location for a blob — without
@@ -1395,9 +1404,11 @@ class _ContainedDirStore(MutableMapping):
       final *name* (a delete never follows it) cannot land outside.
 
     Reads go through :func:`_open_within`, the same descriptor-based,
-    ``O_NOFOLLOW`` read as :meth:`ArtifactStore.get_blob`. Writes and
-    deletes are delegated to the wrapped store on the (normalised) key the
-    caller gave, so its write and delete policy (e.g. trash on delete) is
+    ``O_NOFOLLOW`` read as :meth:`ArtifactStore.get_blob`. Writes go to the
+    resolved path through ``dol.atomic_write`` (a same-folder temp file, then
+    a rename), so a write killed mid-way leaves the previous value, never a
+    truncated one (lacing#118). Deletes are delegated to the wrapped store on
+    the (normalised) key the caller gave, so its delete policy (e.g. trash) is
     unchanged, and deleting an in-root symlink removes the link, not its
     target. Writing over something that is not a regular file (a FIFO would
     hang the writer) is refused. Listing is :func:`_iter_within`: no
@@ -1476,7 +1487,8 @@ class _ContainedDirStore(MutableMapping):
         created = _missing_parents(Path(target))
         try:
             Path(target).parent.mkdir(parents=True, exist_ok=True)
-            self.store[contained] = value
+            # Old record or new one, never a truncated one (lacing#118).
+            atomic_write(target, value)
         except (OSError, KeyError) as error:  # dol re-raises I/O errors as KeyError
             for directory in created:  # deepest first; only what this call made
                 try:
@@ -1544,6 +1556,33 @@ def _spool_files(rootdir: Path) -> list[Path]:
         if entry.name.startswith(_SPOOL_PREFIX)
         and entry.name.endswith(_SPOOL_SUFFIX)
         and entry.is_file(follow_symlinks=False)
+    )
+
+
+_ATOMIC_WRITE_TEMP = re.compile(r"\..+\.[0-9a-f]{8}\.tmp")
+"""The name ``dol.atomic_write`` gives its staging file (``.<name>.<hex8>.tmp``).
+A copy of dol's naming until dol exports it (i2mint/dol#174)."""
+
+
+def _atomic_write_temps(rootdir: Path) -> list[Path]:
+    """The ``dol.atomic_write`` staging files anywhere under ``rootdir`` (a
+    record key may have folders): regular files only, never following a
+    symlinked folder."""
+    if not rootdir.exists():
+        return []
+    if not rootdir.is_dir():
+        raise NotADirectoryError(rootdir)
+
+    def raise_it(error: OSError) -> None:
+        raise error
+
+    return sorted(
+        Path(folder, name)
+        for folder, _, names in os.walk(rootdir, onerror=raise_it)
+        for name in names
+        if _ATOMIC_WRITE_TEMP.fullmatch(name)
+        and not os.path.islink(os.path.join(folder, name))
+        and os.path.isfile(os.path.join(folder, name))
     )
 
 
