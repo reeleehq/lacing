@@ -115,6 +115,7 @@ All currently registered adapters (in registration order).
 | [`jams`](lacing.adapters.jams.html.md#module-lacing.adapters.jams)                     | JAMS (JSON Annotated Music Specification) adapter.                |
 | [`label_studio`](lacing.adapters.label_studio.html.md#module-lacing.adapters.label_studio)     | Label Studio JSON adapter.                                        |
 | [`otio`](lacing.adapters.otio.html.md#module-lacing.adapters.otio)                     | OpenTimelineIO (OTIO) adapter — NLE / video editing interchange.  |
+| [`srt`](lacing.adapters.srt.html.md#module-lacing.adapters.srt)                       | SubRip (`.srt`) adapter.                                          |
 | [`textgrid`](lacing.adapters.textgrid.html.md#module-lacing.adapters.textgrid)             | Praat TextGrid adapter.                                           |
 | [`web_annotation`](lacing.adapters.web_annotation.html.md#module-lacing.adapters.web_annotation) | W3C Web Annotation Data Model adapter (JSON-LD).                  |
 | [`webvtt`](lacing.adapters.webvtt.html.md#module-lacing.adapters.webvtt)                 | WebVTT (W3C TimedText) adapter.                                   |

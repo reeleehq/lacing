@@ -1,0 +1,13 @@
+lacing.adapters.srt
+===================
+
+.. automodule:: lacing.adapters.srt
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      dump
+      load
+   

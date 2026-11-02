@@ -17,9 +17,11 @@ Lossy fields on dump:
 
 Time discipline:
 : WebVTT timestamps are `HH:MM:SS.mmm` or `MM:SS.mmm` (with milliseconds).
-  Parsing goes through string fractions to avoid float ingestion. Default
+  Parsing goes through integer milliseconds to avoid float ingestion. Default
   rate is 1000 (millisecond precision); override with `rate=` if your
-  project uses a different canonical rate.
+  project uses a different canonical rate. On dump, sub-millisecond times
+  are truncated to the millisecond (shared with SubRip, see
+  `lacing.adapters._cues`).
 
 Spec: [https://www.w3.org/TR/webvtt1/](https://www.w3.org/TR/webvtt1/)
 

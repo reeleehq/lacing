@@ -120,6 +120,7 @@ lacing/
 ├── adapters/
 │   ├── textgrid.py        Praat .TextGrid (interval + point tiers)
 │   ├── webvtt.py          .vtt subtitles/captions
+│   ├── srt.py             .srt SubRip subtitles
 │   ├── web_annotation.py  W3C Web Annotation Data Model (JSON-LD)
 │   ├── annot.py           .annot SQLite portable file format (lossless)
 │   ├── eaf.py             ELAN EAF (4 stereotypes verbatim)

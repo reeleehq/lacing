@@ -33,6 +33,7 @@ lacing.adapters
    jams
    label_studio
    otio
+   srt
    textgrid
    web_annotation
    webvtt
