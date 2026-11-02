@@ -15,6 +15,8 @@
 - [lacing.adapters.label_studio](_autosummary/lacing.adapters.label_studio.html.md): Label Studio JSON adapter.
 - [lacing.adapters.lrc](_autosummary/lacing.adapters.lrc.html.md): LRC (&#96;.lrc&#96;) lyrics adapter: plain LRC and enhanced LRC with word timing.
 - [lacing.adapters.otio](_autosummary/lacing.adapters.otio.html.md): OpenTimelineIO (OTIO) adapter — NLE / video editing interchange.
+- [lacing.adapters.podcast_chapters](_autosummary/lacing.adapters.podcast_chapters.html.md): Podcasting 2.0 &#96;podcast:chapters&#96; JSON adapter.
+- [lacing.adapters.podcast_transcript](_autosummary/lacing.adapters.podcast_transcript.html.md): Podcasting 2.0 &#96;podcast:transcript&#96; JSON adapter.
 - [lacing.adapters.srt](_autosummary/lacing.adapters.srt.html.md): SubRip (&#96;.srt&#96;) adapter.
 - [lacing.adapters.textgrid](_autosummary/lacing.adapters.textgrid.html.md): Praat TextGrid adapter.
 - [lacing.adapters.web_annotation](_autosummary/lacing.adapters.web_annotation.html.md): W3C Web Annotation Data Model adapter (JSON-LD).
@@ -58,7 +60,7 @@
 - [lacing.tracks.subtitle](_autosummary/lacing.tracks.subtitle.html.md): Subtitle / lyric / caption tracks — the (sections, lines, words) trio.
 - [lacing.worker](_autosummary/lacing.worker.html.md): Optional Arq integration — queue processors through Redis.
 - [For AI agents](ai-agents.html.md): &#96;lacing&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-02 18:21 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-02 18:45 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
 
 ## Optional
 

@@ -13,6 +13,8 @@
 - [lacing.adapters.label_studio](lacing.adapters.label_studio.html.md): Label Studio JSON adapter.
 - [lacing.adapters.lrc](lacing.adapters.lrc.html.md): LRC (&#96;.lrc&#96;) lyrics adapter: plain LRC and enhanced LRC with word timing.
 - [lacing.adapters.otio](lacing.adapters.otio.html.md): OpenTimelineIO (OTIO) adapter — NLE / video editing interchange.
+- [lacing.adapters.podcast_chapters](lacing.adapters.podcast_chapters.html.md): Podcasting 2.0 &#96;podcast:chapters&#96; JSON adapter.
+- [lacing.adapters.podcast_transcript](lacing.adapters.podcast_transcript.html.md): Podcasting 2.0 &#96;podcast:transcript&#96; JSON adapter.
 - [lacing.adapters.srt](lacing.adapters.srt.html.md): SubRip (&#96;.srt&#96;) adapter.
 - [lacing.adapters.textgrid](lacing.adapters.textgrid.html.md): Praat TextGrid adapter.
 - [lacing.adapters.web_annotation](lacing.adapters.web_annotation.html.md): W3C Web Annotation Data Model adapter (JSON-LD).

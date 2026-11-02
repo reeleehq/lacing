@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=cfefb2bf"></script>
+    <script src="../../_static/documentation_options.js?v=6b9736a6"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.82" />
+  <meta name="docsearch:version" content="0.0.83" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -788,6 +788,8 @@ window.runMermaid = runMermaid;</script>
     <span class="s2">"lacing.adapters.jams"</span><span class="p">,</span>
     <span class="s2">"lacing.adapters.label_studio"</span><span class="p">,</span>
     <span class="s2">"lacing.adapters.otio"</span><span class="p">,</span>
+    <span class="s2">"lacing.adapters.podcast_transcript"</span><span class="p">,</span>
+    <span class="s2">"lacing.adapters.podcast_chapters"</span><span class="p">,</span>
 <span class="p">)</span>
 
 
@@ -836,14 +838,9 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_infer_format_from_extension</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"str | None"</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_adapter</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_adapter_for_path</span>
 
-    <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-
-    <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">path</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">ext</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">spec</span> <span class="o">=</span> <span class="n">find_adapter</span><span class="p">(</span><span class="n">extension</span><span class="o">=</span><span class="n">ext</span><span class="p">)</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">find_adapter_for_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">spec</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="n">spec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
 
 

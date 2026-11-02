@@ -11,6 +11,7 @@ lacing.adapters
       adapter_generator_id
       dump
       find_adapter
+      find_adapter_for_path
       get_adapter
       load
       register_adapter
@@ -34,6 +35,8 @@ lacing.adapters
    label_studio
    lrc
    otio
+   podcast_chapters
+   podcast_transcript
    srt
    textgrid
    web_annotation

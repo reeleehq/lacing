@@ -1,4 +1,4 @@
-> built 2026-11-02 18:21 UTC from e77af5f (main) · lacing 0.0.82. Details: build_info.json
+> built 2026-11-02 18:45 UTC from 91588c0 (main) · lacing 0.0.83. Details: build_info.json
 
 # index.html.md
 
@@ -126,6 +126,8 @@ lacing/
 │   ├── webvtt.py          .vtt subtitles/captions
 │   ├── srt.py             .srt SubRip subtitles
 │   ├── lrc.py             .lrc lyrics, plain and enhanced (word timing)
+│   ├── podcast_transcript.py  Podcasting 2.0 podcast:transcript JSON (.transcript.json)
+│   ├── podcast_chapters.py    Podcasting 2.0 podcast:chapters JSON (.chapters.json)
 │   ├── web_annotation.py  W3C Web Annotation Data Model (JSON-LD)
 │   ├── annot.py           .annot SQLite portable file format (lossless)
 │   ├── eaf.py             ELAN EAF (4 stereotypes verbatim)
@@ -651,6 +653,7 @@ Or by using the convenience top-level loaders that look up by extension or
 |------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
 | [`dump`](_autosummary/lacing.adapters.html.md#lacing.adapters.dump)(store[, target])                         | Convenience: serialize `store` via the named adapter.                                                       |
 | [`find_adapter`](_autosummary/lacing.adapters.html.md#lacing.adapters.find_adapter)(\*[, extension, media_type])     | Find an adapter by extension (case-insensitive) or media type.                                              |
+| [`find_adapter_for_path`](_autosummary/lacing.adapters.html.md#lacing.adapters.find_adapter_for_path)(path)                   | Find an adapter by the extension of `path`, longest suffix first.                                           |
 | [`get_adapter`](_autosummary/lacing.adapters.html.md#lacing.adapters.get_adapter)(name)                             | Look up an adapter by name.                                                                                 |
 | [`load`](_autosummary/lacing.adapters.html.md#lacing.adapters.load)(source, \*[, format])                    | Convenience: dispatch `source` to the right adapter.                                                        |
 | [`register_adapter`](_autosummary/lacing.adapters.html.md#lacing.adapters.register_adapter)(\*, name, load, dump[, ...]) | Register an adapter under `name`; returns its [`AdapterSpec`](_autosummary/lacing.adapters.html.md#lacing.adapters.AdapterSpec). |
@@ -706,6 +709,22 @@ Find an adapter by extension (case-insensitive) or media type.
 * **Return type:**
   [`AdapterSpec`](_autosummary/lacing.adapters.html.md#lacing.adapters.AdapterSpec) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+### lacing.adapters.find_adapter_for_path(path)
+
+Find an adapter by the extension of `path`, longest suffix first.
+
+A compound extension (`ep.chapters.json`, `task.labelstudio.json`)
+is tried before its last part (`.json`), so a format registered under
+`.chapters.json` wins over one registered under `.json`.
+
+```pycon
+>>> find_adapter_for_path("no_extension") is None
+True
+```
+
+* **Return type:**
+  [`AdapterSpec`](_autosummary/lacing.adapters.html.md#lacing.adapters.AdapterSpec) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### lacing.adapters.get_adapter(name)
 
 Look up an adapter by name. Raises `KeyError` if missing.
@@ -743,17 +762,19 @@ All currently registered adapters (in registration order).
 
 ### Modules
 
-| [`annot`](_autosummary/lacing.adapters.annot.html.md#module-lacing.adapters.annot)                   | `.annot` portable file format adapter.                                    |
-|-------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| [`eaf`](_autosummary/lacing.adapters.eaf.html.md#module-lacing.adapters.eaf)                       | ELAN EAF adapter (Max Planck Institute's annotation tool format).         |
-| [`jams`](_autosummary/lacing.adapters.jams.html.md#module-lacing.adapters.jams)                     | JAMS (JSON Annotated Music Specification) adapter.                        |
-| [`label_studio`](_autosummary/lacing.adapters.label_studio.html.md#module-lacing.adapters.label_studio)     | Label Studio JSON adapter.                                                |
-| [`lrc`](_autosummary/lacing.adapters.lrc.html.md#module-lacing.adapters.lrc)                       | LRC (`.lrc`) lyrics adapter: plain LRC and enhanced LRC with word timing. |
-| [`otio`](_autosummary/lacing.adapters.otio.html.md#module-lacing.adapters.otio)                     | OpenTimelineIO (OTIO) adapter — NLE / video editing interchange.          |
-| [`srt`](_autosummary/lacing.adapters.srt.html.md#module-lacing.adapters.srt)                       | SubRip (`.srt`) adapter.                                                  |
-| [`textgrid`](_autosummary/lacing.adapters.textgrid.html.md#module-lacing.adapters.textgrid)             | Praat TextGrid adapter.                                                   |
-| [`web_annotation`](_autosummary/lacing.adapters.web_annotation.html.md#module-lacing.adapters.web_annotation) | W3C Web Annotation Data Model adapter (JSON-LD).                          |
-| [`webvtt`](_autosummary/lacing.adapters.webvtt.html.md#module-lacing.adapters.webvtt)                 | WebVTT (W3C TimedText) adapter.                                           |
+| [`annot`](_autosummary/lacing.adapters.annot.html.md#module-lacing.adapters.annot)                           | `.annot` portable file format adapter.                                    |
+|---------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| [`eaf`](_autosummary/lacing.adapters.eaf.html.md#module-lacing.adapters.eaf)                               | ELAN EAF adapter (Max Planck Institute's annotation tool format).         |
+| [`jams`](_autosummary/lacing.adapters.jams.html.md#module-lacing.adapters.jams)                             | JAMS (JSON Annotated Music Specification) adapter.                        |
+| [`label_studio`](_autosummary/lacing.adapters.label_studio.html.md#module-lacing.adapters.label_studio)             | Label Studio JSON adapter.                                                |
+| [`lrc`](_autosummary/lacing.adapters.lrc.html.md#module-lacing.adapters.lrc)                               | LRC (`.lrc`) lyrics adapter: plain LRC and enhanced LRC with word timing. |
+| [`otio`](_autosummary/lacing.adapters.otio.html.md#module-lacing.adapters.otio)                             | OpenTimelineIO (OTIO) adapter — NLE / video editing interchange.          |
+| [`podcast_chapters`](_autosummary/lacing.adapters.podcast_chapters.html.md#module-lacing.adapters.podcast_chapters)     | Podcasting 2.0 `podcast:chapters` JSON adapter.                           |
+| [`podcast_transcript`](_autosummary/lacing.adapters.podcast_transcript.html.md#module-lacing.adapters.podcast_transcript) | Podcasting 2.0 `podcast:transcript` JSON adapter.                         |
+| [`srt`](_autosummary/lacing.adapters.srt.html.md#module-lacing.adapters.srt)                               | SubRip (`.srt`) adapter.                                                  |
+| [`textgrid`](_autosummary/lacing.adapters.textgrid.html.md#module-lacing.adapters.textgrid)                     | Praat TextGrid adapter.                                                   |
+| [`web_annotation`](_autosummary/lacing.adapters.web_annotation.html.md#module-lacing.adapters.web_annotation)         | W3C Web Annotation Data Model adapter (JSON-LD).                          |
+| [`webvtt`](_autosummary/lacing.adapters.webvtt.html.md#module-lacing.adapters.webvtt)                         | WebVTT (W3C TimedText) adapter.                                           |
 
 
 # _autosummary/lacing.adapters.jams.html.md
@@ -1185,6 +1206,305 @@ track’s tier, which is where [`dump()`](_autosummary/lacing.adapters.otio.html
   * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Override media reference for every clip. None = use
     each clip’s own `media_reference.target_url`.
   * **attribution** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to` value.
+* **Return type:**
+  [`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)
+
+
+# _autosummary/lacing.adapters.podcast_chapters.html.md
+
+# lacing.adapters.podcast_chapters
+
+Podcasting 2.0 `podcast:chapters` JSON adapter.
+
+The JSON chapters format of the Podcast Namespace (version 1.2): a version,
+optional episode fields, and a list of chapters, each with a start time and
+optional end time, title, image, link, table-of-contents flag and location:
+
+```default
+{
+  "version": "1.2.0",
+  "author": "John Doe",
+  "title": "Episode 7 - Making Progress",
+  "chapters": [
+    {"startTime": 0, "title": "Intro"},
+    {"startTime": 168, "title": "Hearing Aids", "img": "https://example.com/a.jpg"},
+    {"startTime": 4826, "toc": false,
+     "location": {"name": "Eiffel Tower, Paris", "geo": "geo:48.858093,2.294694"}}
+  ]
+}
+```
+
+Spec: “JSON Chapters Format”, version 1.2,
+[https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/examples/chapters/jsonChapters.md](https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/examples/chapters/jsonChapters.md),
+referenced by the `<podcast:chapters>` tag,
+[https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/tags/chapters.md](https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/tags/chapters.md).
+
+Tiers and bodies:
+
+- `chapters` (stereotype `NONE`; override with `tier=`): one annotation
+  per chapter, body `annot://schema/podcast-chapter/v1`: every field of the
+  chapter object except `startTime` and `endTime`, with its value and in
+  file order (`title`, `img`, `url`, `toc`, `location`, and any
+  field the spec does not name, such as the `value` of the spec’s complex
+  example), so a chapter round-trips to the same JSON value (see “Numbers”).
+  A `null` `title`, `img`, `url`, `toc` or `location` is an
+  absent one: it is left out on load, and the dump leaves it out too.
+  `"end_inferred": true` is added when the chapter had no `endTime` (a
+  chapter that already has a field of that name is refused).
+- `episode` (stereotype `NONE`; override with `episode_tier=`):
+  **one** metadata annotation, a point at time 0, body
+  `annot://schema/podcast-chapters-episode/v1`
+  `{"version": str | None, "fields": {...}}`, where `fields` holds every
+  other top-level field (`author`, `title`, `podcastName`,
+  `description`, `fileName`, `waypoints`, and any unnamed one) with
+  its value and in file order. These describe the file, not a chapter, so they live on
+  one annotation rather than in every chapter body, the way the LRC adapter
+  keeps its ID tags; a store from another format dumps without inventing any.
+
+End times:
+: `endTime` is optional, and `null` is the same as absent. A chapter
+  without one ends where the next *later*
+  chapter starts (chapters sharing a start all end at the next later
+  start), whatever the order of the file (the spec assumes ascending
+  `startTime`); the last chapter is a point (`start == end`).
+  [`dump()`](_autosummary/lacing.adapters.podcast_chapters.html.md#lacing.adapters.podcast_chapters.dump) leaves `endTime` out again for a chapter whose end was
+  inferred and is still the one a reader would infer, and writes it
+  otherwise, so a file round-trips and an edited end is kept.
+
+Time discipline:
+: Times are JSON numbers of seconds (“float precision” in the spec). They
+  are read as exact `Decimal` values (`json.loads(...,
+  parse_float=Decimal)`, never `float`), then converted exactly to
+  `RationalTime`. With `rate=None` (the default) the rate is the
+  smallest power of ten, at least 1000, that holds every time in the file
+  exactly: `1.001` is `RationalTime(1001, 1000)`, and `0.0000625` or
+  `0.30000000000000004` raise the rate rather than lose precision. An
+  explicit `rate` that cannot hold a time raises
+  `LossyTimeConversionError` naming the chapter and the rate that would
+  hold every time. On dump a time is written as an exact decimal when it
+  has a terminating expansion, else truncated to the millisecond, which
+  keeps the order of times (see
+  `lacing.adapters._podcast.seconds_number()`).
+
+Numbers:
+: A number that is not a time is kept as the nearest `float` and written
+  back as that value (`1.50` is written `1.5`; a PHP-style
+  `48.858092999999997` becomes `48.858093`, as any JSON reader reads it).
+  `NaN`, `Infinity` and `1e400` (not finite) are refused on load,
+  naming the chapter and the field. Bodies stay plain JSON, which a SQLite store
+  or the server needs.
+
+Lossy fields on dump:
+: Provenance, confidence, schema URIs and tier metadata are dropped. The
+  `version` is the episode annotation’s, else `1.2.0`. Without `tier=`,
+  the annotations written as chapters are those with the chapter body
+  schema; with `tier=`, every annotation of that tier with a time interval
+  and an object body, its `title` taken from a string `title` field, else
+  from a string `text` field (a WebVTT chapters track, a SubRip cue).
+  Chapters are written in start, then end, order. Top-level fields are
+  written before `chapters`.
+
+Media type and extension:
+: The spec says a chapters file “should be served with a Content-type of
+  ‘application/json+chapters’”, which this adapter registers. It does not
+  register the generic `application/json`. Its extension is the compound
+  `.chapters.json`; a bare `.json` stays with the W3C Web Annotation
+  adapter.
+
+Malformed input raises `ValueError` naming the chapter index
+(`chapters[3]`): a document that is not a JSON object, `chapters` missing
+or not a list, a chapter that is not an object, a `startTime` or
+`endTime` that is not a number, negative or not finite, an `endTime`
+before its `startTime`, a `title`, `img` or `url` that is not a
+string, a `toc` that is not a boolean, a `location` that is not an
+object, a number a float cannot hold exactly, or a non-string `version`.
+
+### Functions
+
+| [`dump`](_autosummary/lacing.adapters.podcast_chapters.html.md#lacing.adapters.podcast_chapters.dump)(store[, target, tier])                       | Write annotations as podcast chapters JSON.                             |
+|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [`load`](_autosummary/lacing.adapters.podcast_chapters.html.md#lacing.adapters.podcast_chapters.load)(source, \*[, rate, rounding, asset_id, ...]) | Parse a podcast chapters JSON file, bytes or text into a `MemoryStore`. |
+
+### lacing.adapters.podcast_chapters.dump(store, target=None, , tier=None, \*\*\_kwargs)
+
+Write annotations as podcast chapters JSON.
+
+* **Parameters:**
+  * **store** ([`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – Source store. Chapters are its annotations with a time
+    interval and the chapter body schema (or, with `tier`, every
+    annotation of that tier with a time interval and an object body),
+    sorted by start then end. The episode metadata annotation, if
+    any, gives the version and top-level fields.
+  * **target** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Output path. If None, returns bytes (UTF-8 JSON).
+  * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Write the annotations of this tier as chapters (see above).
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – For a negative time, or for more than one episode
+      metadata annotation.
+* **Return type:**
+  [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### lacing.adapters.podcast_chapters.load(source, , rate=None, rounding=None, asset_id='podcast-chapters:unspecified', attribution='anonymous', tier='chapters', episode_tier='episode', \*\*\_kwargs)
+
+Parse a podcast chapters JSON file, bytes or text into a `MemoryStore`.
+
+* **Parameters:**
+  * **source** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike)) – Bytes (UTF-8), a path, or inline JSON text.
+  * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Rate of every `RationalTime` produced. `None` (the default)
+    picks the smallest power of ten, at least 1000, at which every
+    time in the file is exact, up to `10**9` (a store’s limit); an
+    explicit rate must hold every time exactly, unless `rounding`.
+  * **rounding** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – `None` (exact or raise), or a
+    [`from_seconds_lossy()`](_autosummary/lacing.time.html.md#lacing.time.RationalTime.from_seconds_lossy) mode
+    (`"round"`, `"floor"`, `"ceil"`) to quantise times instead,
+    for files with float noise (`12.300000000000001`).
+  * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The `MediaRef.asset_id` the chapters annotate.
+  * **attribution** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to` of every annotation.
+  * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the tier the chapters go in.
+  * **episode_tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the tier of the episode metadata annotation.
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – On malformed input, naming the chapter index.
+* **Return type:**
+  [`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)
+
+
+# _autosummary/lacing.adapters.podcast_transcript.html.md
+
+# lacing.adapters.podcast_transcript
+
+Podcasting 2.0 `podcast:transcript` JSON adapter.
+
+The JSON transcript format of the Podcast Namespace: a version and a list of
+timed dialogue segments, at any granularity from whole turns down to single
+words:
+
+```default
+{
+  "version": "1.0.0",
+  "segments": [
+    {"speaker": "Darth Vader", "startTime": 0.5, "endTime": 0.75, "body": "I"},
+    {"speaker": "Darth Vader", "startTime": 1, "endTime": 1.25, "body": "am"}
+  ]
+}
+```
+
+Spec: the `<podcast:transcript>` tag,
+[https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/tags/transcript.md](https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/tags/transcript.md),
+and its JSON section in
+[https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/examples/transcripts/transcripts.md#json](https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/examples/transcripts/transcripts.md#json)
+(elements `version`, `segments`, `speaker`, `startTime`, `endTime`
+“if available”, `body`).
+
+We map segments to a single tier named `segments` (override with
+`tier=`), stereotype `NONE` (the format has no hierarchy). Each segment
+becomes one `Annotation` whose body (`annot://schema/podcast-transcript-segment/v1`)
+holds:
+
+```default
+{"text": str, "speaker": str | None}
+```
+
+plus `"end_inferred": True` when the segment had no `endTime`, and
+`"extra": {...}` holding any other fields of the segment with their values
+(numbers that are not times as plain JSON numbers of the same value; see
+“Numbers” below).
+
+End times:
+: `endTime` is optional in the spec. A segment without one (or with
+  `"endTime": null`) ends where the next *later* segment starts (segments
+  sharing a start all end at the next later start); the last one is a
+  point (`start == end`). The body records that the end was inferred,
+  and [`dump()`](_autosummary/lacing.adapters.podcast_transcript.html.md#lacing.adapters.podcast_transcript.dump) leaves `endTime` out again while the end is still the
+  inferred one, so such files round-trip. A `null` `speaker` is an
+  absent one, and the dump leaves it out.
+
+Time discipline:
+: Times are JSON numbers of seconds. They are read as exact `Decimal`
+  values (`json.loads(..., parse_float=Decimal)`, never `float`), then
+  converted exactly to `RationalTime`. With `rate=None` (the default)
+  the rate is the smallest power of ten, at least 1000, that holds every
+  time in the file exactly: `1.001` is `RationalTime(1001, 1000)`, a
+  file with `0.0000625` (a sample at 16 kHz) is read at rate `10**7`,
+  and JavaScript float noise such as `0.30000000000000004` at
+  `10**17`, so every file is read without loss. An explicit `rate`
+  that cannot hold a time (`0.0005` at rate 1000) raises
+  `LossyTimeConversionError` naming the segment and the rate that would
+  hold every time. On dump a time is written as an exact decimal when it
+  has a terminating expansion, else truncated to the millisecond, which
+  keeps the order of times (see
+  `lacing.adapters._podcast.seconds_number()`).
+
+Numbers:
+: A number that is not a time is kept as the nearest `float` and written
+  back as that value (`1.50` is written `1.5`; a PHP-style
+  `48.858092999999997` becomes `48.858093`, as any JSON reader reads it).
+  `NaN`, `Infinity` and `1e400` (not finite) are refused on load,
+  naming the segment and the field. Bodies stay plain JSON, which a SQLite store
+  or the server needs.
+
+Lossy fields on dump:
+: Provenance, confidence, schema URIs and tier metadata are dropped. The
+  `version` is always written as `1.0.0`; other top-level fields of a
+  loaded file are not kept. Any annotation with a time interval (any
+  reference kind) and a string `text` body is written as a segment, with
+  its `speaker` when the body has a string one, so SubRip, WebVTT and LRC
+  cues dump to a transcript too (losing their own body fields). Segments
+  are written in start, then end, order.
+
+Media type and extension:
+: The spec serves transcripts as plain `application/json`, which says
+  nothing about the format, so this adapter registers no media type (a
+  `find_adapter(media_type="application/json")` finds no adapter). It
+  registers the compound extension `.transcript.json`; a bare `.json`
+  stays with the W3C Web Annotation adapter. Pass `format=` otherwise.
+
+Malformed input raises `ValueError` naming the segment index
+(`segments[3]`): a document that is not a JSON object, `segments` missing
+or not a list, a segment that is not an object, a missing or non-string
+`body`, a non-string `speaker`, a `startTime` that is missing, an
+`endTime` or `startTime` that is not a number, negative or not finite, an
+`endTime` before its `startTime`, a number in another field that a float
+cannot hold exactly, or a non-string `version`.
+
+### Functions
+
+| [`dump`](_autosummary/lacing.adapters.podcast_transcript.html.md#lacing.adapters.podcast_transcript.dump)(store[, target, tier])                       | Write annotations as podcast transcript JSON.                             |
+|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| [`load`](_autosummary/lacing.adapters.podcast_transcript.html.md#lacing.adapters.podcast_transcript.load)(source, \*[, rate, rounding, asset_id, ...]) | Parse a podcast transcript JSON file, bytes or text into a `MemoryStore`. |
+
+### lacing.adapters.podcast_transcript.dump(store, target=None, , tier=None, \*\*\_kwargs)
+
+Write annotations as podcast transcript JSON.
+
+* **Parameters:**
+  * **store** ([`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – Source store. Every annotation with a time interval (any
+    reference kind) and a string `text` body is written as a
+    segment, sorted by start then end.
+  * **target** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Output path. If None, returns bytes (UTF-8 JSON).
+  * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Restrict export to this tier. None = export all tiers.
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – For a negative time, which the format cannot hold.
+* **Return type:**
+  [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### lacing.adapters.podcast_transcript.load(source, , rate=None, rounding=None, asset_id='podcast-transcript:unspecified', attribution='anonymous', tier='segments', \*\*\_kwargs)
+
+Parse a podcast transcript JSON file, bytes or text into a `MemoryStore`.
+
+* **Parameters:**
+  * **source** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike)) – Bytes (UTF-8), a path, or inline JSON text.
+  * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Rate of every `RationalTime` produced. `None` (the default)
+    picks the smallest power of ten, at least 1000, at which every
+    time in the file is exact, up to `10**9` (a store’s limit); an
+    explicit rate must hold every time exactly, unless `rounding`.
+  * **rounding** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – `None` (exact or raise), or a
+    [`from_seconds_lossy()`](_autosummary/lacing.time.html.md#lacing.time.RationalTime.from_seconds_lossy) mode
+    (`"round"`, `"floor"`, `"ceil"`) to quantise times instead,
+    for files with float noise (`12.300000000000001`).
+  * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The `MediaRef.asset_id` the segments annotate.
+  * **attribution** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to` of every segment.
+  * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the tier the segments go in.
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – On malformed input, naming the segment index.
 * **Return type:**
   [`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)
 
@@ -9915,16 +10235,18 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-02 18:21 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/e77af5faaf11b3f50456e2d59719df2dbdfe970a"><code>e77af5f</code></a> on branch <code>main</code>, for **lacing 0.0.82** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 18:45 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/91588c0222b397018761824e654fa73a51077e1b"><code>91588c0</code></a> on branch <code>main</code>, for **lacing 0.0.83** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.83) is behind the latest release on PyPI (0.0.84): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/e77af5faaf11b3f50456e2d59719df2dbdfe970a"><code>e77af5faaf11b3f50456e2d59719df2dbdfe970a</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/91588c0222b397018761824e654fa73a51077e1b"><code>91588c0222b397018761824e654fa73a51077e1b</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -9935,9 +10257,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41499202477">41499202477</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41502988861">41502988861</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>e77af5faaf11b3f50456e2d59719df2dbdfe970a</code> (in the history of the built commit) |
+| Event commit | <code>91588c0222b397018761824e654fa73a51077e1b</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9962,13 +10284,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.82/">0.0.82</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.84/">0.0.84</a>, newer than the documented version (0.0.83).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout e77af5faaf11b3f50456e2d59719df2dbdfe970a
+git checkout 91588c0222b397018761824e654fa73a51077e1b
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -1,0 +1,13 @@
+lacing.adapters.podcast\_transcript
+===================================
+
+.. automodule:: lacing.adapters.podcast_transcript
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      dump
+      load
+   

@@ -1,0 +1,13 @@
+lacing.adapters.podcast\_chapters
+=================================
+
+.. automodule:: lacing.adapters.podcast_chapters
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      dump
+      load
+   

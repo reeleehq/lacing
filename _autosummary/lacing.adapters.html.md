@@ -17,6 +17,7 @@ Or by using the convenience top-level loaders that look up by extension or
 |------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
 | [`dump`](#lacing.adapters.dump)(store[, target])                         | Convenience: serialize `store` via the named adapter.                                                       |
 | [`find_adapter`](#lacing.adapters.find_adapter)(\*[, extension, media_type])     | Find an adapter by extension (case-insensitive) or media type.                                              |
+| [`find_adapter_for_path`](#lacing.adapters.find_adapter_for_path)(path)                   | Find an adapter by the extension of `path`, longest suffix first.                                           |
 | [`get_adapter`](#lacing.adapters.get_adapter)(name)                             | Look up an adapter by name.                                                                                 |
 | [`load`](#lacing.adapters.load)(source, \*[, format])                    | Convenience: dispatch `source` to the right adapter.                                                        |
 | [`register_adapter`](#lacing.adapters.register_adapter)(\*, name, load, dump[, ...]) | Register an adapter under `name`; returns its [`AdapterSpec`](#lacing.adapters.AdapterSpec). |
@@ -72,6 +73,22 @@ Find an adapter by extension (case-insensitive) or media type.
 * **Return type:**
   [`AdapterSpec`](#lacing.adapters.AdapterSpec) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+### lacing.adapters.find_adapter_for_path(path)
+
+Find an adapter by the extension of `path`, longest suffix first.
+
+A compound extension (`ep.chapters.json`, `task.labelstudio.json`)
+is tried before its last part (`.json`), so a format registered under
+`.chapters.json` wins over one registered under `.json`.
+
+```pycon
+>>> find_adapter_for_path("no_extension") is None
+True
+```
+
+* **Return type:**
+  [`AdapterSpec`](#lacing.adapters.AdapterSpec) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### lacing.adapters.get_adapter(name)
 
 Look up an adapter by name. Raises `KeyError` if missing.
@@ -109,14 +126,16 @@ All currently registered adapters (in registration order).
 
 ### Modules
 
-| [`annot`](lacing.adapters.annot.html.md#module-lacing.adapters.annot)                   | `.annot` portable file format adapter.                                    |
-|-------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| [`eaf`](lacing.adapters.eaf.html.md#module-lacing.adapters.eaf)                       | ELAN EAF adapter (Max Planck Institute's annotation tool format).         |
-| [`jams`](lacing.adapters.jams.html.md#module-lacing.adapters.jams)                     | JAMS (JSON Annotated Music Specification) adapter.                        |
-| [`label_studio`](lacing.adapters.label_studio.html.md#module-lacing.adapters.label_studio)     | Label Studio JSON adapter.                                                |
-| [`lrc`](lacing.adapters.lrc.html.md#module-lacing.adapters.lrc)                       | LRC (`.lrc`) lyrics adapter: plain LRC and enhanced LRC with word timing. |
-| [`otio`](lacing.adapters.otio.html.md#module-lacing.adapters.otio)                     | OpenTimelineIO (OTIO) adapter — NLE / video editing interchange.          |
-| [`srt`](lacing.adapters.srt.html.md#module-lacing.adapters.srt)                       | SubRip (`.srt`) adapter.                                                  |
-| [`textgrid`](lacing.adapters.textgrid.html.md#module-lacing.adapters.textgrid)             | Praat TextGrid adapter.                                                   |
-| [`web_annotation`](lacing.adapters.web_annotation.html.md#module-lacing.adapters.web_annotation) | W3C Web Annotation Data Model adapter (JSON-LD).                          |
-| [`webvtt`](lacing.adapters.webvtt.html.md#module-lacing.adapters.webvtt)                 | WebVTT (W3C TimedText) adapter.                                           |
+| [`annot`](lacing.adapters.annot.html.md#module-lacing.adapters.annot)                           | `.annot` portable file format adapter.                                    |
+|---------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| [`eaf`](lacing.adapters.eaf.html.md#module-lacing.adapters.eaf)                               | ELAN EAF adapter (Max Planck Institute's annotation tool format).         |
+| [`jams`](lacing.adapters.jams.html.md#module-lacing.adapters.jams)                             | JAMS (JSON Annotated Music Specification) adapter.                        |
+| [`label_studio`](lacing.adapters.label_studio.html.md#module-lacing.adapters.label_studio)             | Label Studio JSON adapter.                                                |
+| [`lrc`](lacing.adapters.lrc.html.md#module-lacing.adapters.lrc)                               | LRC (`.lrc`) lyrics adapter: plain LRC and enhanced LRC with word timing. |
+| [`otio`](lacing.adapters.otio.html.md#module-lacing.adapters.otio)                             | OpenTimelineIO (OTIO) adapter — NLE / video editing interchange.          |
+| [`podcast_chapters`](lacing.adapters.podcast_chapters.html.md#module-lacing.adapters.podcast_chapters)     | Podcasting 2.0 `podcast:chapters` JSON adapter.                           |
+| [`podcast_transcript`](lacing.adapters.podcast_transcript.html.md#module-lacing.adapters.podcast_transcript) | Podcasting 2.0 `podcast:transcript` JSON adapter.                         |
+| [`srt`](lacing.adapters.srt.html.md#module-lacing.adapters.srt)                               | SubRip (`.srt`) adapter.                                                  |
+| [`textgrid`](lacing.adapters.textgrid.html.md#module-lacing.adapters.textgrid)                     | Praat TextGrid adapter.                                                   |
+| [`web_annotation`](lacing.adapters.web_annotation.html.md#module-lacing.adapters.web_annotation)         | W3C Web Annotation Data Model adapter (JSON-LD).                          |
+| [`webvtt`](lacing.adapters.webvtt.html.md#module-lacing.adapters.webvtt)                         | WebVTT (W3C TimedText) adapter.                                           |
