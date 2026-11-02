@@ -16,7 +16,8 @@ Lossy fields on dump:
     time raises ``ValueError`` (WebVTT has none). A cue payload may not contain
     ``-->`` (a player would read it as a new cue's timing line), so it is
     written ``--&gt;``, which renders as ``-->``; payloads are kept raw on load,
-    so it reads back as ``--&gt;`` (lacing#129).
+    so it reads back as ``--&gt;`` (lacing#129). A cue id with ``-->`` or a
+    line break cannot be written at all and raises ``ValueError``.
 
 Time discipline:
     WebVTT timestamps are ``HH:MM:SS.mmm`` or ``MM:SS.mmm`` (with milliseconds).
@@ -104,6 +105,16 @@ def _escape_arrows(payload: str) -> str:
     return payload.replace(_ARROW, _ESCAPED_ARROW)
 
 
+def _checked_cue_id(cue_id: str) -> str:
+    """``cue_id`` if WebVTT can write it: the spec forbids ``-->`` and line
+    breaks in an id, and ids have no escape."""
+    if _ARROW in cue_id or "\n" in cue_id or "\r" in cue_id:
+        raise ValueError(
+            f"a WebVTT cue id cannot contain '-->' or a line break: {cue_id!r}"
+        )
+    return cue_id
+
+
 def _parse_settings(s: str) -> dict[str, str]:
     """Parse cue settings like ``align:start position:50%`` into a dict."""
     out: dict[str, str] = {}
@@ -185,8 +196,10 @@ def _iter_cues(text: str, rate: int):
         if i >= n:
             break
 
-        if lines[i].startswith(("NOTE", "STYLE", "REGION")):
-            # Skip until blank line
+        followed_by_timing = i + 1 < n and _ARROW in lines[i + 1]
+        if lines[i].startswith(("NOTE", "STYLE", "REGION")) and not followed_by_timing:
+            # Skip until blank line (a block whose next line is a timing line is
+            # a cue whose id happens to start with one of these words).
             while i < n and lines[i].strip() != "":
                 i += 1
             continue
@@ -258,7 +271,7 @@ def dump(
         settings = body.get("settings", {})
 
         if cue_id:
-            out_lines.append(str(cue_id))
+            out_lines.append(_checked_cue_id(str(cue_id)))
 
         timing = (
             f"{_format_timestamp(ann.interval.start)} --> "  # type: ignore[union-attr]

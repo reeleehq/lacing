@@ -314,3 +314,25 @@ def test_an_arrow_inside_cue_text_is_escaped_so_a_player_sees_one_cue():
     assert [a.body["text"] for a in adapter_module.load(blob).all()] == [
         "x\n00:00:05.000 --&gt; 00:00:06.000\ny"
     ]
+
+
+@pytest.mark.parametrize("cue_id", ["a-->b", "x\ny", "x\ry"])
+def test_a_cue_id_webvtt_cannot_write_is_refused(cue_id):
+    store = _one_cue_store(RationalTime(0, 1), RationalTime(1, 1), "t")
+    [ann] = store.all()
+    store2 = MemoryStore()
+    store2.add(ann.model_copy(update={"body": {"text": "t", "id": cue_id}}))
+    with pytest.raises(ValueError, match="cue id"):
+        adapter_module.dump(store2)
+
+
+@pytest.mark.parametrize("cue_id", ["NOTE 1", "STYLE", "REGION x"])
+def test_a_cue_whose_id_starts_like_a_block_keyword_loads(cue_id):
+    blob = f"WEBVTT\n\n{cue_id}\n00:00:01.000 --> 00:00:02.000\nhi\n"
+    [ann] = adapter_module.load(blob).all()
+    assert (ann.body["id"], ann.body["text"]) == (cue_id, "hi")
+
+
+def test_a_note_block_is_still_skipped():
+    blob = "WEBVTT\n\nNOTE a comment\nmore\n\n00:00:01.000 --> 00:00:02.000\nhi\n"
+    assert [a.body["text"] for a in adapter_module.load(blob).all()] == ["hi"]
