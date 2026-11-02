@@ -69,6 +69,7 @@ Notes on the surface:
   normalized to lowercase with leading dot in the registry.
 - Use `register_adapter` (the registry, not direct imports) so users can
   swap or add formats without touching core.
+- Reuse the shared helpers, never copy them: `lacing/adapters/_common.py` (annotations with an interval, media-only or any reference kind; reading bytes/path/inline text or JSON) and, for flat timed-cue formats, `lacing/adapters/_cues.py` (ms ⇄ `RationalTime`, clock formatting, payload rules).
 
 ## Round-trip is the acceptance test
 

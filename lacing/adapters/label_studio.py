@@ -303,8 +303,6 @@ def dump(
     """
     by_asset: dict[str, list[Annotation]] = {}
     for ann in iter_with_media_intervals(store):
-        if not isinstance(ann.reference, MediaRef):
-            continue
         by_asset.setdefault(ann.reference.asset_id, []).append(ann)
 
     tasks: list[dict[str, Any]] = []

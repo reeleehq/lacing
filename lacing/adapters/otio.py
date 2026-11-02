@@ -39,9 +39,7 @@ Spec: https://opentimelineio.readthedocs.io/
 from __future__ import annotations
 
 import os
-import tempfile
-from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
@@ -50,10 +48,6 @@ from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import DEFAULT_RATE, RationalTime, TimeInterval
-
-if TYPE_CHECKING:
-    import opentimelineio as _otio_lib
-
 
 ADAPTER_NAME = "otio"
 ADAPTER_VERSION = "1.0.0"
@@ -337,8 +331,7 @@ def dump(
     timeline = otio.schema.Timeline(name=name)
     by_tier: dict[str, list[Annotation]] = {}
     for ann in iter_with_media_intervals(store):
-        if isinstance(ann.reference, MediaRef):
-            by_tier.setdefault(ann.tier, []).append(ann)
+        by_tier.setdefault(ann.tier, []).append(ann)
 
     declared_tiers = []
     tiers_iter = getattr(store, "tiers", None)

@@ -40,9 +40,9 @@ from lacing.store import IntervalAnnotationStore
 
 
 # ``utf-8-sig`` decodes UTF-8 and also strips a leading byte-order mark.
-TEXT_ENCODING = "utf-8-sig"
+_TEXT_ENCODING = "utf-8-sig"
 _BOM = "\ufeff"
-JSON_ENCODING = "utf-8"
+_JSON_ENCODING = "utf-8"
 _JSON_INLINE_PREFIXES = ("{", "[")
 
 
@@ -89,15 +89,15 @@ def read_text(
     'WEBVTT'
     """
     if isinstance(source, (bytes, bytearray)):
-        return bytes(source).decode(TEXT_ENCODING)
+        return bytes(source).decode(_TEXT_ENCODING)
     if not isinstance(source, str) and isinstance(source, os.PathLike):
-        return Path(os.fspath(source)).read_text(encoding=TEXT_ENCODING)
+        return Path(os.fspath(source)).read_text(encoding=_TEXT_ENCODING)
     s = str(source).removeprefix(_BOM)
     if looks_inline(s):
         return s
     p = Path(s)
     if p.is_file():  # not exists(): "" or a folder is not a text file
-        return p.read_text(encoding=TEXT_ENCODING)
+        return p.read_text(encoding=_TEXT_ENCODING)
     return s
 
 
@@ -112,13 +112,13 @@ def load_json(source: str | bytes | os.PathLike) -> Any:
     [1, 2]
     """
     if isinstance(source, (bytes, bytearray)):
-        return json.loads(bytes(source).decode(JSON_ENCODING))
+        return json.loads(bytes(source).decode(_JSON_ENCODING))
     if not isinstance(source, str) and isinstance(source, os.PathLike):
-        return json.loads(Path(os.fspath(source)).read_text(encoding=JSON_ENCODING))
+        return json.loads(Path(os.fspath(source)).read_text(encoding=_JSON_ENCODING))
     s = str(source)
     if s.lstrip().startswith(_JSON_INLINE_PREFIXES):
         return json.loads(s)
     p = Path(s)
     if p.exists():
-        return json.loads(p.read_text(encoding=JSON_ENCODING))
+        return json.loads(p.read_text(encoding=_JSON_ENCODING))
     return json.loads(s)
