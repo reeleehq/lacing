@@ -40,6 +40,8 @@ _PHASE_01_ADAPTERS = (
     "lacing.adapters.jams",
     "lacing.adapters.label_studio",
     "lacing.adapters.otio",
+    "lacing.adapters.podcast_transcript",
+    "lacing.adapters.podcast_chapters",
 )
 
 
@@ -67,6 +69,8 @@ _DEFAULT_MEDIA_TYPES: dict[str, str] = {
     "annot": "application/x-lacing-annot",
     "eaf": "application/x-eaf+xml",
     "jams": "application/vnd.jams+json",
+    "podcast_transcript": "application/json",
+    "podcast_chapters": "application/json+chapters",
 }
 
 

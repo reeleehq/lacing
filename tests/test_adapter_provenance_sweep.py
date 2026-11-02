@@ -32,6 +32,8 @@ STAMPING_ADAPTERS = (
     "otio",
     "label_studio",
     "web_annotation",
+    "podcast_transcript",
+    "podcast_chapters",
 )
 
 
@@ -89,6 +91,18 @@ def _load_web_annotation(tmp_path):
     return adapter_module.load(json.dumps(COLLECTION))
 
 
+def _load_podcast_transcript(tmp_path):
+    from tests.test_adapter_podcast_transcript import SPEC_EXAMPLE, adapter_module
+
+    return adapter_module.load(SPEC_EXAMPLE, rate=1000)
+
+
+def _load_podcast_chapters(tmp_path):
+    from tests.test_adapter_podcast_chapters import COMPLEX_EXAMPLE, adapter_module
+
+    return adapter_module.load(COMPLEX_EXAMPLE, rate=1000)
+
+
 _LOADERS = {
     "eaf": _load_eaf,
     "textgrid": _load_textgrid,
@@ -99,6 +113,8 @@ _LOADERS = {
     "otio": _load_otio,
     "label_studio": _load_label_studio,
     "web_annotation": _load_web_annotation,
+    "podcast_transcript": _load_podcast_transcript,
+    "podcast_chapters": _load_podcast_chapters,
 }
 
 
