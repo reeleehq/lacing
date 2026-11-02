@@ -22,7 +22,7 @@ from lacing import (
     derived_paths,
     value_digest_matches,
 )
-from lacing.derived import drop_paths
+from lacing.derived import drop_paths, null_paths
 from lacing.digest import VALUE_DIGEST_SCHEME, VALUE_DIGEST_SCHEMES
 from lacing import schema as schema_module
 from lacing.schema import register_body_schema
@@ -322,6 +322,38 @@ def test_v1_traces_accept_a_filled_derived_field_not_a_changed_source(registered
     assert not value_digest_matches(moved, recorded, scheme=V1)
 
 
+# --- a derived field stored as null before the fill (lacing#102) -------------
+
+_NULL_BEFORE = {"images": [{"artifact_id": "a1", "asset_id": None}], "maybe": None}
+_FILLED = {"images": [{"artifact_id": "a1", "asset_id": "h"}], "maybe": "m"}
+
+
+def test_a_derived_field_stored_as_null_then_filled_matches_under_v2(registered):
+    """What a ``model_dump()`` writer records: the key present, ``null``, until
+    the late fill. Recorded by a producer that had not registered the schema."""
+    schema_module._BODY_REGISTRY.pop(URI)
+    recorded = _recorded_before_the_marker(_NULL_BEFORE)
+    register_body_schema(URI, Body)
+    assert value_digest_matches(_ann(_FILLED), recorded)
+    assert recorded in accepted_value_digests(_ann(_FILLED))
+
+
+def test_a_derived_field_stored_as_null_then_filled_matches_under_v1(registered):
+    recorded = annotation_value_digest(_ann(_NULL_BEFORE), scheme=V1)
+    assert value_digest_matches(_ann(_FILLED), recorded, scheme=V1)
+    assert recorded in accepted_value_digests(_ann(_FILLED), scheme=V1)
+
+
+def test_a_null_before_digest_still_sees_real_changes(registered):
+    recorded = annotation_value_digest(_ann(_NULL_BEFORE), scheme=V1)
+    for changed in (
+        {"images": [{"artifact_id": "a2", "asset_id": "h"}], "maybe": "m"},
+        {"images": [{"artifact_id": "a1", "asset_id": "h"}], "asset_id": "x"},
+        {"images": [{"artifact_id": "a1", "asset_id": "h"}, {"artifact_id": "a3"}]},
+    ):
+        assert not value_digest_matches(_ann(changed), recorded, scheme=V1), changed
+
+
 def test_matching_uses_the_injected_resolver():
     uri = "annot://schema/nope/v1"
     recorded = annotation_value_digest(_ann({"x": 1}, uri=uri))
@@ -335,6 +367,9 @@ def test_matching_uses_the_injected_resolver():
 def test_matching_refuses_an_unknown_scheme():
     with pytest.raises(ValueError, match="unknown value digest scheme"):
         value_digest_matches(_ann({}), "0" * 64, scheme="nope")
+
+
+_ABSENT = object()  # "leave the key out", distinct from storing None
 
 
 def _bodies():
@@ -351,16 +386,17 @@ def _bodies():
         None,
         {"k": {"artifact_id": "a1"}},
         {"k": {"artifact_id": "a1", "asset_id": "h"}},
+        {"k": {"artifact_id": "a1", "asset_id": None}},  # stored as null (#102)
     ]
     for imgs, root, maybe, named in product(
-        images, (None, "root", "other"), (None, "m"), by_name
+        images, (None, "root", "other"), (_ABSENT, None, "m"), by_name
     ):
         body = {"images": deepcopy(imgs)}
         if named is not None:
             body["by_name"] = deepcopy(named)
         if root is not None:
             body["asset_id"] = root  # NOT derived at the root
-        if maybe is not None:
+        if maybe is not _ABSENT:
             body["maybe"] = maybe
         yield body
 
@@ -422,3 +458,16 @@ def test_drop_paths_reports_whether_anything_was_dropped():
     filled = {"images": [{"artifact_id": "a1"}, {"artifact_id": "a2", "asset_id": "h"}]}
     assert drop_paths(filled, paths) is True
     assert filled == {"images": [{"artifact_id": "a1"}, {"artifact_id": "a2"}]}
+
+
+def test_null_paths_sets_present_entries_to_none_and_reports_a_change():
+    paths = {("images", None, "asset_id"), ("maybe",)}
+    unfilled = {"images": [{"artifact_id": "a1"}, {"asset_id": None}]}
+    assert null_paths(unfilled, paths) is False  # absent stays absent, None stays
+    assert unfilled == {"images": [{"artifact_id": "a1"}, {"asset_id": None}]}
+    filled = {"images": [{"artifact_id": "a1"}, {"asset_id": "h"}], "maybe": None}
+    assert null_paths(filled, paths) is True
+    assert filled == {
+        "images": [{"artifact_id": "a1"}, {"asset_id": None}],
+        "maybe": None,
+    }
