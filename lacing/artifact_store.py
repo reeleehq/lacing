@@ -1407,7 +1407,9 @@ class _ContainedDirStore(MutableMapping):
     ``O_NOFOLLOW`` read as :meth:`ArtifactStore.get_blob`. Writes go to the
     resolved path through ``dol.atomic_write`` (a same-folder temp file, then
     a rename), so a write killed mid-way leaves the previous value, never a
-    truncated one (lacing#118). Deletes are delegated to the wrapped store on
+    truncated one (lacing#118). A rename needs write access to the folder, not
+    the file: a read-only record is replaced (its mode is kept), hard links to
+    it are detached and its owner is not kept. Deletes are delegated to the wrapped store on
     the (normalised) key the caller gave, so its delete policy (e.g. trash) is
     unchanged, and deleting an in-root symlink removes the link, not its
     target. Writing over something that is not a regular file (a FIFO would
@@ -1415,9 +1417,9 @@ class _ContainedDirStore(MutableMapping):
     symlinked directories followed.
 
     A refused key raises ``KeyError`` on get/set/del and is not ``in`` the
-    store. Writes are checked by name, then opened by name by the wrapped
-    store: a party that can already write inside ``rootdir`` could race a
-    symlink in between. That is the same point-in-time caveat as
+    store. Writes are checked by name, then written by name through
+    ``atomic_write``: a party that can already write inside ``rootdir`` could
+    race a symlink in between. That is the same point-in-time caveat as
     :meth:`ArtifactStore.blob_path`; keys from outside the store cannot open
     it.
 
@@ -1489,7 +1491,7 @@ class _ContainedDirStore(MutableMapping):
             Path(target).parent.mkdir(parents=True, exist_ok=True)
             # Old record or new one, never a truncated one (lacing#118).
             atomic_write(target, value)
-        except (OSError, KeyError) as error:  # dol re-raises I/O errors as KeyError
+        except OSError as error:
             for directory in created:  # deepest first; only what this call made
                 try:
                     directory.rmdir()
@@ -1559,9 +1561,9 @@ def _spool_files(rootdir: Path) -> list[Path]:
     )
 
 
-_ATOMIC_WRITE_TEMP = re.compile(r"\..+\.[0-9a-f]{8}\.tmp")
+_ATOMIC_WRITE_TEMP = re.compile(r"\..+\.[0-9a-f]{8}\.tmp", re.DOTALL)
 """The name ``dol.atomic_write`` gives its staging file (``.<name>.<hex8>.tmp``).
-A copy of dol's naming until dol exports it (i2mint/dol#174)."""
+TODO: import dol's own pattern and lister once dol exports them (i2mint/dol#174)."""
 
 
 def _atomic_write_temps(rootdir: Path) -> list[Path]:
@@ -1570,15 +1572,12 @@ def _atomic_write_temps(rootdir: Path) -> list[Path]:
     symlinked folder."""
     if not rootdir.exists():
         return []
-    if not rootdir.is_dir():
-        raise NotADirectoryError(rootdir)
-
-    def raise_it(error: OSError) -> None:
-        raise error
-
+    os.scandir(rootdir).close()  # the root itself unlistable: raise, know nothing
+    # An unreadable sub-folder is skipped (os.walk's default): a temp is told by
+    # its name, so what is skipped is only not collected, never wrongly deleted.
     return sorted(
         Path(folder, name)
-        for folder, _, names in os.walk(rootdir, onerror=raise_it)
+        for folder, _, names in os.walk(rootdir)
         for name in names
         if _ATOMIC_WRITE_TEMP.fullmatch(name)
         and not os.path.islink(os.path.join(folder, name))

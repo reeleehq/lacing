@@ -1035,3 +1035,18 @@ def test_catalog_temps_are_found_in_folders_but_not_through_symlinks(tmp_path):
     (catalog / "linked").symlink_to(outside, target_is_directory=True)
     (catalog / "x.json.0123abcd.tmp").write_bytes(b"")  # not hidden: not dol's
     assert [p.name for p in store.interrupted_writes()] == [".x.json.0123abcd.tmp"]
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or os.geteuid() == 0, reason="needs POSIX permissions, non-root"
+)
+def test_an_unreadable_catalog_folder_does_not_hide_the_other_temps(tmp_path):
+    store = ArtifactStore.from_directory(tmp_path)
+    (tmp_path / "blobs" / ".blob-x.part").write_bytes(b"")
+    locked = tmp_path / "catalog" / "locked"
+    locked.mkdir()
+    locked.chmod(0)
+    try:
+        assert [p.name for p in store.interrupted_writes()] == [".blob-x.part"]
+    finally:
+        locked.chmod(0o700)
