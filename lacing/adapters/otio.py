@@ -307,6 +307,13 @@ def _open_timeline(source: str | bytes | os.PathLike, otio_module):
 # ---------------------------------------------------------------------------
 
 
+def _otio_name(ann: Annotation) -> str:
+    """The body's ``name`` for an OTIO clip or marker, ``""`` when it has none:
+    OTIO's bindings refuse ``None`` (lacing#132)."""
+    name = ann.body.get("name")
+    return name if isinstance(name, str) else ""
+
+
 def dump(
     store: IntervalAnnotationStore,
     target: str | os.PathLike | None = None,
@@ -366,7 +373,7 @@ def dump(
                     rate=1000.0,
                 )
                 marker = otio.schema.Marker(
-                    name=ann.body.get("name") if isinstance(ann.body, dict) else None,
+                    name=_otio_name(ann),
                     marked_range=otio.opentime.TimeRange(
                         start_time=marker_t,
                         duration=otio.opentime.RationalTime(0, 1000.0),
@@ -393,7 +400,7 @@ def dump(
             duration_seconds = end_s - start_s
             asset_url = ann.reference.asset_id  # type: ignore[union-attr]
             clip = otio.schema.Clip(
-                name=ann.body.get("name") if isinstance(ann.body, dict) else ann.tier,
+                name=_otio_name(ann),
                 media_reference=otio.schema.ExternalReference(target_url=asset_url),
                 source_range=otio.opentime.TimeRange(
                     start_time=otio.opentime.RationalTime(0, 1000.0),

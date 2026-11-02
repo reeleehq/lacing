@@ -278,3 +278,34 @@ class TestDispatch:
         out = tmp_path / "out.otio"
         top_dump(_make_store_for_dump(), out, format="otio")
         assert out.exists()
+
+
+@pytest.mark.parametrize("end", [0, 1000])  # a marker (point) and a clip
+def test_a_body_without_a_name_dumps(end):
+    """lacing#132: name=None made OTIO's constructors raise TypeError."""
+    from uuid import uuid4
+
+    from lacing import Annotation, MediaRef, Provenance, RationalTime, TimeInterval
+    from lacing.store import MemoryStore
+    from lacing.tier import Tier
+
+    store = MemoryStore()
+    store.add_tier(Tier("t"))
+    store.add(
+        Annotation(
+            id=uuid4(),
+            tier="t",
+            reference=MediaRef(
+                asset_id="a",
+                interval=TimeInterval(RationalTime(0, 1000), RationalTime(end, 1000)),
+            ),
+            body={"text": "x"},
+            body_schema_uri="annot://schema/x/v1",
+            provenance=Provenance(
+                was_generated_by="user:t",
+                was_attributed_to="t",
+                generated_at_time=RationalTime.now(),
+            ),
+        )
+    )
+    assert adapter_module.load(adapter_module.dump(store)).all()
