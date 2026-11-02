@@ -113,6 +113,7 @@ from __future__ import annotations
 import os
 import re
 from bisect import bisect_right
+from itertools import accumulate
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from fractions import Fraction
@@ -317,6 +318,11 @@ def _parse(text: str) -> _Parsed:
                 raise ValueError(f"line {line_no}: a second [{lowered}:] tag")
             parse = _parse_offset if lowered == OFFSET_KEY else _parse_length
             special[lowered] = parse(value, where=f"line {line_no}")
+    if not rows and not tags and text.strip():
+        raise ValueError(
+            "no LRC time tag or ID tag in the input: not an LRC file "
+            "(stray lines are skipped, but a file of nothing else is refused)"
+        )
     return _Parsed(rows, tags, special.get(OFFSET_KEY) or 0, special.get(LENGTH_KEY))
 
 
@@ -579,50 +585,33 @@ def _stamped_text(
     return "".join(out)
 
 
-def _start_groups(lines: list[_Timed]) -> list[list[int]]:
-    """Indices of ``lines`` (sorted by start then end), grouped by start."""
-    groups: list[list[int]] = []
-    for i, line in enumerate(lines):
-        if groups and lines[groups[-1][0]].start == line.start:
-            groups[-1].append(i)
-        else:
-            groups.append([i])
-    return groups
-
-
 def _assign_words(lines: list[_Timed], words: list[_Timed]) -> dict[int, list[_Timed]]:
-    """Words per line index. A word goes to the line starting latest among
-    those whose interval contains it; among lines with that start (a
-    bilingual file), to the first whose text contains the word, else the
-    first. A word no line contains is dropped.
+    """Words per line index. A word goes to the latest-starting line that
+    contains it in time *and* whose text contains it; failing that, to the
+    latest-starting line that contains it in time. A word no line contains is
+    dropped.
 
-    Both lists are sorted by start then end. Groups of lines sharing a start
-    are pushed on a stack as the words reach their start; a group whose
-    latest end is no later than a newer group's is popped for good (the newer
-    one wins every later word it could hold), so the stack's ends decrease
-    and each word is one bisection: O((lines + words) log lines).
+    ``lines`` is sorted by start. Each word scans back from the last line that
+    starts by the word's start, and stops as soon as no earlier line can reach
+    the word's end (a running maximum of ends), so a word in a gap costs one
+    step and the scan only walks lines that overlap the word.
     """
-    groups = _start_groups(lines)
-    stacked: list[list[int]] = []
-    neg_ends: list[Fraction] = []  # minus each stacked group's latest end
-    pushed = 0
+    starts = [line.start for line in lines]
+    reach = list(accumulate((line.end for line in lines), max))
     by_line: dict[int, list[_Timed]] = {}
     for w in words:
-        while pushed < len(groups) and lines[groups[pushed][0]].start <= w.start:
-            group = groups[pushed]
-            latest_end = lines[group[-1]].end
-            while neg_ends and -neg_ends[-1] <= latest_end:
-                neg_ends.pop()
-                stacked.pop()
-            neg_ends.append(-latest_end)
-            stacked.append(group)
-            pushed += 1
-        holding = bisect_right(neg_ends, -w.end)  # stacked groups ending >= w
-        if not holding:
-            continue
-        holders = [i for i in stacked[holding - 1] if lines[i].end >= w.end]
-        chosen = next((i for i in holders if w.text in lines[i].text), holders[0])
-        by_line.setdefault(chosen, []).append(w)
+        chosen = None
+        i = bisect_right(starts, w.start) - 1
+        while i >= 0 and reach[i] >= w.end:
+            if lines[i].end >= w.end:
+                if w.text in lines[i].text:
+                    chosen = i
+                    break
+                if chosen is None:
+                    chosen = i  # the latest holder, kept unless a better one
+            i -= 1
+        if chosen is not None:
+            by_line.setdefault(chosen, []).append(w)
     return by_line
 
 

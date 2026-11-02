@@ -685,3 +685,37 @@ class TestRoundTrip:
         assert blob.startswith(
             "1\n00:00:12,000 --> 00:00:15,300\nI came down to the river\n"
         )
+
+
+# --- re-review regressions ---------------------------------------------------
+
+
+def test_overlapping_lines_keep_their_words_on_a_round_trip():
+    """A word of line 1 sung after line 2's tag still belongs to line 1, whose
+    text contains it."""
+    blob = (
+        "[00:10.00]<00:10.00>one <00:13.00>two <00:14.00>\n"
+        "[00:12.00]<00:12.00>three <00:15.00>four <00:16.00>\n"
+    )
+    first = adapter_module.load(blob)
+    again = adapter_module.load(adapter_module.dump(first))
+
+    def words(store):
+        return sorted(
+            (a.body["text"], a.interval.start, a.interval.end)
+            for a in store.all()
+            if a.tier == "words"
+        )
+
+    assert words(again) == words(first)
+    assert [w[0] for w in words(first)] == ["four", "one", "three", "two"]
+
+
+def test_a_file_with_no_lrc_content_is_refused():
+    srt = "1\n00:00:01,000 --> 00:00:02,000\nhello\n"
+    with pytest.raises(ValueError, match="not an LRC file"):
+        adapter_module.load(srt)
+
+
+def test_an_empty_input_is_an_empty_store():
+    assert list(adapter_module.load("").all()) == []
