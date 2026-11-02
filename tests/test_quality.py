@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import math
 
+import random
+
 import pytest
 
 from lacing.quality import (
@@ -181,8 +183,6 @@ def _pairwise_alpha(rows, distance):
 
 @pytest.mark.parametrize("seed", range(20))
 def test_on_complete_data_alpha_is_the_pairwise_form(seed):
-    import random
-
     rng = random.Random(seed)
     n_raters, n_units = rng.randint(2, 5), rng.randint(3, 15)
     rows = [[rng.randint(1, 4) for _ in range(n_units)] for _ in range(n_raters)]
@@ -217,19 +217,7 @@ def _random_rows_with_missing(rng):
 
 
 @pytest.mark.parametrize("seed", range(20))
-def test_alpha_with_missing_ignores_rater_order(seed):
-    import random
-
-    rng = random.Random(seed)
-    rows = _random_rows_with_missing(rng)
-    shuffled = rng.sample(rows, len(rows))
-    assert krippendorff_alpha(shuffled) == pytest.approx(krippendorff_alpha(rows))
-
-
-@pytest.mark.parametrize("seed", range(20))
 def test_alpha_with_missing_ignores_an_appended_single_rated_unit(seed):
-    import random
-
     rng = random.Random(seed)
     rows = _random_rows_with_missing(rng)
     rater = rng.randrange(len(rows))

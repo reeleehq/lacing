@@ -119,7 +119,8 @@ def krippendorff_alpha(
     Args:
         annotations: A list of annotators, each a sequence of labels (one per
             unit). Use ``None`` (or a float NaN, as pandas gives) for a missing
-            annotation by that annotator on that unit.
+            annotation by that annotator on that unit. Labels are hashed and
+            compared with ``==``, so ``1``, ``1.0`` and ``True`` are one value.
         distance: Function ``(x, y) -> float`` measuring disagreement between
             two distinct label values. Default is the nominal (0/1) distance;
             ``(x - y) ** 2`` gives the interval metric. Metrics that depend on
@@ -156,15 +157,15 @@ def krippendorff_alpha(
         Counter(row[u] for row in annotations if not _is_missing(row[u]))
         for u in range(n_units)
     )
-    pairable = [counts for counts in units if counts.total() >= 2]
+    sized = ((counts, counts.total()) for counts in units)
+    pairable = [(counts, m) for counts, m in sized if m >= 2]
     if not pairable:
         raise ValueError("no unit has two or more non-missing values")
 
-    observed = sum(
-        _pair_disagreement(counts, distance) / (counts.total() - 1)
-        for counts in pairable
-    )
-    marginals = Counter(v for counts in pairable for v in counts.elements())
+    observed = sum(_pair_disagreement(c, distance) / (m - 1) for c, m in pairable)
+    marginals: Counter = Counter()
+    for counts, _ in pairable:
+        marginals.update(counts)
     expected = _pair_disagreement(marginals, distance) / (marginals.total() - 1)
     if expected == 0:
         return 1.0
