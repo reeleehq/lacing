@@ -8,7 +8,7 @@ single ``Annotation`` envelope; point annotations use a zero-length
 
 Lossy fields:
     Praat has no provenance, no schema URIs, and no confidence. On load we
-    synthesize provenance with ``was_generated_by="adapter:textgrid"``.
+    synthesize provenance with ``was_generated_by="adapter:textgrid@<version>"``.
     On dump we drop everything but ``tier``, ``interval`` (or point), and
     ``body['text']`` (or the raw ``body`` repr if no ``text`` key).
 
@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from lacing.adapters import register_adapter
+from lacing.adapters import adapter_generator_id, register_adapter
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
@@ -42,6 +42,8 @@ if TYPE_CHECKING:
 
 
 ADAPTER_NAME = "textgrid"
+ADAPTER_VERSION = "1.0.0"
+GENERATED_BY = str(adapter_generator_id(ADAPTER_NAME, ADAPTER_VERSION))
 BODY_SCHEMA_URI = "annot://schema/textgrid-label/v1"
 DEFAULT_ASSET_ID = "textgrid:unspecified"
 
@@ -191,7 +193,7 @@ def _add_annotation(
             body={"text": label},
             body_schema_uri=BODY_SCHEMA_URI,
             provenance=Provenance(
-                was_generated_by=f"adapter:{ADAPTER_NAME}",
+                was_generated_by=GENERATED_BY,
                 was_attributed_to=attribution,
                 generated_at_time=generated_at,
                 activity="import",
@@ -327,6 +329,7 @@ def _label_of(ann: Annotation) -> str:
 
 register_adapter(
     name=ADAPTER_NAME,
+    version=ADAPTER_VERSION,
     load=load,
     dump=dump,
     extensions=(".TextGrid",),

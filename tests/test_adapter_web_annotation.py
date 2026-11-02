@@ -67,7 +67,13 @@ COLLECTION = {
 }
 
 
-def _ann(start_ms: int, end_ms: int, motivation: str = "describing", *, tier: str = "annotations") -> Annotation:
+def _ann(
+    start_ms: int,
+    end_ms: int,
+    motivation: str = "describing",
+    *,
+    tier: str = "annotations",
+) -> Annotation:
     return Annotation(
         id=uuid4(),
         tier=tier,
@@ -188,7 +194,7 @@ class TestLoad:
         store = adapter_module.load(json.dumps(SINGLE_ANNOTATION))
         a = next(store.all())
         assert a.provenance.was_attributed_to == "user:thor"
-        assert a.provenance.was_generated_by == "adapter:web_annotation"
+        assert a.provenance.was_generated_by == "adapter:web_annotation@1.0.0"
 
     def test_creator_dict(self):
         annot = dict(SINGLE_ANNOTATION)

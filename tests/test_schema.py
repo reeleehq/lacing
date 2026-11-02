@@ -47,6 +47,7 @@ def isolated_registry():
 
     body_snap = dict(lacing_schema._BODY_REGISTRY)
     mig_snap = dict(lacing_schema._MIGRATION_REGISTRY)
+    default_snap = dict(lacing_schema._DEFAULT_VERSIONS)
     try:
         yield
     finally:
@@ -54,6 +55,8 @@ def isolated_registry():
         lacing_schema._BODY_REGISTRY.update(body_snap)
         lacing_schema._MIGRATION_REGISTRY.clear()
         lacing_schema._MIGRATION_REGISTRY.update(mig_snap)
+        lacing_schema._DEFAULT_VERSIONS.clear()
+        lacing_schema._DEFAULT_VERSIONS.update(default_snap)
 
 
 # ---------------------------------------------------------------------------
@@ -155,9 +158,10 @@ class TestRegistry:
         assert "annot://schema/dummy/v2" in uris
         assert uris == sorted(uris)
 
-    def test_re_registration_replaces(self):
+    def test_re_registration_warns_and_replaces(self):
         register_body_schema("annot://schema/dummy/v1", _DummyV1)
-        register_body_schema("annot://schema/dummy/v1", _DummyV2)
+        with pytest.warns(lacing.RegistryConflictWarning):
+            register_body_schema("annot://schema/dummy/v1", _DummyV2)
         # Last wins.
         assert get_body_schema("annot://schema/dummy/v1") is _DummyV2
 

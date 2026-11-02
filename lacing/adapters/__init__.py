@@ -17,6 +17,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from lacing.generator_id import GeneratorId
+from lacing.registry import warn_if_replacing
 from lacing.store import IntervalAnnotationStore
 
 
@@ -24,9 +26,25 @@ LoadFn = Callable[..., IntervalAnnotationStore]
 DumpFn = Callable[..., bytes | None]
 
 
+def adapter_generator_id(name: str, version: str | None = None) -> GeneratorId:
+    """The ``was_generated_by`` of what adapter ``name`` at ``version`` imports.
+
+    >>> str(adapter_generator_id("textgrid", "1.0.0"))
+    'adapter:textgrid@1.0.0'
+    >>> str(adapter_generator_id("textgrid"))
+    'adapter:textgrid'
+    """
+    return GeneratorId("adapter", name, version)
+
+
 @dataclass(frozen=True, slots=True)
 class AdapterSpec:
-    """Registered adapter for one format."""
+    """Registered adapter for one format.
+
+    ``version`` (semver) is the vintage of the adapter's output shape: bump it
+    when what the adapter produces changes, so provenance can tell which
+    vintage produced an annotation.
+    """
 
     name: str
     extensions: tuple[str, ...]
@@ -35,6 +53,12 @@ class AdapterSpec:
     dump: DumpFn
     body_schema_uris: tuple[str, ...] = field(default_factory=tuple)
     description: str = ""
+    version: str | None = None
+
+    @property
+    def generator_id(self) -> GeneratorId:
+        """The provenance id of this adapter: ``adapter:<name>[@<version>]``."""
+        return adapter_generator_id(self.name, self.version)
 
 
 _REGISTRY: dict[str, AdapterSpec] = {}
@@ -49,8 +73,15 @@ def register_adapter(
     media_types: tuple[str, ...] = (),
     body_schema_uris: tuple[str, ...] = (),
     description: str = "",
+    version: str | None = None,
+    force: bool = False,
 ) -> AdapterSpec:
-    """Register an adapter. Idempotent: re-registering the same name replaces."""
+    """Register an adapter under ``name``; returns its :class:`AdapterSpec`.
+
+    Re-registering an equal spec is a no-op. A different spec under a taken
+    name warns (:class:`lacing.RegistryConflictWarning`) and replaces, unless
+    ``force`` (see :mod:`lacing.registry`).
+    """
     spec = AdapterSpec(
         name=name,
         extensions=tuple(e.lower() for e in extensions),
@@ -59,7 +90,9 @@ def register_adapter(
         dump=dump,
         body_schema_uris=tuple(body_schema_uris),
         description=description,
+        version=version,
     )
+    warn_if_replacing(_REGISTRY, name, spec, what="adapter", force=force)
     _REGISTRY[name] = spec
     return spec
 

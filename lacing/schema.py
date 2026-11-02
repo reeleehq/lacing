@@ -4,7 +4,8 @@ Every annotation's ``body`` is validated against the schema named by its
 ``body_schema_uri`` (semver: ``annot://schema/<name>/v<major>``). This
 module implements:
 
-- :func:`register_body_schema` — register a Pydantic v2 model for a schema URI.
+- :func:`register_body_schema` — register a Pydantic v2 model for a schema URI,
+  optionally declaring its version the default for its schema name.
 - :func:`validate` — validate an annotation's body dict against its schema.
 - :func:`body_locations` — which body fields hold urls/paths (``Location`` marker).
 - :func:`body_derived` — which body fields are derived from a sibling (``Derived`` marker).
@@ -16,6 +17,13 @@ module implements:
   N to N+1 of a body schema.
 - :func:`migrate` — upgrade a body dict (or whole annotation) through
   registered migrations.
+- :func:`default_version` / :func:`migrate_to_default` — the version a schema
+  name resolves to (declared, else the highest), and migrating a body to it.
+
+Every register function follows :mod:`lacing.registry`'s rule: the identical
+object again is a no-op, a different one under a taken key warns
+(:class:`lacing.RegistryConflictWarning`) and replaces, ``force=True`` replaces
+silently.
 
 See the ``lacing-schema-codegen`` skill and BACK-DOC §4.5.
 
@@ -56,6 +64,7 @@ from pydantic import BaseModel, ValidationError
 from lacing.json_schema import DefaultFactoryJsonSchema
 from lacing.derived import DerivedPath, derived_paths
 from lacing.locations import LocationKind, location_fields
+from lacing.registry import warn_if_replacing
 
 
 # ---------------------------------------------------------------------------
@@ -99,6 +108,9 @@ def make_uri(name: str, version: int) -> str:
 # uri -> Pydantic model class
 _BODY_REGISTRY: dict[str, type[BaseModel]] = {}
 
+# schema name -> declared default major version; see default_version
+_DEFAULT_VERSIONS: dict[str, int] = {}
+
 # token -> callback, told about every (re-)registration; see on_register.
 # The RLock makes "write registry + notify" and "subscribe + replay" atomic with
 # respect to each other, and lets a listener register further schemas.
@@ -114,9 +126,22 @@ class UnknownBodySchemaError(KeyError):
     """Raised when an annotation's body_schema_uri has no registered model."""
 
 
-def register_body_schema(uri: str, model: type[BaseModel]) -> type[BaseModel]:
-    """Register ``model`` as the validator for ``uri``. Returns ``model``."""
-    parse_uri(uri)  # validate URI shape; raises on malformed
+def register_body_schema(
+    uri: str,
+    model: type[BaseModel],
+    *,
+    force: bool = False,
+    default: bool = False,
+) -> type[BaseModel]:
+    """Register ``model`` as the validator for ``uri``. Returns ``model``.
+
+    ``default=True`` declares ``uri``'s version the default of its schema name
+    (see :func:`default_version`). Re-registering the identical model is a
+    no-op (listeners are still told); a different model, or a different
+    declared default, warns (:class:`lacing.RegistryConflictWarning`) and
+    replaces, unless ``force``.
+    """
+    name, version = parse_uri(uri)  # validate URI shape; raises on malformed
     if not isinstance(model, type) or not issubclass(model, BaseModel):
         raise TypeError(
             f"register_body_schema expects a Pydantic v2 BaseModel subclass; "
@@ -124,6 +149,16 @@ def register_body_schema(uri: str, model: type[BaseModel]) -> type[BaseModel]:
         )
     derived_paths(model)  # a bad Derived marker fails here, not on every digest
     with _REGISTRY_LOCK:
+        warn_if_replacing(_BODY_REGISTRY, uri, model, what="body schema", force=force)
+        if default:
+            warn_if_replacing(
+                _DEFAULT_VERSIONS,
+                name,
+                version,
+                what="default version of body schema",
+                force=force,
+            )
+            _DEFAULT_VERSIONS[name] = version
         _BODY_REGISTRY[uri] = model
         _notify(tuple(_REGISTER_LISTENERS.values()), uri, model)
     return model
@@ -211,8 +246,10 @@ def registered_uris() -> list[str]:
 
 
 def clear_registry() -> None:
-    """Drop every registered body schema and migration. For tests / repls."""
+    """Drop every registered body schema, declared default and migration.
+    For tests / repls."""
     _BODY_REGISTRY.clear()
+    _DEFAULT_VERSIONS.clear()
     _MIGRATION_REGISTRY.clear()
 
 
@@ -346,6 +383,7 @@ def register_migration(
     schema_name: str,
     from_version: int,
     to_version: int,
+    force: bool = False,
 ):
     """Register a forward migration from ``v<from_version>`` to ``v<to_version>``.
 
@@ -353,8 +391,10 @@ def register_migration(
     Migrations must be one major-version step at a time
     (``to_version == from_version + 1``).
 
-    Re-registering the same ``(schema_name, from_version)`` pair replaces
-    the previous entry — convenient in tests, intentional for hot-reload.
+    Re-registering the same function for the same step is a no-op; a
+    different one warns (:class:`lacing.RegistryConflictWarning`), pointed at
+    the decorated definition, and replaces, unless ``force`` (tests,
+    hot-reload).
     """
     if to_version != from_version + 1:
         raise ValueError(
@@ -365,7 +405,9 @@ def register_migration(
         raise ValueError(f"from_version must be >= 1, got {from_version}")
 
     def decorator(func: Callable[[dict], dict]) -> Callable[[dict], dict]:
-        _MIGRATION_REGISTRY[(schema_name, from_version)] = (to_version, func)
+        key, step = (schema_name, from_version), (to_version, func)
+        warn_if_replacing(_MIGRATION_REGISTRY, key, step, what="migration", force=force)
+        _MIGRATION_REGISTRY[key] = step
         return func
 
     return decorator
@@ -412,21 +454,46 @@ def migrate(body: dict, *, from_uri: str, to_uri: str) -> dict:
 
 
 def latest_version(schema_name: str) -> int | None:
-    """Highest registered major version for ``schema_name``, or None."""
+    """Highest registered major version for ``schema_name``, or None.
+
+    Not the default: publishing a new version changes this, and must not
+    change where bodies migrate. That is :func:`default_version`.
+    """
     versions = [
         parse_uri(uri)[1] for uri in _BODY_REGISTRY if parse_uri(uri)[0] == schema_name
     ]
     return max(versions) if versions else None
 
 
-def migrate_to_latest(body: dict, *, from_uri: str) -> tuple[dict, str]:
-    """Convenience: migrate to the highest registered version of the schema.
+def default_version(schema_name: str) -> int | None:
+    """The major version ``schema_name`` resolves to, or None if none is registered.
+
+    The version declared with ``register_body_schema(..., default=True)``, else
+    :func:`latest_version`. Declaring it is what keeps publishing a new version
+    from silently redirecting every :func:`migrate_to_default` caller.
+    """
+    if schema_name in _DEFAULT_VERSIONS:
+        return _DEFAULT_VERSIONS[schema_name]
+    return latest_version(schema_name)
+
+
+def migrate_to_default(body: dict, *, from_uri: str) -> tuple[dict, str]:
+    """Migrate ``body`` to the :func:`default_version` of its schema.
 
     Returns ``(migrated_body, target_uri)``.
     """
     from_name, _ = parse_uri(from_uri)
-    latest = latest_version(from_name)
-    if latest is None:
+    target = default_version(from_name)
+    if target is None:
         raise UnknownBodySchemaError(f"no schema registered with name {from_name!r}")
-    target_uri = make_uri(from_name, latest)
+    target_uri = make_uri(from_name, target)
     return migrate(body, from_uri=from_uri, to_uri=target_uri), target_uri
+
+
+def migrate_to_latest(body: dict, *, from_uri: str) -> tuple[dict, str]:
+    """Alias of :func:`migrate_to_default`: migrates to the *default* version.
+
+    The name is historical, from when the default was always the highest
+    version; it is the highest only while no default is declared.
+    """
+    return migrate_to_default(body, from_uri=from_uri)

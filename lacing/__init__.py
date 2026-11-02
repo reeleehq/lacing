@@ -48,14 +48,17 @@ from lacing.schema import (
     MigrationError,
     UnknownBodySchemaError,
     body_locations,
+    default_version,
     export_json_schemas,
     json_schema,
     migrate,
+    migrate_to_default,
     on_register,
     register_body_schema,
     register_migration,
     validate as validate_body,
 )
+from lacing.registry import RegistryConflictWarning
 from lacing.model import (
     UNKNOWN_GENERATED_AT,
     Annotation,
@@ -214,6 +217,9 @@ __all__ = [
     "LocationKind",
     "location_fields",
     "register_migration",
+    "default_version",
+    "migrate_to_default",
+    "RegistryConflictWarning",
     "json_schema",
     "export_json_schemas",
     "render_artifact_exhibit",
