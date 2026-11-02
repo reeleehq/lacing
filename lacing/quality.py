@@ -84,15 +84,31 @@ def _interval_distance(x: float, y: float) -> float:
 
 
 def _ratio_distance(x: float, y: float) -> float:
-    total = x + y
-    return 0.0 if total == 0 else ((x - y) / total) ** 2
+    return ((x - y) / (x + y)) ** 2
+
+
+def _ratio_metric(marginals: Counter) -> Callable[[float, float], float]:
+    """The ratio metric, refused for a negative label: ratio data has a true zero,
+    and ``x + y == 0`` for ``x != y`` would otherwise read as agreement."""
+    negative = sorted(v for v in marginals if v < 0)
+    if negative:
+        raise ValueError(
+            f"the ratio level needs non-negative labels; got {negative[:3]}"
+        )
+    return _ratio_distance
 
 
 def _ordinal_metric(marginals: Counter) -> Callable[[T, T], float]:
     """Krippendorff's ordinal metric: the squared count of values *between* two
     ranks, ``(sum_{g=c..k} n_g - (n_c + n_k) / 2) ** 2``, so its scale is set by
     how the values are spread, not by their numeric gaps. Needs orderable labels."""
-    ranked = sorted(marginals)
+    try:
+        ranked = sorted(marginals)
+    except TypeError as error:
+        raise ValueError(
+            "the ordinal level needs labels of one orderable type "
+            f"(strings sort as text: '10' < '9'): {error}"
+        ) from error
     position = {value: i for i, value in enumerate(ranked)}
     cumulative = [0]
     for value in ranked:
@@ -112,18 +128,18 @@ _LEVELS: dict[str, Callable[[Counter], Callable]] = {
     "nominal": lambda marginals: _nominal_distance,
     "ordinal": _ordinal_metric,
     "interval": lambda marginals: _interval_distance,
-    "ratio": lambda marginals: _ratio_distance,
+    "ratio": _ratio_metric,
 }
 """Krippendorff's metric levels, each built from the value marginals (only the
 ordinal one reads them)."""
 
 
 def _resolve_distance(
-    distance: "DistanceLevel | Callable[[T, T], float]", marginals: Counter
+    distance: DistanceLevel | Callable[[T, T], float], marginals: Counter
 ) -> Callable[[T, T], float]:
     if callable(distance):
         return distance
-    if distance not in _LEVELS:
+    if not isinstance(distance, str) or distance not in _LEVELS:
         raise ValueError(
             f"unknown distance level {distance!r}; use one of {sorted(_LEVELS)} "
             "or a (x, y) -> float callable"
