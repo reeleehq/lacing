@@ -152,9 +152,13 @@ _K2011 = [
 @pytest.mark.parametrize(
     "distance, canonical",
     [
-        (None, 0.743),  # nominal
-        (lambda x, y: (x - y) ** 2, 0.849),  # interval
-        (lambda x, y: ((x - y) / (x + y)) ** 2, 0.797),  # ratio
+        (None, 0.743),  # nominal, the default
+        ("nominal", 0.743),
+        ("ordinal", 0.815),  # needs the marginals: only as a level (#114)
+        ("interval", 0.849),
+        ("ratio", 0.797),
+        (lambda x, y: (x - y) ** 2, 0.849),  # interval, as a callable
+        (lambda x, y: ((x - y) / (x + y)) ** 2, 0.797),  # ratio, as a callable
     ],
 )
 def test_krippendorff_2011_worked_example(distance, canonical):
@@ -302,3 +306,73 @@ class TestBoundaryIoU:
         b = [_ti(50, 150)]
         score = boundary_iou(a, b)
         assert score == pytest.approx(50 / 150)
+
+
+def test_the_ratio_level_by_hand():
+    """Observed 2 (one 0/1 unit), expected 3 * 3 * 2 / 5 = 3.6."""
+    alpha = krippendorff_alpha([[0, 0, 1], [0, 1, 1]], distance="ratio")
+    assert alpha == pytest.approx(1 - 2 / 3.6)
+
+
+def test_the_ratio_level_refuses_negative_labels():
+    """-1 and 1 sum to zero: without the refusal they read as agreement."""
+    with pytest.raises(ValueError, match="non-negative"):
+        krippendorff_alpha([[-1, 1, -1], [1, -1, 1]], distance="ratio")
+
+
+def test_the_ordinal_level_refuses_labels_it_cannot_order():
+    with pytest.raises(ValueError, match="orderable"):
+        krippendorff_alpha([["a", 1], ["a", 2]], distance="ordinal")
+
+
+def test_every_level_name_is_in_the_type():
+    from typing import get_args
+
+    from lacing.quality import _LEVELS, DistanceLevel
+
+    assert set(get_args(DistanceLevel)) == set(_LEVELS)
+
+
+def test_an_unknown_level_is_refused():
+    with pytest.raises(ValueError, match="unknown distance level 'ordinl'"):
+        krippendorff_alpha([[1, 2], [1, 2]], distance="ordinl")
+    with pytest.raises(ValueError, match="unknown distance level"):
+        krippendorff_alpha([[1, 2], [1, 2]], distance=["ordinal"])
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_ordinal_alpha_only_sees_the_order_of_the_labels(seed):
+    """The ordinal metric reads ranks and counts, never numeric gaps: any
+    order-preserving relabelling gives the same alpha."""
+    rng = random.Random(seed)
+    rows = _random_rows_with_missing(rng)
+    relabel = {1: -7, 2: 0.5, 3: 40, 4: 1000}
+    relabelled = [[relabel.get(v, v) for v in row] for row in rows]
+    assert krippendorff_alpha(relabelled, distance="ordinal") == pytest.approx(
+        krippendorff_alpha(rows, distance="ordinal")
+    )
+
+
+def _ordinal_by_definition(c, k, marginals):
+    """Krippendorff (2011): (sum of n_g for g from c to k - (n_c + n_k) / 2) ** 2,
+    written out literally (no cumulative sums), as the oracle."""
+    lo, hi = sorted((c, k))
+    between = sum(n for g, n in marginals.items() if lo <= g <= hi)
+    return (between - (marginals[c] + marginals[k]) / 2) ** 2
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_the_ordinal_level_is_the_definition(seed):
+    from collections import Counter
+
+    rng = random.Random(seed)
+    rows = _random_rows_with_missing(rng)
+    units = [
+        [row[u] for row in rows if row[u] is not None and row[u] == row[u]]
+        for u in range(len(rows[0]))
+    ]
+    marginals = Counter(v for unit in units if len(unit) >= 2 for v in unit)
+    oracle = lambda c, k: _ordinal_by_definition(c, k, marginals)  # noqa: E731
+    assert krippendorff_alpha(rows, distance="ordinal") == pytest.approx(
+        krippendorff_alpha(rows, distance=oracle)
+    )

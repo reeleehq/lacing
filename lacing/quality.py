@@ -20,7 +20,7 @@ from __future__ import annotations
 import math
 from collections import Counter
 from collections.abc import Hashable, Iterable, Sequence
-from typing import Callable, TypeVar
+from typing import Callable, Literal, TypeVar
 
 from lacing.allen import intersects
 from lacing.time import TimeInterval
@@ -79,6 +79,74 @@ def _nominal_distance(x: T, y: T) -> float:
     return 0.0 if x == y else 1.0
 
 
+def _interval_distance(x: float, y: float) -> float:
+    return (x - y) ** 2
+
+
+def _ratio_distance(x: float, y: float) -> float:
+    return ((x - y) / (x + y)) ** 2
+
+
+def _ratio_metric(marginals: Counter) -> Callable[[float, float], float]:
+    """The ratio metric, refused for a negative label: ratio data has a true zero,
+    and ``x + y == 0`` for ``x != y`` would otherwise read as agreement."""
+    negative = sorted(v for v in marginals if v < 0)
+    if negative:
+        raise ValueError(
+            f"the ratio level needs non-negative labels; got {negative[:3]}"
+        )
+    return _ratio_distance
+
+
+def _ordinal_metric(marginals: Counter) -> Callable[[T, T], float]:
+    """Krippendorff's ordinal metric: the squared count of values *between* two
+    ranks, ``(sum_{g=c..k} n_g - (n_c + n_k) / 2) ** 2``, so its scale is set by
+    how the values are spread, not by their numeric gaps. Needs orderable labels."""
+    try:
+        ranked = sorted(marginals)
+    except TypeError as error:
+        raise ValueError(
+            "the ordinal level needs labels of one orderable type "
+            f"(strings sort as text: '10' < '9'): {error}"
+        ) from error
+    position = {value: i for i, value in enumerate(ranked)}
+    cumulative = [0]
+    for value in ranked:
+        cumulative.append(cumulative[-1] + marginals[value])
+
+    def distance(c: T, k: T) -> float:
+        lo, hi = sorted((position[c], position[k]))
+        between = cumulative[hi + 1] - cumulative[lo]
+        return (between - (marginals[c] + marginals[k]) / 2) ** 2
+
+    return distance
+
+
+DistanceLevel = Literal["nominal", "ordinal", "interval", "ratio"]
+
+_LEVELS: dict[str, Callable[[Counter], Callable]] = {
+    "nominal": lambda marginals: _nominal_distance,
+    "ordinal": _ordinal_metric,
+    "interval": lambda marginals: _interval_distance,
+    "ratio": _ratio_metric,
+}
+"""Krippendorff's metric levels, each built from the value marginals (only the
+ordinal one reads them)."""
+
+
+def _resolve_distance(
+    distance: DistanceLevel | Callable[[T, T], float], marginals: Counter
+) -> Callable[[T, T], float]:
+    if callable(distance):
+        return distance
+    if not isinstance(distance, str) or distance not in _LEVELS:
+        raise ValueError(
+            f"unknown distance level {distance!r}; use one of {sorted(_LEVELS)} "
+            "or a (x, y) -> float callable"
+        )
+    return _LEVELS[distance](marginals)
+
+
 def _is_missing(x: object) -> bool:
     """``None`` or a float NaN (how pandas marks a missing rating)."""
     return x is None or (isinstance(x, float) and math.isnan(x))
@@ -101,7 +169,7 @@ def _pair_disagreement(counts: Counter, distance: Callable[[T, T], float]) -> fl
 def krippendorff_alpha(
     annotations: Sequence[Sequence[T | None]],
     *,
-    distance: Callable[[T, T], float] = _nominal_distance,
+    distance: DistanceLevel | Callable[[T, T], float] = "nominal",
 ) -> float:
     """Krippendorff's α across any number of annotators.
 
@@ -121,10 +189,12 @@ def krippendorff_alpha(
             unit). Use ``None`` (or a float NaN, as pandas gives) for a missing
             annotation by that annotator on that unit. Labels are hashed and
             compared with ``==``, so ``1``, ``1.0`` and ``True`` are one value.
-        distance: Function ``(x, y) -> float`` measuring disagreement between
-            two distinct label values. Default is the nominal (0/1) distance;
-            ``(x - y) ** 2`` gives the interval metric. Metrics that depend on
-            the value frequencies (ordinal) are not expressible this way.
+        distance: Krippendorff's metric level, ``"nominal"`` (the default,
+            0/1), ``"ordinal"`` (ranks, scaled by how the values are spread;
+            labels must be orderable), ``"interval"`` (``(x - y) ** 2``) or
+            ``"ratio"`` (``((x - y) / (x + y)) ** 2``); or any function
+            ``(x, y) -> float`` measuring disagreement between two distinct
+            label values.
 
     Returns:
         α. 1.0 = perfect agreement, 0.0 = chance. 1.0 also when the pairable
@@ -143,6 +213,9 @@ def krippendorff_alpha(
     >>> D = [1, 2, 3, 3, 2, 4, 4, 1, 2, 5, 1, None]
     >>> round(krippendorff_alpha([A, B, C, D]), 3)
     0.743
+    >>> [round(krippendorff_alpha([A, B, C, D], distance=level), 3)
+    ...  for level in ("ordinal", "interval", "ratio")]
+    [0.815, 0.849, 0.797]
     """
     if len(annotations) < 2:
         raise ValueError("need at least 2 annotators")
@@ -162,11 +235,12 @@ def krippendorff_alpha(
     if not pairable:
         raise ValueError("no unit has two or more non-missing values")
 
-    observed = sum(_pair_disagreement(c, distance) / (m - 1) for c, m in pairable)
     marginals: Counter = Counter()
     for counts, _ in pairable:
         marginals.update(counts)
-    expected = _pair_disagreement(marginals, distance) / (marginals.total() - 1)
+    delta = _resolve_distance(distance, marginals)
+    observed = sum(_pair_disagreement(c, delta) / (m - 1) for c, m in pairable)
+    expected = _pair_disagreement(marginals, delta) / (marginals.total() - 1)
     if expected == 0:
         return 1.0
     return 1.0 - observed / expected
