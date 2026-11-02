@@ -4,16 +4,17 @@ Both formats are one stream of timed text cues with millisecond timestamps
 written ``HH:MM:SS<sep>mmm`` (``.`` in WebVTT, ``,`` in SubRip). What they have
 in common lives here, once:
 
-- :func:`read_text`: a ``source`` given as bytes, a path, or inline text;
 - :func:`ms_to_rational` / :func:`rational_to_ms`: integer milliseconds to and
   from :class:`~lacing.time.RationalTime`, never through floats;
 - :func:`hms_to_ms` / :func:`format_hms`: clock fields to milliseconds and back,
   with the decimal separator as an argument;
 - :func:`cue_payload` / :func:`format_cue_time`: what a cue writer emits for a
   text and a time;
-- :func:`iter_with_intervals` / :func:`interval_sort_key`: the annotations a
-  cue writer can emit (those with a time interval, whatever their reference
-  kind), in cue order.
+- :func:`interval_sort_key`: cue order, for the annotations a cue writer
+  emits (:func:`lacing.adapters._common.iter_with_intervals`).
+
+The format-neutral helpers (reading a ``source``, the annotations that have a
+time interval) are in :mod:`lacing.adapters._common`.
 
 Private to :mod:`lacing.adapters`: it registers no adapter (the provenance
 sweep test skips ``_``-prefixed modules and checks that they register none).
@@ -26,47 +27,16 @@ sweep test skips ``_``-prefixed modules and checks that they register none).
 
 from __future__ import annotations
 
-import os
 import re
-from collections.abc import Callable, Iterator
 from fractions import Fraction
-from pathlib import Path
 
 from lacing.model import Annotation
-from lacing.store import IntervalAnnotationStore
 from lacing.time import RationalTime
 
 
 MS_PER_SECOND = 1000
 _MS_PER_MINUTE = 60 * MS_PER_SECOND
 _MS_PER_HOUR = 60 * _MS_PER_MINUTE
-
-# Caption files are UTF-8; ``utf-8-sig`` also strips a leading byte-order mark.
-TEXT_ENCODING = "utf-8-sig"
-_BOM = "\ufeff"
-
-
-def read_text(
-    source: str | bytes | os.PathLike, *, looks_inline: Callable[[str], bool]
-) -> str:
-    """The text of ``source``: bytes (UTF-8), a path, or inline content.
-
-    A ``str`` is inline content when ``looks_inline(source)`` says so;
-    otherwise it is read as a path if one exists there, and is taken as
-    inline content if not (the format's parser then reports what is wrong).
-    Bytes, files and inline text alike lose a leading byte-order mark.
-    """
-    if isinstance(source, (bytes, bytearray)):
-        return bytes(source).decode(TEXT_ENCODING)
-    if not isinstance(source, str) and isinstance(source, os.PathLike):
-        return Path(os.fspath(source)).read_text(encoding=TEXT_ENCODING)
-    s = str(source).removeprefix(_BOM)
-    if looks_inline(s):
-        return s
-    p = Path(s)
-    if p.is_file():  # not exists(): "" or a folder is not a caption file
-        return p.read_text(encoding=TEXT_ENCODING)
-    return s
 
 
 def hms_to_ms(hours: int, minutes: int, seconds: int, *, millis: int) -> int:
@@ -120,23 +90,6 @@ def format_hms(total_ms: int, *, separator: str) -> str:
     minutes, rem = divmod(rem, _MS_PER_MINUTE)
     seconds, ms = divmod(rem, MS_PER_SECOND)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}{separator}{ms:03d}"
-
-
-def iter_with_intervals(store: IntervalAnnotationStore) -> Iterator[Annotation]:
-    """Every annotation in ``store`` that has a time interval (any reference kind).
-
-    Uses ``store.all()`` when the store has it, else the mapping protocol.
-    """
-    iter_all = getattr(store, "all", None)
-    if callable(iter_all):
-        for a in iter_all():
-            if a.interval is not None:
-                yield a
-        return
-    for key in store:  # type: ignore[attr-defined]
-        for a in store[key]:  # type: ignore[index]
-            if a.interval is not None:
-                yield a
 
 
 def interval_sort_key(a: Annotation) -> tuple[Fraction, Fraction]:

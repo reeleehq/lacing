@@ -59,6 +59,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
+from lacing.adapters._common import iter_with_media_intervals
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
@@ -268,7 +269,7 @@ def dump(
     """
     jams = _require_jams()
 
-    annotations = list(_all_with_intervals(store))
+    annotations = list(iter_with_media_intervals(store))
 
     if duration is None:
         max_end = 0.0
@@ -335,19 +336,6 @@ def dump(
 
     jams_obj.save(os.fspath(target), strict=False)
     return None
-
-
-def _all_with_intervals(store: IntervalAnnotationStore):
-    iter_all = getattr(store, "all", None)
-    if callable(iter_all):
-        for a in iter_all():
-            if a.interval is not None and isinstance(a.reference, MediaRef):
-                yield a
-        return
-    for key in store:  # type: ignore[attr-defined]
-        for a in store[key]:  # type: ignore[index]
-            if a.interval is not None and isinstance(a.reference, MediaRef):
-                yield a
 
 
 # ---------------------------------------------------------------------------
