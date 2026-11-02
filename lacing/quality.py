@@ -17,6 +17,7 @@ Pure functions — no numpy dependency in Phase 0.
 
 from __future__ import annotations
 
+import math
 from collections import Counter
 from collections.abc import Hashable, Iterable, Sequence
 from typing import Callable, TypeVar
@@ -78,6 +79,25 @@ def _nominal_distance(x: T, y: T) -> float:
     return 0.0 if x == y else 1.0
 
 
+def _is_missing(x: object) -> bool:
+    """``None`` or a float NaN (how pandas marks a missing rating)."""
+    return x is None or (isinstance(x, float) and math.isnan(x))
+
+
+def _pair_disagreement(counts: Counter, distance: Callable[[T, T], float]) -> float:
+    """Sum of ``n_c * n_k * distance(c, k)`` over ordered pairs of distinct values.
+
+    Pairs of equal values are skipped, so a value never disagrees with itself
+    whatever ``distance`` returns for it.
+    """
+    return sum(
+        n_c * n_k * distance(c, k)
+        for c, n_c in counts.items()
+        for k, n_k in counts.items()
+        if c != k
+    )
+
+
 def krippendorff_alpha(
     annotations: Sequence[Sequence[T | None]],
     *,
@@ -85,19 +105,44 @@ def krippendorff_alpha(
 ) -> float:
     """Krippendorff's α across any number of annotators.
 
+    Computed by the coincidence-matrix method (Krippendorff 2011, "Computing
+    Krippendorff's Alpha-Reliability"): only *pairable* units (two or more
+    non-missing values) count, and each ordered pair of values within a unit of
+    ``m`` values weighs ``1 / (m - 1)``, so every pairable value contributes
+    exactly one to the coincidences, whatever the number of annotators who
+    rated its unit. The observed disagreement sums, unit by unit, the distance
+    over ordered pairs of distinct values (weighted by their counts in the
+    unit) divided by ``m - 1``; the expected disagreement does the same over
+    the marginal value counts ``n_c`` of all pairable values, divided by
+    ``n - 1``. Pairs of equal values never contribute.
+
     Args:
         annotations: A list of annotators, each a sequence of labels (one per
-            unit). Use ``None`` for a missing annotation by that annotator on
-            that unit.
+            unit). Use ``None`` (or a float NaN, as pandas gives) for a missing
+            annotation by that annotator on that unit. Labels are hashed and
+            compared with ``==``, so ``1``, ``1.0`` and ``True`` are one value.
         distance: Function ``(x, y) -> float`` measuring disagreement between
-            two label values. Default is the nominal (0/1) distance.
+            two distinct label values. Default is the nominal (0/1) distance;
+            ``(x - y) ** 2`` gives the interval metric. Metrics that depend on
+            the value frequencies (ordinal) are not expressible this way.
 
     Returns:
-        α. 1.0 = perfect agreement, 0.0 = chance.
+        α. 1.0 = perfect agreement, 0.0 = chance. 1.0 also when the pairable
+        values show no variation at all (no expected disagreement).
 
     Raises:
         ValueError: If sequences differ in length, fewer than 2 annotators
-            given, or fewer than 2 paired observations exist.
+            given, or no unit has two or more non-missing values.
+
+    Krippendorff's 2011 worked example: four annotators, twelve units, with
+    missing ratings (canonical nominal α = 0.743):
+
+    >>> A = [1, 2, 3, 3, 2, 1, 4, 1, 2, None, None, None]
+    >>> B = [1, 2, 3, 3, 2, 2, 4, 1, 2, 5, None, 3]
+    >>> C = [None, 3, 3, 3, 2, 3, 4, 2, 2, 5, 1, None]
+    >>> D = [1, 2, 3, 3, 2, 4, 4, 1, 2, 5, 1, None]
+    >>> round(krippendorff_alpha([A, B, C, D]), 3)
+    0.743
     """
     if len(annotations) < 2:
         raise ValueError("need at least 2 annotators")
@@ -108,56 +153,23 @@ def krippendorff_alpha(
                 f"all annotator rows must have the same length; got {len(row)} vs {n_units}"
             )
 
-    # Observed disagreement: across all unordered pairs of annotators within
-    # each unit (with both values present).
-    observed_sum = 0.0
-    observed_pairs = 0
-    for u in range(n_units):
-        present = [row[u] for row in annotations if row[u] is not None]
-        if len(present) < 2:
-            continue
-        for i in range(len(present)):
-            for j in range(i + 1, len(present)):
-                observed_sum += distance(present[i], present[j])  # type: ignore[arg-type]
-                observed_pairs += 1
+    units = (
+        Counter(row[u] for row in annotations if not _is_missing(row[u]))
+        for u in range(n_units)
+    )
+    sized = ((counts, counts.total()) for counts in units)
+    pairable = [(counts, m) for counts, m in sized if m >= 2]
+    if not pairable:
+        raise ValueError("no unit has two or more non-missing values")
 
-    if observed_pairs == 0:
-        raise ValueError("not enough paired observations to compute alpha")
-
-    # Expected disagreement: across all unordered pairs of values regardless
-    # of which annotator/unit.
-    all_values: list[T] = [
-        v
-        for row in annotations
-        for v in row
-        if v is not None  # type: ignore[misc]
-    ]
-    counts = Counter(all_values)
-    n_total = sum(counts.values())
-    if n_total < 2:
-        raise ValueError("not enough total observations to compute alpha")
-
-    expected_sum = 0.0
-    keys = list(counts.keys())
-    for i, ki in enumerate(keys):
-        for j in range(i, len(keys)):
-            kj = keys[j]
-            if i == j:
-                pairs = counts[ki] * (counts[ki] - 1)
-            else:
-                pairs = 2 * counts[ki] * counts[kj]
-            expected_sum += pairs * distance(ki, kj)
-
-    expected_pairs = n_total * (n_total - 1)
-    if expected_pairs == 0 or expected_sum == 0:
-        # All values identical → perfect agreement
+    observed = sum(_pair_disagreement(c, distance) / (m - 1) for c, m in pairable)
+    marginals: Counter = Counter()
+    for counts, _ in pairable:
+        marginals.update(counts)
+    expected = _pair_disagreement(marginals, distance) / (marginals.total() - 1)
+    if expected == 0:
         return 1.0
-
-    do = observed_sum / observed_pairs
-    de = expected_sum / expected_pairs
-    if de == 0:
-        return 1.0
-    return 1.0 - do / de
+    return 1.0 - observed / expected
 
 
 # ---------------------------------------------------------------------------
