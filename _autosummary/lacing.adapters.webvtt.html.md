@@ -15,7 +15,11 @@ Lossy fields on dump:
 : Provenance, confidence, schema URIs, and tier metadata are dropped.
   Only the text, id (if present), and settings are emitted. Blank lines
   inside a cue’s text are dropped (a blank line ends a cue), and a negative
-  time raises `ValueError` (WebVTT has none).
+  time raises `ValueError` (WebVTT has none). A cue payload may not contain
+  `-->` (a player would read it as a new cue’s timing line), so it is
+  written `--&gt;`, which renders as `-->`; payloads are kept raw on load,
+  so it reads back as `--&gt;` (lacing#129). A cue id with `-->` or a
+  line break cannot be written at all and raises `ValueError`.
 
 Time discipline:
 : WebVTT timestamps are `HH:MM:SS.mmm` or `MM:SS.mmm` (with milliseconds).

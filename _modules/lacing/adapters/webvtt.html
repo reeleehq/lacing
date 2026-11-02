@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=e264953e"></script>
+    <script src="../../../_static/documentation_options.js?v=0a7e36fc"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.77" />
+  <meta name="docsearch:version" content="0.0.78" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -730,7 +730,11 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Provenance, confidence, schema URIs, and tier metadata are dropped.</span>
 <span class="sd">    Only the text, id (if present), and settings are emitted. Blank lines</span>
 <span class="sd">    inside a cue's text are dropped (a blank line ends a cue), and a negative</span>
-<span class="sd">    time raises ``ValueError`` (WebVTT has none).</span>
+<span class="sd">    time raises ``ValueError`` (WebVTT has none). A cue payload may not contain</span>
+<span class="sd">    ``--&gt;`` (a player would read it as a new cue's timing line), so it is</span>
+<span class="sd">    written ``--&amp;gt;``, which renders as ``--&gt;``; payloads are kept raw on load,</span>
+<span class="sd">    so it reads back as ``--&amp;gt;`` (lacing#129). A cue id with ``--&gt;`` or a</span>
+<span class="sd">    line break cannot be written at all and raises ``ValueError``.</span>
 
 <span class="sd">Time discipline:</span>
 <span class="sd">    WebVTT timestamps are ``HH:MM:SS.mmm`` or ``MM:SS.mmm`` (with milliseconds).</span>
@@ -803,6 +807,29 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_format_timestamp</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="n">RationalTime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Format as ``HH:MM:SS.mmm``; sub-millisecond times are truncated."""</span>
     <span class="k">return</span> <span class="n">format_cue_time</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s2">"."</span><span class="p">,</span> <span class="n">format_name</span><span class="o">=</span><span class="s2">"WebVTT"</span><span class="p">)</span>
+
+
+<span class="n">_ARROW</span><span class="p">,</span> <span class="n">_ESCAPED_ARROW</span> <span class="o">=</span> <span class="s2">"--&gt;"</span><span class="p">,</span> <span class="s2">"--&amp;gt;"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_escape_arrows</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``payload`` with every ``--&gt;`` written ``--&amp;gt;``: the spec forbids the</span>
+<span class="sd">    arrow in a cue payload, and its entity escape renders the same.</span>
+
+<span class="sd">    &gt;&gt;&gt; _escape_arrows("a --&gt; b ---&gt;")</span>
+<span class="sd">    'a --&amp;gt; b ---&amp;gt;'</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">payload</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">_ARROW</span><span class="p">,</span> <span class="n">_ESCAPED_ARROW</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_checked_cue_id</span><span class="p">(</span><span class="n">cue_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``cue_id`` if WebVTT can write it: the spec forbids ``--&gt;`` and line</span>
+<span class="sd">    breaks in an id, and ids have no escape."""</span>
+    <span class="k">if</span> <span class="n">_ARROW</span> <span class="ow">in</span> <span class="n">cue_id</span> <span class="ow">or</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">cue_id</span> <span class="ow">or</span> <span class="s2">"</span><span class="se">\r</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">cue_id</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"a WebVTT cue id cannot contain '--&gt;' or a line break: </span><span class="si">{</span><span class="n">cue_id</span><span class="si">!r}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">cue_id</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_settings</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
@@ -889,8 +916,10 @@ window.runMermaid = runMermaid;</script>
         <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">n</span><span class="p">:</span>
             <span class="k">break</span>
 
-        <span class="k">if</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">"NOTE"</span><span class="p">,</span> <span class="s2">"STYLE"</span><span class="p">,</span> <span class="s2">"REGION"</span><span class="p">)):</span>
-            <span class="c1"># Skip until blank line</span>
+        <span class="n">followed_by_timing</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="ow">and</span> <span class="n">_ARROW</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">"NOTE"</span><span class="p">,</span> <span class="s2">"STYLE"</span><span class="p">,</span> <span class="s2">"REGION"</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">followed_by_timing</span><span class="p">:</span>
+            <span class="c1"># Skip until blank line (a block whose next line is a timing line is</span>
+            <span class="c1"># a cue whose id happens to start with one of these words).</span>
             <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="ow">and</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">""</span><span class="p">:</span>
                 <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="k">continue</span>
@@ -964,7 +993,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">settings</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"settings"</span><span class="p">,</span> <span class="p">{})</span>
 
         <span class="k">if</span> <span class="n">cue_id</span><span class="p">:</span>
-            <span class="n">out_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cue_id</span><span class="p">))</span>
+            <span class="n">out_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_checked_cue_id</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cue_id</span><span class="p">)))</span>
 
         <span class="n">timing</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_format_timestamp</span><span class="p">(</span><span class="n">ann</span><span class="o">.</span><span class="n">interval</span><span class="o">.</span><span class="n">start</span><span class="p">)</span><span class="si">}</span><span class="s2"> --&gt; "</span>  <span class="c1"># type: ignore[union-attr]</span>
@@ -973,7 +1002,7 @@ window.runMermaid = runMermaid;</script>
         <span class="k">if</span> <span class="n">settings</span><span class="p">:</span>
             <span class="n">timing</span> <span class="o">+=</span> <span class="s2">" "</span> <span class="o">+</span> <span class="n">_format_settings</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
         <span class="n">out_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">timing</span><span class="p">)</span>
-        <span class="n">out_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cue_payload</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">)))</span>
+        <span class="n">out_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_escape_arrows</span><span class="p">(</span><span class="n">cue_payload</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">))))</span>
         <span class="n">out_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
 
     <span class="n">blob</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_lines</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
