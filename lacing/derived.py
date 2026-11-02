@@ -45,6 +45,7 @@ Field names and aliases are both read as spellings of a field, as in
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
 from itertools import product
@@ -52,7 +53,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-__all__ = ["Derived", "DerivedPath", "ANY_ITEM", "derived_paths", "drop_paths"]
+__all__ = ["Derived", "DerivedPath", "ANY_ITEM", "derived_paths", "drop_paths", "null_paths"]
 
 #: One step of a path through a body: an object key, or :data:`ANY_ITEM`.
 DerivedPath = tuple["str | None", ...]
@@ -166,23 +167,50 @@ def derived_paths(model: type[BaseModel]) -> frozenset[DerivedPath]:
 def drop_paths(value: Any, paths: frozenset[DerivedPath] | set[DerivedPath]) -> bool:
     """Delete, in place, the entries of the JSON-like ``value`` named by ``paths``;
     return whether any was there to delete."""
-    return any([_drop(value, path) for path in paths])  # a list: drop every path
+    return _edit_paths(value, paths, _delete)
 
 
-def _drop(value: Any, path: DerivedPath) -> bool:
+def null_paths(value: Any, paths: frozenset[DerivedPath] | set[DerivedPath]) -> bool:
+    """Set, in place, the entries of the JSON-like ``value`` named by ``paths`` to
+    ``None`` (keys that are absent stay absent); return whether any changed."""
+    return _edit_paths(value, paths, _set_none)
+
+
+def _delete(container: dict, key: Any) -> bool:
+    del container[key]
+    return True
+
+
+def _set_none(container: dict, key: Any) -> bool:
+    changed = container[key] is not None
+    container[key] = None
+    return changed
+
+
+def _edit_paths(
+    value: Any,
+    paths: frozenset[DerivedPath] | set[DerivedPath],
+    edit: Callable[[dict, Any], bool],
+) -> bool:
+    # a list, not a generator: ``any`` would stop at the first path edited
+    return any([_edit(value, path, edit) for path in paths])
+
+
+def _edit(value: Any, path: DerivedPath, edit: Callable[[dict, Any], bool]) -> bool:
+    """Apply ``edit(container, key)`` to every existing entry ``path`` names in
+    ``value``; return whether any call reported a change."""
     head, *rest = path
-    dropped = False
+    edited = False
     if isinstance(value, dict):
         targets = list(value) if head is ANY_ITEM else [head]
         for key in targets:
             if key not in value:
                 continue
             if rest:
-                dropped |= _drop(value[key], tuple(rest))
+                edited |= _edit(value[key], tuple(rest), edit)
             else:
-                del value[key]
-                dropped = True
+                edited |= edit(value, key)
     elif isinstance(value, list) and head is ANY_ITEM and rest:
         for item in value:
-            dropped |= _drop(item, tuple(rest))
-    return dropped
+            edited |= _edit(item, tuple(rest), edit)
+    return edited

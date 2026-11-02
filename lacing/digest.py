@@ -350,20 +350,23 @@ def value_digest_matches(
 
     The check a freshness verifier makes, instead of comparing
     :func:`annotation_value_digest` with ``recorded`` by hand. Besides the
-    digest computed now, it accepts the two a producer that did not know the
+    digest computed now, it accepts the ones a producer that did not know the
     body's :class:`lacing.Derived` paths (no marker yet, or schema not
-    registered) would have recorded for the same value, both ``v1``-tagged: the
-    whole current body (nothing changed since), and the current body with the
+    registered) would have recorded for the same value, all ``v1``-tagged: the
+    whole current body (nothing changed since); the current body with the
     derived fields dropped (they were absent then and have been filled since,
-    the change ``v2`` exists to ignore). It does so under ``v1`` as well, where
-    the whole-body digest is the computed one: which fields are derivable
-    belongs to the schema, not to the scheme.
+    the change ``v2`` exists to ignore); and the current body with the derived
+    fields set to ``None`` (they were stored as ``null`` then, as a
+    ``model_dump()`` of a model whose field defaults to ``None`` stores them).
+    It does so under ``v1`` as well, where the whole-body digest is the computed
+    one: which fields are derivable belongs to the schema, not to the scheme.
 
     None of these is a wrong cache hit. With ``D`` today's derived paths, the
     whole-body digest matches only if the recorded body *is* the current one,
-    and the dropped one only if it is the current body minus ``D``. Dropping
-    only deletes, so either way the two bodies agree outside ``D``, which is
-    exactly what the ``v2`` digest already accepts under ``D``.
+    the dropped one only if it is the current body minus ``D``, and the nulled
+    one only if it is the current body with ``D`` set to ``None``. Dropping and
+    nulling touch nothing outside ``D``, so either way the two bodies agree
+    outside ``D``, which is exactly what the ``v2`` digest already accepts.
 
     >>> from uuid import uuid4
     >>> from lacing import Annotation, MediaRef, Provenance
@@ -526,21 +529,19 @@ def _value_digests(
         if not is_v1:
             yield _digest(_V1_SCHEME, payload)
         return
-    dropped_any = _drop_derived(payload["body"], paths)
+    from lacing.derived import drop_paths, null_paths
+
+    paths = {tuple(path) for path in paths}
+    dropped_any = drop_paths(payload["body"], paths)  # the dump is private: edit it
     if not is_v1:
         yield _digest(VALUE_DIGEST_SCHEME, payload)
-        whole = _payload(annotation, VALUE_FIELDS)
-        yield _digest(_V1_SCHEME, whole)  # whole body, unchanged since
-    if dropped_any:  # else it is the whole-body digest again
-        yield _digest(_V1_SCHEME, payload)  # derived fields absent when recorded
-
-
-def _drop_derived(body: Any, paths: Collection[Sequence[str | None]]) -> bool:
-    """Delete ``paths`` from the (already dumped, hence private) ``body`` in place;
-    return whether any was there."""
-    from lacing.derived import drop_paths
-
-    return drop_paths(body, {tuple(path) for path in paths})
+        yield _digest(_V1_SCHEME, _payload(annotation, VALUE_FIELDS))  # unchanged
+    if not dropped_any:  # no derived field present: every fallback is the whole body
+        return
+    yield _digest(_V1_SCHEME, payload)  # derived fields absent when recorded
+    nulled = _payload(annotation, VALUE_FIELDS)
+    if null_paths(nulled["body"], paths):  # else it is the whole-body digest again
+        yield _digest(_V1_SCHEME, nulled)  # derived fields stored as null then
 
 
 def _payload(annotation: "Annotation", fields: Sequence[str]) -> dict[str, Any]:
