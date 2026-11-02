@@ -971,3 +971,82 @@ def test_interrupted_writes_lists_only_regular_spool_files(tmp_path):
 def test_interrupted_writes_is_empty_off_the_filesystem():
     assert ArtifactStore.in_memory().interrupted_writes() == []
     assert ArtifactStore(catalog={}).interrupted_writes() == []
+
+
+# --- atomic catalog saves (lacing#118) -----------------------------------------
+
+_KILLED_MID_SAVE = """
+import os, sys
+import dol.atomic
+from lacing import Artifact, ArtifactStore
+
+store = ArtifactStore.from_directory(sys.argv[1])
+art = Artifact.from_bytes(b"v2", kind="text", was_generated_by="user:t",
+                          was_attributed_to="u")
+dol.atomic.os.replace = lambda *a: os._exit(0)  # dies after the temp is written
+store.save("a", art)
+"""
+
+
+def test_a_save_killed_mid_way_keeps_the_old_record(tmp_path):
+    import subprocess
+    import sys
+
+    root = tmp_path / "store"
+    store = ArtifactStore.from_directory(root)
+    old = Artifact.from_bytes(
+        b"v1", kind="text", was_generated_by="user:t", was_attributed_to="u"
+    )
+    store.save("a", old)
+    subprocess.run(
+        [sys.executable, "-c", _KILLED_MID_SAVE, str(root)],
+        check=True,
+        env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)},
+    )
+    assert ArtifactStore.from_directory(root)["a"] == old  # not truncated
+    [left] = store.interrupted_writes()
+    assert left.parent == (root / "catalog").absolute()
+    assert left.name.startswith(".a.json.") and left.name.endswith(".tmp")
+    assert list(store) == ["a"]
+
+
+def test_catalog_saves_leave_no_temp(tmp_path):
+    store = ArtifactStore.from_directory(tmp_path)
+    for n in range(3):
+        art = Artifact.from_bytes(
+            bytes([n]), kind="text", was_generated_by="user:t", was_attributed_to="u"
+        )
+        store.save(f"dir/a{n}", art)
+        store.save(f"dir/a{n}", art)  # overwrite too
+    assert store.interrupted_writes() == []
+    assert sorted(store) == ["dir/a0", "dir/a1", "dir/a2"]
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlinks need privileges on Windows")
+def test_catalog_temps_are_found_in_folders_but_not_through_symlinks(tmp_path):
+    store = ArtifactStore.from_directory(tmp_path / "s")
+    catalog = tmp_path / "s" / "catalog"
+    (catalog / "dir").mkdir()
+    (catalog / "dir" / ".x.json.0123abcd.tmp").write_bytes(b"")
+    (catalog / ".y.json.0123abcd.tmp").symlink_to(tmp_path / "elsewhere")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / ".z.json.0123abcd.tmp").write_bytes(b"")
+    (catalog / "linked").symlink_to(outside, target_is_directory=True)
+    (catalog / "x.json.0123abcd.tmp").write_bytes(b"")  # not hidden: not dol's
+    assert [p.name for p in store.interrupted_writes()] == [".x.json.0123abcd.tmp"]
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or os.geteuid() == 0, reason="needs POSIX permissions, non-root"
+)
+def test_an_unreadable_catalog_folder_does_not_hide_the_other_temps(tmp_path):
+    store = ArtifactStore.from_directory(tmp_path)
+    (tmp_path / "blobs" / ".blob-x.part").write_bytes(b"")
+    locked = tmp_path / "catalog" / "locked"
+    locked.mkdir()
+    locked.chmod(0)
+    try:
+        assert [p.name for p in store.interrupted_writes()] == [".blob-x.part"]
+    finally:
+        locked.chmod(0o700)
