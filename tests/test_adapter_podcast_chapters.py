@@ -254,7 +254,7 @@ class TestLoad:
     def test_lossy_time_raises_naming_the_chapter(self):
         with pytest.raises(LossyTimeConversionError, match=r"chapters\[1\]\.endTime"):
             adapter_module.load(
-                _doc({"startTime": 0}, {"startTime": 1, "endTime": 1.0001})
+                _doc({"startTime": 0}, {"startTime": 1, "endTime": 1.0001}), rate=1000
             )
 
     def test_non_time_numbers_are_plain_json(self):
@@ -282,7 +282,7 @@ class TestMalformed:
             ("{", "not valid JSON"),
             ('{"version": "1.2.0"}', "chapters must be a list"),
             ('{"version": 1.2, "chapters": []}', "version must be a string"),
-            (_doc(3), r"chapters\[0\]: a chapter must be an object"),
+            (_doc(3), r"chapters\[0\]: must be an object"),
             (_doc({"title": "x"}), r"chapters\[0\]: missing startTime"),
             (_doc({"startTime": 0}, {"startTime": "1"}), r"chapters\[1\]\.startTime"),
             (_doc({"startTime": -0.5}), r"chapters\[0\]\.startTime: negative"),
@@ -291,7 +291,6 @@ class TestMalformed:
                 r"chapters\[1\]: endTime 4 is before startTime",
             ),
             (_doc({"startTime": 0, "title": 7}), r"chapters\[0\]: title"),
-            (_doc({"startTime": 0, "img": None}), r"chapters\[0\]: img"),
             (_doc({"startTime": 0, "url": []}), r"chapters\[0\]: url"),
             (_doc({"startTime": 0, "toc": "false"}), r"chapters\[0\]: toc"),
             (_doc({"startTime": 0, "location": "Paris"}), r"chapters\[0\]: location"),
@@ -398,3 +397,80 @@ class TestDump:
         out = tmp_path / "out.chapters.json"
         assert adapter_module.dump(adapter_module.load(COMPLEX_EXAMPLE), out) is None
         assert json.loads(out.read_text()) == json.loads(COMPLEX_EXAMPLE)
+
+
+# --- review fixes (lacing#107) ---------------------------------------------
+
+
+class TestNonFiniteAndInexactNumbers:
+    """A number a float cannot hold is refused on load, naming the field,
+    rather than accepted and then failing the dump."""
+
+    @pytest.mark.parametrize("literal", ["NaN", "Infinity", "1e400"])
+    def test_non_finite_nested_field_refused_on_load(self, literal):
+        doc = (
+            '{"chapters": [{"startTime": 0}, {"startTime": 1, '
+            f'"location": {{"name": "x", "geo": "geo:0,0", "osm": [1, {literal}]}}}}]}}'
+        )
+        with pytest.raises(
+            ValueError, match=r"chapters\[1\]\.location\.osm\[1\]: not a finite"
+        ):
+            adapter_module.load(doc)
+
+    def test_non_finite_top_level_field_refused_on_load(self):
+        with pytest.raises(ValueError, match=r"^weight: not a finite number"):
+            adapter_module.load('{"weight": NaN, "chapters": []}')
+
+    def test_more_digits_than_a_float_refused(self):
+        doc = '{"chapters": [{"startTime": 0, "n": 12345678901234567.5}]}'
+        with pytest.raises(ValueError, match=r"chapters\[0\]\.n: .*exactly"):
+            adapter_module.load(doc)
+
+    def test_preserved_numbers_keep_their_value(self):
+        doc = '{"chapters": [{"startTime": 0, "a": 0.30000000000000004, "b": 1e-7}]}'
+        out = json.loads(adapter_module.dump(adapter_module.load(doc)))
+        assert out["chapters"][0]["a"] == 0.30000000000000004
+        assert out["chapters"][0]["b"] == 1e-7
+
+
+class TestInferredRate:
+    def test_default_rate_holds_every_time(self):
+        doc = _doc({"startTime": 0}, {"startTime": 1.0001})
+        chapters = _chapters(adapter_module.load(doc))
+        assert chapters[1].interval.start == RationalTime(10001, 10000)
+        assert _episode(adapter_module.load(doc)).interval.start.rate == 10000
+        assert json.loads(adapter_module.dump(adapter_module.load(doc))) == (
+            json.loads(doc)
+        )
+
+    def test_explicit_rate_names_the_rate_that_works(self):
+        with pytest.raises(LossyTimeConversionError, match=r"rate=10000 holds"):
+            adapter_module.load(_doc({"startTime": 1.0001}), rate=1000)
+
+
+class TestNullIsAbsent:
+    @pytest.mark.parametrize("field", ["title", "img", "url", "toc", "location"])
+    def test_null_optional_field_is_absent(self, field):
+        doc = _doc({"startTime": 0, "title": "Intro", **{field: None}})
+        (c,) = _chapters(adapter_module.load(doc))
+        assert field not in c.body
+        out = json.loads(adapter_module.dump(adapter_module.load(doc)))
+        assert None not in out["chapters"][0].values()
+
+    def test_null_end_time_is_inferred(self):
+        doc = _doc({"startTime": 0, "endTime": None}, {"startTime": 5})
+        c, _ = _chapters(adapter_module.load(doc))
+        assert (c.interval.end.value, c.body["end_inferred"]) == (5000, True)
+        out = json.loads(adapter_module.dump(adapter_module.load(doc)))
+        assert "endTime" not in out["chapters"][0]
+
+    def test_dump_leaves_out_a_null_optional_field_of_a_store(self):
+        store = MemoryStore()
+        store.add(_ann(_s(0), _s(1), {"title": "a", "img": None}))
+        (chapter,) = json.loads(adapter_module.dump(store))["chapters"]
+        assert chapter == {"startTime": 0, "endTime": 1, "title": "a"}
+
+    def test_unknown_field_null_is_kept(self):
+        doc = _doc({"startTime": 0, "custom": None})
+        out = json.loads(adapter_module.dump(adapter_module.load(doc)))
+        assert out["chapters"][0]["custom"] is None

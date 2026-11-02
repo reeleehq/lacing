@@ -25,24 +25,27 @@ Tiers and bodies:
 
 - ``chapters`` (stereotype ``NONE``; override with ``tier=``): one annotation
   per chapter, body ``annot://schema/podcast-chapter/v1``: every field of the
-  chapter object except ``startTime`` and ``endTime``, verbatim and in file
-  order (``title``, ``img``, ``url``, ``toc``, ``location``, and any field the
-  spec does not name, such as the ``value`` of the spec's complex example), so
-  a chapter round-trips losslessly. Numbers in those fields are plain JSON
-  numbers. ``"end_inferred": true`` is added when the chapter had no
-  ``endTime`` (a chapter that already has a field of that name is refused).
+  chapter object except ``startTime`` and ``endTime``, with its value and in
+  file order (``title``, ``img``, ``url``, ``toc``, ``location``, and any
+  field the spec does not name, such as the ``value`` of the spec's complex
+  example), so a chapter round-trips to the same JSON value (see "Numbers").
+  A ``null`` ``title``, ``img``, ``url``, ``toc`` or ``location`` is an
+  absent one: it is left out on load, and the dump leaves it out too.
+  ``"end_inferred": true`` is added when the chapter had no ``endTime`` (a
+  chapter that already has a field of that name is refused).
 - ``episode`` (stereotype ``NONE``; override with ``episode_tier=``):
   **one** metadata annotation, a point at time 0, body
   ``annot://schema/podcast-chapters-episode/v1``
   ``{"version": str | None, "fields": {...}}``, where ``fields`` holds every
   other top-level field (``author``, ``title``, ``podcastName``,
-  ``description``, ``fileName``, ``waypoints``, and any unnamed one) verbatim
-  and in file order. These describe the file, not a chapter, so they live on
+  ``description``, ``fileName``, ``waypoints``, and any unnamed one) with
+  its value and in file order. These describe the file, not a chapter, so they live on
   one annotation rather than in every chapter body, the way the LRC adapter
   keeps its ID tags; a store from another format dumps without inventing any.
 
 End times:
-    ``endTime`` is optional. A chapter without one ends where the next *later*
+    ``endTime`` is optional, and ``null`` is the same as absent. A chapter
+    without one ends where the next *later*
     chapter starts (chapters sharing a start all end at the next later
     start), whatever the order of the file (the spec assumes ascending
     ``startTime``); the last chapter is a point (``start == end``).
@@ -54,12 +57,25 @@ Time discipline:
     Times are JSON numbers of seconds ("float precision" in the spec). They
     are read as exact ``Decimal`` values (``json.loads(...,
     parse_float=Decimal)``, never ``float``), then converted exactly to
-    ``RationalTime`` at ``rate`` (default 1000): ``1.001`` is
-    ``RationalTime(1001, 1000)``. A time the rate cannot hold exactly raises
-    ``LossyTimeConversionError``. On dump a time is written as an exact
-    decimal when it has a terminating expansion, else truncated to the
-    millisecond, which keeps the order of times (see
+    ``RationalTime``. With ``rate=None`` (the default) the rate is the
+    smallest power of ten, at least 1000, that holds every time in the file
+    exactly: ``1.001`` is ``RationalTime(1001, 1000)``, and ``0.0000625`` or
+    ``0.30000000000000004`` raise the rate rather than lose precision. An
+    explicit ``rate`` that cannot hold a time raises
+    ``LossyTimeConversionError`` naming the chapter and the rate that would
+    hold every time. On dump a time is written as an exact decimal when it
+    has a terminating expansion, else truncated to the millisecond, which
+    keeps the order of times (see
     :func:`lacing.adapters._podcast.seconds_number`).
+
+Numbers:
+    A number that is not a time (a ``location`` coordinate, an unnamed
+    field) is kept as the ``float`` of the same value and written back as
+    that value (``1.50`` is written ``1.5``). One a float cannot hold
+    exactly is refused on load, naming the chapter and field (or the
+    top-level field): ``NaN``, ``Infinity`` and ``1e400`` (not finite), and
+    numbers with more digits than a float has (``12345678901234567.5``).
+    Bodies stay plain JSON, which a SQLite store or the server needs.
 
 Lossy fields on dump:
     Provenance, confidence, schema URIs and tier metadata are dropped. The
@@ -81,31 +97,31 @@ Media type and extension:
 Malformed input raises ``ValueError`` naming the chapter index
 (``chapters[3]``): a document that is not a JSON object, ``chapters`` missing
 or not a list, a chapter that is not an object, a ``startTime`` or
-``endTime`` that is missing, not a number, negative or not finite, an
-``endTime`` before its ``startTime``, a ``title``, ``img`` or ``url`` that is
-not a string, a ``toc`` that is not a boolean, a ``location`` that is not an
-object, or a non-string ``version``.
+``endTime`` that is not a number, negative or not finite, an ``endTime``
+before its ``startTime``, a ``title``, ``img`` or ``url`` that is not a
+string, a ``toc`` that is not a boolean, a ``location`` that is not an
+object, a number a float cannot hold exactly, or a non-string ``version``.
 """
 
 from __future__ import annotations
 
 import os
 from fractions import Fraction
-from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
 from lacing.adapters._common import iter_with_intervals
-from lacing.adapters._cues import interval_sort_key
 from lacing.adapters._podcast import (
     END_INFERRED_KEY,
-    dumps_json,
-    inferred_ends,
+    TIME_FIELDS,
+    TimedItem,
+    dated_items,
     load_podcast_json,
-    parse_seconds,
+    parse_document,
     plain_json,
-    seconds_number,
+    time_fields,
+    write_json,
 )
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
@@ -119,20 +135,26 @@ BODY_SCHEMA_URI = "annot://schema/podcast-chapter/v1"
 EPISODE_BODY_SCHEMA_URI = "annot://schema/podcast-chapters-episode/v1"
 DEFAULT_TIER_NAME = "chapters"
 DEFAULT_EPISODE_TIER_NAME = "episode"
-DEFAULT_RATE = 1000
 DEFAULT_ASSET_ID = "podcast-chapters:unspecified"
 EXTENSION = ".chapters.json"
 MEDIA_TYPE = "application/json+chapters"
 FORMAT_VERSION = "1.2.0"
 FORMAT_NAME = "podcast chapters JSON"
 
-_TIME_FIELDS = ("startTime", "endTime")
 _STRING_FIELDS = ("title", "img", "url")
+_OPTIONAL_FIELDS = (*_STRING_FIELDS, "toc", "location")
 
 
 # ---------------------------------------------------------------------------
 # load
 # ---------------------------------------------------------------------------
+
+
+def _without_nulls(fields: dict[str, Any]) -> dict[str, Any]:
+    """``fields`` without the optional spec fields set to ``null`` (absent)."""
+    return {
+        k: v for k, v in fields.items() if not (k in _OPTIONAL_FIELDS and v is None)
+    }
 
 
 def _check_optional_fields(ch: dict, *, where: str) -> None:
@@ -149,48 +171,30 @@ def _check_optional_fields(ch: dict, *, where: str) -> None:
         )
 
 
-def _parse_chapter(ch: Any, rate: int, *, index: int) -> dict[str, Any]:
-    """``{"start", "end" (or None), "body"}`` of one chapter, validated."""
-    where = f"chapters[{index}]"
-    if not isinstance(ch, dict):
-        raise ValueError(f"{where}: a chapter must be an object, got {ch!r}")
-    if "startTime" not in ch:
-        raise ValueError(f"{where}: missing startTime")
-    _check_optional_fields(ch, where=where)
-    start = parse_seconds(ch["startTime"], rate, where=f"{where}.startTime")
-    end = None
-    if "endTime" in ch:
-        end = parse_seconds(ch["endTime"], rate, where=f"{where}.endTime")
-        if end < start:
-            raise ValueError(f"{where}: endTime {ch['endTime']} is before startTime")
-    body = {k: plain_json(v) for k, v in ch.items() if k not in _TIME_FIELDS}
-    return {"start": start, "end": end, "body": body}
+def _chapter_body(item: TimedItem) -> dict[str, Any]:
+    """The annotation body of one chapter, its fields validated."""
+    fields = _without_nulls(item.fields)
+    _check_optional_fields(fields, where=item.where)
+    body = {k: plain_json(v, where=f"{item.where}.{k}") for k, v in fields.items()}
+    if item.end_inferred:
+        body[END_INFERRED_KEY] = True
+    return body
 
 
-def _parse(data: dict, rate: int) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    """The episode body and the parsed chapters of a chapters document."""
-    version = data.get("version")
-    if version is not None and not isinstance(version, str):
-        raise ValueError(f"version must be a string, got {version!r}")
-    chapters = data.get("chapters")
-    if not isinstance(chapters, list):
-        raise ValueError(f"chapters must be a list, got {chapters!r}")
-    parsed = [_parse_chapter(c, rate, index=i) for i, c in enumerate(chapters)]
-    ends = inferred_ends([p["start"].to_fraction() for p in parsed])
-    for p, end in zip(parsed, ends):
-        if p["end"] is None:
-            p["end"] = RationalTime.from_seconds(end, rate=rate)  # a start: exact
-            p["body"][END_INFERRED_KEY] = True
+def _episode_body(data: dict, version: str | None) -> dict[str, Any]:
+    """The episode annotation's body: the version and other top-level fields."""
     fields = {
-        k: plain_json(v) for k, v in data.items() if k not in ("version", "chapters")
+        k: plain_json(v, where=k)
+        for k, v in data.items()
+        if k not in ("version", "chapters")
     }
-    return {"version": version, "fields": fields}, parsed
+    return {"version": version, "fields": fields}
 
 
 def load(
     source: str | bytes | os.PathLike,
     *,
-    rate: int = DEFAULT_RATE,
+    rate: int | None = None,
     asset_id: str = DEFAULT_ASSET_ID,
     attribution: str = "anonymous",
     tier: str = DEFAULT_TIER_NAME,
@@ -201,8 +205,10 @@ def load(
 
     Args:
         source: Bytes (UTF-8), a path, or inline JSON text.
-        rate: Rate of every ``RationalTime`` produced; every time in the file
-            must be exact at this rate.
+        rate: Rate of every ``RationalTime`` produced. ``None`` (the default)
+            picks the smallest power of ten, at least 1000, at which every
+            time in the file is exact; an explicit rate must hold every time
+            exactly.
         asset_id: The ``MediaRef.asset_id`` the chapters annotate.
         attribution: ``Provenance.was_attributed_to`` of every annotation.
         tier: Name of the tier the chapters go in.
@@ -211,12 +217,15 @@ def load(
     Raises:
         ValueError: On malformed input, naming the chapter index.
     """
-    episode, chapters = _parse(load_podcast_json(source, format_name=FORMAT_NAME), rate)
+    data = load_podcast_json(source, format_name=FORMAT_NAME)
+    doc = parse_document(data, rate=rate, kind="chapters")
+    bodies = [_chapter_body(item) for item in doc.items]
+    episode = _episode_body(data, doc.version)
 
     store = MemoryStore()
     store.add_tier(Tier(tier))
     store.add_tier(Tier(episode_tier))
-    now = RationalTime.now(rate)
+    now = RationalTime.now(doc.rate)
 
     def add(tier_name: str, interval: TimeInterval, body: dict, uri: str) -> None:
         store.add(
@@ -235,10 +244,10 @@ def load(
             )
         )
 
-    zero = RationalTime.zero(rate)
+    zero = RationalTime.zero(doc.rate)
     add(episode_tier, TimeInterval(zero, zero), episode, EPISODE_BODY_SCHEMA_URI)
-    for ch in chapters:
-        add(tier, TimeInterval(ch["start"], ch["end"]), ch["body"], BODY_SCHEMA_URI)
+    for item, body in zip(doc.items, bodies):
+        add(tier, item.interval, body, BODY_SCHEMA_URI)
     return store
 
 
@@ -251,7 +260,7 @@ def _chapter_fields(a: Annotation) -> dict[str, Any]:
     """The non-time fields of the chapter ``a`` is written as."""
     body = a.body
     if a.body_schema_uri == BODY_SCHEMA_URI:
-        return {k: v for k, v in body.items() if k not in _TIME_FIELDS}
+        return {k: v for k, v in _without_nulls(body).items() if k not in TIME_FIELDS}
     title = body.get("title")
     if not isinstance(title, str):
         title = body.get("text")
@@ -259,13 +268,11 @@ def _chapter_fields(a: Annotation) -> dict[str, Any]:
 
 
 def _chapter(a: Annotation, inferred_end: Fraction) -> dict[str, Any]:
-    iv = a.interval
-    assert iv is not None  # iter_with_intervals filters
     fields = _chapter_fields(a)
     end_was_inferred = fields.pop(END_INFERRED_KEY, None) is True
-    chapter: dict[str, Any] = {"startTime": seconds_number(iv.start)}
-    if not (end_was_inferred and iv.end.to_fraction() == inferred_end):
-        chapter["endTime"] = seconds_number(iv.end)
+    chapter: dict[str, Any] = time_fields(
+        a, inferred_end, end_was_inferred=end_was_inferred
+    )
     chapter.update(fields)
     return chapter
 
@@ -324,16 +331,10 @@ def dump(
             return a.body_schema_uri == BODY_SCHEMA_URI
         return a.tier == tier and a.body_schema_uri != EPISODE_BODY_SCHEMA_URI
 
-    anns = [a for a in iter_with_intervals(store) if is_chapter(a)]
-    anns.sort(key=interval_sort_key)
-    ends = inferred_ends([a.interval.start.to_fraction() for a in anns])  # type: ignore[union-attr]
+    anns = (a for a in iter_with_intervals(store) if is_chapter(a))
     doc = _episode(store)
-    doc["chapters"] = [_chapter(a, end) for a, end in zip(anns, ends)]
-    blob = dumps_json(doc)
-    if target is None:
-        return blob
-    Path(os.fspath(target)).write_bytes(blob)
-    return None
+    doc["chapters"] = [_chapter(a, end) for a, end in dated_items(anns)]
+    return write_json(doc, target)
 
 
 # ---------------------------------------------------------------------------

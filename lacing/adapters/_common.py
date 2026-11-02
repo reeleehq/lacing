@@ -106,6 +106,7 @@ def load_json(
     source: str | bytes | os.PathLike,
     *,
     parse_float: Callable[[str], Any] | None = None,
+    parse_constant: Callable[[str], Any] | None = None,
 ) -> Any:
     """The JSON value of ``source``: bytes (UTF-8), a path, or inline JSON.
 
@@ -115,7 +116,9 @@ def load_json(
 
     ``parse_float`` is passed to :func:`json.loads`: ``None`` (the default)
     reads non-integer numbers as ``float``; ``decimal.Decimal`` reads them
-    exactly, as written (the podcast adapters' times).
+    exactly, as written (the podcast adapters' times). ``parse_constant``,
+    also passed to :func:`json.loads`, maps the non-standard ``NaN``,
+    ``Infinity`` and ``-Infinity`` (``None`` keeps ``json``'s floats).
 
     >>> load_json(b'[1, 2]')
     [1, 2]
@@ -125,7 +128,7 @@ def load_json(
     """
 
     def parse(text: str) -> Any:
-        return json.loads(text, parse_float=parse_float)
+        return json.loads(text, parse_float=parse_float, parse_constant=parse_constant)
 
     if isinstance(source, (bytes, bytearray)):
         return parse(bytes(source).decode(_JSON_ENCODING))

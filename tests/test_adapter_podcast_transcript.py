@@ -244,7 +244,7 @@ class TestMalformed:
             ('{"version": "1.0.0"}', "segments must be a list"),
             ('{"segments": {}}', "segments must be a list"),
             ('{"version": 1, "segments": []}', "version must be a string"),
-            (_doc("x"), r"segments\[0\]: a segment must be an object"),
+            (_doc("x"), r"segments\[0\]: must be an object"),
             (_doc({"endTime": 1, "body": "x"}), r"segments\[0\]: missing startTime"),
             (_doc({"startTime": 0, "endTime": 1}), r"segments\[0\]: body"),
             (
@@ -265,7 +265,7 @@ class TestMalformed:
             ),
             (
                 '{"segments": [{"startTime": NaN, "endTime": 1, "body": "x"}]}',
-                r"segments\[0\]\.startTime: expected a number",
+                r"segments\[0\]\.startTime: not a finite number",
             ),
             (
                 '{"segments": [{"startTime": 1e999999999, "body": "x"}]}',
@@ -438,3 +438,78 @@ class TestCrossFormat:
         )
         (seg,) = json.loads(adapter_module.dump(store))["segments"]
         assert seg["speaker"] == "Ann"
+
+
+# --- review fixes (lacing#107) ---------------------------------------------
+
+
+class TestNonFiniteAndInexactNumbers:
+    """A number a float cannot hold is refused on load, naming the field,
+    rather than accepted and then failing the dump."""
+
+    @pytest.mark.parametrize("literal", ["NaN", "Infinity", "-Infinity", "1e400"])
+    def test_non_finite_extra_field_refused_on_load(self, literal):
+        doc = (
+            '{"segments": [{"startTime": 0, "body": "a"}, '
+            f'{{"startTime": 1, "body": "b", "confidence": {literal}}}]}}'
+        )
+        with pytest.raises(
+            ValueError, match=r"segments\[1\]\.confidence: not a finite number"
+        ):
+            adapter_module.load(doc)
+
+    def test_more_digits_than_a_float_refused(self):
+        doc = '{"segments": [{"startTime": 0, "body": "a", "n": 12345678901234567.5}]}'
+        with pytest.raises(ValueError, match=r"segments\[0\]\.n: .*exactly"):
+            adapter_module.load(doc)
+
+    def test_float_noise_in_extra_field_round_trips(self):
+        doc = '{"segments": [{"startTime": 0, "body": "a", "n": 0.30000000000000004}]}'
+        blob = adapter_module.dump(adapter_module.load(doc))
+        assert b'"n": 0.30000000000000004' in blob
+
+
+class TestInferredRate:
+    def test_default_rate_holds_a_16khz_sample(self):
+        doc = _doc({"startTime": 0.0000625, "endTime": 1, "body": "x"})
+        (a,) = adapter_module.load(doc).all()
+        assert a.interval.start == RationalTime(625, 10**7)
+        assert a.interval.start.rate == 10**7
+        assert json.loads(adapter_module.dump(adapter_module.load(doc))) == (
+            json.loads(doc)
+        )
+
+    def test_default_rate_holds_js_float_noise(self):
+        doc = _doc({"startTime": 0.30000000000000004, "endTime": 1, "body": "x"})
+        blob = adapter_module.dump(adapter_module.load(doc))
+        assert b'"startTime": 0.30000000000000004' in blob
+
+    def test_default_rate_is_at_least_milliseconds(self):
+        (a,) = adapter_module.load(
+            _doc({"startTime": 1, "endTime": 2, "body": "x"})
+        ).all()
+        assert a.interval.start.rate == 1000
+
+    def test_explicit_rate_still_raises_naming_the_rate_that_works(self):
+        doc = _doc({"startTime": 0.0000625, "endTime": 1, "body": "x"})
+        with pytest.raises(LossyTimeConversionError, match=r"rate=10000000 holds"):
+            adapter_module.load(doc, rate=1000)
+
+
+class TestNullIsAbsent:
+    def test_null_end_time_is_inferred_and_left_out_on_dump(self):
+        doc = _doc(
+            {"startTime": 0, "endTime": None, "body": "a"},
+            {"startTime": 2, "endTime": 3, "body": "b"},
+        )
+        a, _ = _sorted(adapter_module.load(doc))
+        assert (a.interval.end.value, a.body["end_inferred"]) == (2000, True)
+        out = json.loads(adapter_module.dump(adapter_module.load(doc)))
+        assert "endTime" not in out["segments"][0]
+
+    def test_null_speaker_is_left_out_on_dump(self):
+        doc = _doc({"startTime": 0, "endTime": 1, "body": "a", "speaker": None})
+        (a,) = adapter_module.load(doc).all()
+        assert a.body["speaker"] is None
+        out = json.loads(adapter_module.dump(adapter_module.load(doc)))
+        assert "speaker" not in out["segments"][0]

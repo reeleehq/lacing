@@ -304,3 +304,14 @@ class TestDispatch:
         path.write_text(json.dumps(SAMPLE_TASK), encoding="utf-8")
         store = top_load(path, format="label_studio", rate=1000)
         assert len(list(store.all())) == 3
+
+
+def test_compound_extension_resolves_to_label_studio():
+    """``task.labelstudio.json`` is Label Studio, not W3C Web Annotation:
+    the path lookup tries the compound extension before ``.json`` (lacing#107)."""
+    from lacing.adapters import find_adapter_for_path
+    from lacing.adapters import web_annotation  # noqa: F401  registers .json
+
+    assert find_adapter_for_path("task.labelstudio.json").name == "label_studio"
+    assert find_adapter_for_path("dir/Task.LabelStudio.JSON").name == "label_studio"
+    assert find_adapter_for_path("task.json").name == "web_annotation"

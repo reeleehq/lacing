@@ -27,25 +27,42 @@ holds::
     {"text": str, "speaker": str | None}
 
 plus ``"end_inferred": True`` when the segment had no ``endTime``, and
-``"extra": {...}`` holding any other fields of the segment verbatim (numbers
-that are not times as plain JSON numbers).
+``"extra": {...}`` holding any other fields of the segment with their values
+(numbers that are not times as plain JSON numbers of the same value; see
+"Numbers" below).
 
 End times:
-    ``endTime`` is optional in the spec. A segment without one ends where the
-    next *later* segment starts (segments sharing a start all end at the next
-    later start); the last one is a point (``start == end``). The body records
-    that the end was inferred, and :func:`dump` leaves ``endTime`` out again
-    while the end is still the inferred one, so such files round-trip.
+    ``endTime`` is optional in the spec. A segment without one (or with
+    ``"endTime": null``) ends where the next *later* segment starts (segments
+    sharing a start all end at the next later start); the last one is a
+    point (``start == end``). The body records that the end was inferred,
+    and :func:`dump` leaves ``endTime`` out again while the end is still the
+    inferred one, so such files round-trip. A ``null`` ``speaker`` is an
+    absent one, and the dump leaves it out.
 
 Time discipline:
     Times are JSON numbers of seconds. They are read as exact ``Decimal``
     values (``json.loads(..., parse_float=Decimal)``, never ``float``), then
-    converted exactly to ``RationalTime`` at ``rate`` (default 1000): ``1.001``
-    is ``RationalTime(1001, 1000)``. A time the rate cannot hold exactly
-    (``0.0005`` at rate 1000) raises ``LossyTimeConversionError``. On dump a
-    time is written as an exact decimal when it has a terminating expansion,
-    else truncated to the millisecond, which keeps the order of times (see
+    converted exactly to ``RationalTime``. With ``rate=None`` (the default)
+    the rate is the smallest power of ten, at least 1000, that holds every
+    time in the file exactly: ``1.001`` is ``RationalTime(1001, 1000)``, a
+    file with ``0.0000625`` (a sample at 16 kHz) is read at rate ``10**7``,
+    and JavaScript float noise such as ``0.30000000000000004`` at
+    ``10**17``, so every file is read without loss. An explicit ``rate``
+    that cannot hold a time (``0.0005`` at rate 1000) raises
+    ``LossyTimeConversionError`` naming the segment and the rate that would
+    hold every time. On dump a time is written as an exact decimal when it
+    has a terminating expansion, else truncated to the millisecond, which
+    keeps the order of times (see
     :func:`lacing.adapters._podcast.seconds_number`).
+
+Numbers:
+    A number that is not a time is kept as the ``float`` of the same value
+    and written back as that value (``1.50`` is written ``1.5``). One a
+    float cannot hold exactly is refused on load, naming the segment and the
+    field: ``NaN``, ``Infinity`` and ``1e400`` (not finite), and numbers
+    with more digits than a float has (``12345678901234567.5``). Bodies stay
+    plain JSON, which a SQLite store or the server needs.
 
 Lossy fields on dump:
     Provenance, confidence, schema URIs and tier metadata are dropped. The
@@ -66,42 +83,41 @@ Media type and extension:
 Malformed input raises ``ValueError`` naming the segment index
 (``segments[3]``): a document that is not a JSON object, ``segments`` missing
 or not a list, a segment that is not an object, a missing or non-string
-``body``, a non-string ``speaker``, a ``startTime`` or ``endTime`` that is
-missing, not a number, negative or not finite, an ``endTime`` before its
-``startTime``, or a non-string ``version``.
+``body``, a non-string ``speaker``, a ``startTime`` that is missing, an
+``endTime`` or ``startTime`` that is not a number, negative or not finite, an
+``endTime`` before its ``startTime``, a number in another field that a float
+cannot hold exactly, or a non-string ``version``.
 """
 
 from __future__ import annotations
 
 import os
 from fractions import Fraction
-from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
 from lacing.adapters._common import iter_with_intervals
-from lacing.adapters._cues import interval_sort_key
 from lacing.adapters._podcast import (
     END_INFERRED_KEY,
-    dumps_json,
-    inferred_ends,
+    TimedItem,
+    dated_items,
     load_podcast_json,
-    parse_seconds,
+    parse_document,
     plain_json,
-    seconds_number,
+    time_fields,
+    write_json,
 )
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
-from lacing.time import RationalTime, TimeInterval
+from lacing.time import RationalTime
 
 ADAPTER_NAME = "podcast_transcript"
 ADAPTER_VERSION = "1.0.0"
 GENERATED_BY = str(adapter_generator_id(ADAPTER_NAME, ADAPTER_VERSION))
 BODY_SCHEMA_URI = "annot://schema/podcast-transcript-segment/v1"
 DEFAULT_TIER_NAME = "segments"
-DEFAULT_RATE = 1000
 DEFAULT_ASSET_ID = "podcast-transcript:unspecified"
 EXTENSION = ".transcript.json"
 FORMAT_VERSION = "1.0.0"
@@ -116,52 +132,32 @@ _SEGMENT_FIELDS = ("speaker", "startTime", "endTime", "body")
 # ---------------------------------------------------------------------------
 
 
-def _parse_segment(seg: Any, rate: int, *, index: int) -> dict[str, Any]:
-    """``{"start", "end" (or None), "body"}`` of one segment, validated."""
-    where = f"segments[{index}]"
-    if not isinstance(seg, dict):
-        raise ValueError(f"{where}: a segment must be an object, got {seg!r}")
-    if "startTime" not in seg:
-        raise ValueError(f"{where}: missing startTime")
-    text = seg.get("body")
+def _segment_body(item: TimedItem) -> dict[str, Any]:
+    """The annotation body of one segment, its fields validated."""
+    fields, where = item.fields, item.where
+    text = fields.get("body")
     if not isinstance(text, str):
         raise ValueError(f"{where}: body must be a string, got {text!r}")
-    speaker = seg.get("speaker")
+    speaker = fields.get("speaker")
     if speaker is not None and not isinstance(speaker, str):
         raise ValueError(f"{where}: speaker must be a string, got {speaker!r}")
-    start = parse_seconds(seg["startTime"], rate, where=f"{where}.startTime")
-    end = None
-    if "endTime" in seg:
-        end = parse_seconds(seg["endTime"], rate, where=f"{where}.endTime")
-        if end < start:
-            raise ValueError(f"{where}: endTime {seg['endTime']} is before startTime")
     body: dict[str, Any] = {"text": text, "speaker": speaker}
-    extra = {k: plain_json(v) for k, v in seg.items() if k not in _SEGMENT_FIELDS}
+    extra = {
+        k: plain_json(v, where=f"{where}.{k}")
+        for k, v in fields.items()
+        if k not in _SEGMENT_FIELDS
+    }
     if extra:
         body[EXTRA_KEY] = extra
-    return {"start": start, "end": end, "body": body}
-
-
-def _parse(data: dict, rate: int) -> list[dict[str, Any]]:
-    version = data.get("version")
-    if version is not None and not isinstance(version, str):
-        raise ValueError(f"version must be a string, got {version!r}")
-    segments = data.get("segments")
-    if not isinstance(segments, list):
-        raise ValueError(f"segments must be a list, got {segments!r}")
-    parsed = [_parse_segment(s, rate, index=i) for i, s in enumerate(segments)]
-    ends = inferred_ends([p["start"].to_fraction() for p in parsed])
-    for p, end in zip(parsed, ends):
-        if p["end"] is None:
-            p["end"] = RationalTime.from_seconds(end, rate=rate)  # a start: exact
-            p["body"][END_INFERRED_KEY] = True
-    return parsed
+    if item.end_inferred:
+        body[END_INFERRED_KEY] = True
+    return body
 
 
 def load(
     source: str | bytes | os.PathLike,
     *,
-    rate: int = DEFAULT_RATE,
+    rate: int | None = None,
     asset_id: str = DEFAULT_ASSET_ID,
     attribution: str = "anonymous",
     tier: str = DEFAULT_TIER_NAME,
@@ -171,8 +167,10 @@ def load(
 
     Args:
         source: Bytes (UTF-8), a path, or inline JSON text.
-        rate: Rate of every ``RationalTime`` produced; every time in the file
-            must be exact at this rate.
+        rate: Rate of every ``RationalTime`` produced. ``None`` (the default)
+            picks the smallest power of ten, at least 1000, at which every
+            time in the file is exact; an explicit rate must hold every time
+            exactly.
         asset_id: The ``MediaRef.asset_id`` the segments annotate.
         attribution: ``Provenance.was_attributed_to`` of every segment.
         tier: Name of the tier the segments go in.
@@ -180,20 +178,21 @@ def load(
     Raises:
         ValueError: On malformed input, naming the segment index.
     """
-    segments = _parse(load_podcast_json(source, format_name=FORMAT_NAME), rate)
+    doc = parse_document(
+        load_podcast_json(source, format_name=FORMAT_NAME), rate=rate, kind="segments"
+    )
+    bodies = [_segment_body(item) for item in doc.items]
 
     store = MemoryStore()
     store.add_tier(Tier(tier))
-    now = RationalTime.now(rate)
-    for seg in segments:
+    now = RationalTime.now(doc.rate)
+    for item, body in zip(doc.items, bodies):
         store.add(
             Annotation(
                 id=uuid4(),
                 tier=tier,
-                reference=MediaRef(
-                    asset_id=asset_id, interval=TimeInterval(seg["start"], seg["end"])
-                ),
-                body=seg["body"],
+                reference=MediaRef(asset_id=asset_id, interval=item.interval),
+                body=body,
                 body_schema_uri=BODY_SCHEMA_URI,
                 provenance=Provenance(
                     was_generated_by=GENERATED_BY,
@@ -217,18 +216,15 @@ def _has_text(a: Annotation) -> bool:
 
 def _segment(a: Annotation, inferred_end: Fraction) -> dict[str, Any]:
     body = a.body
-    iv = a.interval
-    assert iv is not None  # iter_with_intervals filters
     seg: dict[str, Any] = {}
     speaker = body.get("speaker")
     if isinstance(speaker, str):
         seg["speaker"] = speaker
-    seg["startTime"] = seconds_number(iv.start)
-    keeps_inferred_end = (
-        body.get(END_INFERRED_KEY) is True and iv.end.to_fraction() == inferred_end
+    seg.update(
+        time_fields(
+            a, inferred_end, end_was_inferred=body.get(END_INFERRED_KEY) is True
+        )
     )
-    if not keeps_inferred_end:
-        seg["endTime"] = seconds_number(iv.end)
     seg["body"] = body["text"]
     extra = body.get(EXTRA_KEY)
     if isinstance(extra, dict):
@@ -255,22 +251,13 @@ def dump(
     Raises:
         ValueError: For a negative time, which the format cannot hold.
     """
-    anns = [
+    anns = (
         a
         for a in iter_with_intervals(store)
         if (tier is None or a.tier == tier) and _has_text(a)
-    ]
-    anns.sort(key=interval_sort_key)
-    ends = inferred_ends([a.interval.start.to_fraction() for a in anns])  # type: ignore[union-attr]
-    doc = {
-        "version": FORMAT_VERSION,
-        "segments": [_segment(a, end) for a, end in zip(anns, ends)],
-    }
-    blob = dumps_json(doc)
-    if target is None:
-        return blob
-    Path(os.fspath(target)).write_bytes(blob)
-    return None
+    )
+    segments = [_segment(a, end) for a, end in dated_items(anns)]
+    return write_json({"version": FORMAT_VERSION, "segments": segments}, target)
 
 
 # ---------------------------------------------------------------------------
