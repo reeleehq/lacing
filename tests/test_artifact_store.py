@@ -793,9 +793,7 @@ class TestStreamingBlobWrites:
         chunk = b"x" * 1024
 
         tracemalloc.start()
-        content_hash = store.put_blob_stream(
-            chunk for _ in range(payload_mb * 1024)
-        )
+        content_hash = store.put_blob_stream(chunk for _ in range(payload_mb * 1024))
         _, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
 
@@ -804,9 +802,7 @@ class TestStreamingBlobWrites:
         # spooling must stay well under half the payload.
         assert peak < payload_mb * 1024 * 1024 / 2
 
-    def test_no_partial_blob_is_ever_observable_under_a_content_address(
-        self, tmp_path
-    ):
+    def test_no_partial_blob_is_ever_observable_under_a_content_address(self, tmp_path):
         import re
 
         blob_dir = tmp_path / "store" / "blobs"
@@ -904,3 +900,74 @@ def test_catalog_symlinked_dir_out_of_root_creates_nothing_outside(tmp_path: Pat
     with pytest.raises(KeyError):
         store.save("ln/sub/x", _artifact())
     assert list(outside.iterdir()) == []
+
+
+# --- interrupted writes (lacing#104) -------------------------------------------
+
+_KILLED_MID_WRITE = """
+import os, sys
+from lacing import ArtifactStore
+
+store = ArtifactStore.from_directory(sys.argv[1])
+
+def chunks():
+    yield b"half of a video"
+    os._exit(0)  # dies mid-write: no exception, no cleanup, like SIGKILL
+
+store.put_blob_stream(chunks())
+"""
+
+
+def test_a_write_killed_mid_way_leaves_a_file_interrupted_writes_lists(tmp_path):
+    import subprocess
+    import sys
+
+    root = tmp_path / "store"
+    subprocess.run(
+        [sys.executable, "-c", _KILLED_MID_WRITE, str(root)],
+        check=True,
+        env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)},
+    )
+    store = ArtifactStore.from_directory(root)
+    [left] = store.interrupted_writes()
+    assert left.parent == root / "blobs"
+    assert left.is_file()  # its bytes may not have been flushed: a kill's state
+    assert list(store.iter_blobs()) == []  # never a key
+
+
+def test_interrupted_writes_are_absolute_for_a_relative_root(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    store = ArtifactStore.from_directory("rel")
+    (tmp_path / "rel" / "blobs" / ".blob-abc.part").write_bytes(b"x")
+    [left] = store.interrupted_writes()
+    assert left.is_absolute() and left.is_file()
+
+
+def test_completed_and_failed_writes_leave_nothing(tmp_path):
+    store = ArtifactStore.from_directory(tmp_path)
+    store.put_blob(b"whole")
+
+    def failing():
+        yield b"part"
+        raise RuntimeError("upstream broke")
+
+    with pytest.raises(RuntimeError):
+        store.put_blob_stream(failing())
+    assert store.interrupted_writes() == []
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlinks need privileges on Windows")
+def test_interrupted_writes_lists_only_regular_spool_files(tmp_path):
+    store = ArtifactStore.from_directory(tmp_path)
+    blobs = tmp_path / "blobs"
+    (blobs / ".blob-abc.part").write_bytes(b"x")
+    (blobs / ".blob-dir.part").mkdir()
+    (blobs / ".blob-link.part").symlink_to(tmp_path / "elsewhere")
+    (blobs / ".other.tmp").write_bytes(b"x")
+    (blobs / "blob-abc.part").write_bytes(b"x")
+    assert [p.name for p in store.interrupted_writes()] == [".blob-abc.part"]
+
+
+def test_interrupted_writes_is_empty_off_the_filesystem():
+    assert ArtifactStore.in_memory().interrupted_writes() == []
+    assert ArtifactStore(catalog={}).interrupted_writes() == []
