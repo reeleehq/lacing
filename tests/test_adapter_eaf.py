@@ -150,7 +150,7 @@ class TestLoad:
     def test_load_provenance(self, sample_eaf_path):
         store = adapter_module.load(sample_eaf_path, rate=1000, attribution="thor")
         a = next(store.all())
-        assert a.provenance.was_generated_by == "adapter:eaf"
+        assert a.provenance.was_generated_by == "adapter:eaf@1.0.0"
         assert a.provenance.was_attributed_to == "thor"
         assert a.provenance.activity == "import"
 

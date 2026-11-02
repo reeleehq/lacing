@@ -112,7 +112,8 @@ def register_subtitle_schemas() -> None:
 
     Calling this is *optional*; the builder works fine without
     registered schemas. Use it when you want body-shape errors to
-    surface at write time rather than later.
+    surface at write time rather than later. It replaces whatever is
+    registered under those URIs, the built-in ``word/v1`` included.
     """
     from pydantic import BaseModel
     from lacing.schema import register_body_schema
@@ -133,9 +134,12 @@ def register_subtitle_schemas() -> None:
         line_index: Optional[int] = None
         confidence: Optional[float] = None
 
-    register_body_schema(SECTION_SCHEMA_URI, _Section)
-    register_body_schema(LINE_SCHEMA_URI, _Line)
-    register_body_schema(WORD_SCHEMA_URI, _Word)
+    # force: replacing is the point. These classes are new on every call, and
+    # WORD_SCHEMA_URI is also the strict built-in lacing.bodies.word schema,
+    # which this permissive one deliberately takes over (lacing#19).
+    register_body_schema(SECTION_SCHEMA_URI, _Section, force=True)
+    register_body_schema(LINE_SCHEMA_URI, _Line, force=True)
+    register_body_schema(WORD_SCHEMA_URI, _Word, force=True)
 
 
 class SubtitleBuilder:

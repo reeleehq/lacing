@@ -155,7 +155,7 @@ class TestLoad:
         store = adapter_module.load(sample_jams_path, rate=1000)
         chord = next(store.by_tier("chord"))
         assert chord.provenance.was_attributed_to == "thor"
-        assert chord.provenance.was_generated_by == "adapter:jams"
+        assert chord.provenance.was_generated_by == "adapter:jams@1.0.0"
 
     def test_default_attribution_when_missing(self, tmp_path):
         # Build a JAMS without annotator info.

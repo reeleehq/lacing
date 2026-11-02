@@ -42,7 +42,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from lacing.adapters import register_adapter
+from lacing.adapters import adapter_generator_id, register_adapter
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
@@ -50,6 +50,8 @@ from lacing.time import DEFAULT_RATE, RationalTime, TimeInterval
 
 
 ADAPTER_NAME = "label_studio"
+ADAPTER_VERSION = "1.0.0"
+GENERATED_BY = str(adapter_generator_id(ADAPTER_NAME, ADAPTER_VERSION))
 BODY_SCHEMA_URI = "annot://schema/label-studio-region/v1"
 DEFAULT_ASSET_ID = "label-studio:unspecified"
 
@@ -207,7 +209,7 @@ def load(
                         body=body,
                         body_schema_uri=BODY_SCHEMA_URI,
                         provenance=Provenance(
-                            was_generated_by=f"adapter:{ADAPTER_NAME}",
+                            was_generated_by=GENERATED_BY,
                             was_attributed_to=ann_attribution,
                             generated_at_time=now,
                             activity="import",
@@ -414,6 +416,7 @@ def _all_with_intervals(store: IntervalAnnotationStore):
 
 register_adapter(
     name=ADAPTER_NAME,
+    version=ADAPTER_VERSION,
     load=load,
     dump=dump,
     extensions=(".labelstudio.json",),

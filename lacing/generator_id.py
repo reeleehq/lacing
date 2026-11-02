@@ -64,7 +64,7 @@ GENERATOR_ID_SHAPE = "<prefix>:<name>[@<version>]"
 GENERATOR_PREFIXES: Mapping[str, str] = {
     "user": "a person acting through a UI or API: ``user:<handle>``",
     "agent": "a model or service: ``agent:<model>@<version digest or snapshot>``",
-    "adapter": "an import/export format adapter: ``adapter:<format>``",
+    "adapter": "an import/export format adapter: ``adapter:<format>@<version>``",
     "processor": "a lacing processor: ``processor:<name>``",
     "transform": "a pipeline transform: ``transform:<name>@<version>``",
     "server": "a server-side operation: ``server:<service>``",

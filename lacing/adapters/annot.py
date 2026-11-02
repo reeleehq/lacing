@@ -31,6 +31,7 @@ from lacing.store.sqlite import from_memory, to_memory
 
 
 ADAPTER_NAME = "annot"
+ADAPTER_VERSION = "1.0.0"
 DEFAULT_BODY_SCHEMA_URIS = ()  # the .annot format preserves whatever URIs are in the data
 
 
@@ -172,6 +173,7 @@ def _to_memory_like(store: IntervalAnnotationStore):
 
 register_adapter(
     name=ADAPTER_NAME,
+    version=ADAPTER_VERSION,
     load=load,
     dump=dump,
     extensions=(".annot",),

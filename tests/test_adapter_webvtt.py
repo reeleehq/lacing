@@ -30,7 +30,15 @@ A cue with no id
 """
 
 
-def _ann(tier: str, start_ms: int, end_ms: int, text: str, *, cue_id: str | None = None, settings: dict | None = None) -> Annotation:
+def _ann(
+    tier: str,
+    start_ms: int,
+    end_ms: int,
+    text: str,
+    *,
+    cue_id: str | None = None,
+    settings: dict | None = None,
+) -> Annotation:
     return Annotation(
         id=uuid4(),
         tier=tier,
@@ -148,7 +156,7 @@ class TestLoad:
     def test_provenance(self):
         store = adapter_module.load(SAMPLE_VTT, rate=1000, attribution="thor")
         ann = next(store.all())
-        assert ann.provenance.was_generated_by == "adapter:webvtt"
+        assert ann.provenance.was_generated_by == "adapter:webvtt@1.0.0"
         assert ann.provenance.was_attributed_to == "thor"
         assert ann.provenance.activity == "import"
 
@@ -229,11 +237,21 @@ class TestRoundTrip:
         assert len(list(loaded.all())) == len(list(original.all()))
 
         original_cues = sorted(
-            (a.body["text"], a.body.get("id"), a.interval.start.value, a.interval.end.value)
+            (
+                a.body["text"],
+                a.body.get("id"),
+                a.interval.start.value,
+                a.interval.end.value,
+            )
             for a in original.all()
         )
         loaded_cues = sorted(
-            (a.body["text"], a.body.get("id"), a.interval.start.value, a.interval.end.value)
+            (
+                a.body["text"],
+                a.body.get("id"),
+                a.interval.start.value,
+                a.interval.end.value,
+            )
             for a in loaded.all()
         )
         assert loaded_cues == original_cues

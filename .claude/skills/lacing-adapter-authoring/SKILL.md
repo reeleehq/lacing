@@ -17,10 +17,12 @@ signature is fixed by [lacing/adapters/__init__.py](../../../lacing/adapters/__i
 ```python
 # lacing/adapters/<format>.py
 import os
-from lacing.adapters import register_adapter
+from lacing.adapters import adapter_generator_id, register_adapter
 from lacing.store import IntervalAnnotationStore, MemoryStore
 
 ADAPTER_NAME = "textgrid"
+ADAPTER_VERSION = "1.0.0"  # semver; bump when the output shape changes
+GENERATED_BY = str(adapter_generator_id(ADAPTER_NAME, ADAPTER_VERSION))
 BODY_SCHEMA_URI = "annot://schema/textgrid-label/v1"
 
 
@@ -47,6 +49,7 @@ def dump(
 
 register_adapter(
     name=ADAPTER_NAME,
+    version=ADAPTER_VERSION,
     load=load,
     dump=dump,
     extensions=(".TextGrid",),  # tuple, lowercased on register
@@ -58,6 +61,8 @@ register_adapter(
 
 Notes on the surface:
 - `register_adapter` is keyword-only and returns the `AdapterSpec`.
+- `version` (semver) is the vintage of what the adapter produces. Bump it when the output shape changes (a rounding rule, an extra body field), so provenance records which vintage produced an annotation (lacing#19).
+- Registering a *different* spec under a taken name emits `RegistryConflictWarning` (it will become an error); pass `force=True` to replace on purpose. Re-registering an equal spec is a no-op.
 - `body_schema_uris` is **plural / tuple** — adapters may produce multiple
   body shapes (e.g. cue + chapter schemas).
 - `extensions` may be passed with or without leading dots; they're
@@ -149,7 +154,7 @@ Every imported annotation gets:
 
 ```python
 Provenance(
-    was_generated_by=f"adapter:{adapter_name}",
+    was_generated_by=GENERATED_BY,  # adapter:<name>@<version>; never hand-format it
     was_attributed_to=kwargs.get("attribution", "anonymous"),
     was_derived_from=[source_asset_id],  # content hash of the source file
     generated_at_time=RationalTime.now(),
@@ -177,7 +182,7 @@ overwrite.
 - [ ] License of any underlying parser is MIT/BSD/Apache.
 - [ ] All time conversions go through `_to_rational` at the boundary.
 - [ ] Tier stereotype mapping documented.
-- [ ] Provenance set with `was_generated_by="adapter:<name>"`.
+- [ ] `ADAPTER_VERSION` set and passed to `register_adapter`; provenance set with `was_generated_by=GENERATED_BY` (`adapter:<name>@<version>`).
 - [ ] Round-trip test on at least two real-world samples.
 - [ ] Lossy fields documented in module docstring.
 - [ ] `body_schema_uri` declared and registered.
