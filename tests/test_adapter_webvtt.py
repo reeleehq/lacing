@@ -303,3 +303,14 @@ def test_text_survives_a_round_trip(text, reloaded):
     store = _one_cue_store(RationalTime(0, 1), RationalTime(1, 1), text)
     back = adapter_module.load(adapter_module.dump(store))
     assert [a.body["text"] for a in back.all()] == [reloaded]
+
+
+def test_an_arrow_inside_cue_text_is_escaped_so_a_player_sees_one_cue():
+    """lacing#129: a spec-following parser starts a cue at any '-->' line."""
+    text = "x\n00:00:05.000 --> 00:00:06.000\ny"
+    store = _one_cue_store(RationalTime(0, 1), RationalTime(1, 1), text)
+    blob = adapter_module.dump(store).decode()
+    assert "-->" not in blob.split("\n", 3)[3]  # only the timing line has one
+    assert [a.body["text"] for a in adapter_module.load(blob).all()] == [
+        "x\n00:00:05.000 --&gt; 00:00:06.000\ny"
+    ]

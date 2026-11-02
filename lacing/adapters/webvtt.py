@@ -13,7 +13,10 @@ Lossy fields on dump:
     Provenance, confidence, schema URIs, and tier metadata are dropped.
     Only the text, id (if present), and settings are emitted. Blank lines
     inside a cue's text are dropped (a blank line ends a cue), and a negative
-    time raises ``ValueError`` (WebVTT has none).
+    time raises ``ValueError`` (WebVTT has none). A cue payload may not contain
+    ``-->`` (a player would read it as a new cue's timing line), so it is
+    written ``--&gt;``, which renders as ``-->``; payloads are kept raw on load,
+    so it reads back as ``--&gt;`` (lacing#129).
 
 Time discipline:
     WebVTT timestamps are ``HH:MM:SS.mmm`` or ``MM:SS.mmm`` (with milliseconds).
@@ -86,6 +89,19 @@ def _parse_timestamp(s: str, rate: int) -> RationalTime:
 def _format_timestamp(t: RationalTime) -> str:
     """Format as ``HH:MM:SS.mmm``; sub-millisecond times are truncated."""
     return format_cue_time(t, separator=".", format_name="WebVTT")
+
+
+_ARROW, _ESCAPED_ARROW = "-->", "--&gt;"
+
+
+def _escape_arrows(payload: str) -> str:
+    """``payload`` with every ``-->`` written ``--&gt;``: the spec forbids the
+    arrow in a cue payload, and its entity escape renders the same.
+
+    >>> _escape_arrows("a --> b --->")
+    'a --&gt; b ---&gt;'
+    """
+    return payload.replace(_ARROW, _ESCAPED_ARROW)
 
 
 def _parse_settings(s: str) -> dict[str, str]:
@@ -251,7 +267,7 @@ def dump(
         if settings:
             timing += " " + _format_settings(settings)
         out_lines.append(timing)
-        out_lines.append(cue_payload(str(text)))
+        out_lines.append(_escape_arrows(cue_payload(str(text))))
         out_lines.append("")
 
     blob = "\n".join(out_lines).encode("utf-8")
