@@ -13,7 +13,11 @@ Lossy fields on dump:
     Provenance, confidence, schema URIs, and tier metadata are dropped.
     Only the text, id (if present), and settings are emitted. Blank lines
     inside a cue's text are dropped (a blank line ends a cue), and a negative
-    time raises ``ValueError`` (WebVTT has none).
+    time raises ``ValueError`` (WebVTT has none). A cue payload may not contain
+    ``-->`` (a player would read it as a new cue's timing line), so it is
+    written ``--&gt;``, which renders as ``-->``; payloads are kept raw on load,
+    so it reads back as ``--&gt;`` (lacing#129). A cue id with ``-->`` or a
+    line break cannot be written at all and raises ``ValueError``.
 
 Time discipline:
     WebVTT timestamps are ``HH:MM:SS.mmm`` or ``MM:SS.mmm`` (with milliseconds).
@@ -86,6 +90,29 @@ def _parse_timestamp(s: str, rate: int) -> RationalTime:
 def _format_timestamp(t: RationalTime) -> str:
     """Format as ``HH:MM:SS.mmm``; sub-millisecond times are truncated."""
     return format_cue_time(t, separator=".", format_name="WebVTT")
+
+
+_ARROW, _ESCAPED_ARROW = "-->", "--&gt;"
+
+
+def _escape_arrows(payload: str) -> str:
+    """``payload`` with every ``-->`` written ``--&gt;``: the spec forbids the
+    arrow in a cue payload, and its entity escape renders the same.
+
+    >>> _escape_arrows("a --> b --->")
+    'a --&gt; b ---&gt;'
+    """
+    return payload.replace(_ARROW, _ESCAPED_ARROW)
+
+
+def _checked_cue_id(cue_id: str) -> str:
+    """``cue_id`` if WebVTT can write it: the spec forbids ``-->`` and line
+    breaks in an id, and ids have no escape."""
+    if _ARROW in cue_id or "\n" in cue_id or "\r" in cue_id:
+        raise ValueError(
+            f"a WebVTT cue id cannot contain '-->' or a line break: {cue_id!r}"
+        )
+    return cue_id
 
 
 def _parse_settings(s: str) -> dict[str, str]:
@@ -169,8 +196,10 @@ def _iter_cues(text: str, rate: int):
         if i >= n:
             break
 
-        if lines[i].startswith(("NOTE", "STYLE", "REGION")):
-            # Skip until blank line
+        followed_by_timing = i + 1 < n and _ARROW in lines[i + 1]
+        if lines[i].startswith(("NOTE", "STYLE", "REGION")) and not followed_by_timing:
+            # Skip until blank line (a block whose next line is a timing line is
+            # a cue whose id happens to start with one of these words).
             while i < n and lines[i].strip() != "":
                 i += 1
             continue
@@ -242,7 +271,7 @@ def dump(
         settings = body.get("settings", {})
 
         if cue_id:
-            out_lines.append(str(cue_id))
+            out_lines.append(_checked_cue_id(str(cue_id)))
 
         timing = (
             f"{_format_timestamp(ann.interval.start)} --> "  # type: ignore[union-attr]
@@ -251,7 +280,7 @@ def dump(
         if settings:
             timing += " " + _format_settings(settings)
         out_lines.append(timing)
-        out_lines.append(cue_payload(str(text)))
+        out_lines.append(_escape_arrows(cue_payload(str(text))))
         out_lines.append("")
 
     blob = "\n".join(out_lines).encode("utf-8")
