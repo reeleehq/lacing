@@ -20,6 +20,7 @@
       annotation_body_digest
       value_digest_matches
       accepted_value_digests
+      registered_prefills
       register_store_migration
       migrate_annot_file
       replay_oplog
@@ -40,6 +41,7 @@
       on_register
       body_locations
       derived_paths
+      derived_prefills
       location_fields
       register_migration
       json_schema

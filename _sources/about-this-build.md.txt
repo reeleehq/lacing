@@ -5,17 +5,19 @@ orphan: true
 
 # About this build
 
-This documentation was built on **2026-11-02 15:54 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/16c70fbb3f401ed45e17141dbefadf144064c3e4"><code>16c70fb</code></a> on branch <code>main</code>, for **lacing 0.0.71** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 16:24 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/63e671712a587452cd0161d62fdd62d019587913"><code>63e6717</code></a> on branch <code>main</code>, for **lacing 0.0.73** (from <code>pyproject.toml</code>).
 
-:::{note}
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+:::{warning}
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.73) is ahead of the latest release on PyPI (0.0.72): these docs describe unreleased code.
 :::
 
 ## Source
 
 | | |
 |---|---|
-| Commit | <a href="https://github.com/reeleehq/lacing/commit/16c70fbb3f401ed45e17141dbefadf144064c3e4"><code>16c70fbb3f401ed45e17141dbefadf144064c3e4</code></a> |
+| Commit | <a href="https://github.com/reeleehq/lacing/commit/63e671712a587452cd0161d62fdd62d019587913"><code>63e671712a587452cd0161d62fdd62d019587913</code></a> |
 | Branch | <code>main</code> |
 | Tags at this commit | none |
 | Working tree | clean |
@@ -26,9 +28,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 | | |
 |---|---|
 | Repository | <code>reeleehq/lacing</code> |
-| Run | <a href="https://github.com/reeleehq/lacing/actions/runs/41475592618">41475592618</a> |
+| Run | <a href="https://github.com/reeleehq/lacing/actions/runs/41480498810">41480498810</a> |
 | Ref | <code>refs/heads/main</code> |
-| Event commit | <code>03d16f85e10aad495cde5def91282c85d53d4c11</code> (in the history of the built commit) |
+| Event commit | <code>a46497e517d7ca9070b0009b231a4c240a242d96</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -53,13 +55,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.71/">0.0.71</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.72/">0.0.72</a>, older than the documented version (0.0.73).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 16c70fbb3f401ed45e17141dbefadf144064c3e4
+git checkout 63e671712a587452cd0161d62fdd62d019587913
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

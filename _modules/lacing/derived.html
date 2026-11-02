@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=8d9581ea"></script>
+    <script src="../../_static/documentation_options.js?v=1e158f99"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.71" />
+  <meta name="docsearch:version" content="0.0.73" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -759,10 +759,13 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">lru_cache</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">MappingProxyType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
@@ -772,7 +775,10 @@ window.runMermaid = runMermaid;</script>
     <span class="s2">"DerivedPath"</span><span class="p">,</span>
     <span class="s2">"ANY_ITEM"</span><span class="p">,</span>
     <span class="s2">"derived_paths"</span><span class="p">,</span>
+    <span class="s2">"derived_prefills"</span><span class="p">,</span>
+    <span class="s2">"derived_defaults"</span><span class="p">,</span>
     <span class="s2">"drop_paths"</span><span class="p">,</span>
+    <span class="s2">"fill_paths"</span><span class="p">,</span>
     <span class="s2">"null_paths"</span><span class="p">,</span>
 <span class="p">]</span>
 
@@ -811,10 +817,40 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<span class="n">_NO_DEFAULT</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+<span class="sd">"""A derived field whose schema declares no default (a required field, or one</span>
+<span class="sd">with a ``default_factory``), or whose defaults disagree across union members or</span>
+<span class="sd">schema modes."""</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_json_key</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``value`` as canonical JSON text, so that ``0`` is not ``False``, ``1`` is</span>
+<span class="sd">    not ``1.0`` and ``[0]`` is not ``[False]``; ``value`` itself when it is not</span>
+<span class="sd">    JSON (compared by ``==`` then)."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_same</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether two values are equal as JSON (see :func:`_json_key`)."""</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="ow">is</span> <span class="n">b</span> <span class="ow">or</span> <span class="n">_json_key</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="n">_json_key</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_note</span><span class="p">(</span><span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">DerivedPath</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Record ``path`` with ``default``; a disagreeing second default forgets it."""</span>
+    <span class="n">known</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">known</span> <span class="ow">is</span> <span class="n">_NO_DEFAULT</span> <span class="ow">or</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">_NO_DEFAULT</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_same</span><span class="p">(</span><span class="n">known</span><span class="p">,</span> <span class="n">default</span><span class="p">):</span>
+        <span class="n">default</span> <span class="o">=</span> <span class="n">_NO_DEFAULT</span>
+    <span class="n">out</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="o">=</span> <span class="n">default</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_collect</span><span class="p">(</span>
-    <span class="n">node</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">defs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="n">DerivedPath</span><span class="p">,</span> <span class="n">stack</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">out</span><span class="p">:</span> <span class="nb">set</span>
+    <span class="n">node</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">defs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="n">DerivedPath</span><span class="p">,</span> <span class="n">stack</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Add to ``out`` the path of every marked property reachable from ``node``."""</span>
+<span class="w">    </span><span class="sd">"""Add to ``out`` the path of every marked property reachable from ``node``,</span>
+<span class="sd">    mapped to its declared JSON default (:data:`_NO_DEFAULT` when none)."""</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="k">return</span>
     <span class="k">if</span> <span class="n">_MARK</span> <span class="ow">in</span> <span class="n">node</span><span class="p">:</span>  <span class="c1"># marked properties are consumed below, never recursed into</span>
@@ -838,16 +874,16 @@ window.runMermaid = runMermaid;</script>
                 <span class="sa">f</span><span class="s2">"another, non-derived field of the same object"</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="o">*</span><span class="n">prefix</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+            <span class="n">_note</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">(</span><span class="o">*</span><span class="n">prefix</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"default"</span><span class="p">,</span> <span class="n">_NO_DEFAULT</span><span class="p">))</span>
     <span class="k">for</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"allOf"</span><span class="p">,</span> <span class="p">()):</span>
         <span class="n">_collect</span><span class="p">(</span><span class="n">member</span><span class="p">,</span> <span class="n">defs</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">stack</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"anyOf"</span><span class="p">,</span> <span class="s2">"oneOf"</span><span class="p">):</span>
-        <span class="n">out</span> <span class="o">|=</span> <span class="n">_common</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">()),</span> <span class="n">defs</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">stack</span><span class="p">)</span>
+        <span class="n">_merge</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">_common</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">()),</span> <span class="n">defs</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">stack</span><span class="p">))</span>
     <span class="c1"># One path per element is only sound if every element agrees, so a tuple's</span>
     <span class="c1"># positions are intersected; a map's extra values are skipped when the</span>
     <span class="c1"># object also declares properties (they would be told apart from them only</span>
     <span class="c1"># by key name).</span>
-    <span class="n">out</span> <span class="o">|=</span> <span class="n">_common</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"prefixItems"</span><span class="p">,</span> <span class="p">()),</span> <span class="n">defs</span><span class="p">,</span> <span class="p">(</span><span class="o">*</span><span class="n">prefix</span><span class="p">,</span> <span class="n">ANY_ITEM</span><span class="p">),</span> <span class="n">stack</span><span class="p">)</span>
+    <span class="n">_merge</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">_common</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"prefixItems"</span><span class="p">,</span> <span class="p">()),</span> <span class="n">defs</span><span class="p">,</span> <span class="p">(</span><span class="o">*</span><span class="n">prefix</span><span class="p">,</span> <span class="n">ANY_ITEM</span><span class="p">),</span> <span class="n">stack</span><span class="p">))</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"items"</span><span class="p">),</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="n">_collect</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="s2">"items"</span><span class="p">],</span> <span class="n">defs</span><span class="p">,</span> <span class="p">(</span><span class="o">*</span><span class="n">prefix</span><span class="p">,</span> <span class="n">ANY_ITEM</span><span class="p">),</span> <span class="n">stack</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
     <span class="n">extra</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"additionalProperties"</span><span class="p">)</span>
@@ -855,23 +891,45 @@ window.runMermaid = runMermaid;</script>
         <span class="n">_collect</span><span class="p">(</span><span class="n">extra</span><span class="p">,</span> <span class="n">defs</span><span class="p">,</span> <span class="p">(</span><span class="o">*</span><span class="n">prefix</span><span class="p">,</span> <span class="n">ANY_ITEM</span><span class="p">),</span> <span class="n">stack</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_merge</span><span class="p">(</span><span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">found</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">default</span> <span class="ow">in</span> <span class="n">found</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">_note</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_common</span><span class="p">(</span>
     <span class="n">members</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">defs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="n">DerivedPath</span><span class="p">,</span> <span class="n">stack</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">DerivedPath</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Paths marked by *every* non-scalar member (``A | B`` drops only what both mark)."""</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Paths marked by *every* non-scalar member (``A | B`` drops only what both</span>
+<span class="sd">    mark), each with the default they all declare."""</span>
     <span class="n">per_member</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">members</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">member</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">member</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_SCALAR_TYPES</span><span class="p">:</span>
             <span class="k">continue</span>  <span class="c1"># a null / str / number alternative has no fields to confuse</span>
-        <span class="n">found</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">DerivedPath</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">found</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">_collect</span><span class="p">(</span><span class="n">member</span><span class="p">,</span> <span class="n">defs</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">stack</span><span class="p">,</span> <span class="n">found</span><span class="p">)</span>
         <span class="n">per_member</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">found</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="o">*</span><span class="n">per_member</span><span class="p">)</span> <span class="k">if</span> <span class="n">per_member</span> <span class="k">else</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">per_member</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+    <span class="n">shared</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">found</span><span class="p">)</span> <span class="k">for</span> <span class="n">found</span> <span class="ow">in</span> <span class="n">per_member</span><span class="p">))</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">found</span> <span class="ow">in</span> <span class="n">per_member</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">shared</span><span class="p">:</span>
+            <span class="n">_note</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">found</span><span class="p">[</span><span class="n">path</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_derived</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">DerivedPath</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Every derived path of ``model``, with its declared default; cached."""</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">mode</span><span class="p">,</span> <span class="n">by_alias</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="n">_SCHEMA_MODES</span><span class="p">,</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">)):</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">model_json_schema</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">by_alias</span><span class="o">=</span><span class="n">by_alias</span><span class="p">)</span>
+        <span class="n">_collect</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"$defs"</span><span class="p">,</span> <span class="p">{}),</span> <span class="p">(),</span> <span class="p">(),</span> <span class="n">out</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">MappingProxyType</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="derived_paths">
 <a class="viewcode-back" href="../../_autosummary/lacing.derived.html#lacing.derived_paths">[docs]</a>
-<span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">derived_paths</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">[</span><span class="n">DerivedPath</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""The paths, from the root of a ``model`` body, of its :class:`Derived` fields.</span>
 
@@ -884,11 +942,50 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        ValueError: a marker names a source that is not a non-derived sibling,</span>
 <span class="sd">            or sits on a container item / union member instead of a whole field.</span>
 <span class="sd">    """</span>
-    <span class="n">out</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">DerivedPath</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">mode</span><span class="p">,</span> <span class="n">by_alias</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="n">_SCHEMA_MODES</span><span class="p">,</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">)):</span>
-        <span class="n">schema</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">model_json_schema</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">by_alias</span><span class="o">=</span><span class="n">by_alias</span><span class="p">)</span>
-        <span class="n">_collect</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"$defs"</span><span class="p">,</span> <span class="p">{}),</span> <span class="p">(),</span> <span class="p">(),</span> <span class="n">out</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">_derived</span><span class="p">(</span><span class="n">model</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="derived_prefills">
+<a class="viewcode-back" href="../../_autosummary/lacing.derived.html#lacing.derived_prefills">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">derived_prefills</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">DerivedPath</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Every path of :func:`derived_paths`, mapped to the value its field holds</span>
+<span class="sd">    before it is filled: its declared JSON default, or ``None`` when there is</span>
+<span class="sd">    none (see :func:`derived_defaults` for which paths have one).</span>
+
+<span class="sd">    A fresh deep copy on every call, so mutating it cannot reach the cache.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: as :func:`derived_paths`.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">path</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">_NO_DEFAULT</span> <span class="k">else</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">default</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">default</span> <span class="ow">in</span> <span class="n">_derived</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="derived_defaults">
+<a class="viewcode-back" href="../../_autosummary/lacing.derived.html#lacing.derived_defaults">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">derived_defaults</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">DerivedPath</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The JSON default each of ``model``'s :class:`Derived` fields declares,</span>
+<span class="sd">    by path. For a plain default (``= ""``) that is what a ``model_dump()``</span>
+<span class="sd">    stores before the field is filled; a ``field_serializer`` may store</span>
+<span class="sd">    something else.</span>
+
+<span class="sd">    Only paths with one unambiguous default: a required field has none, nor has</span>
+<span class="sd">    a ``default_factory`` one (pydantic writes no JSON default for it), nor a</span>
+<span class="sd">    path whose union members or schema modes disagree. A fresh deep copy on</span>
+<span class="sd">    every call, so mutating it cannot reach the cache.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: as :func:`derived_paths`.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">path</span><span class="p">:</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">default</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">default</span> <span class="ow">in</span> <span class="n">_derived</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">_NO_DEFAULT</span>
+    <span class="p">}</span></div>
 
 
 
@@ -897,7 +994,7 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">drop_paths</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">PathSet</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Delete, in place, the entries of the JSON-like ``value`` named by ``paths``;</span>
 <span class="sd">    return whether any was there to delete."""</span>
-    <span class="k">return</span> <span class="n">_edit_paths</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">paths</span><span class="p">,</span> <span class="n">_delete</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">_edit_paths</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">((</span><span class="n">path</span><span class="p">,</span> <span class="n">_delete</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">))</span></div>
 
 
 
@@ -906,7 +1003,17 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">null_paths</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">PathSet</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Set, in place, the entries of the JSON-like ``value`` named by ``paths`` to</span>
 <span class="sd">    ``None`` (keys that are absent stay absent); return whether any changed."""</span>
-    <span class="k">return</span> <span class="n">_edit_paths</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">paths</span><span class="p">,</span> <span class="n">_set_none</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">fill_paths</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">paths</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="fill_paths">
+<a class="viewcode-back" href="../../_autosummary/lacing.derived.html#lacing.fill_paths">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fill_paths</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">fills</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">DerivedPath</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Set, in place, each entry of the JSON-like ``value`` named by a path of</span>
+<span class="sd">    ``fills`` to that path's value (keys that are absent stay absent); return</span>
+<span class="sd">    whether any changed. Each entry gets its own deep copy of the value."""</span>
+    <span class="k">return</span> <span class="n">_edit_paths</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">((</span><span class="n">path</span><span class="p">,</span> <span class="n">_setter</span><span class="p">(</span><span class="n">fill</span><span class="p">))</span> <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">fill</span> <span class="ow">in</span> <span class="n">fills</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span></div>
 
 
 
@@ -915,19 +1022,37 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="kc">True</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_set_none</span><span class="p">(</span><span class="n">container</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="n">changed</span> <span class="o">=</span> <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-    <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="n">changed</span>
+<span class="n">_IMMUTABLE_JSON</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_setter</span><span class="p">(</span><span class="n">fill</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">fill</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># the common fill: no encoding needed, nothing to copy</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">set_none</span><span class="p">(</span><span class="n">container</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="n">changed</span> <span class="o">=</span> <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="n">changed</span>
+
+        <span class="k">return</span> <span class="n">set_none</span>
+    <span class="n">fill_key</span> <span class="o">=</span> <span class="n">_json_key</span><span class="p">(</span><span class="n">fill</span><span class="p">)</span>  <span class="c1"># once per path, not once per entry</span>
+    <span class="n">copy</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fill</span><span class="p">,</span> <span class="n">_IMMUTABLE_JSON</span><span class="p">)</span> <span class="k">else</span> <span class="n">deepcopy</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_</span><span class="p">(</span><span class="n">container</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">changed</span> <span class="o">=</span> <span class="n">current</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">fill</span> <span class="ow">and</span> <span class="n">_json_key</span><span class="p">(</span><span class="n">current</span><span class="p">)</span> <span class="o">!=</span> <span class="n">fill_key</span>
+        <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">fill</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">changed</span>
+
+    <span class="k">return</span> <span class="n">set_</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_edit_paths</span><span class="p">(</span>
-    <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-    <span class="n">paths</span><span class="p">:</span> <span class="n">PathSet</span><span class="p">,</span>
-    <span class="n">edit</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">],</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">edits</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">DerivedPath</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]]]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Apply each ``(path, edit)`` pair to ``value`` (see :func:`_edit`); return</span>
+<span class="sd">    whether any reported a change."""</span>
     <span class="c1"># a list, not a generator: ``any`` would stop at the first path edited</span>
-    <span class="k">return</span> <span class="nb">any</span><span class="p">([</span><span class="n">_edit</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">edit</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">])</span>
+    <span class="k">return</span> <span class="nb">any</span><span class="p">([</span><span class="n">_edit</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">edit</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">edit</span> <span class="ow">in</span> <span class="n">edits</span><span class="p">])</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_edit</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">DerivedPath</span><span class="p">,</span> <span class="n">edit</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>

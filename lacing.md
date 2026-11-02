@@ -1,4 +1,4 @@
-> built 2026-11-02 15:54 UTC from 16c70fb (main) · lacing 0.0.71. Details: build_info.json
+> built 2026-11-02 16:24 UTC from 63e6717 (main) · lacing 0.0.73. Details: build_info.json
 
 # index.html.md
 
@@ -3048,10 +3048,13 @@ Field names and aliases are both read as spellings of a field, as in
 
 ### Functions
 
-| [`derived_paths`](_autosummary/lacing.derived.html.md#lacing.derived.derived_paths)(model)     | The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.derived.html.md#lacing.derived.Derived) fields.                            |
-|---------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`drop_paths`](_autosummary/lacing.derived.html.md#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`; return whether any was there to delete.                               |
-| [`null_paths`](_autosummary/lacing.derived.html.md#lacing.derived.null_paths)(value, paths) | Set, in place, the entries of the JSON-like `value` named by `paths` to `None` (keys that are absent stay absent); return whether any changed. |
+| [`derived_paths`](_autosummary/lacing.derived.html.md#lacing.derived.derived_paths)(model)     | The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.derived.html.md#lacing.derived.Derived) fields.                                                                                                                                                                                  |
+|---------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`derived_prefills`](_autosummary/lacing.derived.html.md#lacing.derived.derived_prefills)(model)  | Every path of [`derived_paths()`](_autosummary/lacing.derived.html.md#lacing.derived.derived_paths), mapped to the value its field holds before it is filled: its declared JSON default, or `None` when there is none (see [`derived_defaults()`](_autosummary/lacing.derived.html.md#lacing.derived.derived_defaults) for which paths have one). |
+| [`derived_defaults`](_autosummary/lacing.derived.html.md#lacing.derived.derived_defaults)(model)  | The JSON default each of `model`'s [`Derived`](_autosummary/lacing.derived.html.md#lacing.derived.Derived) fields declares, by path.                                                                                                                                                                                |
+| [`drop_paths`](_autosummary/lacing.derived.html.md#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`; return whether any was there to delete.                                                                                                                                                                                     |
+| [`fill_paths`](_autosummary/lacing.derived.html.md#lacing.derived.fill_paths)(value, fills) | Set, in place, each entry of the JSON-like `value` named by a path of `fills` to that path's value (keys that are absent stay absent); return whether any changed.                                                                                                                                   |
+| [`null_paths`](_autosummary/lacing.derived.html.md#lacing.derived.null_paths)(value, paths) | Set, in place, the entries of the JSON-like `value` named by `paths` to `None` (keys that are absent stay absent); return whether any changed.                                                                                                                                                       |
 
 ### Classes
 
@@ -3077,6 +3080,23 @@ an object key, or [`ANY_ITEM`](_autosummary/lacing.derived.html.md#lacing.derive
 
 alias of [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[str | None, …]
 
+### lacing.derived.derived_defaults(model)
+
+The JSON default each of `model`’s [`Derived`](_autosummary/lacing.derived.html.md#lacing.derived.Derived) fields declares,
+by path. For a plain default (`= ""`) that is what a `model_dump()`
+stores before the field is filled; a `field_serializer` may store
+something else.
+
+Only paths with one unambiguous default: a required field has none, nor has
+a `default_factory` one (pydantic writes no JSON default for it), nor a
+path whose union members or schema modes disagree. A fresh deep copy on
+every call, so mutating it cannot reach the cache.
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – as [`derived_paths()`](_autosummary/lacing.derived.html.md#lacing.derived.derived_paths).
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
+
 ### lacing.derived.derived_paths(model)
 
 The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.derived.html.md#lacing.derived.Derived) fields.
@@ -3092,10 +3112,32 @@ name, `alias` and `serialization_alias` all count, as in
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
 
+### lacing.derived.derived_prefills(model)
+
+Every path of [`derived_paths()`](_autosummary/lacing.derived.html.md#lacing.derived.derived_paths), mapped to the value its field holds
+before it is filled: its declared JSON default, or `None` when there is
+none (see [`derived_defaults()`](_autosummary/lacing.derived.html.md#lacing.derived.derived_defaults) for which paths have one).
+
+A fresh deep copy on every call, so mutating it cannot reach the cache.
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – as [`derived_paths()`](_autosummary/lacing.derived.html.md#lacing.derived.derived_paths).
+* **Return type:**
+  [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
+
 ### lacing.derived.drop_paths(value, paths)
 
 Delete, in place, the entries of the JSON-like `value` named by `paths`;
 return whether any was there to delete.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.derived.fill_paths(value, fills)
+
+Set, in place, each entry of the JSON-like `value` named by a path of
+`fills` to that path’s value (keys that are absent stay absent); return
+whether any changed. Each entry gets its own deep copy of the value.
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
@@ -3283,12 +3325,13 @@ consumers.
 
 ### Functions
 
-| [`annotation_value_digest`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest)(annotation, \*[, ...])   | Return the SHA-256 hex digest of `annotation`'s value.                                                                           |
-|---------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
-| [`annotation_body_digest`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest)(annotation)               | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                 |
-| [`value_digest_matches`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches)(annotation, recorded, \*)   | Whether `recorded`, a value digest a trace stored under `scheme`, still describes `annotation`'s value.                          |
-| [`accepted_value_digests`](_autosummary/lacing.digest.html.md#lacing.digest.accepted_value_digests)(annotation, \*[, ...])    | Every digest [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) accepts for `annotation`.                   |
-| [`registered_derived_paths`](_autosummary/lacing.digest.html.md#lacing.digest.registered_derived_paths)(uri)                    | The [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`. |
+| [`annotation_value_digest`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest)(annotation, \*[, ...])   | Return the SHA-256 hex digest of `annotation`'s value.                                                                                                                                                                                                                                                                                                                                                                                                                         |
+|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`annotation_body_digest`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest)(annotation)               | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                                                                                                                                                                                                                                                                                                                                                               |
+| [`value_digest_matches`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches)(annotation, recorded, \*)   | Whether `recorded`, a value digest a trace stored under `scheme`, still describes `annotation`'s value.                                                                                                                                                                                                                                                                                                                                                                        |
+| [`accepted_value_digests`](_autosummary/lacing.digest.html.md#lacing.digest.accepted_value_digests)(annotation, \*[, ...])    | Every digest [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) accepts for `annotation`.                                                                                                                                                                                                                                                                                                                                                                 |
+| [`registered_prefills`](_autosummary/lacing.digest.html.md#lacing.digest.registered_prefills)(uri)                         | The [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`, each mapped to its pre-fill value ([`lacing.derived_prefills()`](_autosummary/lacing.html.md#lacing.derived_prefills)): the default `resolve_derived` of [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) and [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) (lacing#109). |
+| [`registered_derived_paths`](_autosummary/lacing.digest.html.md#lacing.digest.registered_derived_paths)(uri)                    | The [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`: the paths-only form of [`registered_prefills()`](_autosummary/lacing.digest.html.md#lacing.digest.registered_prefills).                                                                                                                                                                                                                                                |
 
 ### Exceptions
 
@@ -3350,7 +3393,7 @@ Every digest [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacin
 
 For a verifier that memoizes per annotation and scheme and checks many
 recorded digests against one set; `value_digest_matches` stays the lazy
-one-off check.
+one-off check. `resolve_derived` is as in [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest).
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -3449,8 +3492,11 @@ digest. To check a digest a trace recorded, call [`value_digest_matches()`](_aut
 `scheme` selects which computation to run, so a digest recorded under an
 older scheme can be re-verified (see [`VALUE_DIGEST_SCHEMES`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEMES)).
 `resolve_derived` maps a `body_schema_uri` to the paths to leave out; the
-default reads the registered body schema ([`registered_derived_paths()`](_autosummary/lacing.digest.html.md#lacing.digest.registered_derived_paths)),
-and a schema that is not registered excludes nothing.
+default reads the registered body schema ([`registered_prefills()`](_autosummary/lacing.digest.html.md#lacing.digest.registered_prefills)), and
+a schema that is not registered excludes nothing. It may return a plain
+collection of paths, or a `Mapping` of path to pre-fill value: the value
+an unfilled field holds, which [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) tries besides
+`None` (a collection means `None` for each).
 
 Use this for freshness and early cutoff. For optimistic concurrency use
 `lacing.server.etag.annotation_etag()` instead — two digests, two
@@ -3507,7 +3553,8 @@ False
 
 ### lacing.digest.registered_derived_paths(uri)
 
-The [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`.
+The [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`:
+the paths-only form of [`registered_prefills()`](_autosummary/lacing.digest.html.md#lacing.digest.registered_prefills).
 
 Empty for an unregistered `uri`: excluding less can only cost a spurious
 miss, never a wrong hit. Imports [`lacing.schema`](_autosummary/lacing.schema.html.md#module-lacing.schema) on first use, so this
@@ -3515,6 +3562,18 @@ module stays stdlib-only at import time.
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
+
+### lacing.digest.registered_prefills(uri)
+
+The [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`,
+each mapped to its pre-fill value ([`lacing.derived_prefills()`](_autosummary/lacing.html.md#lacing.derived_prefills)): the
+default `resolve_derived` of [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) and
+[`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) (lacing#109).
+
+Empty for an unregistered `uri`, as [`registered_derived_paths()`](_autosummary/lacing.digest.html.md#lacing.digest.registered_derived_paths).
+
+* **Return type:**
+  [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
 ### lacing.digest.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
 
@@ -3529,17 +3588,21 @@ registered) would have recorded for the same value, all `v1`-tagged: the
 whole current body (nothing changed since); the current body with the
 derived fields dropped (they were absent then and have been filled since,
 the change `v2` exists to ignore); and the current body with the derived
-fields set to `None` (they were stored as `null` then, as a
-`model_dump()` of a model whose field defaults to `None` stores them).
+fields set to `None`, or to their pre-fill values (they were stored that
+way then: by default the JSON default each field declares, which is what a
+`model_dump()` stores for a plain default, not for a `default_factory`,
+which declares none, nor through a `field_serializer`).
 It does so under `v1` as well, where the whole-body digest is the computed
 one: which fields are derivable belongs to the schema, not to the scheme.
 
 None of these is a wrong cache hit. With `D` today’s derived paths, the
 whole-body digest matches only if the recorded body *is* the current one,
-the dropped one only if it is the current body minus `D`, and the nulled
-one only if it is the current body with `D` set to `None`. Dropping and
-nulling touch nothing outside `D`, so either way the two bodies agree
-outside `D`, which is exactly what the `v2` digest already accepts.
+the dropped one only if it is the current body minus `D`, and the filled
+ones only if it is the current body with `D` set to `None` or to the
+pre-fill values. Dropping and filling touch nothing outside `D`, so either
+way the two bodies agree outside `D`, which is exactly what the `v2`
+digest already accepts. `resolve_derived` is as in
+[`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest).
 
 ```pycon
 >>> from uuid import uuid4
@@ -3827,46 +3890,48 @@ full story. `.claude/skills/` contains the rules.
 
 ### Functions
 
-| [`generator_id_findings`](_autosummary/lacing.html.md#lacing.generator_id_findings)(value, \*[, prefixes, ...])   | What `value` does differently from the documented convention; empty if nothing.                                                                                                              |
-|------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`parse_generator_id`](_autosummary/lacing.html.md#lacing.parse_generator_id)(value)                           | Parse `value`, or return `None` when it is not of the generator-id shape.                                                                                                                    |
-| [`warn_if_malformed`](_autosummary/lacing.html.md#lacing.warn_if_malformed)(value)                            | Emit a [`GeneratorIdWarning`](_autosummary/lacing.html.md#lacing.GeneratorIdWarning), pointed at the caller outside lacing, when `value` is not of the generator-id shape; return `value`.             |
-| [`keep_rights`](_autosummary/lacing.html.md#lacing.keep_rights)(record, previous, \*[, content_hash])   | `record`, carrying forward the `rights` of the record it replaces when it states none for the same bytes (lacing#60; the choice is in lacing#94).                                            |
-| [`resolve_in_mall`](_autosummary/lacing.html.md#lacing.resolve_in_mall)(ref, mall, \*, default_store)       | What `ref` names in `mall` (store names -> [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)).                                                                                  |
-| [`content_hash_of`](_autosummary/lacing.html.md#lacing.content_hash_of)(record)                             | The content hash naming `record`'s bytes in the blob store, if it has one.                                                                                                                   |
-| [`hash_bytes`](_autosummary/lacing.html.md#lacing.hash_bytes)(data)                                    | Return the canonical `asset_id` (SHA-256 hex) for `data`.                                                                                                                                    |
-| [`hash_file`](_autosummary/lacing.html.md#lacing.hash_file)(path, \*[, chunk_size])                   | Return the canonical `asset_id` (SHA-256 hex) for the file at `path`.                                                                                                                        |
-| [`annotation_value_digest`](_autosummary/lacing.html.md#lacing.annotation_value_digest)(annotation, \*[, ...])      | Return the SHA-256 hex digest of `annotation`'s value.                                                                                                                                       |
-| [`annotation_body_digest`](_autosummary/lacing.html.md#lacing.annotation_body_digest)(annotation)                  | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                                                                             |
-| [`value_digest_matches`](_autosummary/lacing.html.md#lacing.value_digest_matches)(annotation, recorded, \*)      | Whether `recorded`, a value digest a trace stored under `scheme`, still describes `annotation`'s value.                                                                                      |
-| [`accepted_value_digests`](_autosummary/lacing.html.md#lacing.accepted_value_digests)(annotation, \*[, ...])       | Every digest [`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value_digest_matches) accepts for `annotation`.                                                                               |
-| [`register_store_migration`](_autosummary/lacing.html.md#lacing.register_store_migration)(\*, store_kind, ...)       | Register a forward store migration from `from_version` to `to_version`.                                                                                                                      |
-| [`migrate_annot_file`](_autosummary/lacing.html.md#lacing.migrate_annot_file)(path, \*[, to_version])          | Migrate a `.annot` file in place, returning `(from, to)` versions.                                                                                                                           |
-| [`replay_oplog`](_autosummary/lacing.html.md#lacing.replay_oplog)(log, \*[, until_clock, ...])           | Rebuild a store by replaying `log` up to (and including) `until_clock`.                                                                                                                      |
-| [`register_processor`](_autosummary/lacing.html.md#lacing.register_processor)([func, name])                    | Register a processor under `name` (defaults to the function name).                                                                                                                           |
-| [`registered_processors`](_autosummary/lacing.html.md#lacing.registered_processors)()                             | Names of every registered processor, sorted.                                                                                                                                                 |
-| [`run_processor_async`](_autosummary/lacing.html.md#lacing.run_processor_async)(name, \*, store, oplog, ...)    | Run a processor in the current event loop.                                                                                                                                                   |
-| [`run_processor_sync`](_autosummary/lacing.html.md#lacing.run_processor_sync)(name, \*, store, oplog, ...)     | Run a processor synchronously and return its result.                                                                                                                                         |
-| [`get_tracer`](_autosummary/lacing.html.md#lacing.get_tracer)([name, version])                         | Return a tracer or a no-op fallback.                                                                                                                                                         |
-| [`maybe_span`](_autosummary/lacing.html.md#lacing.maybe_span)(tracer, name, \*\*attributes)            | Open a span on `tracer`, attaching `attributes` if supported.                                                                                                                                |
-| [`traced`](_autosummary/lacing.html.md#lacing.traced)(tracer[, span_name, record_args])            | Decorator: wrap a function in a span on `tracer`.                                                                                                                                            |
-| [`instrument_otel`](_autosummary/lacing.html.md#lacing.instrument_otel)(app, \*[, tracer_name])             | Add OpenTelemetry instrumentation to a FastAPI app.                                                                                                                                          |
-| [`is_otel_active`](_autosummary/lacing.html.md#lacing.is_otel_active)()                                    | Quick check: is OTel installed AND a TracerProvider configured?                                                                                                                              |
-| [`cohen_kappa`](_autosummary/lacing.html.md#lacing.cohen_kappa)(a, b)                                   | Cohen's kappa for two annotators on a categorical label.                                                                                                                                     |
-| [`krippendorff_alpha`](_autosummary/lacing.html.md#lacing.krippendorff_alpha)(annotations, \*[, distance])     | Krippendorff's α across any number of annotators.                                                                                                                                            |
-| [`interval_iou`](_autosummary/lacing.html.md#lacing.interval_iou)(a, b)                                  | Intersection-over-Union for two time intervals.                                                                                                                                              |
-| [`boundary_iou`](_autosummary/lacing.html.md#lacing.boundary_iou)(a, b)                                  | Mean IoU between two sets of intervals via greedy best-match.                                                                                                                                |
-| [`register_body_schema`](_autosummary/lacing.html.md#lacing.register_body_schema)(uri, model)                    | Register `model` as the validator for `uri`.                                                                                                                                                 |
-| [`on_register`](_autosummary/lacing.html.md#lacing.on_register)(listener, \*[, replay])                 | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                            |
-| [`body_locations`](_autosummary/lacing.html.md#lacing.body_locations)(uri)                                 | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`. |
-| [`derived_paths`](_autosummary/lacing.html.md#lacing.derived_paths)(model)                                | The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.html.md#lacing.Derived) fields.                                                                          |
-| [`location_fields`](_autosummary/lacing.html.md#lacing.location_fields)(model)                              | `{field spelling: kind}` for the [`Location`](_autosummary/lacing.html.md#lacing.Location)-marked fields of `model` and of the models nested in it.                                          |
-| [`register_migration`](_autosummary/lacing.html.md#lacing.register_migration)(\*, schema_name, ...)            | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                      |
-| [`json_schema`](_autosummary/lacing.html.md#lacing.json_schema)(uri)                                    | Return the JSON Schema for the body model registered at `uri`.                                                                                                                               |
-| [`export_json_schemas`](_autosummary/lacing.html.md#lacing.export_json_schemas)(target_dir, \*[, ...])          | Write every registered schema as JSON files under `target_dir`.                                                                                                                              |
-| [`render_artifact_exhibit`](_autosummary/lacing.html.md#lacing.render_artifact_exhibit)(annotations, \*, out_dir)   | Render an annotation graph as a human-readable artifact exhibit.                                                                                                                             |
-| [`migrate`](_autosummary/lacing.html.md#lacing.migrate)(body, \*, from_uri, to_uri)                 | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                             |
-| [`validate_body`](_autosummary/lacing.html.md#lacing.validate_body)(body, uri)                            | Validate `body` against the schema registered for `uri`.                                                                                                                                     |
+| [`generator_id_findings`](_autosummary/lacing.html.md#lacing.generator_id_findings)(value, \*[, prefixes, ...])   | What `value` does differently from the documented convention; empty if nothing.                                                                                                                                                                                                                                                                                                                                                         |
+|------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`parse_generator_id`](_autosummary/lacing.html.md#lacing.parse_generator_id)(value)                           | Parse `value`, or return `None` when it is not of the generator-id shape.                                                                                                                                                                                                                                                                                                                                                               |
+| [`warn_if_malformed`](_autosummary/lacing.html.md#lacing.warn_if_malformed)(value)                            | Emit a [`GeneratorIdWarning`](_autosummary/lacing.html.md#lacing.GeneratorIdWarning), pointed at the caller outside lacing, when `value` is not of the generator-id shape; return `value`.                                                                                                                                                                                                                                                        |
+| [`keep_rights`](_autosummary/lacing.html.md#lacing.keep_rights)(record, previous, \*[, content_hash])   | `record`, carrying forward the `rights` of the record it replaces when it states none for the same bytes (lacing#60; the choice is in lacing#94).                                                                                                                                                                                                                                                                                       |
+| [`resolve_in_mall`](_autosummary/lacing.html.md#lacing.resolve_in_mall)(ref, mall, \*, default_store)       | What `ref` names in `mall` (store names -> [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)).                                                                                                                                                                                                                                                                                                                             |
+| [`content_hash_of`](_autosummary/lacing.html.md#lacing.content_hash_of)(record)                             | The content hash naming `record`'s bytes in the blob store, if it has one.                                                                                                                                                                                                                                                                                                                                                              |
+| [`hash_bytes`](_autosummary/lacing.html.md#lacing.hash_bytes)(data)                                    | Return the canonical `asset_id` (SHA-256 hex) for `data`.                                                                                                                                                                                                                                                                                                                                                                               |
+| [`hash_file`](_autosummary/lacing.html.md#lacing.hash_file)(path, \*[, chunk_size])                   | Return the canonical `asset_id` (SHA-256 hex) for the file at `path`.                                                                                                                                                                                                                                                                                                                                                                   |
+| [`annotation_value_digest`](_autosummary/lacing.html.md#lacing.annotation_value_digest)(annotation, \*[, ...])      | Return the SHA-256 hex digest of `annotation`'s value.                                                                                                                                                                                                                                                                                                                                                                                  |
+| [`annotation_body_digest`](_autosummary/lacing.html.md#lacing.annotation_body_digest)(annotation)                  | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                                                                                                                                                                                                                                                                                                                        |
+| [`value_digest_matches`](_autosummary/lacing.html.md#lacing.value_digest_matches)(annotation, recorded, \*)      | Whether `recorded`, a value digest a trace stored under `scheme`, still describes `annotation`'s value.                                                                                                                                                                                                                                                                                                                                 |
+| [`accepted_value_digests`](_autosummary/lacing.html.md#lacing.accepted_value_digests)(annotation, \*[, ...])       | Every digest [`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value_digest_matches) accepts for `annotation`.                                                                                                                                                                                                                                                                                                                          |
+| [`registered_prefills`](_autosummary/lacing.html.md#lacing.registered_prefills)(uri)                            | The [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`, each mapped to its pre-fill value ([`lacing.derived_prefills()`](_autosummary/lacing.html.md#lacing.derived_prefills)): the default `resolve_derived` of [`annotation_value_digest()`](_autosummary/lacing.html.md#lacing.annotation_value_digest) and [`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value_digest_matches) (lacing#109). |
+| [`register_store_migration`](_autosummary/lacing.html.md#lacing.register_store_migration)(\*, store_kind, ...)       | Register a forward store migration from `from_version` to `to_version`.                                                                                                                                                                                                                                                                                                                                                                 |
+| [`migrate_annot_file`](_autosummary/lacing.html.md#lacing.migrate_annot_file)(path, \*[, to_version])          | Migrate a `.annot` file in place, returning `(from, to)` versions.                                                                                                                                                                                                                                                                                                                                                                      |
+| [`replay_oplog`](_autosummary/lacing.html.md#lacing.replay_oplog)(log, \*[, until_clock, ...])           | Rebuild a store by replaying `log` up to (and including) `until_clock`.                                                                                                                                                                                                                                                                                                                                                                 |
+| [`register_processor`](_autosummary/lacing.html.md#lacing.register_processor)([func, name])                    | Register a processor under `name` (defaults to the function name).                                                                                                                                                                                                                                                                                                                                                                      |
+| [`registered_processors`](_autosummary/lacing.html.md#lacing.registered_processors)()                             | Names of every registered processor, sorted.                                                                                                                                                                                                                                                                                                                                                                                            |
+| [`run_processor_async`](_autosummary/lacing.html.md#lacing.run_processor_async)(name, \*, store, oplog, ...)    | Run a processor in the current event loop.                                                                                                                                                                                                                                                                                                                                                                                              |
+| [`run_processor_sync`](_autosummary/lacing.html.md#lacing.run_processor_sync)(name, \*, store, oplog, ...)     | Run a processor synchronously and return its result.                                                                                                                                                                                                                                                                                                                                                                                    |
+| [`get_tracer`](_autosummary/lacing.html.md#lacing.get_tracer)([name, version])                         | Return a tracer or a no-op fallback.                                                                                                                                                                                                                                                                                                                                                                                                    |
+| [`maybe_span`](_autosummary/lacing.html.md#lacing.maybe_span)(tracer, name, \*\*attributes)            | Open a span on `tracer`, attaching `attributes` if supported.                                                                                                                                                                                                                                                                                                                                                                           |
+| [`traced`](_autosummary/lacing.html.md#lacing.traced)(tracer[, span_name, record_args])            | Decorator: wrap a function in a span on `tracer`.                                                                                                                                                                                                                                                                                                                                                                                       |
+| [`instrument_otel`](_autosummary/lacing.html.md#lacing.instrument_otel)(app, \*[, tracer_name])             | Add OpenTelemetry instrumentation to a FastAPI app.                                                                                                                                                                                                                                                                                                                                                                                     |
+| [`is_otel_active`](_autosummary/lacing.html.md#lacing.is_otel_active)()                                    | Quick check: is OTel installed AND a TracerProvider configured?                                                                                                                                                                                                                                                                                                                                                                         |
+| [`cohen_kappa`](_autosummary/lacing.html.md#lacing.cohen_kappa)(a, b)                                   | Cohen's kappa for two annotators on a categorical label.                                                                                                                                                                                                                                                                                                                                                                                |
+| [`krippendorff_alpha`](_autosummary/lacing.html.md#lacing.krippendorff_alpha)(annotations, \*[, distance])     | Krippendorff's α across any number of annotators.                                                                                                                                                                                                                                                                                                                                                                                       |
+| [`interval_iou`](_autosummary/lacing.html.md#lacing.interval_iou)(a, b)                                  | Intersection-over-Union for two time intervals.                                                                                                                                                                                                                                                                                                                                                                                         |
+| [`boundary_iou`](_autosummary/lacing.html.md#lacing.boundary_iou)(a, b)                                  | Mean IoU between two sets of intervals via greedy best-match.                                                                                                                                                                                                                                                                                                                                                                           |
+| [`register_body_schema`](_autosummary/lacing.html.md#lacing.register_body_schema)(uri, model)                    | Register `model` as the validator for `uri`.                                                                                                                                                                                                                                                                                                                                                                                            |
+| [`on_register`](_autosummary/lacing.html.md#lacing.on_register)(listener, \*[, replay])                 | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                                                                                                                                                                                                                                                                       |
+| [`body_locations`](_autosummary/lacing.html.md#lacing.body_locations)(uri)                                 | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`.                                                                                                                                                                                                                                            |
+| [`derived_paths`](_autosummary/lacing.html.md#lacing.derived_paths)(model)                                | The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.html.md#lacing.Derived) fields.                                                                                                                                                                                                                                                                                                                     |
+| [`derived_prefills`](_autosummary/lacing.html.md#lacing.derived_prefills)(model)                             | Every path of [`derived_paths()`](_autosummary/lacing.html.md#lacing.derived_paths), mapped to the value its field holds before it is filled: its declared JSON default, or `None` when there is none (see `derived_defaults()` for which paths have one).                                                                                                                                                                                   |
+| [`location_fields`](_autosummary/lacing.html.md#lacing.location_fields)(model)                              | `{field spelling: kind}` for the [`Location`](_autosummary/lacing.html.md#lacing.Location)-marked fields of `model` and of the models nested in it.                                                                                                                                                                                                                                                                                     |
+| [`register_migration`](_autosummary/lacing.html.md#lacing.register_migration)(\*, schema_name, ...)            | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                                                                                                                                                                                                                                                                 |
+| [`json_schema`](_autosummary/lacing.html.md#lacing.json_schema)(uri)                                    | Return the JSON Schema for the body model registered at `uri`.                                                                                                                                                                                                                                                                                                                                                                          |
+| [`export_json_schemas`](_autosummary/lacing.html.md#lacing.export_json_schemas)(target_dir, \*[, ...])          | Write every registered schema as JSON files under `target_dir`.                                                                                                                                                                                                                                                                                                                                                                         |
+| [`render_artifact_exhibit`](_autosummary/lacing.html.md#lacing.render_artifact_exhibit)(annotations, \*, out_dir)   | Render an annotation graph as a human-readable artifact exhibit.                                                                                                                                                                                                                                                                                                                                                                        |
+| [`migrate`](_autosummary/lacing.html.md#lacing.migrate)(body, \*, from_uri, to_uri)                 | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                                                                                                                                                                                                                                                                        |
+| [`validate_body`](_autosummary/lacing.html.md#lacing.validate_body)(body, uri)                            | Validate `body` against the schema registered for `uri`.                                                                                                                                                                                                                                                                                                                                                                                |
 
 ### Classes
 
@@ -5382,7 +5447,7 @@ Every digest [`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value
 
 For a verifier that memoizes per annotation and scheme and checks many
 recorded digests against one set; `value_digest_matches` stays the lazy
-one-off check.
+one-off check. `resolve_derived` is as in [`annotation_value_digest()`](_autosummary/lacing.html.md#lacing.annotation_value_digest).
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -5481,8 +5546,11 @@ digest. To check a digest a trace recorded, call [`value_digest_matches()`](_aut
 `scheme` selects which computation to run, so a digest recorded under an
 older scheme can be re-verified (see `VALUE_DIGEST_SCHEMES`).
 `resolve_derived` maps a `body_schema_uri` to the paths to leave out; the
-default reads the registered body schema (`registered_derived_paths()`),
-and a schema that is not registered excludes nothing.
+default reads the registered body schema ([`registered_prefills()`](_autosummary/lacing.html.md#lacing.registered_prefills)), and
+a schema that is not registered excludes nothing. It may return a plain
+collection of paths, or a `Mapping` of path to pre-fill value: the value
+an unfilled field holds, which [`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value_digest_matches) tries besides
+`None` (a collection means `None` for each).
 
 Use this for freshness and early cutoff. For optimistic concurrency use
 `lacing.server.etag.annotation_etag()` instead — two digests, two
@@ -5610,6 +5678,19 @@ name, `alias` and `serialization_alias` all count, as in
       or sits on a container item / union member instead of a whole field.
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
+
+### lacing.derived_prefills(model)
+
+Every path of [`derived_paths()`](_autosummary/lacing.html.md#lacing.derived_paths), mapped to the value its field holds
+before it is filled: its declared JSON default, or `None` when there is
+none (see `derived_defaults()` for which paths have one).
+
+A fresh deep copy on every call, so mutating it cannot reach the cache.
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – as [`derived_paths()`](_autosummary/lacing.html.md#lacing.derived_paths).
+* **Return type:**
+  [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
 ### lacing.export_json_schemas(target_dir, , overwrite=True, include_meta=True, allow_empty=False)
 
@@ -5956,6 +6037,18 @@ rebuilt.
 Re-registering the same `(store_kind, from_version)` pair replaces the
 previous entry.
 
+### lacing.registered_prefills(uri)
+
+The [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`,
+each mapped to its pre-fill value ([`lacing.derived_prefills()`](_autosummary/lacing.html.md#lacing.derived_prefills)): the
+default `resolve_derived` of [`annotation_value_digest()`](_autosummary/lacing.html.md#lacing.annotation_value_digest) and
+[`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value_digest_matches) (lacing#109).
+
+Empty for an unregistered `uri`, as `registered_derived_paths()`.
+
+* **Return type:**
+  [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
+
 ### lacing.registered_processors()
 
 Names of every registered processor, sorted.
@@ -6095,17 +6188,21 @@ registered) would have recorded for the same value, all `v1`-tagged: the
 whole current body (nothing changed since); the current body with the
 derived fields dropped (they were absent then and have been filled since,
 the change `v2` exists to ignore); and the current body with the derived
-fields set to `None` (they were stored as `null` then, as a
-`model_dump()` of a model whose field defaults to `None` stores them).
+fields set to `None`, or to their pre-fill values (they were stored that
+way then: by default the JSON default each field declares, which is what a
+`model_dump()` stores for a plain default, not for a `default_factory`,
+which declares none, nor through a `field_serializer`).
 It does so under `v1` as well, where the whole-body digest is the computed
 one: which fields are derivable belongs to the schema, not to the scheme.
 
 None of these is a wrong cache hit. With `D` today’s derived paths, the
 whole-body digest matches only if the recorded body *is* the current one,
-the dropped one only if it is the current body minus `D`, and the nulled
-one only if it is the current body with `D` set to `None`. Dropping and
-nulling touch nothing outside `D`, so either way the two bodies agree
-outside `D`, which is exactly what the `v2` digest already accepts.
+the dropped one only if it is the current body minus `D`, and the filled
+ones only if it is the current body with `D` set to `None` or to the
+pre-fill values. Dropping and filling touch nothing outside `D`, so either
+way the two bodies agree outside `D`, which is exactly what the `v2`
+digest already accepts. `resolve_derived` is as in
+[`annotation_value_digest()`](_autosummary/lacing.html.md#lacing.annotation_value_digest).
 
 ```pycon
 >>> from uuid import uuid4
@@ -9318,16 +9415,18 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-02 15:54 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/16c70fbb3f401ed45e17141dbefadf144064c3e4"><code>16c70fb</code></a> on branch <code>main</code>, for **lacing 0.0.71** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 16:24 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/63e671712a587452cd0161d62fdd62d019587913"><code>63e6717</code></a> on branch <code>main</code>, for **lacing 0.0.73** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.73) is ahead of the latest release on PyPI (0.0.72): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/16c70fbb3f401ed45e17141dbefadf144064c3e4"><code>16c70fbb3f401ed45e17141dbefadf144064c3e4</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/63e671712a587452cd0161d62fdd62d019587913"><code>63e671712a587452cd0161d62fdd62d019587913</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -9338,9 +9437,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41475592618">41475592618</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41480498810">41480498810</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>03d16f85e10aad495cde5def91282c85d53d4c11</code> (in the history of the built commit) |
+| Event commit | <code>a46497e517d7ca9070b0009b231a4c240a242d96</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9365,13 +9464,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.71/">0.0.71</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.72/">0.0.72</a>, older than the documented version (0.0.73).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 16c70fbb3f401ed45e17141dbefadf144064c3e4
+git checkout 63e671712a587452cd0161d62fdd62d019587913
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

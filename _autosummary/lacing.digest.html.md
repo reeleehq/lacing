@@ -170,12 +170,13 @@ consumers.
 
 ### Functions
 
-| [`annotation_value_digest`](#lacing.digest.annotation_value_digest)(annotation, \*[, ...])   | Return the SHA-256 hex digest of `annotation`'s value.                                                                           |
-|---------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
-| [`annotation_body_digest`](#lacing.digest.annotation_body_digest)(annotation)               | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                 |
-| [`value_digest_matches`](#lacing.digest.value_digest_matches)(annotation, recorded, \*)   | Whether `recorded`, a value digest a trace stored under `scheme`, still describes `annotation`'s value.                          |
-| [`accepted_value_digests`](#lacing.digest.accepted_value_digests)(annotation, \*[, ...])    | Every digest [`value_digest_matches()`](#lacing.digest.value_digest_matches) accepts for `annotation`.                   |
-| [`registered_derived_paths`](#lacing.digest.registered_derived_paths)(uri)                    | The [`lacing.Derived`](lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`. |
+| [`annotation_value_digest`](#lacing.digest.annotation_value_digest)(annotation, \*[, ...])   | Return the SHA-256 hex digest of `annotation`'s value.                                                                                                                                                                                                                                                                                                                                                                                                                         |
+|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`annotation_body_digest`](#lacing.digest.annotation_body_digest)(annotation)               | Return the SHA-256 hex digest of `{body, body_schema_uri}` only.                                                                                                                                                                                                                                                                                                                                                                                                               |
+| [`value_digest_matches`](#lacing.digest.value_digest_matches)(annotation, recorded, \*)   | Whether `recorded`, a value digest a trace stored under `scheme`, still describes `annotation`'s value.                                                                                                                                                                                                                                                                                                                                                                        |
+| [`accepted_value_digests`](#lacing.digest.accepted_value_digests)(annotation, \*[, ...])    | Every digest [`value_digest_matches()`](#lacing.digest.value_digest_matches) accepts for `annotation`.                                                                                                                                                                                                                                                                                                                                                                 |
+| [`registered_prefills`](#lacing.digest.registered_prefills)(uri)                         | The [`lacing.Derived`](lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`, each mapped to its pre-fill value ([`lacing.derived_prefills()`](lacing.html.md#lacing.derived_prefills)): the default `resolve_derived` of [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) and [`value_digest_matches()`](#lacing.digest.value_digest_matches) (lacing#109). |
+| [`registered_derived_paths`](#lacing.digest.registered_derived_paths)(uri)                    | The [`lacing.Derived`](lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`: the paths-only form of [`registered_prefills()`](#lacing.digest.registered_prefills).                                                                                                                                                                                                                                                |
 
 ### Exceptions
 
@@ -237,7 +238,7 @@ Every digest [`value_digest_matches()`](#lacing.digest.value_digest_matches) acc
 
 For a verifier that memoizes per annotation and scheme and checks many
 recorded digests against one set; `value_digest_matches` stays the lazy
-one-off check.
+one-off check. `resolve_derived` is as in [`annotation_value_digest()`](#lacing.digest.annotation_value_digest).
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -336,8 +337,11 @@ digest. To check a digest a trace recorded, call [`value_digest_matches()`](#lac
 `scheme` selects which computation to run, so a digest recorded under an
 older scheme can be re-verified (see [`VALUE_DIGEST_SCHEMES`](#lacing.digest.VALUE_DIGEST_SCHEMES)).
 `resolve_derived` maps a `body_schema_uri` to the paths to leave out; the
-default reads the registered body schema ([`registered_derived_paths()`](#lacing.digest.registered_derived_paths)),
-and a schema that is not registered excludes nothing.
+default reads the registered body schema ([`registered_prefills()`](#lacing.digest.registered_prefills)), and
+a schema that is not registered excludes nothing. It may return a plain
+collection of paths, or a `Mapping` of path to pre-fill value: the value
+an unfilled field holds, which [`value_digest_matches()`](#lacing.digest.value_digest_matches) tries besides
+`None` (a collection means `None` for each).
 
 Use this for freshness and early cutoff. For optimistic concurrency use
 `lacing.server.etag.annotation_etag()` instead — two digests, two
@@ -394,7 +398,8 @@ False
 
 ### lacing.digest.registered_derived_paths(uri)
 
-The [`lacing.Derived`](lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`.
+The [`lacing.Derived`](lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`:
+the paths-only form of [`registered_prefills()`](#lacing.digest.registered_prefills).
 
 Empty for an unregistered `uri`: excluding less can only cost a spurious
 miss, never a wrong hit. Imports [`lacing.schema`](lacing.schema.html.md#module-lacing.schema) on first use, so this
@@ -402,6 +407,18 @@ module stays stdlib-only at import time.
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
+
+### lacing.digest.registered_prefills(uri)
+
+The [`lacing.Derived`](lacing.html.md#lacing.Derived) paths of the body schema registered at `uri`,
+each mapped to its pre-fill value ([`lacing.derived_prefills()`](lacing.html.md#lacing.derived_prefills)): the
+default `resolve_derived` of [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) and
+[`value_digest_matches()`](#lacing.digest.value_digest_matches) (lacing#109).
+
+Empty for an unregistered `uri`, as [`registered_derived_paths()`](#lacing.digest.registered_derived_paths).
+
+* **Return type:**
+  [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
 ### lacing.digest.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
 
@@ -416,17 +433,21 @@ registered) would have recorded for the same value, all `v1`-tagged: the
 whole current body (nothing changed since); the current body with the
 derived fields dropped (they were absent then and have been filled since,
 the change `v2` exists to ignore); and the current body with the derived
-fields set to `None` (they were stored as `null` then, as a
-`model_dump()` of a model whose field defaults to `None` stores them).
+fields set to `None`, or to their pre-fill values (they were stored that
+way then: by default the JSON default each field declares, which is what a
+`model_dump()` stores for a plain default, not for a `default_factory`,
+which declares none, nor through a `field_serializer`).
 It does so under `v1` as well, where the whole-body digest is the computed
 one: which fields are derivable belongs to the schema, not to the scheme.
 
 None of these is a wrong cache hit. With `D` today’s derived paths, the
 whole-body digest matches only if the recorded body *is* the current one,
-the dropped one only if it is the current body minus `D`, and the nulled
-one only if it is the current body with `D` set to `None`. Dropping and
-nulling touch nothing outside `D`, so either way the two bodies agree
-outside `D`, which is exactly what the `v2` digest already accepts.
+the dropped one only if it is the current body minus `D`, and the filled
+ones only if it is the current body with `D` set to `None` or to the
+pre-fill values. Dropping and filling touch nothing outside `D`, so either
+way the two bodies agree outside `D`, which is exactly what the `v2`
+digest already accepts. `resolve_derived` is as in
+[`annotation_value_digest()`](#lacing.digest.annotation_value_digest).
 
 ```pycon
 >>> from uuid import uuid4

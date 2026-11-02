@@ -54,10 +54,13 @@ Field names and aliases are both read as spellings of a field, as in
 
 ### Functions
 
-| [`derived_paths`](#lacing.derived.derived_paths)(model)     | The paths, from the root of a `model` body, of its [`Derived`](#lacing.derived.Derived) fields.                            |
-|---------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`drop_paths`](#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`; return whether any was there to delete.                               |
-| [`null_paths`](#lacing.derived.null_paths)(value, paths) | Set, in place, the entries of the JSON-like `value` named by `paths` to `None` (keys that are absent stay absent); return whether any changed. |
+| [`derived_paths`](#lacing.derived.derived_paths)(model)     | The paths, from the root of a `model` body, of its [`Derived`](#lacing.derived.Derived) fields.                                                                                                                                                                                  |
+|---------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`derived_prefills`](#lacing.derived.derived_prefills)(model)  | Every path of [`derived_paths()`](#lacing.derived.derived_paths), mapped to the value its field holds before it is filled: its declared JSON default, or `None` when there is none (see [`derived_defaults()`](#lacing.derived.derived_defaults) for which paths have one). |
+| [`derived_defaults`](#lacing.derived.derived_defaults)(model)  | The JSON default each of `model`'s [`Derived`](#lacing.derived.Derived) fields declares, by path.                                                                                                                                                                                |
+| [`drop_paths`](#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`; return whether any was there to delete.                                                                                                                                                                                     |
+| [`fill_paths`](#lacing.derived.fill_paths)(value, fills) | Set, in place, each entry of the JSON-like `value` named by a path of `fills` to that path's value (keys that are absent stay absent); return whether any changed.                                                                                                                                   |
+| [`null_paths`](#lacing.derived.null_paths)(value, paths) | Set, in place, the entries of the JSON-like `value` named by `paths` to `None` (keys that are absent stay absent); return whether any changed.                                                                                                                                                       |
 
 ### Classes
 
@@ -83,6 +86,23 @@ an object key, or [`ANY_ITEM`](#lacing.derived.ANY_ITEM).
 
 alias of [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[str | None, …]
 
+### lacing.derived.derived_defaults(model)
+
+The JSON default each of `model`’s [`Derived`](#lacing.derived.Derived) fields declares,
+by path. For a plain default (`= ""`) that is what a `model_dump()`
+stores before the field is filled; a `field_serializer` may store
+something else.
+
+Only paths with one unambiguous default: a required field has none, nor has
+a `default_factory` one (pydantic writes no JSON default for it), nor a
+path whose union members or schema modes disagree. A fresh deep copy on
+every call, so mutating it cannot reach the cache.
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – as [`derived_paths()`](#lacing.derived.derived_paths).
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
+
 ### lacing.derived.derived_paths(model)
 
 The paths, from the root of a `model` body, of its [`Derived`](#lacing.derived.Derived) fields.
@@ -98,10 +118,32 @@ name, `alias` and `serialization_alias` all count, as in
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
 
+### lacing.derived.derived_prefills(model)
+
+Every path of [`derived_paths()`](#lacing.derived.derived_paths), mapped to the value its field holds
+before it is filled: its declared JSON default, or `None` when there is
+none (see [`derived_defaults()`](#lacing.derived.derived_defaults) for which paths have one).
+
+A fresh deep copy on every call, so mutating it cannot reach the cache.
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – as [`derived_paths()`](#lacing.derived.derived_paths).
+* **Return type:**
+  [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
+
 ### lacing.derived.drop_paths(value, paths)
 
 Delete, in place, the entries of the JSON-like `value` named by `paths`;
 return whether any was there to delete.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.derived.fill_paths(value, fills)
+
+Set, in place, each entry of the JSON-like `value` named by a path of
+`fills` to that path’s value (keys that are absent stay absent); return
+whether any changed. Each entry gets its own deep copy of the value.
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)

@@ -16,7 +16,10 @@ lacing.derived
    .. autosummary::
    
       derived_paths
+      derived_prefills
+      derived_defaults
       drop_paths
+      fill_paths
       null_paths
    
    .. rubric:: Classes
