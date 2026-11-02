@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=1e158f99"></script>
+    <script src="../_static/documentation_options.js?v=d59c1f54"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.73" />
+  <meta name="docsearch:version" content="0.0.74" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -948,13 +948,15 @@ persists across processes. <code class="docutils literal notranslate"><span clas
 <dl class="py method">
 <dt class="sig sig-object py" id="lacing.artifact_store.ArtifactStore.interrupted_writes">
 <span class="sig-name descname"><span class="pre">interrupted_writes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/artifact_store.html#ArtifactStore.interrupted_writes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.artifact_store.ArtifactStore.interrupted_writes" title="Link to this definition">#</a></dt>
-<dd><p>The staging files of blob writes that never finished (lacing#104).</p>
+<dd><p>The staging files of writes that never finished (lacing#104, #118).</p>
 <p><a class="reference internal" href="#lacing.artifact_store.ArtifactStore.put_blob_stream" title="lacing.artifact_store.ArtifactStore.put_blob_stream"><code class="xref py py-meth docutils literal notranslate"><span class="pre">put_blob_stream()</span></code></a> (and so <a class="reference internal" href="#lacing.artifact_store.ArtifactStore.put_blob" title="lacing.artifact_store.ArtifactStore.put_blob"><code class="xref py py-meth docutils literal notranslate"><span class="pre">put_blob()</span></code></a>) spools into a hidden
-<code class="docutils literal notranslate"><span class="pre">.blob-*.part</span></code> file beside the blobs and renames it into place when
-the bytes are complete; a failed write unlinks it. A process killed
-mid-write (SIGKILL, power loss) cannot, and the file, possibly a whole
-video, stays where no listing sees it. This lists those files, for a
-collector to delete.</p>
+<code class="docutils literal notranslate"><span class="pre">.blob-*.part</span></code> file beside the blobs, and a filesystem catalog writes
+each record through <code class="docutils literal notranslate"><span class="pre">dol.atomic_write</span></code> (a hidden
+<code class="docutils literal notranslate"><span class="pre">.&lt;name&gt;.&lt;hex&gt;.tmp</span></code> sibling); both rename into place when complete,
+and a failed write unlinks its file. A process killed mid-write
+(SIGKILL, power loss) cannot, and the file, possibly a whole video,
+stays where no listing sees it. This lists those files, for a collector
+to delete.</p>
 <p>It also lists writes <strong>in flight right now</strong>: a collector should spare
 a file modified recently (<code class="docutils literal notranslate"><span class="pre">an</span> <span class="pre">cache</span> <span class="pre">gc</span></code> does, by mtime). Paths are
 absolute. Empty for a store whose blobs are not on a filesystem (no
@@ -962,9 +964,9 @@ absolute. Empty for a store whose blobs are not on a filesystem (no
 not exist.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#OSError" title="(in Python v3.15)"><strong>OSError</strong></a> – the blob folder exists but cannot be listed (not a
-    directory, no permission). Nothing is known, so a collector
-    should delete nothing.</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#OSError" title="(in Python v3.15)"><strong>OSError</strong></a> – a folder exists but cannot be listed (not a directory, no
+    permission). Nothing is known, so a collector should delete
+    nothing.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>]</span></p>

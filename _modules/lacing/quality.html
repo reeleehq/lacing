@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=1e158f99"></script>
+    <script src="../../_static/documentation_options.js?v=d59c1f54"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.73" />
+  <meta name="docsearch:version" content="0.0.74" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -734,7 +734,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">TypeVar</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">TypeVar</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.allen</span><span class="w"> </span><span class="kn">import</span> <span class="n">intersects</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.time</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeInterval</span>
@@ -796,6 +796,74 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="mf">0.0</span> <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="n">y</span> <span class="k">else</span> <span class="mf">1.0</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_interval_distance</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ratio_distance</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ratio_metric</span><span class="p">(</span><span class="n">marginals</span><span class="p">:</span> <span class="n">Counter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The ratio metric, refused for a negative label: ratio data has a true zero,</span>
+<span class="sd">    and ``x + y == 0`` for ``x != y`` would otherwise read as agreement."""</span>
+    <span class="n">negative</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">marginals</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">negative</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"the ratio level needs non-negative labels; got </span><span class="si">{</span><span class="n">negative</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_ratio_distance</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ordinal_metric</span><span class="p">(</span><span class="n">marginals</span><span class="p">:</span> <span class="n">Counter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">T</span><span class="p">,</span> <span class="n">T</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Krippendorff's ordinal metric: the squared count of values *between* two</span>
+<span class="sd">    ranks, ``(sum_{g=c..k} n_g - (n_c + n_k) / 2) ** 2``, so its scale is set by</span>
+<span class="sd">    how the values are spread, not by their numeric gaps. Needs orderable labels."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ranked</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">marginals</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"the ordinal level needs labels of one orderable type "</span>
+            <span class="sa">f</span><span class="s2">"(strings sort as text: '10' &lt; '9'): </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+    <span class="n">position</span> <span class="o">=</span> <span class="p">{</span><span class="n">value</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ranked</span><span class="p">)}</span>
+    <span class="n">cumulative</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">ranked</span><span class="p">:</span>
+        <span class="n">cumulative</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cumulative</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">marginals</span><span class="p">[</span><span class="n">value</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">distance</span><span class="p">(</span><span class="n">c</span><span class="p">:</span> <span class="n">T</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">T</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">((</span><span class="n">position</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">position</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
+        <span class="n">between</span> <span class="o">=</span> <span class="n">cumulative</span><span class="p">[</span><span class="n">hi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">cumulative</span><span class="p">[</span><span class="n">lo</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">between</span> <span class="o">-</span> <span class="p">(</span><span class="n">marginals</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">+</span> <span class="n">marginals</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+    <span class="k">return</span> <span class="n">distance</span>
+
+
+<span class="n">DistanceLevel</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"nominal"</span><span class="p">,</span> <span class="s2">"ordinal"</span><span class="p">,</span> <span class="s2">"interval"</span><span class="p">,</span> <span class="s2">"ratio"</span><span class="p">]</span>
+
+<span class="n">_LEVELS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Counter</span><span class="p">],</span> <span class="n">Callable</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"nominal"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">marginals</span><span class="p">:</span> <span class="n">_nominal_distance</span><span class="p">,</span>
+    <span class="s2">"ordinal"</span><span class="p">:</span> <span class="n">_ordinal_metric</span><span class="p">,</span>
+    <span class="s2">"interval"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">marginals</span><span class="p">:</span> <span class="n">_interval_distance</span><span class="p">,</span>
+    <span class="s2">"ratio"</span><span class="p">:</span> <span class="n">_ratio_metric</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="sd">"""Krippendorff's metric levels, each built from the value marginals (only the</span>
+<span class="sd">ordinal one reads them)."""</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_distance</span><span class="p">(</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="n">DistanceLevel</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">T</span><span class="p">,</span> <span class="n">T</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span> <span class="n">marginals</span><span class="p">:</span> <span class="n">Counter</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">T</span><span class="p">,</span> <span class="n">T</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">distance</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">distance</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">distance</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_LEVELS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"unknown distance level </span><span class="si">{</span><span class="n">distance</span><span class="si">!r}</span><span class="s2">; use one of </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">_LEVELS</span><span class="p">)</span><span class="si">}</span><span class="s2"> "</span>
+            <span class="s2">"or a (x, y) -&gt; float callable"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_LEVELS</span><span class="p">[</span><span class="n">distance</span><span class="p">](</span><span class="n">marginals</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_is_missing</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""``None`` or a float NaN (how pandas marks a missing rating)."""</span>
     <span class="k">return</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
@@ -820,7 +888,7 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">krippendorff_alpha</span><span class="p">(</span>
     <span class="n">annotations</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">T</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">distance</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">T</span><span class="p">,</span> <span class="n">T</span><span class="p">],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">_nominal_distance</span><span class="p">,</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="n">DistanceLevel</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">T</span><span class="p">,</span> <span class="n">T</span><span class="p">],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"nominal"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Krippendorff's α across any number of annotators.</span>
 
@@ -840,10 +908,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            unit). Use ``None`` (or a float NaN, as pandas gives) for a missing</span>
 <span class="sd">            annotation by that annotator on that unit. Labels are hashed and</span>
 <span class="sd">            compared with ``==``, so ``1``, ``1.0`` and ``True`` are one value.</span>
-<span class="sd">        distance: Function ``(x, y) -&gt; float`` measuring disagreement between</span>
-<span class="sd">            two distinct label values. Default is the nominal (0/1) distance;</span>
-<span class="sd">            ``(x - y) ** 2`` gives the interval metric. Metrics that depend on</span>
-<span class="sd">            the value frequencies (ordinal) are not expressible this way.</span>
+<span class="sd">        distance: Krippendorff's metric level, ``"nominal"`` (the default,</span>
+<span class="sd">            0/1), ``"ordinal"`` (ranks, scaled by how the values are spread;</span>
+<span class="sd">            labels must be orderable), ``"interval"`` (``(x - y) ** 2``) or</span>
+<span class="sd">            ``"ratio"`` (``((x - y) / (x + y)) ** 2``); or any function</span>
+<span class="sd">            ``(x, y) -&gt; float`` measuring disagreement between two distinct</span>
+<span class="sd">            label values.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        α. 1.0 = perfect agreement, 0.0 = chance. 1.0 also when the pairable</span>
@@ -862,6 +932,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    &gt;&gt;&gt; D = [1, 2, 3, 3, 2, 4, 4, 1, 2, 5, 1, None]</span>
 <span class="sd">    &gt;&gt;&gt; round(krippendorff_alpha([A, B, C, D]), 3)</span>
 <span class="sd">    0.743</span>
+<span class="sd">    &gt;&gt;&gt; [round(krippendorff_alpha([A, B, C, D], distance=level), 3)</span>
+<span class="sd">    ...  for level in ("ordinal", "interval", "ratio")]</span>
+<span class="sd">    [0.815, 0.849, 0.797]</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">annotations</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"need at least 2 annotators"</span><span class="p">)</span>
@@ -881,11 +954,12 @@ window.runMermaid = runMermaid;</script>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">pairable</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"no unit has two or more non-missing values"</span><span class="p">)</span>
 
-    <span class="n">observed</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">_pair_disagreement</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">distance</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">pairable</span><span class="p">)</span>
     <span class="n">marginals</span><span class="p">:</span> <span class="n">Counter</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">counts</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">pairable</span><span class="p">:</span>
         <span class="n">marginals</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
-    <span class="n">expected</span> <span class="o">=</span> <span class="n">_pair_disagreement</span><span class="p">(</span><span class="n">marginals</span><span class="p">,</span> <span class="n">distance</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">marginals</span><span class="o">.</span><span class="n">total</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">_resolve_distance</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">marginals</span><span class="p">)</span>
+    <span class="n">observed</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">_pair_disagreement</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">delta</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">pairable</span><span class="p">)</span>
+    <span class="n">expected</span> <span class="o">=</span> <span class="n">_pair_disagreement</span><span class="p">(</span><span class="n">marginals</span><span class="p">,</span> <span class="n">delta</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">marginals</span><span class="o">.</span><span class="n">total</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">expected</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="mf">1.0</span>
     <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">observed</span> <span class="o">/</span> <span class="n">expected</span></div>

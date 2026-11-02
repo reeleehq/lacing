@@ -644,14 +644,16 @@ Return the whole catalog as a plain dict (e.g. for UI hydration).
 
 #### interrupted_writes()
 
-The staging files of blob writes that never finished (lacing#104).
+The staging files of writes that never finished (lacing#104, #118).
 
 [`put_blob_stream()`](#lacing.ArtifactStore.put_blob_stream) (and so [`put_blob()`](#lacing.ArtifactStore.put_blob)) spools into a hidden
-`.blob-*.part` file beside the blobs and renames it into place when
-the bytes are complete; a failed write unlinks it. A process killed
-mid-write (SIGKILL, power loss) cannot, and the file, possibly a whole
-video, stays where no listing sees it. This lists those files, for a
-collector to delete.
+`.blob-*.part` file beside the blobs, and a filesystem catalog writes
+each record through `dol.atomic_write` (a hidden
+`.<name>.<hex>.tmp` sibling); both rename into place when complete,
+and a failed write unlinks its file. A process killed mid-write
+(SIGKILL, power loss) cannot, and the file, possibly a whole video,
+stays where no listing sees it. This lists those files, for a collector
+to delete.
 
 It also lists writes **in flight right now**: a collector should spare
 a file modified recently (`an cache gc` does, by mtime). Paths are
@@ -660,9 +662,9 @@ absolute. Empty for a store whose blobs are not on a filesystem (no
 not exist.
 
 * **Raises:**
-  [**OSError**](https://docs.python.org/3/builtins/exceptions.html#OSError) – the blob folder exists but cannot be listed (not a
-      directory, no permission). Nothing is known, so a collector
-      should delete nothing.
+  [**OSError**](https://docs.python.org/3/builtins/exceptions.html#OSError) – a folder exists but cannot be listed (not a directory, no
+      permission). Nothing is known, so a collector should delete
+      nothing.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 
@@ -2011,7 +2013,7 @@ atomic. `content_hash` reads a record’s hash (as the default policy,
 True
 ```
 
-### lacing.krippendorff_alpha(annotations, \*, distance=<function \_nominal_distance>)
+### lacing.krippendorff_alpha(annotations, , distance='nominal')
 
 Krippendorff’s α across any number of annotators.
 
@@ -2031,10 +2033,12 @@ the marginal value counts `n_c` of all pairable values, divided by
     unit). Use `None` (or a float NaN, as pandas gives) for a missing
     annotation by that annotator on that unit. Labels are hashed and
     compared with `==`, so `1`, `1.0` and `True` are one value.
-  * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
-    two distinct label values. Default is the nominal (0/1) distance;
-    `(x - y) ** 2` gives the interval metric. Metrics that depend on
-    the value frequencies (ordinal) are not expressible this way.
+  * **distance** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'nominal'`, `'ordinal'`, `'interval'`, `'ratio'`], [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]]) – Krippendorff’s metric level, `"nominal"` (the default,
+    0/1), `"ordinal"` (ranks, scaled by how the values are spread;
+    labels must be orderable), `"interval"` (`(x - y) ** 2`) or
+    `"ratio"` (`((x - y) / (x + y)) ** 2`); or any function
+    `(x, y) -> float` measuring disagreement between two distinct
+    label values.
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
 * **Returns:**
@@ -2054,6 +2058,9 @@ missing ratings (canonical nominal α = 0.743):
 >>> D = [1, 2, 3, 3, 2, 4, 4, 1, 2, 5, 1, None]
 >>> round(krippendorff_alpha([A, B, C, D]), 3)
 0.743
+>>> [round(krippendorff_alpha([A, B, C, D], distance=level), 3)
+...  for level in ("ordinal", "interval", "ratio")]
+[0.815, 0.849, 0.797]
 ```
 
 ### lacing.location_fields(model)

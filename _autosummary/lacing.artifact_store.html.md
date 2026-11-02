@@ -451,14 +451,16 @@ Return the whole catalog as a plain dict (e.g. for UI hydration).
 
 #### interrupted_writes()
 
-The staging files of blob writes that never finished (lacing#104).
+The staging files of writes that never finished (lacing#104, #118).
 
 [`put_blob_stream()`](#lacing.artifact_store.ArtifactStore.put_blob_stream) (and so [`put_blob()`](#lacing.artifact_store.ArtifactStore.put_blob)) spools into a hidden
-`.blob-*.part` file beside the blobs and renames it into place when
-the bytes are complete; a failed write unlinks it. A process killed
-mid-write (SIGKILL, power loss) cannot, and the file, possibly a whole
-video, stays where no listing sees it. This lists those files, for a
-collector to delete.
+`.blob-*.part` file beside the blobs, and a filesystem catalog writes
+each record through `dol.atomic_write` (a hidden
+`.<name>.<hex>.tmp` sibling); both rename into place when complete,
+and a failed write unlinks its file. A process killed mid-write
+(SIGKILL, power loss) cannot, and the file, possibly a whole video,
+stays where no listing sees it. This lists those files, for a collector
+to delete.
 
 It also lists writes **in flight right now**: a collector should spare
 a file modified recently (`an cache gc` does, by mtime). Paths are
@@ -467,9 +469,9 @@ absolute. Empty for a store whose blobs are not on a filesystem (no
 not exist.
 
 * **Raises:**
-  [**OSError**](https://docs.python.org/3/builtins/exceptions.html#OSError) – the blob folder exists but cannot be listed (not a
-      directory, no permission). Nothing is known, so a collector
-      should delete nothing.
+  [**OSError**](https://docs.python.org/3/builtins/exceptions.html#OSError) – a folder exists but cannot be listed (not a directory, no
+      permission). Nothing is known, so a collector should delete
+      nothing.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 

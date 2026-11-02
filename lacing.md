@@ -1,4 +1,4 @@
-> built 2026-11-02 16:32 UTC from 2c4ba7b (main) · lacing 0.0.73. Details: build_info.json
+> built 2026-11-02 16:42 UTC from 5f6e875 (main) · lacing 0.0.74. Details: build_info.json
 
 # index.html.md
 
@@ -2118,14 +2118,16 @@ Return the whole catalog as a plain dict (e.g. for UI hydration).
 
 #### interrupted_writes()
 
-The staging files of blob writes that never finished (lacing#104).
+The staging files of writes that never finished (lacing#104, #118).
 
 [`put_blob_stream()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.put_blob_stream) (and so [`put_blob()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.put_blob)) spools into a hidden
-`.blob-*.part` file beside the blobs and renames it into place when
-the bytes are complete; a failed write unlinks it. A process killed
-mid-write (SIGKILL, power loss) cannot, and the file, possibly a whole
-video, stays where no listing sees it. This lists those files, for a
-collector to delete.
+`.blob-*.part` file beside the blobs, and a filesystem catalog writes
+each record through `dol.atomic_write` (a hidden
+`.<name>.<hex>.tmp` sibling); both rename into place when complete,
+and a failed write unlinks its file. A process killed mid-write
+(SIGKILL, power loss) cannot, and the file, possibly a whole video,
+stays where no listing sees it. This lists those files, for a collector
+to delete.
 
 It also lists writes **in flight right now**: a collector should spare
 a file modified recently (`an cache gc` does, by mtime). Paths are
@@ -2134,9 +2136,9 @@ absolute. Empty for a store whose blobs are not on a filesystem (no
 not exist.
 
 * **Raises:**
-  [**OSError**](https://docs.python.org/3/builtins/exceptions.html#OSError) – the blob folder exists but cannot be listed (not a
-      directory, no permission). Nothing is known, so a collector
-      should delete nothing.
+  [**OSError**](https://docs.python.org/3/builtins/exceptions.html#OSError) – a folder exists but cannot be listed (not a directory, no
+      permission). Nothing is known, so a collector should delete
+      nothing.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 
@@ -4547,14 +4549,16 @@ Return the whole catalog as a plain dict (e.g. for UI hydration).
 
 #### interrupted_writes()
 
-The staging files of blob writes that never finished (lacing#104).
+The staging files of writes that never finished (lacing#104, #118).
 
 [`put_blob_stream()`](_autosummary/lacing.html.md#lacing.ArtifactStore.put_blob_stream) (and so [`put_blob()`](_autosummary/lacing.html.md#lacing.ArtifactStore.put_blob)) spools into a hidden
-`.blob-*.part` file beside the blobs and renames it into place when
-the bytes are complete; a failed write unlinks it. A process killed
-mid-write (SIGKILL, power loss) cannot, and the file, possibly a whole
-video, stays where no listing sees it. This lists those files, for a
-collector to delete.
+`.blob-*.part` file beside the blobs, and a filesystem catalog writes
+each record through `dol.atomic_write` (a hidden
+`.<name>.<hex>.tmp` sibling); both rename into place when complete,
+and a failed write unlinks its file. A process killed mid-write
+(SIGKILL, power loss) cannot, and the file, possibly a whole video,
+stays where no listing sees it. This lists those files, for a collector
+to delete.
 
 It also lists writes **in flight right now**: a collector should spare
 a file modified recently (`an cache gc` does, by mtime). Paths are
@@ -4563,9 +4567,9 @@ absolute. Empty for a store whose blobs are not on a filesystem (no
 not exist.
 
 * **Raises:**
-  [**OSError**](https://docs.python.org/3/builtins/exceptions.html#OSError) – the blob folder exists but cannot be listed (not a
-      directory, no permission). Nothing is known, so a collector
-      should delete nothing.
+  [**OSError**](https://docs.python.org/3/builtins/exceptions.html#OSError) – a folder exists but cannot be listed (not a directory, no
+      permission). Nothing is known, so a collector should delete
+      nothing.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 
@@ -5914,7 +5918,7 @@ atomic. `content_hash` reads a record’s hash (as the default policy,
 True
 ```
 
-### lacing.krippendorff_alpha(annotations, \*, distance=<function \_nominal_distance>)
+### lacing.krippendorff_alpha(annotations, , distance='nominal')
 
 Krippendorff’s α across any number of annotators.
 
@@ -5934,10 +5938,12 @@ the marginal value counts `n_c` of all pairable values, divided by
     unit). Use `None` (or a float NaN, as pandas gives) for a missing
     annotation by that annotator on that unit. Labels are hashed and
     compared with `==`, so `1`, `1.0` and `True` are one value.
-  * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
-    two distinct label values. Default is the nominal (0/1) distance;
-    `(x - y) ** 2` gives the interval metric. Metrics that depend on
-    the value frequencies (ordinal) are not expressible this way.
+  * **distance** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'nominal'`, `'ordinal'`, `'interval'`, `'ratio'`], [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]]) – Krippendorff’s metric level, `"nominal"` (the default,
+    0/1), `"ordinal"` (ranks, scaled by how the values are spread;
+    labels must be orderable), `"interval"` (`(x - y) ** 2`) or
+    `"ratio"` (`((x - y) / (x + y)) ** 2`); or any function
+    `(x, y) -> float` measuring disagreement between two distinct
+    label values.
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
 * **Returns:**
@@ -5957,6 +5963,9 @@ missing ratings (canonical nominal α = 0.743):
 >>> D = [1, 2, 3, 3, 2, 4, 4, 1, 2, 5, 1, None]
 >>> round(krippendorff_alpha([A, B, C, D]), 3)
 0.743
+>>> [round(krippendorff_alpha([A, B, C, D], distance=level), 3)
+...  for level in ("ordinal", "interval", "ratio")]
+[0.815, 0.849, 0.797]
 ```
 
 ### lacing.location_fields(model)
@@ -7065,7 +7074,7 @@ if they don’t intersect (including when only one is a point).
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
 
-### lacing.quality.krippendorff_alpha(annotations, \*, distance=<function \_nominal_distance>)
+### lacing.quality.krippendorff_alpha(annotations, , distance='nominal')
 
 Krippendorff’s α across any number of annotators.
 
@@ -7085,10 +7094,12 @@ the marginal value counts `n_c` of all pairable values, divided by
     unit). Use `None` (or a float NaN, as pandas gives) for a missing
     annotation by that annotator on that unit. Labels are hashed and
     compared with `==`, so `1`, `1.0` and `True` are one value.
-  * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
-    two distinct label values. Default is the nominal (0/1) distance;
-    `(x - y) ** 2` gives the interval metric. Metrics that depend on
-    the value frequencies (ordinal) are not expressible this way.
+  * **distance** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'nominal'`, `'ordinal'`, `'interval'`, `'ratio'`], [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]]) – Krippendorff’s metric level, `"nominal"` (the default,
+    0/1), `"ordinal"` (ranks, scaled by how the values are spread;
+    labels must be orderable), `"interval"` (`(x - y) ** 2`) or
+    `"ratio"` (`((x - y) / (x + y)) ** 2`); or any function
+    `(x, y) -> float` measuring disagreement between two distinct
+    label values.
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
 * **Returns:**
@@ -7108,6 +7119,9 @@ missing ratings (canonical nominal α = 0.743):
 >>> D = [1, 2, 3, 3, 2, 4, 4, 1, 2, 5, 1, None]
 >>> round(krippendorff_alpha([A, B, C, D]), 3)
 0.743
+>>> [round(krippendorff_alpha([A, B, C, D], distance=level), 3)
+...  for level in ("ordinal", "interval", "ratio")]
+[0.815, 0.849, 0.797]
 ```
 
 
@@ -9604,16 +9618,18 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-02 16:32 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/2c4ba7b7efce3d6656de1b9195d06a32f9ad73b0"><code>2c4ba7b</code></a> on branch <code>main</code>, for **lacing 0.0.73** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 16:42 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/5f6e875315062ef7e6c95c6a7921a7146dbc54ea"><code>5f6e875</code></a> on branch <code>main</code>, for **lacing 0.0.74** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.74) is behind the latest release on PyPI (0.0.75): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/2c4ba7b7efce3d6656de1b9195d06a32f9ad73b0"><code>2c4ba7b7efce3d6656de1b9195d06a32f9ad73b0</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/5f6e875315062ef7e6c95c6a7921a7146dbc54ea"><code>5f6e875315062ef7e6c95c6a7921a7146dbc54ea</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -9624,9 +9640,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41481984362">41481984362</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41483576978">41483576978</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>2c4ba7b7efce3d6656de1b9195d06a32f9ad73b0</code> (in the history of the built commit) |
+| Event commit | <code>1bfaeaa90d595cbd16e0183dae720dad7c54abb0</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9651,13 +9667,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.73/">0.0.73</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.75/">0.0.75</a>, newer than the documented version (0.0.74).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 2c4ba7b7efce3d6656de1b9195d06a32f9ad73b0
+git checkout 5f6e875315062ef7e6c95c6a7921a7146dbc54ea
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

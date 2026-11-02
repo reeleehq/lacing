@@ -66,7 +66,7 @@ if they don’t intersect (including when only one is a point).
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
 
-### lacing.quality.krippendorff_alpha(annotations, \*, distance=<function \_nominal_distance>)
+### lacing.quality.krippendorff_alpha(annotations, , distance='nominal')
 
 Krippendorff’s α across any number of annotators.
 
@@ -86,10 +86,12 @@ the marginal value counts `n_c` of all pairable values, divided by
     unit). Use `None` (or a float NaN, as pandas gives) for a missing
     annotation by that annotator on that unit. Labels are hashed and
     compared with `==`, so `1`, `1.0` and `True` are one value.
-  * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
-    two distinct label values. Default is the nominal (0/1) distance;
-    `(x - y) ** 2` gives the interval metric. Metrics that depend on
-    the value frequencies (ordinal) are not expressible this way.
+  * **distance** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'nominal'`, `'ordinal'`, `'interval'`, `'ratio'`], [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]]) – Krippendorff’s metric level, `"nominal"` (the default,
+    0/1), `"ordinal"` (ranks, scaled by how the values are spread;
+    labels must be orderable), `"interval"` (`(x - y) ** 2`) or
+    `"ratio"` (`((x - y) / (x + y)) ** 2`); or any function
+    `(x, y) -> float` measuring disagreement between two distinct
+    label values.
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
 * **Returns:**
@@ -109,4 +111,7 @@ missing ratings (canonical nominal α = 0.743):
 >>> D = [1, 2, 3, 3, 2, 4, 4, 1, 2, 5, 1, None]
 >>> round(krippendorff_alpha([A, B, C, D]), 3)
 0.743
+>>> [round(krippendorff_alpha([A, B, C, D], distance=level), 3)
+...  for level in ("ordinal", "interval", "ratio")]
+[0.815, 0.849, 0.797]
 ```
