@@ -28,6 +28,7 @@ STAMPING_ADAPTERS = (
     "webvtt",
     "srt",
     "lrc",
+    "ass",
     "jams",
     "otio",
     "label_studio",
@@ -65,6 +66,12 @@ def _load_lrc(tmp_path):
     from tests.test_adapter_lrc import ENHANCED_LRC, adapter_module
 
     return adapter_module.load(ENHANCED_LRC, rate=1000)
+
+
+def _load_ass(tmp_path):
+    from tests.test_adapter_ass import AEGISUB_ASS, adapter_module
+
+    return adapter_module.load(AEGISUB_ASS, rate=1000)
 
 
 def _load_jams(tmp_path):
@@ -109,6 +116,7 @@ _LOADERS = {
     "webvtt": _load_webvtt,
     "srt": _load_srt,
     "lrc": _load_lrc,
+    "ass": _load_ass,
     "jams": _load_jams,
     "otio": _load_otio,
     "label_studio": _load_label_studio,

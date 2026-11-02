@@ -34,6 +34,7 @@ _PHASE_01_ADAPTERS = (
     "lacing.adapters.webvtt",
     "lacing.adapters.srt",
     "lacing.adapters.lrc",
+    "lacing.adapters.ass",
     "lacing.adapters.web_annotation",
     "lacing.adapters.annot",
     "lacing.adapters.eaf",
@@ -65,6 +66,7 @@ _DEFAULT_MEDIA_TYPES: dict[str, str] = {
     "webvtt": "text/vtt",
     "srt": "application/x-subrip",
     "lrc": "application/x-lrc",  # no IANA-registered type exists
+    "ass": "text/x-ssa",  # de facto; no IANA-registered type exists
     "web_annotation": "application/ld+json",
     "annot": "application/x-lacing-annot",
     "eaf": "application/x-eaf+xml",
