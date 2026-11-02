@@ -352,3 +352,42 @@ class TestRoundTrip:
         back = webvtt.load(webvtt.dump(via_srt))
         assert _cues(via_srt) == _cues(vtt)
         assert _cues(back) == _cues(vtt)
+
+
+# --- review regressions ------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "text", ["Room\n101\nexit --> left", "Score was\n2\nhome --> away"]
+)
+def test_a_digit_line_then_an_arrow_inside_text_round_trips(text):
+    """Only a real timing line after an index line starts a new cue."""
+    store = MemoryStore()
+    store.add(_ms(1000, 2000, text))
+    store.add(_ms(3000, 4000, "next"))
+    back = adapter_module.load(adapter_module.dump(store))
+    assert [c[1] for c in _cues(back)] == [text, "next"]
+
+
+def test_a_negative_time_below_a_millisecond_is_refused():
+    store = MemoryStore()
+    store.add(_ann(RationalTime(-1, 3000), RationalTime(1, 1000), {"text": "x"}))
+    with pytest.raises(ValueError, match="negative"):
+        adapter_module.dump(store)
+
+
+def test_an_inline_str_with_a_bom_loads():
+    store = adapter_module.load("﻿1\n00:00:01,000 --> 00:00:02,000\nhi\n")
+    assert [c[1] for c in _cues(store)] == ["hi"]
+    vtt = webvtt.load("﻿WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nhi\n")
+    assert [a.body["text"] for a in vtt.all()] == ["hi"]
+
+
+def test_full_width_digits_are_not_a_timestamp():
+    with pytest.raises(ValueError):
+        adapter_module.load("1\n００:00:01,000 --> 00:00:02,000\nhi\n")
+
+
+def test_a_folder_path_is_not_read_as_a_file(tmp_path):
+    with pytest.raises(ValueError):
+        adapter_module.load(str(tmp_path))

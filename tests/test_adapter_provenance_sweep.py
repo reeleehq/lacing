@@ -119,3 +119,19 @@ def test_every_adapter_module_is_swept():
         if not m.name.startswith("_")
     }
     assert modules == {"annot", *STAMPING_ADAPTERS}
+
+
+def test_helper_modules_register_no_adapter():
+    """What lets the sweep above skip ``_``-prefixed modules."""
+    import importlib
+
+    for m in pkgutil.iter_modules(lacing.adapters.__path__):
+        importlib.import_module(f"lacing.adapters.{m.name}")
+    from lacing.adapters import _REGISTRY
+
+    helpers = [
+        spec.name
+        for spec in _REGISTRY.values()
+        if spec.load.__module__.startswith("lacing.adapters._")
+    ]
+    assert helpers == []

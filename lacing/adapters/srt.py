@@ -34,7 +34,7 @@ Lossy fields on dump:
     Provenance, confidence, schema URIs, and tier metadata are dropped, as are
     the source indices (cues are renumbered 1..N in start, then end, order)
     and position coordinates (never kept on load). Any annotation with a
-    media interval and a ``text`` body is emitted, so WebVTT cues dump to
+    time interval (any reference kind) and a ``text`` body is emitted, so WebVTT cues dump to
     SubRip too, losing their WebVTT ``id`` and ``settings``. Blank lines inside
     a cue's text cannot be represented (a blank line ends a cue) and are
     dropped. Negative times cannot be written and raise ``ValueError``.
@@ -95,9 +95,9 @@ _TIMESTAMP = r"(\d+):([0-5]?\d):([0-5]?\d)[,.](\d{3})"
 _COORDINATES = r"(?:\s+[XY][12]:-?\d+)*"
 _TIMING_RE = re.compile(
     rf"^\s*{_TIMESTAMP}\s*{TIMING_ARROW}\s*{_TIMESTAMP}{_COORDINATES}\s*$",
-    re.IGNORECASE,
+    re.IGNORECASE | re.ASCII,  # ASCII digits only, not full-width ones
 )
-_INDEX_RE = re.compile(r"^\s*(\d+)\s*$")
+_INDEX_RE = re.compile(r"^\s*(\d+)\s*$", re.ASCII)
 _LINE_BREAK_RE = re.compile(r"\r\n|\r|\n")
 
 
@@ -117,8 +117,8 @@ def _parse_timing(line: str, rate: int, *, line_no: int) -> TimeInterval:
     if m is None:
         raise ValueError(f"line {line_no}: malformed SubRip timing line {line!r}")
     g = [int(x) for x in m.groups()]
-    start = ms_to_rational(hms_to_ms(*g[:4]), rate)
-    end = ms_to_rational(hms_to_ms(*g[4:]), rate)
+    start = ms_to_rational(hms_to_ms(*g[:3], millis=g[3]), rate)
+    end = ms_to_rational(hms_to_ms(*g[4:7], millis=g[7]), rate)
     if end < start:
         raise ValueError(f"line {line_no}: cue ends before it starts: {line!r}")
     return TimeInterval(start, end)
@@ -130,10 +130,9 @@ def _format_timestamp(t: RationalTime) -> str:
     >>> _format_timestamp(RationalTime(1001, 1000))
     '00:00:01,001'
     """
-    total_ms = rational_to_ms(t)
-    if total_ms < 0:
+    if t.to_fraction() < 0:  # before truncation, which would hide -1/3000 s
         raise ValueError(f"SubRip cannot represent a negative time: {t!r}")
-    return format_hms(total_ms, separator=DECIMAL_SEPARATOR)
+    return format_hms(rational_to_ms(t), separator=DECIMAL_SEPARATOR)
 
 
 def _looks_like_inline_srt(s: str) -> bool:
@@ -147,8 +146,6 @@ def _is_blank(line: str) -> bool:
 
 def _iter_cues(text: str, rate: int) -> Iterator[dict[str, Any]]:
     """Yield ``{"index", "interval", "text"}`` for each cue of ``text``."""
-    if text.startswith("﻿"):  # a BOM in inline text (bytes/files: decoded)
-        text = text[1:]
     lines = _LINE_BREAK_RE.split(text)
     n = len(lines)
 
@@ -158,7 +155,7 @@ def _iter_cues(text: str, rate: int) -> Iterator[dict[str, Any]]:
         return (
             _INDEX_RE.match(lines[j]) is not None
             and j + 1 < n
-            and TIMING_ARROW in lines[j + 1]
+            and _TIMING_RE.match(lines[j + 1]) is not None
         )
 
     i = 0
@@ -273,7 +270,7 @@ def dump(
     """Write annotations as SubRip.
 
     Args:
-        store: Source store. Every annotation with a media interval and a
+        store: Source store. Every annotation with a time interval (any reference kind) and a
             ``text`` body (an SRT or WebVTT cue, or any other) is emitted,
             sorted by start then end, and numbered 1..N in that order.
         target: Output path. If None, returns bytes (UTF-8, no BOM, ``\\n``).

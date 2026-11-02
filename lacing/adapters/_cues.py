@@ -10,12 +10,13 @@ in common lives here, once:
 - :func:`hms_to_ms` / :func:`format_hms`: clock fields to milliseconds and back,
   with the decimal separator as an argument;
 - :func:`iter_with_intervals` / :func:`interval_sort_key`: the annotations a
-  cue writer can emit (those with a media interval), in cue order.
+  cue writer can emit (those with a time interval, whatever their reference
+  kind), in cue order.
 
-Private to :mod:`lacing.adapters`: the leading underscore keeps it out of the
-adapter registry's view of "format modules".
+Private to :mod:`lacing.adapters`: it registers no adapter (the provenance
+sweep test skips ``_``-prefixed modules and checks that they register none).
 
->>> format_hms(hms_to_ms(1, 2, 3, 456), separator=",")
+>>> format_hms(hms_to_ms(1, 2, 3, millis=456), separator=",")
 '01:02:03,456'
 >>> rational_to_ms(ms_to_rational(1001, 1000))
 1001
@@ -39,6 +40,7 @@ _MS_PER_HOUR = 60 * _MS_PER_MINUTE
 
 # Caption files are UTF-8; ``utf-8-sig`` also strips a leading byte-order mark.
 TEXT_ENCODING = "utf-8-sig"
+_BOM = "\ufeff"
 
 
 def read_text(
@@ -49,26 +51,25 @@ def read_text(
     A ``str`` is inline content when ``looks_inline(source)`` says so;
     otherwise it is read as a path if one exists there, and is taken as
     inline content if not (the format's parser then reports what is wrong).
-    Bytes and files are decoded as UTF-8 with an optional BOM; an inline
-    ``str`` is returned as given.
+    Bytes, files and inline text alike lose a leading byte-order mark.
     """
     if isinstance(source, (bytes, bytearray)):
         return bytes(source).decode(TEXT_ENCODING)
     if not isinstance(source, str) and isinstance(source, os.PathLike):
         return Path(os.fspath(source)).read_text(encoding=TEXT_ENCODING)
-    s = str(source)
+    s = str(source).removeprefix(_BOM)
     if looks_inline(s):
         return s
     p = Path(s)
-    if p.exists():
+    if p.is_file():  # not exists(): "" or a folder is not a caption file
         return p.read_text(encoding=TEXT_ENCODING)
     return s
 
 
-def hms_to_ms(hours: int, minutes: int, seconds: int, millis: int) -> int:
+def hms_to_ms(hours: int, minutes: int, seconds: int, *, millis: int) -> int:
     """Total milliseconds of a clock reading.
 
-    >>> hms_to_ms(0, 0, 1, 1)
+    >>> hms_to_ms(0, 0, 1, millis=1)
     1001
     """
     return (hours * 3600 + minutes * 60 + seconds) * MS_PER_SECOND + millis
@@ -119,7 +120,7 @@ def format_hms(total_ms: int, *, separator: str) -> str:
 
 
 def iter_with_intervals(store: IntervalAnnotationStore) -> Iterator[Annotation]:
-    """Every annotation in ``store`` that has a media interval.
+    """Every annotation in ``store`` that has a time interval (any reference kind).
 
     Uses ``store.all()`` when the store has it, else the mapping protocol.
     """

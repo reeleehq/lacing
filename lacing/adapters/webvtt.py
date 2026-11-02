@@ -75,7 +75,9 @@ def _parse_timestamp(s: str, rate: int) -> RationalTime:
     if m is None:
         raise ValueError(f"invalid WebVTT timestamp: {s!r}")
     hours = int(m.group(1)) if m.group(1) else 0
-    total_ms = hms_to_ms(hours, int(m.group(2)), int(m.group(3)), int(m.group(4)))
+    total_ms = hms_to_ms(
+        hours, int(m.group(2)), int(m.group(3)), millis=int(m.group(4))
+    )
     return ms_to_rational(total_ms, rate)  # exact: ms / 1000 quantized at `rate`
 
 
