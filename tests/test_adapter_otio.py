@@ -308,4 +308,9 @@ def test_a_body_without_a_name_dumps(end):
             ),
         )
     )
-    assert adapter_module.load(adapter_module.dump(store)).all()
+    [back] = list(adapter_module.load(adapter_module.dump(store)).all())
+    assert back.tier == "t"
+    assert (back.interval.start, back.interval.end) == (
+        RationalTime(0, 1000),
+        RationalTime(end, 1000),
+    )

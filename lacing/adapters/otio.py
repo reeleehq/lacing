@@ -114,8 +114,9 @@ def load(
 
     Each track becomes a tier. Each clip becomes one ``Annotation`` with
     ``MediaRef`` pointing at the clip's media reference (or the
-    ``asset_id`` override). Markers on the timeline, track, or clip
-    become point ``Annotation``s on a ``markers`` tier.
+    ``asset_id`` override). Markers on the timeline or on a clip become point
+    ``Annotation``s on a ``markers`` tier; markers on a track stay on that
+    track's tier, which is where :func:`dump` writes a tier's points.
 
     Args:
         source: Path or bytes containing OTIO JSON.
@@ -235,6 +236,21 @@ def load(
                     )
 
             cursor += duration_seconds
+
+        # Markers on the track itself: where dump puts a tier's point
+        # annotations, so they come back on that tier (lacing#132).
+        for marker in getattr(track, "markers", []) or []:
+            _add_marker_annotation(
+                store,
+                marker,
+                tier_name=tier_name,
+                asset_id=asset_id or DEFAULT_ASSET_ID,
+                rate=rate,
+                attribution=attribution,
+                now=now,
+                ensure_tier=_ensure_tier,
+                otio_module=otio,
+            )
 
         track_offset_seconds[tier_name] = cursor
 
