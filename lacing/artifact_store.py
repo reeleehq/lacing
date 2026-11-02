@@ -855,6 +855,24 @@ class ArtifactStore(MutableMapping):
             return
         yield from _ContainedDirStore(self.blobs)
 
+    def interrupted_writes(self) -> list[Path]:
+        """The staging files of blob writes that never finished (lacing#104).
+
+        :meth:`put_blob_stream` (and so :meth:`put_blob`) spools into a hidden
+        ``.blob-*.part`` file beside the blobs and renames it into place when
+        the bytes are complete; a failed write unlinks it. A process killed
+        mid-write (SIGKILL, power loss) cannot, and the file, possibly a whole
+        video, stays where no listing sees it. This lists those files, for a
+        collector to delete.
+
+        It also lists writes **in flight right now**: a collector should spare
+        a file modified recently (``an cache gc`` does, by mtime). Empty for a
+        store whose blobs are not on a filesystem (no ``rootdir``), and for one
+        with no blob store.
+        """
+        rootdir = getattr(self.blobs, "rootdir", None)
+        return [] if rootdir is None else _spool_files(Path(rootdir))
+
     def blob_location(self, content_hash: str) -> "str | Path | None":
         """Resolve the cheapest *servable* location for a blob — without
         reading its bytes. The capability the HTTP layer probes to serve a
@@ -1500,6 +1518,27 @@ def _missing_parents(path: Path) -> list[Path]:
     return missing
 
 
+_SPOOL_PREFIX, _SPOOL_SUFFIX = ".blob-", ".part"
+"""How :func:`_spool_chunks_to_dir` names its staging file, and so what
+:meth:`ArtifactStore.interrupted_writes` lists."""
+
+
+def _spool_files(rootdir: Path) -> list[Path]:
+    """The staging files directly in ``rootdir``: regular files only, never a
+    symlink (it could point outside the root) or a directory."""
+    try:
+        entries = list(os.scandir(rootdir))
+    except FileNotFoundError:
+        return []
+    return sorted(
+        Path(entry.path)
+        for entry in entries
+        if entry.name.startswith(_SPOOL_PREFIX)
+        and entry.name.endswith(_SPOOL_SUFFIX)
+        and entry.is_file(follow_symlinks=False)
+    )
+
+
 def _spool_chunks_to_dir(chunks: Iterable[bytes], rootdir: Path) -> str:
     """Hash-while-spooling to a same-directory tempfile, then atomic rename.
 
@@ -1512,7 +1551,9 @@ def _spool_chunks_to_dir(chunks: Iterable[bytes], rootdir: Path) -> str:
 
     rootdir.mkdir(parents=True, exist_ok=True)
     hasher = hashlib.sha256()
-    fd, tmp_path = tempfile.mkstemp(dir=rootdir, prefix=".blob-", suffix=".part")
+    fd, tmp_path = tempfile.mkstemp(
+        dir=rootdir, prefix=_SPOOL_PREFIX, suffix=_SPOOL_SUFFIX
+    )
     try:
         with os.fdopen(fd, "wb") as spool:
             for chunk in chunks:
