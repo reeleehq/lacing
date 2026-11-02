@@ -152,9 +152,13 @@ _K2011 = [
 @pytest.mark.parametrize(
     "distance, canonical",
     [
-        (None, 0.743),  # nominal
-        (lambda x, y: (x - y) ** 2, 0.849),  # interval
-        (lambda x, y: ((x - y) / (x + y)) ** 2, 0.797),  # ratio
+        (None, 0.743),  # nominal, the default
+        ("nominal", 0.743),
+        ("ordinal", 0.815),  # needs the marginals: only as a level (#114)
+        ("interval", 0.849),
+        ("ratio", 0.797),
+        (lambda x, y: (x - y) ** 2, 0.849),  # interval, as a callable
+        (lambda x, y: ((x - y) / (x + y)) ** 2, 0.797),  # ratio, as a callable
     ],
 )
 def test_krippendorff_2011_worked_example(distance, canonical):
@@ -302,3 +306,28 @@ class TestBoundaryIoU:
         b = [_ti(50, 150)]
         score = boundary_iou(a, b)
         assert score == pytest.approx(50 / 150)
+
+
+def test_the_ratio_level_survives_a_zero_label():
+    """Raised ZeroDivisionError as a hand-written lambda (lacing#114). By hand:
+    observed 2 (one 0/1 unit), expected 3 * 3 * 2 / 5 = 3.6."""
+    alpha = krippendorff_alpha([[0, 0, 1], [0, 1, 1]], distance="ratio")
+    assert alpha == pytest.approx(1 - 2 / 3.6)
+
+
+def test_an_unknown_level_is_refused():
+    with pytest.raises(ValueError, match="unknown distance level 'ordinl'"):
+        krippendorff_alpha([[1, 2], [1, 2]], distance="ordinl")
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_ordinal_alpha_only_sees_the_order_of_the_labels(seed):
+    """The ordinal metric reads ranks and counts, never numeric gaps: any
+    order-preserving relabelling gives the same alpha."""
+    rng = random.Random(seed)
+    rows = _random_rows_with_missing(rng)
+    relabel = {1: -7, 2: 0.5, 3: 40, 4: 1000}
+    relabelled = [[relabel.get(v, v) for v in row] for row in rows]
+    assert krippendorff_alpha(relabelled, distance="ordinal") == pytest.approx(
+        krippendorff_alpha(rows, distance="ordinal")
+    )
