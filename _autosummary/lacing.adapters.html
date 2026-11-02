@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=f81738d5"></script>
+    <script src="../_static/documentation_options.js?v=cfefb2bf"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.81" />
+  <meta name="docsearch:version" content="0.0.82" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -325,6 +325,7 @@
 <li class="toctree-l3"><a class="reference internal" href="lacing.adapters.eaf.html">lacing.adapters.eaf</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.adapters.jams.html">lacing.adapters.jams</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.adapters.label_studio.html">lacing.adapters.label_studio</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.lrc.html">lacing.adapters.lrc</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.adapters.otio.html">lacing.adapters.otio</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.adapters.srt.html">lacing.adapters.srt</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.adapters.textgrid.html">lacing.adapters.textgrid</a></li>
@@ -614,19 +615,22 @@ name warns (<a class="reference internal" href="lacing.html#lacing.RegistryConfl
 <tr class="row-even"><td><p><a class="reference internal" href="lacing.adapters.label_studio.html#module-lacing.adapters.label_studio" title="lacing.adapters.label_studio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">label_studio</span></code></a></p></td>
 <td><p>Label Studio JSON adapter.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.adapters.otio.html#module-lacing.adapters.otio" title="lacing.adapters.otio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">otio</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.adapters.lrc.html#module-lacing.adapters.lrc" title="lacing.adapters.lrc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lrc</span></code></a></p></td>
+<td><p>LRC (<code class="docutils literal notranslate"><span class="pre">.lrc</span></code>) lyrics adapter: plain LRC and enhanced LRC with word timing.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.adapters.otio.html#module-lacing.adapters.otio" title="lacing.adapters.otio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">otio</span></code></a></p></td>
 <td><p>OpenTimelineIO (OTIO) adapter — NLE / video editing interchange.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.adapters.srt.html#module-lacing.adapters.srt" title="lacing.adapters.srt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">srt</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.adapters.srt.html#module-lacing.adapters.srt" title="lacing.adapters.srt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">srt</span></code></a></p></td>
 <td><p>SubRip (<code class="docutils literal notranslate"><span class="pre">.srt</span></code>) adapter.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.adapters.textgrid.html#module-lacing.adapters.textgrid" title="lacing.adapters.textgrid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">textgrid</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.adapters.textgrid.html#module-lacing.adapters.textgrid" title="lacing.adapters.textgrid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">textgrid</span></code></a></p></td>
 <td><p>Praat TextGrid adapter.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.adapters.web_annotation.html#module-lacing.adapters.web_annotation" title="lacing.adapters.web_annotation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">web_annotation</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.adapters.web_annotation.html#module-lacing.adapters.web_annotation" title="lacing.adapters.web_annotation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">web_annotation</span></code></a></p></td>
 <td><p>W3C Web Annotation Data Model adapter (JSON-LD).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.adapters.webvtt.html#module-lacing.adapters.webvtt" title="lacing.adapters.webvtt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">webvtt</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.adapters.webvtt.html#module-lacing.adapters.webvtt" title="lacing.adapters.webvtt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">webvtt</span></code></a></p></td>
 <td><p>WebVTT (W3C TimedText) adapter.</p></td>
 </tr>
 </tbody>

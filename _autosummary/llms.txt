@@ -11,6 +11,7 @@
 - [lacing.adapters.eaf](lacing.adapters.eaf.html.md): ELAN EAF adapter (Max Planck Institute’s annotation tool format).
 - [lacing.adapters.jams](lacing.adapters.jams.html.md): JAMS (JSON Annotated Music Specification) adapter.
 - [lacing.adapters.label_studio](lacing.adapters.label_studio.html.md): Label Studio JSON adapter.
+- [lacing.adapters.lrc](lacing.adapters.lrc.html.md): LRC (&#96;.lrc&#96;) lyrics adapter: plain LRC and enhanced LRC with word timing.
 - [lacing.adapters.otio](lacing.adapters.otio.html.md): OpenTimelineIO (OTIO) adapter — NLE / video editing interchange.
 - [lacing.adapters.srt](lacing.adapters.srt.html.md): SubRip (&#96;.srt&#96;) adapter.
 - [lacing.adapters.textgrid](lacing.adapters.textgrid.html.md): Praat TextGrid adapter.

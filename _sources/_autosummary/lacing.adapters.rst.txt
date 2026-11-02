@@ -32,6 +32,7 @@ lacing.adapters
    eaf
    jams
    label_studio
+   lrc
    otio
    srt
    textgrid

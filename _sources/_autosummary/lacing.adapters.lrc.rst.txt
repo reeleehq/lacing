@@ -1,0 +1,13 @@
+lacing.adapters.lrc
+===================
+
+.. automodule:: lacing.adapters.lrc
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      dump
+      load
+   
