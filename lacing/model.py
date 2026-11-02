@@ -7,7 +7,6 @@ and ``.claude/skills/lacing-schema-codegen/SKILL.md``.
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Mapping
 from typing import Annotated, Literal
 from uuid import UUID
@@ -18,9 +17,7 @@ from lacing.digest import reject_non_string_keys
 from lacing.generator_id import (
     GENERATOR_ID_SHAPE,
     GENERATOR_PREFIXES,
-    GeneratorIdWarning,
-    _external_stacklevel,
-    parse_generator_id,
+    warn_if_malformed,
 )
 from lacing.json_schema import SchemaModel
 from lacing.time import RationalTime, TimeInterval
@@ -200,14 +197,7 @@ class Provenance(SchemaModel):
     @classmethod
     def _flag_malformed_generator_id(cls, value: str) -> str:
         """Advisory (lacing#17): warn, never reject, on a value of the wrong shape."""
-        if parse_generator_id(value) is None:
-            warnings.warn(
-                f"was_generated_by={value!r} is not of the shape "
-                f"{GENERATOR_ID_SHAPE!r} (see lacing.generator_id)",
-                GeneratorIdWarning,
-                stacklevel=_external_stacklevel(),
-            )
-        return value
+        return warn_if_malformed(value)
 
     @property
     def generated_at_is_known(self) -> bool:

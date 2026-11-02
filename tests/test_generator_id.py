@@ -161,10 +161,28 @@ def test_a_store_read_of_a_legacy_row_is_flagged(tmp_path):
     try:
         store.add_tier(Tier("words"))
         store.add(legacy)
-        with pytest.warns(GeneratorIdWarning, match="lacing.tracks.subtitle"):
+        with pytest.warns(GeneratorIdWarning, match="lacing.tracks.subtitle") as caught:
             store[_interval()]
+        assert [w.filename for w in caught] == [__file__]
     finally:
         store.close()
+
+
+def test_an_artifact_store_read_points_past_the_storage_layer(tmp_path):
+    """lacing -> dol -> lacing's codec -> pydantic: the warning still belongs to
+    the caller of the store, not to a dol frame in between."""
+    from lacing import Artifact, ArtifactStore
+
+    store = ArtifactStore.from_directory(tmp_path)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", GeneratorIdWarning)
+        art = Artifact.from_bytes(
+            b"x", kind="text", was_generated_by="t", was_attributed_to="u"
+        )
+    store["a"] = art
+    with pytest.warns(GeneratorIdWarning) as caught:
+        store["a"]
+    assert [w.filename for w in caught] == [__file__]
 
 
 @pytest.mark.parametrize("value", ["agent:nw.graph", "test:doctest", "user:thor"])

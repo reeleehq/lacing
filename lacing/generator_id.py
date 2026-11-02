@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import os
 import re
+import warnings
 import sys
 from collections.abc import Collection, Mapping
 from dataclasses import dataclass
@@ -54,6 +55,7 @@ __all__ = [
     "GeneratorIdWarning",
     "parse_generator_id",
     "generator_id_findings",
+    "warn_if_malformed",
 ]
 
 GENERATOR_ID_SHAPE = "<prefix>:<name>[@<version>]"
@@ -86,12 +88,35 @@ _INTERNAL_DIRS = tuple(
 
 
 def _external_stacklevel() -> int:
-    """The ``stacklevel`` that points a warning at the first frame outside pydantic
-    and lacing, for a ``warnings.warn`` made by this function's caller."""
-    frame, level = sys._getframe(1), 1
-    while frame is not None and frame.f_code.co_filename.startswith(_INTERNAL_DIRS):
+    """The ``stacklevel`` of the frame just above the *outermost* pydantic or
+    lacing frame, for a ``warnings.warn`` made by this function's caller.
+
+    Outermost, not first: a store read runs lacing, then a storage layer (dol),
+    then lacing's codec and pydantic again, and the warning belongs to whoever
+    called the store. Walks the whole stack, which is fine on the rare path
+    that warns."""
+    frame, level, outermost = sys._getframe(1), 1, 1
+    while frame is not None:
+        if frame.f_code.co_filename.startswith(_INTERNAL_DIRS):
+            outermost = level
         frame, level = frame.f_back, level + 1
-    return level
+    return outermost + 1
+
+
+def warn_if_malformed(value: str) -> str:
+    """Emit a :class:`GeneratorIdWarning`, pointed at the caller outside lacing,
+    when ``value`` is not of the generator-id shape; return ``value``.
+
+    The advisory check :class:`lacing.Provenance` runs on ``was_generated_by``.
+    """
+    if _SHAPE.fullmatch(value) is None:
+        warnings.warn(
+            f"was_generated_by={value!r} is not of the shape "
+            f"{GENERATOR_ID_SHAPE!r} (see lacing.generator_id)",
+            GeneratorIdWarning,
+            stacklevel=_external_stacklevel(),
+        )
+    return value
 
 
 class GeneratorIdWarning(UserWarning):
