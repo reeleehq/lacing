@@ -43,12 +43,12 @@ from lacing.adapters._cues import (
     iter_with_intervals,
     ms_to_rational,
     read_text,
+    split_cue_lines,
 )
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import RationalTime, TimeInterval
-
 
 ADAPTER_NAME = "webvtt"
 ADAPTER_VERSION = "1.0.0"
@@ -156,7 +156,7 @@ def _looks_like_inline_vtt(s: Any) -> bool:
 
 
 def _iter_cues(text: str, rate: int):
-    lines = text.splitlines()
+    lines = split_cue_lines(text)
     if not lines or not lines[0].lstrip().upper().startswith("WEBVTT"):
         raise ValueError("WebVTT files must start with a 'WEBVTT' header line")
 

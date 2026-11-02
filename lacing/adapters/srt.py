@@ -71,12 +71,12 @@ from lacing.adapters._cues import (
     iter_with_intervals,
     ms_to_rational,
     read_text,
+    split_cue_lines,
 )
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import RationalTime, TimeInterval
-
 
 ADAPTER_NAME = "srt"
 ADAPTER_VERSION = "1.0.0"
@@ -98,7 +98,6 @@ _TIMING_RE = re.compile(
     re.IGNORECASE | re.ASCII,  # ASCII digits only, not full-width ones
 )
 _INDEX_RE = re.compile(r"^\s*(\d+)\s*$", re.ASCII)
-_LINE_BREAK_RE = re.compile(r"\r\n|\r|\n")
 
 
 # ---------------------------------------------------------------------------
@@ -144,7 +143,7 @@ def _is_blank(line: str) -> bool:
 
 def _iter_cues(text: str, rate: int) -> Iterator[dict[str, Any]]:
     """Yield ``{"index", "interval", "text"}`` for each cue of ``text``."""
-    lines = _LINE_BREAK_RE.split(text)
+    lines = split_cue_lines(text)
     n = len(lines)
 
     def starts_cue(j: int) -> bool:

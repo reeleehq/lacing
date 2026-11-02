@@ -289,3 +289,17 @@ def test_blank_lines_inside_cue_text_are_dropped_so_the_file_round_trips():
     store = _one_cue_store(RationalTime(0, 1), RationalTime(1, 1), "one\n\ntwo")
     back = adapter_module.load(adapter_module.dump(store))
     assert [a.body["text"] for a in back.all()] == ["one\ntwo"]
+
+
+@pytest.mark.parametrize(
+    "text, reloaded",
+    [
+        ("one\u2028\u2028two", "one\u2028\u2028two"),  # not a WebVTT line break
+        ("one\x0c\x0ctwo", "one\x0c\x0ctwo"),
+        ("  \nx", "x"),  # a whitespace-only line used to swallow the rest
+    ],
+)
+def test_text_survives_a_round_trip(text, reloaded):
+    store = _one_cue_store(RationalTime(0, 1), RationalTime(1, 1), text)
+    back = adapter_module.load(adapter_module.dump(store))
+    assert [a.body["text"] for a in back.all()] == [reloaded]

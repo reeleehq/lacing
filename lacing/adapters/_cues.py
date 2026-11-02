@@ -149,6 +149,17 @@ def interval_sort_key(a: Annotation) -> tuple[Fraction, Fraction]:
 _LINE_BREAK = re.compile(r"\r\n|\r|\n")
 
 
+def split_cue_lines(text: str) -> list[str]:
+    """``text`` split at CRLF, CR or LF only: the line breaks of WebVTT and
+    SubRip. Not :meth:`str.splitlines`, which also breaks at ``\\u2028``,
+    form feeds and other characters these formats keep inside a line.
+
+    >>> split_cue_lines("a\\r\\nb\\u2028c\\rd")
+    ['a', 'b\\u2028c', 'd']
+    """
+    return _LINE_BREAK.split(text)
+
+
 def cue_payload(text: str) -> str:
     """``text`` as a cue payload: lines joined by ``\\n``, blank ones dropped,
     since in both WebVTT and SubRip a blank line ends the cue.
@@ -156,7 +167,7 @@ def cue_payload(text: str) -> str:
     >>> cue_payload("one\\n\\n  \\r\\ntwo")
     'one\\ntwo'
     """
-    return "\n".join(line for line in _LINE_BREAK.split(text) if line.strip())
+    return "\n".join(line for line in split_cue_lines(text) if line.strip())
 
 
 def format_cue_time(t: RationalTime, *, separator: str, format_name: str) -> str:
