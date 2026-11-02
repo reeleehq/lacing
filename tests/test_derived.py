@@ -369,6 +369,9 @@ def test_matching_refuses_an_unknown_scheme():
         value_digest_matches(_ann({}), "0" * 64, scheme="nope")
 
 
+_ABSENT = object()  # "leave the key out", distinct from storing None
+
+
 def _bodies():
     """A few dozen ``Body`` values that differ in derived and non-derived fields."""
     images = [
@@ -383,16 +386,17 @@ def _bodies():
         None,
         {"k": {"artifact_id": "a1"}},
         {"k": {"artifact_id": "a1", "asset_id": "h"}},
+        {"k": {"artifact_id": "a1", "asset_id": None}},  # stored as null (#102)
     ]
     for imgs, root, maybe, named in product(
-        images, (None, "root", "other"), (None, "m"), by_name
+        images, (None, "root", "other"), (_ABSENT, None, "m"), by_name
     ):
         body = {"images": deepcopy(imgs)}
         if named is not None:
             body["by_name"] = deepcopy(named)
         if root is not None:
             body["asset_id"] = root  # NOT derived at the root
-        if maybe is not None:
+        if maybe is not _ABSENT:
             body["maybe"] = maybe
         yield body
 
@@ -463,4 +467,7 @@ def test_null_paths_sets_present_entries_to_none_and_reports_a_change():
     assert unfilled == {"images": [{"artifact_id": "a1"}, {"asset_id": None}]}
     filled = {"images": [{"artifact_id": "a1"}, {"asset_id": "h"}], "maybe": None}
     assert null_paths(filled, paths) is True
-    assert filled == {"images": [{"artifact_id": "a1"}, {"asset_id": None}], "maybe": None}
+    assert filled == {
+        "images": [{"artifact_id": "a1"}, {"asset_id": None}],
+        "maybe": None,
+    }

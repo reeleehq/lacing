@@ -531,8 +531,8 @@ def _value_digests(
         return
     from lacing.derived import drop_paths, null_paths
 
-    paths = {tuple(path) for path in paths}
-    dropped_any = drop_paths(payload["body"], paths)  # the dump is private: edit it
+    exact = {tuple(path) for path in paths}
+    dropped_any = drop_paths(payload["body"], exact)  # the dump is private: edit it
     if not is_v1:
         yield _digest(VALUE_DIGEST_SCHEME, payload)
         yield _digest(_V1_SCHEME, _payload(annotation, VALUE_FIELDS))  # unchanged
@@ -540,7 +540,7 @@ def _value_digests(
         return
     yield _digest(_V1_SCHEME, payload)  # derived fields absent when recorded
     nulled = _payload(annotation, VALUE_FIELDS)
-    if null_paths(nulled["body"], paths):  # else it is the whole-body digest again
+    if null_paths(nulled["body"], exact):  # else it is the whole-body digest again
         yield _digest(_V1_SCHEME, nulled)  # derived fields stored as null then
 
 

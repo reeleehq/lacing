@@ -53,10 +53,18 @@ from typing import Any
 
 from pydantic import BaseModel
 
-__all__ = ["Derived", "DerivedPath", "ANY_ITEM", "derived_paths", "drop_paths", "null_paths"]
+__all__ = [
+    "Derived",
+    "DerivedPath",
+    "ANY_ITEM",
+    "derived_paths",
+    "drop_paths",
+    "null_paths",
+]
 
 #: One step of a path through a body: an object key, or :data:`ANY_ITEM`.
 DerivedPath = tuple["str | None", ...]
+PathSet = frozenset[DerivedPath] | set[DerivedPath]
 
 #: Path step standing for "every element of a list / every value of a map".
 ANY_ITEM = None
@@ -164,13 +172,13 @@ def derived_paths(model: type[BaseModel]) -> frozenset[DerivedPath]:
     return frozenset(out)
 
 
-def drop_paths(value: Any, paths: frozenset[DerivedPath] | set[DerivedPath]) -> bool:
+def drop_paths(value: Any, paths: PathSet) -> bool:
     """Delete, in place, the entries of the JSON-like ``value`` named by ``paths``;
     return whether any was there to delete."""
     return _edit_paths(value, paths, _delete)
 
 
-def null_paths(value: Any, paths: frozenset[DerivedPath] | set[DerivedPath]) -> bool:
+def null_paths(value: Any, paths: PathSet) -> bool:
     """Set, in place, the entries of the JSON-like ``value`` named by ``paths`` to
     ``None`` (keys that are absent stay absent); return whether any changed."""
     return _edit_paths(value, paths, _set_none)
@@ -189,7 +197,7 @@ def _set_none(container: dict, key: Any) -> bool:
 
 def _edit_paths(
     value: Any,
-    paths: frozenset[DerivedPath] | set[DerivedPath],
+    paths: PathSet,
     edit: Callable[[dict, Any], bool],
 ) -> bool:
     # a list, not a generator: ``any`` would stop at the first path edited
