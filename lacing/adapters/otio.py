@@ -114,8 +114,9 @@ def load(
 
     Each track becomes a tier. Each clip becomes one ``Annotation`` with
     ``MediaRef`` pointing at the clip's media reference (or the
-    ``asset_id`` override). Markers on the timeline, track, or clip
-    become point ``Annotation``s on a ``markers`` tier.
+    ``asset_id`` override). Markers on the timeline or on a clip become point
+    ``Annotation``s on a ``markers`` tier; markers on a track stay on that
+    track's tier, which is where :func:`dump` writes a tier's points.
 
     Args:
         source: Path or bytes containing OTIO JSON.
@@ -236,6 +237,21 @@ def load(
 
             cursor += duration_seconds
 
+        # Markers on the track itself: where dump puts a tier's point
+        # annotations, so they come back on that tier (lacing#132).
+        for marker in getattr(track, "markers", []) or []:
+            _add_marker_annotation(
+                store,
+                marker,
+                tier_name=tier_name,
+                asset_id=asset_id or DEFAULT_ASSET_ID,
+                rate=rate,
+                attribution=attribution,
+                now=now,
+                ensure_tier=_ensure_tier,
+                otio_module=otio,
+            )
+
         track_offset_seconds[tier_name] = cursor
 
     return store
@@ -307,6 +323,13 @@ def _open_timeline(source: str | bytes | os.PathLike, otio_module):
 # ---------------------------------------------------------------------------
 
 
+def _otio_name(ann: Annotation) -> str:
+    """The body's ``name`` for an OTIO clip or marker, ``""`` when it has none:
+    OTIO's bindings refuse ``None`` (lacing#132)."""
+    name = ann.body.get("name")
+    return name if isinstance(name, str) else ""
+
+
 def dump(
     store: IntervalAnnotationStore,
     target: str | os.PathLike | None = None,
@@ -366,7 +389,7 @@ def dump(
                     rate=1000.0,
                 )
                 marker = otio.schema.Marker(
-                    name=ann.body.get("name") if isinstance(ann.body, dict) else None,
+                    name=_otio_name(ann),
                     marked_range=otio.opentime.TimeRange(
                         start_time=marker_t,
                         duration=otio.opentime.RationalTime(0, 1000.0),
@@ -393,7 +416,7 @@ def dump(
             duration_seconds = end_s - start_s
             asset_url = ann.reference.asset_id  # type: ignore[union-attr]
             clip = otio.schema.Clip(
-                name=ann.body.get("name") if isinstance(ann.body, dict) else ann.tier,
+                name=_otio_name(ann),
                 media_reference=otio.schema.ExternalReference(target_url=asset_url),
                 source_range=otio.opentime.TimeRange(
                     start_time=otio.opentime.RationalTime(0, 1000.0),
