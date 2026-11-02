@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=461c1127"></script>
+    <script src="../../../_static/documentation_options.js?v=e264953e"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.76" />
+  <meta name="docsearch:version" content="0.0.77" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -781,19 +781,19 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">adapter_generator_id</span><span class="p">,</span> <span class="n">register_adapter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters._cues</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">format_hms</span><span class="p">,</span>
+    <span class="n">cue_payload</span><span class="p">,</span>
+    <span class="n">format_cue_time</span><span class="p">,</span>
     <span class="n">hms_to_ms</span><span class="p">,</span>
     <span class="n">interval_sort_key</span><span class="p">,</span>
     <span class="n">iter_with_intervals</span><span class="p">,</span>
     <span class="n">ms_to_rational</span><span class="p">,</span>
-    <span class="n">rational_to_ms</span><span class="p">,</span>
     <span class="n">read_text</span><span class="p">,</span>
+    <span class="n">split_cue_lines</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">MediaRef</span><span class="p">,</span> <span class="n">Provenance</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntervalAnnotationStore</span><span class="p">,</span> <span class="n">MemoryStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tier</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tier</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.time</span><span class="w"> </span><span class="kn">import</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">TimeInterval</span>
-
 
 <span class="n">ADAPTER_NAME</span> <span class="o">=</span> <span class="s2">"srt"</span>
 <span class="n">ADAPTER_VERSION</span> <span class="o">=</span> <span class="s2">"1.0.0"</span>
@@ -815,7 +815,6 @@ window.runMermaid = runMermaid;</script>
     <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">ASCII</span><span class="p">,</span>  <span class="c1"># ASCII digits only, not full-width ones</span>
 <span class="p">)</span>
 <span class="n">_INDEX_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^\s*(\d+)\s*$"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">ASCII</span><span class="p">)</span>
-<span class="n">_LINE_BREAK_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\r\n|\r|\n"</span><span class="p">)</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -847,9 +846,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    &gt;&gt;&gt; _format_timestamp(RationalTime(1001, 1000))</span>
 <span class="sd">    '00:00:01,001'</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">to_fraction</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># before truncation, which would hide -1/3000 s</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SubRip cannot represent a negative time: </span><span class="si">{</span><span class="n">t</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">format_hms</span><span class="p">(</span><span class="n">rational_to_ms</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">separator</span><span class="o">=</span><span class="n">DECIMAL_SEPARATOR</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">format_cue_time</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="n">DECIMAL_SEPARATOR</span><span class="p">,</span> <span class="n">format_name</span><span class="o">=</span><span class="s2">"SubRip"</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_looks_like_inline_srt</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -863,7 +860,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_iter_cues</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""Yield ``{"index", "interval", "text"}`` for each cue of ``text``."""</span>
-    <span class="n">lines</span> <span class="o">=</span> <span class="n">_LINE_BREAK_RE</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">split_cue_lines</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
     <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">starts_cue</span><span class="p">(</span><span class="n">j</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -976,8 +973,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">text</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">text</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">lines</span> <span class="o">=</span> <span class="n">_LINE_BREAK_RE</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
-    <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">line</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_blank</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">cue_payload</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
 
 
 <div class="viewcode-block" id="dump">

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=461c1127"></script>
+    <script src="../../../_static/documentation_options.js?v=e264953e"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.76" />
+  <meta name="docsearch:version" content="0.0.77" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -728,7 +728,9 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">Lossy fields on dump:</span>
 <span class="sd">    Provenance, confidence, schema URIs, and tier metadata are dropped.</span>
-<span class="sd">    Only the text, id (if present), and settings are emitted.</span>
+<span class="sd">    Only the text, id (if present), and settings are emitted. Blank lines</span>
+<span class="sd">    inside a cue's text are dropped (a blank line ends a cue), and a negative</span>
+<span class="sd">    time raises ``ValueError`` (WebVTT has none).</span>
 
 <span class="sd">Time discipline:</span>
 <span class="sd">    WebVTT timestamps are ``HH:MM:SS.mmm`` or ``MM:SS.mmm`` (with milliseconds).</span>
@@ -751,19 +753,19 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">adapter_generator_id</span><span class="p">,</span> <span class="n">register_adapter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters._cues</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">format_hms</span><span class="p">,</span>
+    <span class="n">cue_payload</span><span class="p">,</span>
+    <span class="n">format_cue_time</span><span class="p">,</span>
     <span class="n">hms_to_ms</span><span class="p">,</span>
     <span class="n">interval_sort_key</span><span class="p">,</span>
     <span class="n">iter_with_intervals</span><span class="p">,</span>
     <span class="n">ms_to_rational</span><span class="p">,</span>
-    <span class="n">rational_to_ms</span><span class="p">,</span>
     <span class="n">read_text</span><span class="p">,</span>
+    <span class="n">split_cue_lines</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">MediaRef</span><span class="p">,</span> <span class="n">Provenance</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntervalAnnotationStore</span><span class="p">,</span> <span class="n">MemoryStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tier</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tier</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.time</span><span class="w"> </span><span class="kn">import</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">TimeInterval</span>
-
 
 <span class="n">ADAPTER_NAME</span> <span class="o">=</span> <span class="s2">"webvtt"</span>
 <span class="n">ADAPTER_VERSION</span> <span class="o">=</span> <span class="s2">"1.0.0"</span>
@@ -800,7 +802,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_format_timestamp</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="n">RationalTime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Format as ``HH:MM:SS.mmm``; sub-millisecond times are truncated."""</span>
-    <span class="k">return</span> <span class="n">format_hms</span><span class="p">(</span><span class="n">rational_to_ms</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">separator</span><span class="o">=</span><span class="s2">"."</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">format_cue_time</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s2">"."</span><span class="p">,</span> <span class="n">format_name</span><span class="o">=</span><span class="s2">"WebVTT"</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_settings</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
@@ -874,7 +876,7 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_iter_cues</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-    <span class="n">lines</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">split_cue_lines</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">lines</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"WEBVTT"</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"WebVTT files must start with a 'WEBVTT' header line"</span><span class="p">)</span>
 
@@ -971,7 +973,7 @@ window.runMermaid = runMermaid;</script>
         <span class="k">if</span> <span class="n">settings</span><span class="p">:</span>
             <span class="n">timing</span> <span class="o">+=</span> <span class="s2">" "</span> <span class="o">+</span> <span class="n">_format_settings</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
         <span class="n">out_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">timing</span><span class="p">)</span>
-        <span class="n">out_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
+        <span class="n">out_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cue_payload</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">)))</span>
         <span class="n">out_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
 
     <span class="n">blob</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_lines</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>

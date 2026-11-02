@@ -13,7 +13,9 @@ Each cue becomes one `Annotation` whose body holds:
 
 Lossy fields on dump:
 : Provenance, confidence, schema URIs, and tier metadata are dropped.
-  Only the text, id (if present), and settings are emitted.
+  Only the text, id (if present), and settings are emitted. Blank lines
+  inside a cue’s text are dropped (a blank line ends a cue), and a negative
+  time raises `ValueError` (WebVTT has none).
 
 Time discipline:
 : WebVTT timestamps are `HH:MM:SS.mmm` or `MM:SS.mmm` (with milliseconds).
