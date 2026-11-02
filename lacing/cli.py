@@ -67,6 +67,7 @@ _ENABLED_ADAPTERS = (
     "lacing.adapters.textgrid",
     "lacing.adapters.webvtt",
     "lacing.adapters.srt",
+    "lacing.adapters.lrc",
     "lacing.adapters.web_annotation",
     "lacing.adapters.annot",
     "lacing.adapters.eaf",
