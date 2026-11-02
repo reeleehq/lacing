@@ -62,8 +62,16 @@ from lacing.model import (
     AnnotationRef,
     MediaRef,
     NodeRef,
+    PROVENANCE_ACTIVITIES,
     Provenance,
     Reference,
+)
+from lacing.generator_id import (
+    GENERATOR_PREFIXES,
+    GeneratorId,
+    GeneratorIdWarning,
+    generator_id_findings,
+    parse_generator_id,
 )
 from lacing.artifact import (
     Artifact,
@@ -122,7 +130,14 @@ __all__ = [
     "NodeRef",
     "AnnotationRef",
     "Provenance",
+    "PROVENANCE_ACTIVITIES",
     "UNKNOWN_GENERATED_AT",
+    # generator id (was_generated_by grammar)
+    "GENERATOR_PREFIXES",
+    "GeneratorId",
+    "GeneratorIdWarning",
+    "generator_id_findings",
+    "parse_generator_id",
     # artifact
     "Artifact",
     "ArtifactKind",

@@ -7,12 +7,15 @@ and ``.claude/skills/lacing-schema-codegen/SKILL.md``.
 
 from __future__ import annotations
 
+import warnings
+from collections.abc import Mapping
 from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import Field, field_validator
 
 from lacing.digest import reject_non_string_keys
+from lacing.generator_id import GeneratorIdWarning, parse_generator_id
 from lacing.json_schema import SchemaModel
 from lacing.time import RationalTime, TimeInterval
 
@@ -132,6 +135,23 @@ a tick-0 annotation against a real timestamp.
 """
 
 
+PROVENANCE_ACTIVITIES: Mapping[str, str] = {
+    "create": "authored or generated fresh",
+    "import": "read from an external format by an adapter",
+    "derive": "computed from other annotations or artifacts",
+    "migrate": "rewritten by a schema or store migration",
+    "infer": "predicted by a model",
+    "cache-hit": (
+        "answered from a cache: no generation ran and nothing was billed; "
+        "``was_derived_from`` names the cached result"
+    ),
+}
+"""The documented values of :attr:`Provenance.activity`, each with its meaning.
+
+Not enforced: ``activity`` stays a plain ``str``, since tightening it to a
+``Literal`` would reject persisted data nobody has surveyed (lacing#17)."""
+
+
 class Provenance(SchemaModel):
     """W3C PROV-O subset, embedded inline on every annotation."""
 
@@ -140,8 +160,10 @@ class Provenance(SchemaModel):
     was_generated_by: str = Field(
         ...,
         description=(
-            "Activity identifier. Conventions: ``user:<handle>``, "
-            "``agent:<model>@<hash>``, ``adapter:<format>``, ``processor:<name>``."
+            "Generator identifier, ``<prefix>:<name>[@<version>]``: e.g. "
+            "``user:<handle>``, ``agent:<model>@<version digest or snapshot>``, "
+            "``adapter:<format>``, ``processor:<name>``. Grammar and the advisory "
+            "check: ``lacing.generator_id``."
         ),
     )
     was_attributed_to: str = Field(
@@ -164,8 +186,23 @@ class Provenance(SchemaModel):
     )
     activity: str = Field(
         "create",
-        description="One of: ``create``, ``import``, ``derive``, ``migrate``, ``infer``.",
+        description="One of: "
+        + ", ".join(f"``{name}``" for name in PROVENANCE_ACTIVITIES)
+        + ". ``cache-hit`` marks a result answered from a cache, not a billable run.",
     )
+
+    @field_validator("was_generated_by")
+    @classmethod
+    def _flag_malformed_generator_id(cls, value: str) -> str:
+        """Advisory (lacing#17): warn, never reject, on a value of the wrong shape."""
+        if parse_generator_id(value) is None:
+            warnings.warn(
+                f"was_generated_by={value!r} is not of the shape "
+                "'<prefix>:<name>[@<version>]' (see lacing.generator_id)",
+                GeneratorIdWarning,
+                stacklevel=2,
+            )
+        return value
 
     @property
     def generated_at_is_known(self) -> bool:

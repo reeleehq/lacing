@@ -230,7 +230,7 @@ class TestProvenanceRefUnion:
 
     def _prov(self, refs):
         return Provenance(
-            was_generated_by="x",
+            was_generated_by="user:x",
             was_attributed_to="y",
             was_derived_from=refs,
             generated_at_time=RationalTime(0),
