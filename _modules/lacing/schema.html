@@ -718,7 +718,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">``body_schema_uri`` (semver: ``annot://schema/&lt;name&gt;/v&lt;major&gt;``). This</span>
 <span class="sd">module implements:</span>
 
-<span class="sd">- :func:`register_body_schema` — register a Pydantic v2 model for a schema URI.</span>
+<span class="sd">- :func:`register_body_schema` — register a Pydantic v2 model for a schema URI,</span>
+<span class="sd">  optionally declaring its version the default for its schema name.</span>
 <span class="sd">- :func:`validate` — validate an annotation's body dict against its schema.</span>
 <span class="sd">- :func:`body_locations` — which body fields hold urls/paths (``Location`` marker).</span>
 <span class="sd">- :func:`body_derived` — which body fields are derived from a sibling (``Derived`` marker).</span>
@@ -730,6 +731,13 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">  N to N+1 of a body schema.</span>
 <span class="sd">- :func:`migrate` — upgrade a body dict (or whole annotation) through</span>
 <span class="sd">  registered migrations.</span>
+<span class="sd">- :func:`default_version` / :func:`migrate_to_default` — the version a schema</span>
+<span class="sd">  name resolves to (declared, else the highest), and migrating a body to it.</span>
+
+<span class="sd">Every register function follows :mod:`lacing.registry`'s rule: the identical</span>
+<span class="sd">object again is a no-op, a different one under a taken key warns</span>
+<span class="sd">(:class:`lacing.RegistryConflictWarning`) and replaces, ``force=True`` replaces</span>
+<span class="sd">silently.</span>
 
 <span class="sd">See the ``lacing-schema-codegen`` skill and BACK-DOC §4.5.</span>
 
@@ -770,6 +778,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.json_schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultFactoryJsonSchema</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.derived</span><span class="w"> </span><span class="kn">import</span> <span class="n">DerivedPath</span><span class="p">,</span> <span class="n">derived_paths</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.locations</span><span class="w"> </span><span class="kn">import</span> <span class="n">LocationKind</span><span class="p">,</span> <span class="n">location_fields</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn_if_replacing</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -819,6 +828,9 @@ window.runMermaid = runMermaid;</script>
 <span class="c1"># uri -&gt; Pydantic model class</span>
 <span class="n">_BODY_REGISTRY</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
 
+<span class="c1"># schema name -&gt; declared default major version; see default_version</span>
+<span class="n">_DEFAULT_VERSIONS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
 <span class="c1"># token -&gt; callback, told about every (re-)registration; see on_register.</span>
 <span class="c1"># The RLock makes "write registry + notify" and "subscribe + replay" atomic with</span>
 <span class="c1"># respect to each other, and lets a listener register further schemas.</span>
@@ -842,9 +854,22 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="register_body_schema">
 <a class="viewcode-back" href="../../_autosummary/lacing.schema.html#lacing.register_body_schema">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">register_body_schema</span><span class="p">(</span><span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Register ``model`` as the validator for ``uri``. Returns ``model``."""</span>
-    <span class="n">parse_uri</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span>  <span class="c1"># validate URI shape; raises on malformed</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">register_body_schema</span><span class="p">(</span>
+    <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">default</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Register ``model`` as the validator for ``uri``. Returns ``model``.</span>
+
+<span class="sd">    ``default=True`` declares ``uri``'s version the default of its schema name</span>
+<span class="sd">    (see :func:`default_version`). Re-registering the identical model is a</span>
+<span class="sd">    no-op (listeners are still told); a different model, or a different</span>
+<span class="sd">    declared default, warns (:class:`lacing.RegistryConflictWarning`) and</span>
+<span class="sd">    replaces, unless ``force``.</span>
+<span class="sd">    """</span>
+    <span class="n">name</span><span class="p">,</span> <span class="n">version</span> <span class="o">=</span> <span class="n">parse_uri</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span>  <span class="c1"># validate URI shape; raises on malformed</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"register_body_schema expects a Pydantic v2 BaseModel subclass; "</span>
@@ -852,6 +877,16 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span>
     <span class="n">derived_paths</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>  <span class="c1"># a bad Derived marker fails here, not on every digest</span>
     <span class="k">with</span> <span class="n">_REGISTRY_LOCK</span><span class="p">:</span>
+        <span class="n">warn_if_replacing</span><span class="p">(</span><span class="n">_BODY_REGISTRY</span><span class="p">,</span> <span class="n">uri</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="s2">"body schema"</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="n">force</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">default</span><span class="p">:</span>
+            <span class="n">warn_if_replacing</span><span class="p">(</span>
+                <span class="n">_DEFAULT_VERSIONS</span><span class="p">,</span>
+                <span class="n">name</span><span class="p">,</span>
+                <span class="n">version</span><span class="p">,</span>
+                <span class="n">what</span><span class="o">=</span><span class="s2">"default version of body schema"</span><span class="p">,</span>
+                <span class="n">force</span><span class="o">=</span><span class="n">force</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">_DEFAULT_VERSIONS</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">version</span>
         <span class="n">_BODY_REGISTRY</span><span class="p">[</span><span class="n">uri</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span>
         <span class="n">_notify</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">_REGISTER_LISTENERS</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">uri</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">model</span></div>
@@ -957,8 +992,10 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="clear_registry">
 <a class="viewcode-back" href="../../_autosummary/lacing.schema.html#lacing.clear_registry">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">clear_registry</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Drop every registered body schema and migration. For tests / repls."""</span>
+<span class="w">    </span><span class="sd">"""Drop every registered body schema, declared default and migration.</span>
+<span class="sd">    For tests / repls."""</span>
     <span class="n">_BODY_REGISTRY</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">_DEFAULT_VERSIONS</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
     <span class="n">_MIGRATION_REGISTRY</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
 
 
@@ -1110,6 +1147,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">schema_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">from_version</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">to_version</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Register a forward migration from ``v&lt;from_version&gt;`` to ``v&lt;to_version&gt;``.</span>
 
@@ -1117,8 +1155,10 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Migrations must be one major-version step at a time</span>
 <span class="sd">    (``to_version == from_version + 1``).</span>
 
-<span class="sd">    Re-registering the same ``(schema_name, from_version)`` pair replaces</span>
-<span class="sd">    the previous entry — convenient in tests, intentional for hot-reload.</span>
+<span class="sd">    Re-registering the same function for the same step is a no-op; a</span>
+<span class="sd">    different one warns (:class:`lacing.RegistryConflictWarning`), pointed at</span>
+<span class="sd">    the decorated definition, and replaces, unless ``force`` (tests,</span>
+<span class="sd">    hot-reload).</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">to_version</span> <span class="o">!=</span> <span class="n">from_version</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -1129,7 +1169,12 @@ window.runMermaid = runMermaid;</script>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"from_version must be &gt;= 1, got </span><span class="si">{</span><span class="n">from_version</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">],</span> <span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">],</span> <span class="nb">dict</span><span class="p">]:</span>
-        <span class="n">_MIGRATION_REGISTRY</span><span class="p">[(</span><span class="n">schema_name</span><span class="p">,</span> <span class="n">from_version</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">to_version</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">step</span> <span class="o">=</span> <span class="p">(</span><span class="n">schema_name</span><span class="p">,</span> <span class="n">from_version</span><span class="p">),</span> <span class="p">(</span><span class="n">to_version</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">_REGISTRY_LOCK</span><span class="p">:</span>
+            <span class="n">warn_if_replacing</span><span class="p">(</span>
+                <span class="n">_MIGRATION_REGISTRY</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="s2">"migration"</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="n">force</span>
+            <span class="p">)</span>
+            <span class="n">_MIGRATION_REGISTRY</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">step</span>
         <span class="k">return</span> <span class="n">func</span>
 
     <span class="k">return</span> <span class="n">decorator</span></div>
@@ -1182,7 +1227,11 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="latest_version">
 <a class="viewcode-back" href="../../_autosummary/lacing.schema.html#lacing.latest_version">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">latest_version</span><span class="p">(</span><span class="n">schema_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Highest registered major version for ``schema_name``, or None."""</span>
+<span class="w">    </span><span class="sd">"""Highest registered major version for ``schema_name``, or None.</span>
+
+<span class="sd">    Not the default: publishing a new version changes this, and must not</span>
+<span class="sd">    change where bodies migrate. That is :func:`default_version`.</span>
+<span class="sd">    """</span>
     <span class="n">versions</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">parse_uri</span><span class="p">(</span><span class="n">uri</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">uri</span> <span class="ow">in</span> <span class="n">_BODY_REGISTRY</span> <span class="k">if</span> <span class="n">parse_uri</span><span class="p">(</span><span class="n">uri</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">schema_name</span>
     <span class="p">]</span>
@@ -1190,19 +1239,59 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<div class="viewcode-block" id="default_version">
+<a class="viewcode-back" href="../../_autosummary/lacing.schema.html#lacing.default_version">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">default_version</span><span class="p">(</span><span class="n">schema_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The major version ``schema_name`` resolves to, or None if none is registered.</span>
+
+<span class="sd">    The version declared with ``register_body_schema(..., default=True)``, else</span>
+<span class="sd">    :func:`latest_version`. Declaring it is what keeps publishing a new version</span>
+<span class="sd">    from silently redirecting every :func:`migrate_to_default` caller.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        UnknownBodySchemaError: the declared default's schema is no longer</span>
+<span class="sd">            registered (falling back to the highest would be the silent redirect</span>
+<span class="sd">            the declaration exists to prevent).</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">schema_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_DEFAULT_VERSIONS</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">latest_version</span><span class="p">(</span><span class="n">schema_name</span><span class="p">)</span>
+    <span class="n">declared</span> <span class="o">=</span> <span class="n">_DEFAULT_VERSIONS</span><span class="p">[</span><span class="n">schema_name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_registered</span><span class="p">(</span><span class="n">make_uri</span><span class="p">(</span><span class="n">schema_name</span><span class="p">,</span> <span class="n">declared</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="n">UnknownBodySchemaError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">schema_name</span><span class="si">!r}</span><span class="s2"> declares v</span><span class="si">{</span><span class="n">declared</span><span class="si">}</span><span class="s2"> its default, but "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">make_uri</span><span class="p">(</span><span class="n">schema_name</span><span class="p">,</span><span class="w"> </span><span class="n">declared</span><span class="p">)</span><span class="si">}</span><span class="s2"> is not registered"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">declared</span></div>
+
+
+
+<div class="viewcode-block" id="migrate_to_default">
+<a class="viewcode-back" href="../../_autosummary/lacing.schema.html#lacing.migrate_to_default">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">migrate_to_default</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">from_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Migrate ``body`` to the :func:`default_version` of its schema.</span>
+
+<span class="sd">    Returns ``(migrated_body, target_uri)``. A body already *above* a declared</span>
+<span class="sd">    default raises :class:`MigrationError` (migrations run forward only), which</span>
+<span class="sd">    could not happen while the target was always the highest version.</span>
+<span class="sd">    """</span>
+    <span class="n">from_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">parse_uri</span><span class="p">(</span><span class="n">from_uri</span><span class="p">)</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">default_version</span><span class="p">(</span><span class="n">from_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">UnknownBodySchemaError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"no schema registered with name </span><span class="si">{</span><span class="n">from_name</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">target_uri</span> <span class="o">=</span> <span class="n">make_uri</span><span class="p">(</span><span class="n">from_name</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">migrate</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">from_uri</span><span class="o">=</span><span class="n">from_uri</span><span class="p">,</span> <span class="n">to_uri</span><span class="o">=</span><span class="n">target_uri</span><span class="p">),</span> <span class="n">target_uri</span></div>
+
+
+
 <div class="viewcode-block" id="migrate_to_latest">
 <a class="viewcode-back" href="../../_autosummary/lacing.schema.html#lacing.migrate_to_latest">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">migrate_to_latest</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">from_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Convenience: migrate to the highest registered version of the schema.</span>
+<span class="w">    </span><span class="sd">"""Alias of :func:`migrate_to_default`: migrates to the *default* version.</span>
 
-<span class="sd">    Returns ``(migrated_body, target_uri)``.</span>
+<span class="sd">    The name is historical, from when the default was always the highest</span>
+<span class="sd">    version; it is the highest only while no default is declared.</span>
 <span class="sd">    """</span>
-    <span class="n">from_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">parse_uri</span><span class="p">(</span><span class="n">from_uri</span><span class="p">)</span>
-    <span class="n">latest</span> <span class="o">=</span> <span class="n">latest_version</span><span class="p">(</span><span class="n">from_name</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">latest</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">UnknownBodySchemaError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"no schema registered with name </span><span class="si">{</span><span class="n">from_name</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="n">target_uri</span> <span class="o">=</span> <span class="n">make_uri</span><span class="p">(</span><span class="n">from_name</span><span class="p">,</span> <span class="n">latest</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">migrate</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">from_uri</span><span class="o">=</span><span class="n">from_uri</span><span class="p">,</span> <span class="n">to_uri</span><span class="o">=</span><span class="n">target_uri</span><span class="p">),</span> <span class="n">target_uri</span></div>
+    <span class="k">return</span> <span class="n">migrate_to_default</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">from_uri</span><span class="o">=</span><span class="n">from_uri</span><span class="p">)</span></div>
 
 </pre></div>
 

@@ -356,6 +356,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.otel.html">lacing.otel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.processors.html">lacing.processors</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.quality.html">lacing.quality</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.registry.html">lacing.registry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.schema.html">lacing.schema</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.store.html">lacing.store</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.base.html">lacing.store.base</a></li>
@@ -452,7 +453,7 @@ single <code class="docutils literal notranslate"><span class="pre">Annotation</
 <code class="docutils literal notranslate"><span class="pre">lacing-adapter-authoring</span></code> skill.</p>
 <dl class="simple">
 <dt>Lossy fields:</dt><dd><p>Praat has no provenance, no schema URIs, and no confidence. On load we
-synthesize provenance with <code class="docutils literal notranslate"><span class="pre">was_generated_by=&quot;adapter:textgrid&quot;</span></code>.
+synthesize provenance with <code class="docutils literal notranslate"><span class="pre">was_generated_by=&quot;adapter:textgrid&#64;&lt;version&gt;&quot;</span></code>.
 On dump we drop everything but <code class="docutils literal notranslate"><span class="pre">tier</span></code>, <code class="docutils literal notranslate"><span class="pre">interval</span></code> (or point), and
 <code class="docutils literal notranslate"><span class="pre">body['text']</span></code> (or the raw <code class="docutils literal notranslate"><span class="pre">body</span></code> repr if no <code class="docutils literal notranslate"><span class="pre">text</span></code> key).</p>
 </dd>

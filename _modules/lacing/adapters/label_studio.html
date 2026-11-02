@@ -759,7 +759,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_adapter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">adapter_generator_id</span><span class="p">,</span> <span class="n">register_adapter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">MediaRef</span><span class="p">,</span> <span class="n">Provenance</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntervalAnnotationStore</span><span class="p">,</span> <span class="n">MemoryStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tier</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tier</span>
@@ -767,6 +767,8 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="n">ADAPTER_NAME</span> <span class="o">=</span> <span class="s2">"label_studio"</span>
+<span class="n">ADAPTER_VERSION</span> <span class="o">=</span> <span class="s2">"1.0.0"</span>
+<span class="n">GENERATED_BY</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">adapter_generator_id</span><span class="p">(</span><span class="n">ADAPTER_NAME</span><span class="p">,</span> <span class="n">ADAPTER_VERSION</span><span class="p">))</span>
 <span class="n">BODY_SCHEMA_URI</span> <span class="o">=</span> <span class="s2">"annot://schema/label-studio-region/v1"</span>
 <span class="n">DEFAULT_ASSET_ID</span> <span class="o">=</span> <span class="s2">"label-studio:unspecified"</span>
 
@@ -926,7 +928,7 @@ window.runMermaid = runMermaid;</script>
                         <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">,</span>
                         <span class="n">body_schema_uri</span><span class="o">=</span><span class="n">BODY_SCHEMA_URI</span><span class="p">,</span>
                         <span class="n">provenance</span><span class="o">=</span><span class="n">Provenance</span><span class="p">(</span>
-                            <span class="n">was_generated_by</span><span class="o">=</span><span class="sa">f</span><span class="s2">"adapter:</span><span class="si">{</span><span class="n">ADAPTER_NAME</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                            <span class="n">was_generated_by</span><span class="o">=</span><span class="n">GENERATED_BY</span><span class="p">,</span>
                             <span class="n">was_attributed_to</span><span class="o">=</span><span class="n">ann_attribution</span><span class="p">,</span>
                             <span class="n">generated_at_time</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
                             <span class="n">activity</span><span class="o">=</span><span class="s2">"import"</span><span class="p">,</span>
@@ -1137,6 +1139,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="n">register_adapter</span><span class="p">(</span>
     <span class="n">name</span><span class="o">=</span><span class="n">ADAPTER_NAME</span><span class="p">,</span>
+    <span class="n">version</span><span class="o">=</span><span class="n">ADAPTER_VERSION</span><span class="p">,</span>
     <span class="n">load</span><span class="o">=</span><span class="n">load</span><span class="p">,</span>
     <span class="n">dump</span><span class="o">=</span><span class="n">dump</span><span class="p">,</span>
     <span class="n">extensions</span><span class="o">=</span><span class="p">(</span><span class="s2">".labelstudio.json"</span><span class="p">,),</span>

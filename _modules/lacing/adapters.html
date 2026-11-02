@@ -727,10 +727,13 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.generator_id</span><span class="w"> </span><span class="kn">import</span> <span class="n">GeneratorId</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn_if_replacing</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntervalAnnotationStore</span>
 
 
@@ -738,11 +741,30 @@ window.runMermaid = runMermaid;</script>
 <span class="n">DumpFn</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span>
 
 
+<div class="viewcode-block" id="adapter_generator_id">
+<a class="viewcode-back" href="../../_autosummary/lacing.adapters.html#lacing.adapters.adapter_generator_id">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">adapter_generator_id</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GeneratorId</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The ``was_generated_by`` of what adapter ``name`` at ``version`` imports.</span>
+
+<span class="sd">    &gt;&gt;&gt; str(adapter_generator_id("textgrid", "1.0.0"))</span>
+<span class="sd">    'adapter:textgrid@1.0.0'</span>
+<span class="sd">    &gt;&gt;&gt; str(adapter_generator_id("textgrid"))</span>
+<span class="sd">    'adapter:textgrid'</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">GeneratorId</span><span class="p">(</span><span class="s2">"adapter"</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="AdapterSpec">
 <a class="viewcode-back" href="../../_autosummary/lacing.adapters.html#lacing.adapters.AdapterSpec">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AdapterSpec</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Registered adapter for one format."""</span>
+<span class="w">    </span><span class="sd">"""Registered adapter for one format.</span>
+
+<span class="sd">    ``version`` (semver) is the vintage of the adapter's output shape: bump it</span>
+<span class="sd">    when what the adapter produces changes, so provenance can tell which</span>
+<span class="sd">    vintage produced an annotation.</span>
+<span class="sd">    """</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">extensions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
@@ -750,11 +772,18 @@ window.runMermaid = runMermaid;</script>
     <span class="n">load</span><span class="p">:</span> <span class="n">LoadFn</span>
     <span class="n">dump</span><span class="p">:</span> <span class="n">DumpFn</span>
     <span class="n">body_schema_uris</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">tuple</span><span class="p">)</span>
-    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span></div>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generator_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GeneratorId</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The provenance id of this adapter: ``adapter:&lt;name&gt;[@&lt;version&gt;]``."""</span>
+        <span class="k">return</span> <span class="n">adapter_generator_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">)</span></div>
 
 
 
 <span class="n">_REGISTRY</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">AdapterSpec</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">_REGISTRY_LOCK</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>  <span class="c1"># check-then-write is one step</span>
 
 
 <div class="viewcode-block" id="register_adapter">
@@ -768,8 +797,15 @@ window.runMermaid = runMermaid;</script>
     <span class="n">media_types</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">body_schema_uris</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+    <span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AdapterSpec</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Register an adapter. Idempotent: re-registering the same name replaces."""</span>
+<span class="w">    </span><span class="sd">"""Register an adapter under ``name``; returns its :class:`AdapterSpec`.</span>
+
+<span class="sd">    Re-registering an equal spec is a no-op. A different spec under a taken</span>
+<span class="sd">    name warns (:class:`lacing.RegistryConflictWarning`) and replaces, unless</span>
+<span class="sd">    ``force`` (see :mod:`lacing.registry`).</span>
+<span class="sd">    """</span>
     <span class="n">spec</span> <span class="o">=</span> <span class="n">AdapterSpec</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">extensions</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">extensions</span><span class="p">),</span>
@@ -778,8 +814,11 @@ window.runMermaid = runMermaid;</script>
         <span class="n">dump</span><span class="o">=</span><span class="n">dump</span><span class="p">,</span>
         <span class="n">body_schema_uris</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">body_schema_uris</span><span class="p">),</span>
         <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
+        <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">_REGISTRY</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">spec</span>
+    <span class="k">with</span> <span class="n">_REGISTRY_LOCK</span><span class="p">:</span>
+        <span class="n">warn_if_replacing</span><span class="p">(</span><span class="n">_REGISTRY</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">spec</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="s2">"adapter"</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="n">force</span><span class="p">)</span>
+        <span class="n">_REGISTRY</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">spec</span>
     <span class="k">return</span> <span class="n">spec</span></div>
 
 

@@ -8,6 +8,7 @@ lacing.adapters
 
    .. autosummary::
    
+      adapter_generator_id
       dump
       find_adapter
       get_adapter

@@ -44,6 +44,8 @@
       derived_prefills
       location_fields
       register_migration
+      default_version
+      migrate_to_default
       json_schema
       export_json_schemas
       render_artifact_exhibit
@@ -91,6 +93,7 @@
       SchemaMismatchError
       StoreMigrationError
       ProcessorError
+      RegistryConflictWarning
       BodySchemaError
       EmptySchemaRegistryError
       UnknownBodySchemaError
@@ -119,6 +122,7 @@
    otel
    processors
    quality
+   registry
    schema
    server
    store

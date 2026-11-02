@@ -13,24 +13,50 @@ Or by using the convenience top-level loaders that look up by extension or
 
 ### Functions
 
-| [`dump`](#lacing.adapters.dump)(store[, target])                         | Convenience: serialize `store` via the named adapter.          |
-|------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
-| [`find_adapter`](#lacing.adapters.find_adapter)(\*[, extension, media_type])     | Find an adapter by extension (case-insensitive) or media type. |
-| [`get_adapter`](#lacing.adapters.get_adapter)(name)                             | Look up an adapter by name.                                    |
-| [`load`](#lacing.adapters.load)(source, \*[, format])                    | Convenience: dispatch `source` to the right adapter.           |
-| [`register_adapter`](#lacing.adapters.register_adapter)(\*, name, load, dump[, ...]) | Register an adapter.                                           |
-| [`registered`](#lacing.adapters.registered)()                                  | All currently registered adapters (in registration order).     |
+| [`adapter_generator_id`](#lacing.adapters.adapter_generator_id)(name[, version])         | The `was_generated_by` of what adapter `name` at `version` imports.                                         |
+|------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| [`dump`](#lacing.adapters.dump)(store[, target])                         | Convenience: serialize `store` via the named adapter.                                                       |
+| [`find_adapter`](#lacing.adapters.find_adapter)(\*[, extension, media_type])     | Find an adapter by extension (case-insensitive) or media type.                                              |
+| [`get_adapter`](#lacing.adapters.get_adapter)(name)                             | Look up an adapter by name.                                                                                 |
+| [`load`](#lacing.adapters.load)(source, \*[, format])                    | Convenience: dispatch `source` to the right adapter.                                                        |
+| [`register_adapter`](#lacing.adapters.register_adapter)(\*, name, load, dump[, ...]) | Register an adapter under `name`; returns its [`AdapterSpec`](#lacing.adapters.AdapterSpec). |
+| [`registered`](#lacing.adapters.registered)()                                  | All currently registered adapters (in registration order).                                                  |
 
 ### Classes
 
 | [`AdapterSpec`](#lacing.adapters.AdapterSpec)(name, extensions, media_types, ...)   | Registered adapter for one format.   |
 |----------------------------------------------------------------------------------------------------|--------------------------------------|
 
-### *class* lacing.adapters.AdapterSpec(name, extensions, media_types, load, dump, body_schema_uris=tuple(), description='')
+### *class* lacing.adapters.AdapterSpec(name, extensions, media_types, load, dump, body_schema_uris=tuple(), description='', version=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Registered adapter for one format.
+
+`version` (semver) is the vintage of the adapter’s output shape: bump it
+when what the adapter produces changes, so provenance can tell which
+vintage produced an annotation.
+
+#### *property* generator_id *: [GeneratorId](lacing.generator_id.html.md#lacing.generator_id.GeneratorId)*
+
+`adapter:<name>[@<version>]`.
+
+* **Type:**
+  The provenance id of this adapter
+
+### lacing.adapters.adapter_generator_id(name, version=None)
+
+The `was_generated_by` of what adapter `name` at `version` imports.
+
+```pycon
+>>> str(adapter_generator_id("textgrid", "1.0.0"))
+'adapter:textgrid@1.0.0'
+>>> str(adapter_generator_id("textgrid"))
+'adapter:textgrid'
+```
+
+* **Return type:**
+  [`GeneratorId`](lacing.generator_id.html.md#lacing.generator_id.GeneratorId)
 
 ### lacing.adapters.dump(store, target=None, , format, \*\*kwargs)
 
@@ -63,9 +89,13 @@ path, infers from extension. Raises `ValueError` if it can’t pick.
 * **Return type:**
   [`IntervalAnnotationStore`](lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)
 
-### lacing.adapters.register_adapter(, name, load, dump, extensions=(), media_types=(), body_schema_uris=(), description='')
+### lacing.adapters.register_adapter(, name, load, dump, extensions=(), media_types=(), body_schema_uris=(), description='', version=None, force=False)
 
-Register an adapter. Idempotent: re-registering the same name replaces.
+Register an adapter under `name`; returns its [`AdapterSpec`](#lacing.adapters.AdapterSpec).
+
+Re-registering an equal spec is a no-op. A different spec under a taken
+name warns ([`lacing.RegistryConflictWarning`](lacing.html.md#lacing.RegistryConflictWarning)) and replaces, unless
+`force` (see [`lacing.registry`](lacing.registry.html.md#module-lacing.registry)).
 
 * **Return type:**
   [`AdapterSpec`](#lacing.adapters.AdapterSpec)

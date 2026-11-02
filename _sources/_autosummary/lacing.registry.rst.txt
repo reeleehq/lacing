@@ -1,0 +1,18 @@
+lacing.registry
+===============
+
+.. automodule:: lacing.registry
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      warn_if_replacing
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      RegistryConflictWarning
+   

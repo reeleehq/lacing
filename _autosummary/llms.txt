@@ -38,6 +38,7 @@
 - [lacing.otel](lacing.otel.html.md): Optional OpenTelemetry instrumentation for the lacing server.
 - [lacing.processors](lacing.processors.html.md): Background processors — pluggable jobs that run against a store + op-log.
 - [lacing.quality](lacing.quality.html.md): Inter-annotator agreement and boundary metrics.
+- [lacing.registry](lacing.registry.html.md): The replacement rule shared by lacing’s registries (lacing#19).
 - [lacing.schema](lacing.schema.html.md): Body schema registry, JSON Schema export, and migrations.
 - [lacing.store](lacing.store.html.md): Interval-keyed annotation stores.
 - [lacing.store.base](lacing.store.base.html.md): &#96;IntervalAnnotationStore&#96; — the headline Pythonic API.

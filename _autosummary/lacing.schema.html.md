@@ -6,7 +6,8 @@ Every annotation’s `body` is validated against the schema named by its
 `body_schema_uri` (semver: `annot://schema/<name>/v<major>`). This
 module implements:
 
-- [`register_body_schema()`](#lacing.schema.register_body_schema) — register a Pydantic v2 model for a schema URI.
+- [`register_body_schema()`](#lacing.schema.register_body_schema) — register a Pydantic v2 model for a schema URI,
+  optionally declaring its version the default for its schema name.
 - [`validate()`](#lacing.schema.validate) — validate an annotation’s body dict against its schema.
 - [`body_locations()`](#lacing.schema.body_locations) — which body fields hold urls/paths (`Location` marker).
 - [`body_derived()`](#lacing.schema.body_derived) — which body fields are derived from a sibling (`Derived` marker).
@@ -18,6 +19,13 @@ module implements:
   N to N+1 of a body schema.
 - [`migrate()`](#lacing.schema.migrate) — upgrade a body dict (or whole annotation) through
   registered migrations.
+- [`default_version()`](#lacing.schema.default_version) / [`migrate_to_default()`](#lacing.schema.migrate_to_default) — the version a schema
+  name resolves to (declared, else the highest), and migrating a body to it.
+
+Every register function follows [`lacing.registry`](lacing.registry.html.md#module-lacing.registry)’s rule: the identical
+object again is a no-op, a different one under a taken key warns
+([`lacing.RegistryConflictWarning`](lacing.html.md#lacing.RegistryConflictWarning)) and replaces, `force=True` replaces
+silently.
 
 See the `lacing-schema-codegen` skill and BACK-DOC §4.5.
 
@@ -47,24 +55,26 @@ def v1_to_v2(body: dict) -> dict:
 
 ### Functions
 
-| [`body_derived`](#lacing.schema.body_derived)(uri)                          | The `Derived`-marked field paths of the body schema for `uri` (see [`lacing.derived`](lacing.derived.html.md#module-lacing.derived)).                                   |
-|---------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`body_locations`](#lacing.schema.body_locations)(uri)                        | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`. |
-| [`clear_registry`](#lacing.schema.clear_registry)()                           | Drop every registered body schema and migration.                                                                                                                                             |
-| [`export_json_schemas`](#lacing.schema.export_json_schemas)(target_dir, \*[, ...]) | Write every registered schema as JSON files under `target_dir`.                                                                                                                              |
-| [`get_body_schema`](#lacing.schema.get_body_schema)(uri)                       | Look up the registered Pydantic model for `uri`.                                                                                                                                             |
-| `is_registered`(uri)                                                                        |                                                                                                                                                                                              |
-| [`json_schema`](#lacing.schema.json_schema)(uri)                           | Return the JSON Schema for the body model registered at `uri`.                                                                                                                               |
-| [`latest_version`](#lacing.schema.latest_version)(schema_name)                | Highest registered major version for `schema_name`, or None.                                                                                                                                 |
-| [`make_uri`](#lacing.schema.make_uri)(name, version)                    | Build a `body_schema_uri` from a name and major version.                                                                                                                                     |
-| [`migrate`](#lacing.schema.migrate)(body, \*, from_uri, to_uri)        | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                             |
-| [`migrate_to_latest`](#lacing.schema.migrate_to_latest)(body, \*, from_uri)      | Convenience: migrate to the highest registered version of the schema.                                                                                                                        |
-| [`on_register`](#lacing.schema.on_register)(listener, \*[, replay])        | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                            |
-| [`parse_uri`](#lacing.schema.parse_uri)(uri)                             | Split `annot://schema/<name>/v<major>` into `(name, major)`.                                                                                                                                 |
-| [`register_body_schema`](#lacing.schema.register_body_schema)(uri, model)           | Register `model` as the validator for `uri`.                                                                                                                                                 |
-| [`register_migration`](#lacing.schema.register_migration)(\*, schema_name, ...)   | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                      |
-| [`registered_uris`](#lacing.schema.registered_uris)()                          | All currently registered `body_schema_uri` values, sorted.                                                                                                                                   |
-| [`validate`](#lacing.schema.validate)(body, uri)                        | Validate `body` against the schema registered for `uri`.                                                                                                                                     |
+| [`body_derived`](#lacing.schema.body_derived)(uri)                                  | The `Derived`-marked field paths of the body schema for `uri` (see [`lacing.derived`](lacing.derived.html.md#module-lacing.derived)).                                   |
+|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`body_locations`](#lacing.schema.body_locations)(uri)                                | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`. |
+| [`clear_registry`](#lacing.schema.clear_registry)()                                   | Drop every registered body schema, declared default and migration.                                                                                                                           |
+| [`default_version`](#lacing.schema.default_version)(schema_name)                       | The major version `schema_name` resolves to, or None if none is registered.                                                                                                                  |
+| [`export_json_schemas`](#lacing.schema.export_json_schemas)(target_dir, \*[, ...])         | Write every registered schema as JSON files under `target_dir`.                                                                                                                              |
+| [`get_body_schema`](#lacing.schema.get_body_schema)(uri)                               | Look up the registered Pydantic model for `uri`.                                                                                                                                             |
+| `is_registered`(uri)                                                                                |                                                                                                                                                                                              |
+| [`json_schema`](#lacing.schema.json_schema)(uri)                                   | Return the JSON Schema for the body model registered at `uri`.                                                                                                                               |
+| [`latest_version`](#lacing.schema.latest_version)(schema_name)                        | Highest registered major version for `schema_name`, or None.                                                                                                                                 |
+| [`make_uri`](#lacing.schema.make_uri)(name, version)                            | Build a `body_schema_uri` from a name and major version.                                                                                                                                     |
+| [`migrate`](#lacing.schema.migrate)(body, \*, from_uri, to_uri)                | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                             |
+| [`migrate_to_default`](#lacing.schema.migrate_to_default)(body, \*, from_uri)             | Migrate `body` to the [`default_version()`](#lacing.schema.default_version) of its schema.                                                                                      |
+| [`migrate_to_latest`](#lacing.schema.migrate_to_latest)(body, \*, from_uri)              | Alias of [`migrate_to_default()`](#lacing.schema.migrate_to_default): migrates to the *default* version.                                                                           |
+| [`on_register`](#lacing.schema.on_register)(listener, \*[, replay])                | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                            |
+| [`parse_uri`](#lacing.schema.parse_uri)(uri)                                     | Split `annot://schema/<name>/v<major>` into `(name, major)`.                                                                                                                                 |
+| [`register_body_schema`](#lacing.schema.register_body_schema)(uri, model, \*[, force, ...]) | Register `model` as the validator for `uri`.                                                                                                                                                 |
+| [`register_migration`](#lacing.schema.register_migration)(\*, schema_name, ...[, force])  | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                      |
+| [`registered_uris`](#lacing.schema.registered_uris)()                                  | All currently registered `body_schema_uri` values, sorted.                                                                                                                                   |
+| [`validate`](#lacing.schema.validate)(body, uri)                                | Validate `body` against the schema registered for `uri`.                                                                                                                                     |
 
 ### Exceptions
 
@@ -121,10 +131,26 @@ The location-marked fields of the body schema for `uri`
 
 ### lacing.schema.clear_registry()
 
-Drop every registered body schema and migration. For tests / repls.
+Drop every registered body schema, declared default and migration.
+For tests / repls.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### lacing.schema.default_version(schema_name)
+
+The major version `schema_name` resolves to, or None if none is registered.
+
+The version declared with `register_body_schema(..., default=True)`, else
+[`latest_version()`](#lacing.schema.latest_version). Declaring it is what keeps publishing a new version
+from silently redirecting every [`migrate_to_default()`](#lacing.schema.migrate_to_default) caller.
+
+* **Raises:**
+  [**UnknownBodySchemaError**](#lacing.schema.UnknownBodySchemaError) – the declared default’s schema is no longer
+      registered (falling back to the highest would be the silent redirect
+      the declaration exists to prevent).
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### lacing.schema.export_json_schemas(target_dir, , overwrite=True, include_meta=True, allow_empty=False)
 
@@ -172,6 +198,9 @@ the registered model has.
 
 Highest registered major version for `schema_name`, or None.
 
+Not the default: publishing a new version changes this, and must not
+change where bodies migrate. That is [`default_version()`](#lacing.schema.default_version).
+
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
@@ -192,11 +221,23 @@ step is missing.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
+### lacing.schema.migrate_to_default(body, , from_uri)
+
+Migrate `body` to the [`default_version()`](#lacing.schema.default_version) of its schema.
+
+Returns `(migrated_body, target_uri)`. A body already *above* a declared
+default raises [`MigrationError`](#lacing.schema.MigrationError) (migrations run forward only), which
+could not happen while the target was always the highest version.
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 ### lacing.schema.migrate_to_latest(body, , from_uri)
 
-Convenience: migrate to the highest registered version of the schema.
+Alias of [`migrate_to_default()`](#lacing.schema.migrate_to_default): migrates to the *default* version.
 
-Returns `(migrated_body, target_uri)`.
+The name is historical, from when the default was always the highest
+version; it is the highest only while no default is declared.
 
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -241,14 +282,20 @@ Raises `ValueError` on malformed input.
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
 
-### lacing.schema.register_body_schema(uri, model)
+### lacing.schema.register_body_schema(uri, model, , force=False, default=False)
 
 Register `model` as the validator for `uri`. Returns `model`.
+
+`default=True` declares `uri`’s version the default of its schema name
+(see [`default_version()`](#lacing.schema.default_version)). Re-registering the identical model is a
+no-op (listeners are still told); a different model, or a different
+declared default, warns ([`lacing.RegistryConflictWarning`](lacing.html.md#lacing.RegistryConflictWarning)) and
+replaces, unless `force`.
 
 * **Return type:**
   [`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]
 
-### lacing.schema.register_migration(, schema_name, from_version, to_version)
+### lacing.schema.register_migration(, schema_name, from_version, to_version, force=False)
 
 Register a forward migration from `v<from_version>` to `v<to_version>`.
 
@@ -256,8 +303,10 @@ Decorated function takes a body `dict` and returns a new body `dict`.
 Migrations must be one major-version step at a time
 (`to_version == from_version + 1`).
 
-Re-registering the same `(schema_name, from_version)` pair replaces
-the previous entry — convenient in tests, intentional for hot-reload.
+Re-registering the same function for the same step is a no-op; a
+different one warns ([`lacing.RegistryConflictWarning`](lacing.html.md#lacing.RegistryConflictWarning)), pointed at
+the decorated definition, and replaces, unless `force` (tests,
+hot-reload).
 
 ### lacing.schema.registered_uris()
 

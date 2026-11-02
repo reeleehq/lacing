@@ -119,7 +119,8 @@ Register permissive body validators for the subtitle URIs.
 
 Calling this is *optional*; the builder works fine without
 registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later.
+surface at write time rather than later. It replaces whatever is
+registered under those URIs, the built-in `word/v1` included.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)

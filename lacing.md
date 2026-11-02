@@ -1,4 +1,4 @@
-> built 2026-11-02 16:24 UTC from 63e6717 (main) · lacing 0.0.73. Details: build_info.json
+> built 2026-11-02 16:32 UTC from 2c4ba7b (main) · lacing 0.0.73. Details: build_info.json
 
 # index.html.md
 
@@ -645,24 +645,50 @@ Or by using the convenience top-level loaders that look up by extension or
 
 ### Functions
 
-| [`dump`](_autosummary/lacing.adapters.html.md#lacing.adapters.dump)(store[, target])                         | Convenience: serialize `store` via the named adapter.          |
-|------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
-| [`find_adapter`](_autosummary/lacing.adapters.html.md#lacing.adapters.find_adapter)(\*[, extension, media_type])     | Find an adapter by extension (case-insensitive) or media type. |
-| [`get_adapter`](_autosummary/lacing.adapters.html.md#lacing.adapters.get_adapter)(name)                             | Look up an adapter by name.                                    |
-| [`load`](_autosummary/lacing.adapters.html.md#lacing.adapters.load)(source, \*[, format])                    | Convenience: dispatch `source` to the right adapter.           |
-| [`register_adapter`](_autosummary/lacing.adapters.html.md#lacing.adapters.register_adapter)(\*, name, load, dump[, ...]) | Register an adapter.                                           |
-| [`registered`](_autosummary/lacing.adapters.html.md#lacing.adapters.registered)()                                  | All currently registered adapters (in registration order).     |
+| [`adapter_generator_id`](_autosummary/lacing.adapters.html.md#lacing.adapters.adapter_generator_id)(name[, version])         | The `was_generated_by` of what adapter `name` at `version` imports.                                         |
+|------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| [`dump`](_autosummary/lacing.adapters.html.md#lacing.adapters.dump)(store[, target])                         | Convenience: serialize `store` via the named adapter.                                                       |
+| [`find_adapter`](_autosummary/lacing.adapters.html.md#lacing.adapters.find_adapter)(\*[, extension, media_type])     | Find an adapter by extension (case-insensitive) or media type.                                              |
+| [`get_adapter`](_autosummary/lacing.adapters.html.md#lacing.adapters.get_adapter)(name)                             | Look up an adapter by name.                                                                                 |
+| [`load`](_autosummary/lacing.adapters.html.md#lacing.adapters.load)(source, \*[, format])                    | Convenience: dispatch `source` to the right adapter.                                                        |
+| [`register_adapter`](_autosummary/lacing.adapters.html.md#lacing.adapters.register_adapter)(\*, name, load, dump[, ...]) | Register an adapter under `name`; returns its [`AdapterSpec`](_autosummary/lacing.adapters.html.md#lacing.adapters.AdapterSpec). |
+| [`registered`](_autosummary/lacing.adapters.html.md#lacing.adapters.registered)()                                  | All currently registered adapters (in registration order).                                                  |
 
 ### Classes
 
 | [`AdapterSpec`](_autosummary/lacing.adapters.html.md#lacing.adapters.AdapterSpec)(name, extensions, media_types, ...)   | Registered adapter for one format.   |
 |----------------------------------------------------------------------------------------------------|--------------------------------------|
 
-### *class* lacing.adapters.AdapterSpec(name, extensions, media_types, load, dump, body_schema_uris=tuple(), description='')
+### *class* lacing.adapters.AdapterSpec(name, extensions, media_types, load, dump, body_schema_uris=tuple(), description='', version=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Registered adapter for one format.
+
+`version` (semver) is the vintage of the adapter’s output shape: bump it
+when what the adapter produces changes, so provenance can tell which
+vintage produced an annotation.
+
+#### *property* generator_id *: [GeneratorId](_autosummary/lacing.generator_id.html.md#lacing.generator_id.GeneratorId)*
+
+`adapter:<name>[@<version>]`.
+
+* **Type:**
+  The provenance id of this adapter
+
+### lacing.adapters.adapter_generator_id(name, version=None)
+
+The `was_generated_by` of what adapter `name` at `version` imports.
+
+```pycon
+>>> str(adapter_generator_id("textgrid", "1.0.0"))
+'adapter:textgrid@1.0.0'
+>>> str(adapter_generator_id("textgrid"))
+'adapter:textgrid'
+```
+
+* **Return type:**
+  [`GeneratorId`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.GeneratorId)
 
 ### lacing.adapters.dump(store, target=None, , format, \*\*kwargs)
 
@@ -695,9 +721,13 @@ path, infers from extension. Raises `ValueError` if it can’t pick.
 * **Return type:**
   [`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)
 
-### lacing.adapters.register_adapter(, name, load, dump, extensions=(), media_types=(), body_schema_uris=(), description='')
+### lacing.adapters.register_adapter(, name, load, dump, extensions=(), media_types=(), body_schema_uris=(), description='', version=None, force=False)
 
-Register an adapter. Idempotent: re-registering the same name replaces.
+Register an adapter under `name`; returns its [`AdapterSpec`](_autosummary/lacing.adapters.html.md#lacing.adapters.AdapterSpec).
+
+Re-registering an equal spec is a no-op. A different spec under a taken
+name warns ([`lacing.RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)) and replaces, unless
+`force` (see [`lacing.registry`](_autosummary/lacing.registry.html.md#module-lacing.registry)).
 
 * **Return type:**
   [`AdapterSpec`](_autosummary/lacing.adapters.html.md#lacing.adapters.AdapterSpec)
@@ -982,7 +1012,7 @@ single `Annotation` envelope; point annotations use a zero-length
 
 Lossy fields:
 : Praat has no provenance, no schema URIs, and no confidence. On load we
-  synthesize provenance with `was_generated_by="adapter:textgrid"`.
+  synthesize provenance with `was_generated_by="adapter:textgrid@<version>"`.
   On dump we drop everything but `tier`, `interval` (or point), and
   `body['text']` (or the raw `body` repr if no `text` key).
 
@@ -3799,7 +3829,7 @@ Whether the `@` slot holds a digest or a slug cannot be told from the string
 
 The shape every `was_generated_by` is checked against.
 
-### lacing.generator_id.GENERATOR_PREFIXES *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= {'adapter': 'an import/export format adapter: \`\`adapter:<format>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}*
+### lacing.generator_id.GENERATOR_PREFIXES *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= {'adapter': 'an import/export format adapter: \`\`adapter:<format>@<version>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}*
 
 The documented prefixes, each with what follows it. `transform`, `server`
 and `fetch` were in production before they were documented (lacing#17).
@@ -3820,7 +3850,7 @@ A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.
 
 Prefixes whose convention asks for an `@<version>`.
 
-### lacing.generator_id.generator_id_findings(value, , prefixes={'adapter': 'an import/export format adapter: \`\`adapter:<format>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}, versioned=frozenset({'agent'}))
+### lacing.generator_id.generator_id_findings(value, , prefixes={'adapter': 'an import/export format adapter: \`\`adapter:<format>@<version>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}, versioned=frozenset({'agent'}))
 
 What `value` does differently from the documented convention; empty if nothing.
 
@@ -3920,13 +3950,15 @@ full story. `.claude/skills/` contains the rules.
 | [`krippendorff_alpha`](_autosummary/lacing.html.md#lacing.krippendorff_alpha)(annotations, \*[, distance])     | Krippendorff's α across any number of annotators.                                                                                                                                                                                                                                                                                                                                                                                       |
 | [`interval_iou`](_autosummary/lacing.html.md#lacing.interval_iou)(a, b)                                  | Intersection-over-Union for two time intervals.                                                                                                                                                                                                                                                                                                                                                                                         |
 | [`boundary_iou`](_autosummary/lacing.html.md#lacing.boundary_iou)(a, b)                                  | Mean IoU between two sets of intervals via greedy best-match.                                                                                                                                                                                                                                                                                                                                                                           |
-| [`register_body_schema`](_autosummary/lacing.html.md#lacing.register_body_schema)(uri, model)                    | Register `model` as the validator for `uri`.                                                                                                                                                                                                                                                                                                                                                                                            |
+| [`register_body_schema`](_autosummary/lacing.html.md#lacing.register_body_schema)(uri, model, \*[, force, ...])  | Register `model` as the validator for `uri`.                                                                                                                                                                                                                                                                                                                                                                                            |
 | [`on_register`](_autosummary/lacing.html.md#lacing.on_register)(listener, \*[, replay])                 | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                                                                                                                                                                                                                                                                       |
 | [`body_locations`](_autosummary/lacing.html.md#lacing.body_locations)(uri)                                 | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`.                                                                                                                                                                                                                                            |
 | [`derived_paths`](_autosummary/lacing.html.md#lacing.derived_paths)(model)                                | The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.html.md#lacing.Derived) fields.                                                                                                                                                                                                                                                                                                                     |
 | [`derived_prefills`](_autosummary/lacing.html.md#lacing.derived_prefills)(model)                             | Every path of [`derived_paths()`](_autosummary/lacing.html.md#lacing.derived_paths), mapped to the value its field holds before it is filled: its declared JSON default, or `None` when there is none (see `derived_defaults()` for which paths have one).                                                                                                                                                                                   |
 | [`location_fields`](_autosummary/lacing.html.md#lacing.location_fields)(model)                              | `{field spelling: kind}` for the [`Location`](_autosummary/lacing.html.md#lacing.Location)-marked fields of `model` and of the models nested in it.                                                                                                                                                                                                                                                                                     |
-| [`register_migration`](_autosummary/lacing.html.md#lacing.register_migration)(\*, schema_name, ...)            | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                                                                                                                                                                                                                                                                 |
+| [`register_migration`](_autosummary/lacing.html.md#lacing.register_migration)(\*, schema_name, ...[, force])   | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                                                                                                                                                                                                                                                                 |
+| [`default_version`](_autosummary/lacing.html.md#lacing.default_version)(schema_name)                        | The major version `schema_name` resolves to, or None if none is registered.                                                                                                                                                                                                                                                                                                                                                             |
+| [`migrate_to_default`](_autosummary/lacing.html.md#lacing.migrate_to_default)(body, \*, from_uri)              | Migrate `body` to the [`default_version()`](_autosummary/lacing.html.md#lacing.default_version) of its schema.                                                                                                                                                                                                                                                                                                                                 |
 | [`json_schema`](_autosummary/lacing.html.md#lacing.json_schema)(uri)                                    | Return the JSON Schema for the body model registered at `uri`.                                                                                                                                                                                                                                                                                                                                                                          |
 | [`export_json_schemas`](_autosummary/lacing.html.md#lacing.export_json_schemas)(target_dir, \*[, ...])          | Write every registered schema as JSON files under `target_dir`.                                                                                                                                                                                                                                                                                                                                                                         |
 | [`render_artifact_exhibit`](_autosummary/lacing.html.md#lacing.render_artifact_exhibit)(annotations, \*, out_dir)   | Render an annotation graph as a human-readable artifact exhibit.                                                                                                                                                                                                                                                                                                                                                                        |
@@ -3965,17 +3997,18 @@ full story. `.claude/skills/` contains the rules.
 
 ### Exceptions
 
-| [`LossyTimeConversionError`](_autosummary/lacing.html.md#lacing.LossyTimeConversionError)   | Raised when a rate or seconds conversion would lose precision.               |
-|-----------------------------------------------------------------------------|------------------------------------------------------------------------------|
-| [`GeneratorIdWarning`](_autosummary/lacing.html.md#lacing.GeneratorIdWarning)         | A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape. |
-| [`NonStringBodyKeyError`](_autosummary/lacing.html.md#lacing.NonStringBodyKeyError)      | An annotation `body` contains a mapping key that is not a `str`.             |
-| [`SchemaMismatchError`](_autosummary/lacing.html.md#lacing.SchemaMismatchError)        | Raised when opening a `.annot` file with an incompatible schema.             |
-| [`StoreMigrationError`](_autosummary/lacing.html.md#lacing.StoreMigrationError)        | Raised when a store migration step is missing or fails.                      |
-| [`ProcessorError`](_autosummary/lacing.html.md#lacing.ProcessorError)             | Raised when a registered processor's invocation fails.                       |
-| [`BodySchemaError`](_autosummary/lacing.html.md#lacing.BodySchemaError)            | Raised when a body fails validation against its registered schema.           |
-| [`EmptySchemaRegistryError`](_autosummary/lacing.html.md#lacing.EmptySchemaRegistryError)   | Raised when an export would write an empty registry over real artifacts.     |
-| [`UnknownBodySchemaError`](_autosummary/lacing.html.md#lacing.UnknownBodySchemaError)     | Raised when an annotation's body_schema_uri has no registered model.         |
-| [`MigrationError`](_autosummary/lacing.html.md#lacing.MigrationError)             | Raised when a migration step is missing or fails.                            |
+| [`LossyTimeConversionError`](_autosummary/lacing.html.md#lacing.LossyTimeConversionError)   | Raised when a rate or seconds conversion would lose precision.                 |
+|-----------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| [`GeneratorIdWarning`](_autosummary/lacing.html.md#lacing.GeneratorIdWarning)         | A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.   |
+| [`NonStringBodyKeyError`](_autosummary/lacing.html.md#lacing.NonStringBodyKeyError)      | An annotation `body` contains a mapping key that is not a `str`.               |
+| [`SchemaMismatchError`](_autosummary/lacing.html.md#lacing.SchemaMismatchError)        | Raised when opening a `.annot` file with an incompatible schema.               |
+| [`StoreMigrationError`](_autosummary/lacing.html.md#lacing.StoreMigrationError)        | Raised when a store migration step is missing or fails.                        |
+| [`ProcessorError`](_autosummary/lacing.html.md#lacing.ProcessorError)             | Raised when a registered processor's invocation fails.                         |
+| [`RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)    | A registration replaced a *different* object already registered under its key. |
+| [`BodySchemaError`](_autosummary/lacing.html.md#lacing.BodySchemaError)            | Raised when a body fails validation against its registered schema.             |
+| [`EmptySchemaRegistryError`](_autosummary/lacing.html.md#lacing.EmptySchemaRegistryError)   | Raised when an export would write an empty registry over real artifacts.       |
+| [`UnknownBodySchemaError`](_autosummary/lacing.html.md#lacing.UnknownBodySchemaError)     | Raised when an annotation's body_schema_uri has no registered model.           |
+| [`MigrationError`](_autosummary/lacing.html.md#lacing.MigrationError)             | Raised when a migration step is missing or fails.                              |
 
 ### *class* lacing.AllenRelation(\*values)
 
@@ -5235,6 +5268,15 @@ the epoch. Producers stamp [`now()`](_autosummary/lacing.html.md#lacing.Rational
 * **Return type:**
   [`RationalTime`](_autosummary/lacing.time.html.md#lacing.time.RationalTime)
 
+### *exception* lacing.RegistryConflictWarning
+
+Bases: [`FutureWarning`](https://docs.python.org/3/builtins/exceptions.html#FutureWarning)
+
+A registration replaced a *different* object already registered under its key.
+
+It will become an error; pass `force=True` to the register function to
+replace on purpose.
+
 ### *class* lacing.ResolvedArtifact(key, record, content_hash, data)
 
 Bases: [`NamedTuple`](https://docs.python.org/3/library/typing.html#typing.NamedTuple)
@@ -5664,6 +5706,21 @@ filed before its bytes exist).
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+### lacing.default_version(schema_name)
+
+The major version `schema_name` resolves to, or None if none is registered.
+
+The version declared with `register_body_schema(..., default=True)`, else
+`latest_version()`. Declaring it is what keeps publishing a new version
+from silently redirecting every [`migrate_to_default()`](_autosummary/lacing.html.md#lacing.migrate_to_default) caller.
+
+* **Raises:**
+  [**UnknownBodySchemaError**](_autosummary/lacing.html.md#lacing.UnknownBodySchemaError) – the declared default’s schema is no longer
+      registered (falling back to the highest would be the silent redirect
+      the declaration exists to prevent).
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### lacing.derived_paths(model)
 
 The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.html.md#lacing.Derived) fields.
@@ -5715,7 +5772,7 @@ written, in registration order.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 
-### lacing.generator_id_findings(value, , prefixes={'adapter': 'an import/export format adapter: \`\`adapter:<format>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}, versioned=frozenset({'agent'}))
+### lacing.generator_id_findings(value, , prefixes={'adapter': 'an import/export format adapter: \`\`adapter:<format>@<version>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}, versioned=frozenset({'agent'}))
 
 What `value` does differently from the documented convention; empty if nothing.
 
@@ -5948,6 +6005,17 @@ runner’s in-transaction guarantees.
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`int`](https://docs.python.org/3/builtins/functions.html#int), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
 
+### lacing.migrate_to_default(body, , from_uri)
+
+Migrate `body` to the [`default_version()`](_autosummary/lacing.html.md#lacing.default_version) of its schema.
+
+Returns `(migrated_body, target_uri)`. A body already *above* a declared
+default raises [`MigrationError`](_autosummary/lacing.html.md#lacing.MigrationError) (migrations run forward only), which
+could not happen while the target was always the highest version.
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 ### lacing.on_register(listener, , replay=True)
 
 Call `listener(uri, model)` whenever a body schema is registered.
@@ -5995,14 +6063,20 @@ True
 * **Return type:**
   [`GeneratorId`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.GeneratorId) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### lacing.register_body_schema(uri, model)
+### lacing.register_body_schema(uri, model, , force=False, default=False)
 
 Register `model` as the validator for `uri`. Returns `model`.
+
+`default=True` declares `uri`’s version the default of its schema name
+(see [`default_version()`](_autosummary/lacing.html.md#lacing.default_version)). Re-registering the identical model is a
+no-op (listeners are still told); a different model, or a different
+declared default, warns ([`lacing.RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)) and
+replaces, unless `force`.
 
 * **Return type:**
   [`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]
 
-### lacing.register_migration(, schema_name, from_version, to_version)
+### lacing.register_migration(, schema_name, from_version, to_version, force=False)
 
 Register a forward migration from `v<from_version>` to `v<to_version>`.
 
@@ -6010,8 +6084,10 @@ Decorated function takes a body `dict` and returns a new body `dict`.
 Migrations must be one major-version step at a time
 (`to_version == from_version + 1`).
 
-Re-registering the same `(schema_name, from_version)` pair replaces
-the previous entry — convenient in tests, intentional for hot-reload.
+Re-registering the same function for the same step is a no-op; a
+different one warns ([`lacing.RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)), pointed at
+the decorated definition, and replaces, unless `force` (tests,
+hot-reload).
 
 ### lacing.register_processor(func=None, , name=None)
 
@@ -6275,6 +6351,7 @@ The advisory check [`lacing.Provenance`](_autosummary/lacing.html.md#lacing.Prov
 | [`otel`](_autosummary/lacing.otel.html.md#module-lacing.otel)                     | Optional OpenTelemetry instrumentation for the lacing server.                       |
 | [`processors`](_autosummary/lacing.processors.html.md#module-lacing.processors)         | Background processors — pluggable jobs that run against a store + op-log.           |
 | [`quality`](_autosummary/lacing.quality.html.md#module-lacing.quality)               | Inter-annotator agreement and boundary metrics.                                     |
+| [`registry`](_autosummary/lacing.registry.html.md#module-lacing.registry)             | The replacement rule shared by lacing's registries (lacing#19).                     |
 | [`schema`](_autosummary/lacing.schema.html.md#module-lacing.schema)                 | Body schema registry, JSON Schema export, and migrations.                           |
 | [`store`](_autosummary/lacing.store.html.md#module-lacing.store)                   | Interval-keyed annotation stores.                                                   |
 | [`tier`](_autosummary/lacing.tier.html.md#module-lacing.tier)                     | Tiers and the five ELAN stereotypes.                                                |
@@ -7034,6 +7111,67 @@ missing ratings (canonical nominal α = 0.743):
 ```
 
 
+# _autosummary/lacing.registry.html.md
+
+# lacing.registry
+
+The replacement rule shared by lacing’s registries (lacing#19).
+
+lacing keys three registries by a published identity: I/O adapters by name
+([`lacing.adapters.register_adapter()`](_autosummary/lacing.adapters.html.md#lacing.adapters.register_adapter)), body schemas by URI
+([`lacing.schema.register_body_schema()`](_autosummary/lacing.schema.html.md#lacing.schema.register_body_schema), including a schema name’s declared
+default version) and body migrations by `(schema_name, from_version)`
+([`lacing.schema.register_migration()`](_autosummary/lacing.schema.html.md#lacing.schema.register_migration)). Each calls
+[`warn_if_replacing()`](_autosummary/lacing.registry.html.md#lacing.registry.warn_if_replacing) before it writes, so all three follow one rule:
+
+- registering the identical object again is a silent no-op;
+- registering a *different* object under a key already taken emits a
+  [`RegistryConflictWarning`](_autosummary/lacing.registry.html.md#lacing.registry.RegistryConflictWarning), then replaces;
+- `force=True` replaces silently, for tests and hot-reload.
+
+Silent replacement is how two modules registering the same key end up with
+import order deciding the winner, and nothing saying so.
+
+### Functions
+
+| [`warn_if_replacing`](_autosummary/lacing.registry.html.md#lacing.registry.warn_if_replacing)(registry, key, new, \*, what)   | Warn when writing `new` under `key` would replace a different object.   |
+|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+
+### Exceptions
+
+| [`RegistryConflictWarning`](_autosummary/lacing.registry.html.md#lacing.registry.RegistryConflictWarning)   | A registration replaced a *different* object already registered under its key.   |
+|----------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+
+### *exception* lacing.registry.RegistryConflictWarning
+
+Bases: [`FutureWarning`](https://docs.python.org/3/builtins/exceptions.html#FutureWarning)
+
+A registration replaced a *different* object already registered under its key.
+
+It will become an error; pass `force=True` to the register function to
+replace on purpose.
+
+### lacing.registry.warn_if_replacing(registry, key, new, , what, force=False)
+
+Warn when writing `new` under `key` would replace a different object.
+
+Call it just before the write. `what` names the registry in the message
+(`"body schema"`). The warning points at whoever called the register
+function, or, for a decorator, at the decorated definition.
+
+Identical means `is` or `==`: a model class compares by identity, a
+migration’s `(to_version, func)` and a frozen `AdapterSpec` compare
+field by field, their functions by identity.
+
+The issue (lacing#19) asks for an error. This warns instead, because
+downstream test suites re-register different models under one URI today
+(a new local class per test), and raising would turn their CI red on the
+next lacing release. Warn first, raise later.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+
 # _autosummary/lacing.schema.html.md
 
 # lacing.schema
@@ -7044,7 +7182,8 @@ Every annotation’s `body` is validated against the schema named by its
 `body_schema_uri` (semver: `annot://schema/<name>/v<major>`). This
 module implements:
 
-- [`register_body_schema()`](_autosummary/lacing.schema.html.md#lacing.schema.register_body_schema) — register a Pydantic v2 model for a schema URI.
+- [`register_body_schema()`](_autosummary/lacing.schema.html.md#lacing.schema.register_body_schema) — register a Pydantic v2 model for a schema URI,
+  optionally declaring its version the default for its schema name.
 - [`validate()`](_autosummary/lacing.schema.html.md#lacing.schema.validate) — validate an annotation’s body dict against its schema.
 - [`body_locations()`](_autosummary/lacing.schema.html.md#lacing.schema.body_locations) — which body fields hold urls/paths (`Location` marker).
 - [`body_derived()`](_autosummary/lacing.schema.html.md#lacing.schema.body_derived) — which body fields are derived from a sibling (`Derived` marker).
@@ -7056,6 +7195,13 @@ module implements:
   N to N+1 of a body schema.
 - [`migrate()`](_autosummary/lacing.schema.html.md#lacing.schema.migrate) — upgrade a body dict (or whole annotation) through
   registered migrations.
+- [`default_version()`](_autosummary/lacing.schema.html.md#lacing.schema.default_version) / [`migrate_to_default()`](_autosummary/lacing.schema.html.md#lacing.schema.migrate_to_default) — the version a schema
+  name resolves to (declared, else the highest), and migrating a body to it.
+
+Every register function follows [`lacing.registry`](_autosummary/lacing.registry.html.md#module-lacing.registry)’s rule: the identical
+object again is a no-op, a different one under a taken key warns
+([`lacing.RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)) and replaces, `force=True` replaces
+silently.
 
 See the `lacing-schema-codegen` skill and BACK-DOC §4.5.
 
@@ -7085,24 +7231,26 @@ def v1_to_v2(body: dict) -> dict:
 
 ### Functions
 
-| [`body_derived`](_autosummary/lacing.schema.html.md#lacing.schema.body_derived)(uri)                          | The `Derived`-marked field paths of the body schema for `uri` (see [`lacing.derived`](_autosummary/lacing.derived.html.md#module-lacing.derived)).                                   |
-|---------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`body_locations`](_autosummary/lacing.schema.html.md#lacing.schema.body_locations)(uri)                        | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`. |
-| [`clear_registry`](_autosummary/lacing.schema.html.md#lacing.schema.clear_registry)()                           | Drop every registered body schema and migration.                                                                                                                                             |
-| [`export_json_schemas`](_autosummary/lacing.schema.html.md#lacing.schema.export_json_schemas)(target_dir, \*[, ...]) | Write every registered schema as JSON files under `target_dir`.                                                                                                                              |
-| [`get_body_schema`](_autosummary/lacing.schema.html.md#lacing.schema.get_body_schema)(uri)                       | Look up the registered Pydantic model for `uri`.                                                                                                                                             |
-| `is_registered`(uri)                                                                        |                                                                                                                                                                                              |
-| [`json_schema`](_autosummary/lacing.schema.html.md#lacing.schema.json_schema)(uri)                           | Return the JSON Schema for the body model registered at `uri`.                                                                                                                               |
-| [`latest_version`](_autosummary/lacing.schema.html.md#lacing.schema.latest_version)(schema_name)                | Highest registered major version for `schema_name`, or None.                                                                                                                                 |
-| [`make_uri`](_autosummary/lacing.schema.html.md#lacing.schema.make_uri)(name, version)                    | Build a `body_schema_uri` from a name and major version.                                                                                                                                     |
-| [`migrate`](_autosummary/lacing.schema.html.md#lacing.schema.migrate)(body, \*, from_uri, to_uri)        | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                             |
-| [`migrate_to_latest`](_autosummary/lacing.schema.html.md#lacing.schema.migrate_to_latest)(body, \*, from_uri)      | Convenience: migrate to the highest registered version of the schema.                                                                                                                        |
-| [`on_register`](_autosummary/lacing.schema.html.md#lacing.schema.on_register)(listener, \*[, replay])        | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                            |
-| [`parse_uri`](_autosummary/lacing.schema.html.md#lacing.schema.parse_uri)(uri)                             | Split `annot://schema/<name>/v<major>` into `(name, major)`.                                                                                                                                 |
-| [`register_body_schema`](_autosummary/lacing.schema.html.md#lacing.schema.register_body_schema)(uri, model)           | Register `model` as the validator for `uri`.                                                                                                                                                 |
-| [`register_migration`](_autosummary/lacing.schema.html.md#lacing.schema.register_migration)(\*, schema_name, ...)   | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                      |
-| [`registered_uris`](_autosummary/lacing.schema.html.md#lacing.schema.registered_uris)()                          | All currently registered `body_schema_uri` values, sorted.                                                                                                                                   |
-| [`validate`](_autosummary/lacing.schema.html.md#lacing.schema.validate)(body, uri)                        | Validate `body` against the schema registered for `uri`.                                                                                                                                     |
+| [`body_derived`](_autosummary/lacing.schema.html.md#lacing.schema.body_derived)(uri)                                  | The `Derived`-marked field paths of the body schema for `uri` (see [`lacing.derived`](_autosummary/lacing.derived.html.md#module-lacing.derived)).                                   |
+|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`body_locations`](_autosummary/lacing.schema.html.md#lacing.schema.body_locations)(uri)                                | The location-marked fields of the body schema for `uri` (see [`lacing.locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)): `{field spelling: "url" | "path"}`. |
+| [`clear_registry`](_autosummary/lacing.schema.html.md#lacing.schema.clear_registry)()                                   | Drop every registered body schema, declared default and migration.                                                                                                                           |
+| [`default_version`](_autosummary/lacing.schema.html.md#lacing.schema.default_version)(schema_name)                       | The major version `schema_name` resolves to, or None if none is registered.                                                                                                                  |
+| [`export_json_schemas`](_autosummary/lacing.schema.html.md#lacing.schema.export_json_schemas)(target_dir, \*[, ...])         | Write every registered schema as JSON files under `target_dir`.                                                                                                                              |
+| [`get_body_schema`](_autosummary/lacing.schema.html.md#lacing.schema.get_body_schema)(uri)                               | Look up the registered Pydantic model for `uri`.                                                                                                                                             |
+| `is_registered`(uri)                                                                                |                                                                                                                                                                                              |
+| [`json_schema`](_autosummary/lacing.schema.html.md#lacing.schema.json_schema)(uri)                                   | Return the JSON Schema for the body model registered at `uri`.                                                                                                                               |
+| [`latest_version`](_autosummary/lacing.schema.html.md#lacing.schema.latest_version)(schema_name)                        | Highest registered major version for `schema_name`, or None.                                                                                                                                 |
+| [`make_uri`](_autosummary/lacing.schema.html.md#lacing.schema.make_uri)(name, version)                            | Build a `body_schema_uri` from a name and major version.                                                                                                                                     |
+| [`migrate`](_autosummary/lacing.schema.html.md#lacing.schema.migrate)(body, \*, from_uri, to_uri)                | Migrate `body` from `from_uri` to `to_uri` via registered steps.                                                                                                                             |
+| [`migrate_to_default`](_autosummary/lacing.schema.html.md#lacing.schema.migrate_to_default)(body, \*, from_uri)             | Migrate `body` to the [`default_version()`](_autosummary/lacing.schema.html.md#lacing.schema.default_version) of its schema.                                                                                      |
+| [`migrate_to_latest`](_autosummary/lacing.schema.html.md#lacing.schema.migrate_to_latest)(body, \*, from_uri)              | Alias of [`migrate_to_default()`](_autosummary/lacing.schema.html.md#lacing.schema.migrate_to_default): migrates to the *default* version.                                                                           |
+| [`on_register`](_autosummary/lacing.schema.html.md#lacing.schema.on_register)(listener, \*[, replay])                | Call `listener(uri, model)` whenever a body schema is registered.                                                                                                                            |
+| [`parse_uri`](_autosummary/lacing.schema.html.md#lacing.schema.parse_uri)(uri)                                     | Split `annot://schema/<name>/v<major>` into `(name, major)`.                                                                                                                                 |
+| [`register_body_schema`](_autosummary/lacing.schema.html.md#lacing.schema.register_body_schema)(uri, model, \*[, force, ...]) | Register `model` as the validator for `uri`.                                                                                                                                                 |
+| [`register_migration`](_autosummary/lacing.schema.html.md#lacing.schema.register_migration)(\*, schema_name, ...[, force])  | Register a forward migration from `v<from_version>` to `v<to_version>`.                                                                                                                      |
+| [`registered_uris`](_autosummary/lacing.schema.html.md#lacing.schema.registered_uris)()                                  | All currently registered `body_schema_uri` values, sorted.                                                                                                                                   |
+| [`validate`](_autosummary/lacing.schema.html.md#lacing.schema.validate)(body, uri)                                | Validate `body` against the schema registered for `uri`.                                                                                                                                     |
 
 ### Exceptions
 
@@ -7159,10 +7307,26 @@ The location-marked fields of the body schema for `uri`
 
 ### lacing.schema.clear_registry()
 
-Drop every registered body schema and migration. For tests / repls.
+Drop every registered body schema, declared default and migration.
+For tests / repls.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### lacing.schema.default_version(schema_name)
+
+The major version `schema_name` resolves to, or None if none is registered.
+
+The version declared with `register_body_schema(..., default=True)`, else
+[`latest_version()`](_autosummary/lacing.schema.html.md#lacing.schema.latest_version). Declaring it is what keeps publishing a new version
+from silently redirecting every [`migrate_to_default()`](_autosummary/lacing.schema.html.md#lacing.schema.migrate_to_default) caller.
+
+* **Raises:**
+  [**UnknownBodySchemaError**](_autosummary/lacing.schema.html.md#lacing.schema.UnknownBodySchemaError) – the declared default’s schema is no longer
+      registered (falling back to the highest would be the silent redirect
+      the declaration exists to prevent).
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### lacing.schema.export_json_schemas(target_dir, , overwrite=True, include_meta=True, allow_empty=False)
 
@@ -7210,6 +7374,9 @@ the registered model has.
 
 Highest registered major version for `schema_name`, or None.
 
+Not the default: publishing a new version changes this, and must not
+change where bodies migrate. That is [`default_version()`](_autosummary/lacing.schema.html.md#lacing.schema.default_version).
+
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
@@ -7230,11 +7397,23 @@ step is missing.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
+### lacing.schema.migrate_to_default(body, , from_uri)
+
+Migrate `body` to the [`default_version()`](_autosummary/lacing.schema.html.md#lacing.schema.default_version) of its schema.
+
+Returns `(migrated_body, target_uri)`. A body already *above* a declared
+default raises [`MigrationError`](_autosummary/lacing.schema.html.md#lacing.schema.MigrationError) (migrations run forward only), which
+could not happen while the target was always the highest version.
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 ### lacing.schema.migrate_to_latest(body, , from_uri)
 
-Convenience: migrate to the highest registered version of the schema.
+Alias of [`migrate_to_default()`](_autosummary/lacing.schema.html.md#lacing.schema.migrate_to_default): migrates to the *default* version.
 
-Returns `(migrated_body, target_uri)`.
+The name is historical, from when the default was always the highest
+version; it is the highest only while no default is declared.
 
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -7279,14 +7458,20 @@ Raises `ValueError` on malformed input.
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
 
-### lacing.schema.register_body_schema(uri, model)
+### lacing.schema.register_body_schema(uri, model, , force=False, default=False)
 
 Register `model` as the validator for `uri`. Returns `model`.
+
+`default=True` declares `uri`’s version the default of its schema name
+(see [`default_version()`](_autosummary/lacing.schema.html.md#lacing.schema.default_version)). Re-registering the identical model is a
+no-op (listeners are still told); a different model, or a different
+declared default, warns ([`lacing.RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)) and
+replaces, unless `force`.
 
 * **Return type:**
   [`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]
 
-### lacing.schema.register_migration(, schema_name, from_version, to_version)
+### lacing.schema.register_migration(, schema_name, from_version, to_version, force=False)
 
 Register a forward migration from `v<from_version>` to `v<to_version>`.
 
@@ -7294,8 +7479,10 @@ Decorated function takes a body `dict` and returns a new body `dict`.
 Migrations must be one major-version step at a time
 (`to_version == from_version + 1`).
 
-Re-registering the same `(schema_name, from_version)` pair replaces
-the previous entry — convenient in tests, intentional for hot-reload.
+Re-registering the same function for the same step is a no-op; a
+different one warns ([`lacing.RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)), pointed at
+the decorated definition, and replaces, unless `force` (tests,
+hot-reload).
 
 ### lacing.schema.registered_uris()
 
@@ -9170,7 +9357,8 @@ Register permissive body validators for the subtitle URIs.
 
 Calling this is *optional*; the builder works fine without
 registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later.
+surface at write time rather than later. It replaces whatever is
+registered under those URIs, the built-in `word/v1` included.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -9344,7 +9532,8 @@ Register permissive body validators for the subtitle URIs.
 
 Calling this is *optional*; the builder works fine without
 registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later.
+surface at write time rather than later. It replaces whatever is
+registered under those URIs, the built-in `word/v1` included.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -9415,18 +9604,16 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-02 16:24 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/63e671712a587452cd0161d62fdd62d019587913"><code>63e6717</code></a> on branch <code>main</code>, for **lacing 0.0.73** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 16:32 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/2c4ba7b7efce3d6656de1b9195d06a32f9ad73b0"><code>2c4ba7b</code></a> on branch <code>main</code>, for **lacing 0.0.73** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.73) is ahead of the latest release on PyPI (0.0.72): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/63e671712a587452cd0161d62fdd62d019587913"><code>63e671712a587452cd0161d62fdd62d019587913</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/2c4ba7b7efce3d6656de1b9195d06a32f9ad73b0"><code>2c4ba7b7efce3d6656de1b9195d06a32f9ad73b0</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -9437,9 +9624,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41480498810">41480498810</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41481984362">41481984362</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>a46497e517d7ca9070b0009b231a4c240a242d96</code> (in the history of the built commit) |
+| Event commit | <code>2c4ba7b7efce3d6656de1b9195d06a32f9ad73b0</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9464,13 +9651,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.72/">0.0.72</a>, older than the documented version (0.0.73).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.73/">0.0.73</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 63e671712a587452cd0161d62fdd62d019587913
+git checkout 2c4ba7b7efce3d6656de1b9195d06a32f9ad73b0
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

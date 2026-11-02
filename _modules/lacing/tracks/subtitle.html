@@ -828,7 +828,8 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    Calling this is *optional*; the builder works fine without</span>
 <span class="sd">    registered schemas. Use it when you want body-shape errors to</span>
-<span class="sd">    surface at write time rather than later.</span>
+<span class="sd">    surface at write time rather than later. It replaces whatever is</span>
+<span class="sd">    registered under those URIs, the built-in ``word/v1`` included.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_body_schema</span>
@@ -849,9 +850,12 @@ window.runMermaid = runMermaid;</script>
         <span class="n">line_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">confidence</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="n">register_body_schema</span><span class="p">(</span><span class="n">SECTION_SCHEMA_URI</span><span class="p">,</span> <span class="n">_Section</span><span class="p">)</span>
-    <span class="n">register_body_schema</span><span class="p">(</span><span class="n">LINE_SCHEMA_URI</span><span class="p">,</span> <span class="n">_Line</span><span class="p">)</span>
-    <span class="n">register_body_schema</span><span class="p">(</span><span class="n">WORD_SCHEMA_URI</span><span class="p">,</span> <span class="n">_Word</span><span class="p">)</span></div>
+    <span class="c1"># force: replacing is the point. These classes are new on every call, and</span>
+    <span class="c1"># WORD_SCHEMA_URI is also the strict built-in lacing.bodies.word schema,</span>
+    <span class="c1"># which this permissive one deliberately takes over (lacing#19).</span>
+    <span class="n">register_body_schema</span><span class="p">(</span><span class="n">SECTION_SCHEMA_URI</span><span class="p">,</span> <span class="n">_Section</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">register_body_schema</span><span class="p">(</span><span class="n">LINE_SCHEMA_URI</span><span class="p">,</span> <span class="n">_Line</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">register_body_schema</span><span class="p">(</span><span class="n">WORD_SCHEMA_URI</span><span class="p">,</span> <span class="n">_Word</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
 

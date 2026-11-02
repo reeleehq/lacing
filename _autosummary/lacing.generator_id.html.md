@@ -69,7 +69,7 @@ Whether the `@` slot holds a digest or a slug cannot be told from the string
 
 The shape every `was_generated_by` is checked against.
 
-### lacing.generator_id.GENERATOR_PREFIXES *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= {'adapter': 'an import/export format adapter: \`\`adapter:<format>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}*
+### lacing.generator_id.GENERATOR_PREFIXES *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= {'adapter': 'an import/export format adapter: \`\`adapter:<format>@<version>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}*
 
 The documented prefixes, each with what follows it. `transform`, `server`
 and `fetch` were in production before they were documented (lacing#17).
@@ -90,7 +90,7 @@ A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.
 
 Prefixes whose convention asks for an `@<version>`.
 
-### lacing.generator_id.generator_id_findings(value, , prefixes={'adapter': 'an import/export format adapter: \`\`adapter:<format>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}, versioned=frozenset({'agent'}))
+### lacing.generator_id.generator_id_findings(value, , prefixes={'adapter': 'an import/export format adapter: \`\`adapter:<format>@<version>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}, versioned=frozenset({'agent'}))
 
 What `value` does differently from the documented convention; empty if nothing.
 

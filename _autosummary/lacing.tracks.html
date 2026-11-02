@@ -356,6 +356,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.otel.html">lacing.otel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.processors.html">lacing.processors</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.quality.html">lacing.quality</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.registry.html">lacing.registry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.schema.html">lacing.schema</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.store.html">lacing.store</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.base.html">lacing.store.base</a></li>
@@ -603,7 +604,8 @@ whose <code class="docutils literal notranslate"><span class="pre">MediaRef.asse
 <dd><p>Register permissive body validators for the subtitle URIs.</p>
 <p>Calling this is <em>optional</em>; the builder works fine without
 registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later.</p>
+surface at write time rather than later. It replaces whatever is
+registered under those URIs, the built-in <code class="docutils literal notranslate"><span class="pre">word/v1</span></code> included.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>

@@ -10,7 +10,7 @@ single `Annotation` envelope; point annotations use a zero-length
 
 Lossy fields:
 : Praat has no provenance, no schema URIs, and no confidence. On load we
-  synthesize provenance with `was_generated_by="adapter:textgrid"`.
+  synthesize provenance with `was_generated_by="adapter:textgrid@<version>"`.
   On dump we drop everything but `tier`, `interval` (or point), and
   `body['text']` (or the raw `body` repr if no `text` key).
 
