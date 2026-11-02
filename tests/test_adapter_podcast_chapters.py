@@ -421,10 +421,11 @@ class TestNonFiniteAndInexactNumbers:
         with pytest.raises(ValueError, match=r"^weight: not a finite number"):
             adapter_module.load('{"weight": NaN, "chapters": []}')
 
-    def test_more_digits_than_a_float_refused(self):
-        doc = '{"chapters": [{"startTime": 0, "n": 12345678901234567.5}]}'
-        with pytest.raises(ValueError, match=r"chapters\[0\]\.n: .*exactly"):
-            adapter_module.load(doc)
+    def test_more_digits_than_a_float_become_the_nearest_float(self):
+        """PHP-style serialisations load, as every JSON reader reads them."""
+        doc = '{"chapters": [{"startTime": 0, "lat": 48.858092999999997}]}'
+        out = json.loads(adapter_module.dump(adapter_module.load(doc)))
+        assert out["chapters"][0]["lat"] == 48.858093
 
     def test_preserved_numbers_keep_their_value(self):
         doc = '{"chapters": [{"startTime": 0, "a": 0.30000000000000004, "b": 1e-7}]}'

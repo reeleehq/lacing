@@ -458,10 +458,9 @@ class TestNonFiniteAndInexactNumbers:
         ):
             adapter_module.load(doc)
 
-    def test_more_digits_than_a_float_refused(self):
-        doc = '{"segments": [{"startTime": 0, "body": "a", "n": 12345678901234567.5}]}'
-        with pytest.raises(ValueError, match=r"segments\[0\]\.n: .*exactly"):
-            adapter_module.load(doc)
+    def test_more_digits_than_a_float_become_the_nearest_float(self):
+        doc = '{"segments": [{"startTime": 0, "body": "a", "n": 0.10000000000000001}]}'
+        assert b'"n": 0.1' in adapter_module.dump(adapter_module.load(doc))
 
     def test_float_noise_in_extra_field_round_trips(self):
         doc = '{"segments": [{"startTime": 0, "body": "a", "n": 0.30000000000000004}]}'
@@ -479,10 +478,31 @@ class TestInferredRate:
             json.loads(doc)
         )
 
-    def test_default_rate_holds_js_float_noise(self):
+    def test_float_noise_beyond_a_storable_rate_raises_and_names_rounding(self):
+        """10**17 would overflow a store's integer columns (review of #107)."""
         doc = _doc({"startTime": 0.30000000000000004, "endTime": 1, "body": "x"})
-        blob = adapter_module.dump(adapter_module.load(doc))
-        assert b'"startTime": 0.30000000000000004' in blob
+        with pytest.raises(LossyTimeConversionError, match="rounding='round'"):
+            adapter_module.load(doc)
+
+    def test_rounding_opts_in_to_quantising_float_noise(self):
+        doc = _doc({"startTime": 12.300000000000001, "endTime": 13, "body": "x"})
+        (a,) = adapter_module.load(doc, rate=1000, rounding="round").all()
+        assert a.interval.start == RationalTime(12300, 1000)
+
+    def test_an_inferred_rate_fits_a_sqlite_store(self, tmp_path):
+        from lacing.store import SqliteStore
+
+        doc = _doc({"startTime": 0.000000001, "endTime": 1, "body": "x"})
+        loaded = adapter_module.load(doc)
+        store = SqliteStore(tmp_path / "x.annot")
+        try:
+            for tier in loaded.tiers():
+                store.add_tier(tier)
+            for a in loaded.all():
+                store.add(a)
+            assert len(list(store.all())) == 1
+        finally:
+            store.close()
 
     def test_default_rate_is_at_least_milliseconds(self):
         (a,) = adapter_module.load(

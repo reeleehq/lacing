@@ -65,6 +65,13 @@ TIME_FIELDS = ("startTime", "endTime")
 
 JSON_INDENT = 2
 
+MAX_INFERRED_RATE = 10**9
+"""The highest rate ``rate=None`` picks. Float noise in a file
+(``0.30000000000000004``) would otherwise ask for ``10**17``, and every
+annotation's ``generated_at_time`` at such a rate no longer fits a store's
+64-bit integer column (a Postgres ``rate`` column is 32-bit). Above it, load
+raises and names ``rounding=``."""
+
 MIN_RATE_DIGITS = 3
 """``rate=None`` picks at least ``10**3`` (milliseconds), so files whose
 times are whole seconds get the rate of the other cue formats."""
@@ -180,7 +187,9 @@ class TimedDocument:
     items: list[TimedItem]
 
 
-def parse_document(data: dict, *, rate: int | None, kind: str) -> TimedDocument:
+def parse_document(
+    data: dict, *, rate: int | None, kind: str, rounding: str | None = None
+) -> TimedDocument:
     """The version and the timed items (``data[kind]``) of a podcast document.
 
     Raises ``ValueError`` for a non-string ``version`` or a ``kind`` that is
@@ -192,16 +201,20 @@ def parse_document(data: dict, *, rate: int | None, kind: str) -> TimedDocument:
     items = data.get(kind)
     if not isinstance(items, list):
         raise ValueError(f"{kind} must be a list, got {items!r}")
-    rate, timed = parse_timed_items(items, rate=rate, kind=kind)
+    rate, timed = parse_timed_items(items, rate=rate, kind=kind, rounding=rounding)
     return TimedDocument(version=version, rate=rate, items=timed)
 
 
 def parse_timed_items(
-    items: list, *, rate: int | None, kind: str
+    items: list, *, rate: int | None, kind: str, rounding: str | None = None
 ) -> tuple[int, list[TimedItem]]:
     """The rate used and the :class:`TimedItem` of each of ``items``.
 
-    ``rate=None`` uses :func:`exact_decimal_rate` of every time in ``items``.
+    ``rate=None`` uses :func:`exact_decimal_rate` of every time in ``items``,
+    up to :data:`MAX_INFERRED_RATE`. ``rounding`` (a
+    :meth:`RationalTime.from_seconds_lossy` mode: ``"round"``, ``"floor"``,
+    ``"ceil"``) opts in to quantising, at the given rate or at the capped one;
+    ``None`` (the default) keeps every time exact or raises.
     An absent or ``null`` ``endTime`` is inferred (:func:`inferred_ends`).
     Raises ``ValueError`` naming the item (``segments[3]``) for an item that
     is not an object, lacks ``startTime``, has a bad time or an ``endTime``
@@ -211,7 +224,15 @@ def parse_timed_items(
     wheres = [f"{kind}[{i}]" for i in range(len(items))]
     times = [_item_seconds(item, where=w) for item, w in zip(items, wheres)]
     exact = exact_decimal_rate(t for pair in times for t in pair if t is not None)
-    rate = exact if rate is None else rate
+    if rate is None:
+        if exact > MAX_INFERRED_RATE and rounding is None:
+            raise LossyTimeConversionError(
+                f"{kind}: exact times would need rate={exact}, above the "
+                f"{MAX_INFERRED_RATE} a store can hold (float noise such as "
+                "0.30000000000000004?); pass rounding='round' to quantise, "
+                "optionally with an explicit rate="
+            )
+        rate = min(exact, MAX_INFERRED_RATE)
     ends = inferred_ends([start for start, _ in times])
 
     def timed(
@@ -222,13 +243,18 @@ def parse_timed_items(
         inferred: Fraction,
     ) -> TimedItem:
         def at_rate(seconds: Fraction, field: str) -> RationalTime:
+            if rounding is not None:
+                return RationalTime.from_seconds_lossy(
+                    seconds, rate=rate, mode=rounding
+                )
             try:
                 return RationalTime.from_seconds(seconds, rate=rate)
             except LossyTimeConversionError as e:
                 raise LossyTimeConversionError(
                     f"{where}.{field}: {_decimal_text(seconds)} s cannot be exactly "
                     f"represented at rate {rate}; rate={exact} holds every time "
-                    "of the file (rate=None picks it)"
+                    "of the file (rate=None picks it, up to "
+                    f"{MAX_INFERRED_RATE}), or pass rounding='round'"
                 ) from e
 
         return TimedItem(
@@ -268,11 +294,12 @@ def plain_json(value: Any, *, where: str) -> Any:
 
     For the fields that are not times (an unknown field of a chapter), so a
     body stays plain JSON and a dump writes back the value that was read
-    (perhaps spelled differently: ``1.50`` is written ``1.5``). Raises
-    ``ValueError`` naming the field (``where``, extended with keys and
-    indexes) for a number a float cannot hold exactly: ``NaN``,
-    ``Infinity``, ``1e400``, or more digits than a float has
-    (``12345678901234567.5``). A time never goes through here.
+    (perhaps spelled differently: ``1.50`` is written ``1.5``). A number with
+    more digits than a float has (``48.858092999999997`` from PHP) becomes the
+    nearest float, as every JSON reader reads it. Raises ``ValueError`` naming
+    the field (``where``, extended with keys and indexes) for a number that is
+    not finite: ``NaN``, ``Infinity``, ``1e400``. A time never goes through
+    here.
 
     >>> plain_json({"a": [Decimal("0.5"), 1, "x"]}, where="c")
     {'a': [0.5, 1, 'x']}
@@ -282,7 +309,7 @@ def plain_json(value: Any, *, where: str) -> Any:
     ValueError: c.a[0]: not a finite number: 1E+400
     """
     if isinstance(value, Decimal):
-        return _exact_float(value, where=where)
+        return _finite_float(value, where=where)
     if isinstance(value, dict):
         return {k: plain_json(v, where=f"{where}.{k}") for k, v in value.items()}
     if isinstance(value, list):
@@ -290,14 +317,10 @@ def plain_json(value: Any, *, where: str) -> Any:
     return value
 
 
-def _exact_float(d: Decimal, *, where: str) -> float:
+def _finite_float(d: Decimal, *, where: str) -> float:
     f = float(d) if d.is_finite() else math.inf
     if math.isinf(f):
         raise ValueError(f"{where}: not a finite number: {d}")
-    if Decimal(repr(f)) != d:
-        raise ValueError(
-            f"{where}: {d} cannot be kept exactly (a float holds about 17 digits)"
-        )
     return f
 
 

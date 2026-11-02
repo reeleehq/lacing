@@ -69,13 +69,12 @@ Time discipline:
     :func:`lacing.adapters._podcast.seconds_number`).
 
 Numbers:
-    A number that is not a time (a ``location`` coordinate, an unnamed
-    field) is kept as the ``float`` of the same value and written back as
-    that value (``1.50`` is written ``1.5``). One a float cannot hold
-    exactly is refused on load, naming the chapter and field (or the
-    top-level field): ``NaN``, ``Infinity`` and ``1e400`` (not finite), and
-    numbers with more digits than a float has (``12345678901234567.5``).
-    Bodies stay plain JSON, which a SQLite store or the server needs.
+    A number that is not a time is kept as the nearest ``float`` and written
+    back as that value (``1.50`` is written ``1.5``; a PHP-style
+    ``48.858092999999997`` becomes ``48.858093``, as any JSON reader reads it).
+    ``NaN``, ``Infinity`` and ``1e400`` (not finite) are refused on load,
+    naming the chapter and the field. Bodies stay plain JSON, which a SQLite store
+    or the server needs.
 
 Lossy fields on dump:
     Provenance, confidence, schema URIs and tier metadata are dropped. The
@@ -195,6 +194,7 @@ def load(
     source: str | bytes | os.PathLike,
     *,
     rate: int | None = None,
+    rounding: str | None = None,
     asset_id: str = DEFAULT_ASSET_ID,
     attribution: str = "anonymous",
     tier: str = DEFAULT_TIER_NAME,
@@ -207,8 +207,12 @@ def load(
         source: Bytes (UTF-8), a path, or inline JSON text.
         rate: Rate of every ``RationalTime`` produced. ``None`` (the default)
             picks the smallest power of ten, at least 1000, at which every
-            time in the file is exact; an explicit rate must hold every time
-            exactly.
+            time in the file is exact, up to ``10**9`` (a store's limit); an
+            explicit rate must hold every time exactly, unless ``rounding``.
+        rounding: ``None`` (exact or raise), or a
+            :meth:`~lacing.time.RationalTime.from_seconds_lossy` mode
+            (``"round"``, ``"floor"``, ``"ceil"``) to quantise times instead,
+            for files with float noise (``12.300000000000001``).
         asset_id: The ``MediaRef.asset_id`` the chapters annotate.
         attribution: ``Provenance.was_attributed_to`` of every annotation.
         tier: Name of the tier the chapters go in.
@@ -218,7 +222,7 @@ def load(
         ValueError: On malformed input, naming the chapter index.
     """
     data = load_podcast_json(source, format_name=FORMAT_NAME)
-    doc = parse_document(data, rate=rate, kind="chapters")
+    doc = parse_document(data, rate=rate, kind="chapters", rounding=rounding)
     bodies = [_chapter_body(item) for item in doc.items]
     episode = _episode_body(data, doc.version)
 
