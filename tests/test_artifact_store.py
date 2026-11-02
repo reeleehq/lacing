@@ -935,6 +935,14 @@ def test_a_write_killed_mid_way_leaves_a_file_interrupted_writes_lists(tmp_path)
     assert list(store.iter_blobs()) == []  # never a key
 
 
+def test_interrupted_writes_are_absolute_for_a_relative_root(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    store = ArtifactStore.from_directory("rel")
+    (tmp_path / "rel" / "blobs" / ".blob-abc.part").write_bytes(b"x")
+    [left] = store.interrupted_writes()
+    assert left.is_absolute() and left.is_file()
+
+
 def test_completed_and_failed_writes_leave_nothing(tmp_path):
     store = ArtifactStore.from_directory(tmp_path)
     store.put_blob(b"whole")
@@ -948,6 +956,7 @@ def test_completed_and_failed_writes_leave_nothing(tmp_path):
     assert store.interrupted_writes() == []
 
 
+@pytest.mark.skipif(os.name == "nt", reason="symlinks need privileges on Windows")
 def test_interrupted_writes_lists_only_regular_spool_files(tmp_path):
     store = ArtifactStore.from_directory(tmp_path)
     blobs = tmp_path / "blobs"

@@ -866,12 +866,18 @@ class ArtifactStore(MutableMapping):
         collector to delete.
 
         It also lists writes **in flight right now**: a collector should spare
-        a file modified recently (``an cache gc`` does, by mtime). Empty for a
-        store whose blobs are not on a filesystem (no ``rootdir``), and for one
-        with no blob store.
+        a file modified recently (``an cache gc`` does, by mtime). Paths are
+        absolute. Empty for a store whose blobs are not on a filesystem (no
+        ``rootdir``), for one with no blob store, and when the blob folder does
+        not exist.
+
+        Raises:
+            OSError: the blob folder exists but cannot be listed (not a
+                directory, no permission). Nothing is known, so a collector
+                should delete nothing.
         """
         rootdir = getattr(self.blobs, "rootdir", None)
-        return [] if rootdir is None else _spool_files(Path(rootdir))
+        return [] if rootdir is None else _spool_files(Path(rootdir).absolute())
 
     def blob_location(self, content_hash: str) -> "str | Path | None":
         """Resolve the cheapest *servable* location for a blob — without
@@ -1520,7 +1526,9 @@ def _missing_parents(path: Path) -> list[Path]:
 
 _SPOOL_PREFIX, _SPOOL_SUFFIX = ".blob-", ".part"
 """How :func:`_spool_chunks_to_dir` names its staging file, and so what
-:meth:`ArtifactStore.interrupted_writes` lists."""
+:meth:`ArtifactStore.interrupted_writes` lists. The leading ``.`` is
+load-bearing: hidden entries are what keep spool files out of
+:meth:`ArtifactStore.iter_blobs` (and ``dol.Files``' listing)."""
 
 
 def _spool_files(rootdir: Path) -> list[Path]:
