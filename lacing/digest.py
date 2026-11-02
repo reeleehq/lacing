@@ -162,7 +162,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Collection, Iterator
+from collections.abc import Callable, Collection, Iterator, Mapping
 from typing import TYPE_CHECKING, Any, Sequence
 
 if TYPE_CHECKING:  # pragma: no cover - typing only, keeps this module import-light
@@ -289,7 +289,10 @@ def annotation_value_digest(
     older scheme can be re-verified (see :data:`VALUE_DIGEST_SCHEMES`).
     ``resolve_derived`` maps a ``body_schema_uri`` to the paths to leave out; the
     default reads the registered body schema (:func:`registered_derived_paths`),
-    and a schema that is not registered excludes nothing.
+    and a schema that is not registered excludes nothing. It may return a
+    ``Mapping`` of path to the value an unfilled field holds (its default), which
+    :func:`value_digest_matches` uses for one of its fallbacks; a plain
+    collection of paths means ``None`` for each.
 
     Use this for freshness and early cutoff. For optimistic concurrency use
     :func:`lacing.server.etag.annotation_etag` instead — two digests, two
@@ -356,16 +359,16 @@ def value_digest_matches(
     whole current body (nothing changed since); the current body with the
     derived fields dropped (they were absent then and have been filled since,
     the change ``v2`` exists to ignore); and the current body with the derived
-    fields set to ``None`` (they were stored as ``null`` then, as a
-    ``model_dump()`` of a model whose field defaults to ``None`` stores them).
+    fields set to ``None``, or to the default their field declares (they were
+    stored that way then, as a ``model_dump()`` stores an unfilled field).
     It does so under ``v1`` as well, where the whole-body digest is the computed
     one: which fields are derivable belongs to the schema, not to the scheme.
 
     None of these is a wrong cache hit. With ``D`` today's derived paths, the
     whole-body digest matches only if the recorded body *is* the current one,
-    the dropped one only if it is the current body minus ``D``, and the nulled
-    one only if it is the current body with ``D`` set to ``None``. Dropping and
-    nulling touch nothing outside ``D``, so either way the two bodies agree
+    the dropped one only if it is the current body minus ``D``, and the filled
+    ones only if it is the current body with ``D`` set to ``None`` or to the
+    declared defaults. Dropping and filling touch nothing outside ``D``, so either way the two bodies agree
     outside ``D``, which is exactly what the ``v2`` digest already accepts.
 
     >>> from uuid import uuid4
@@ -524,24 +527,49 @@ def _value_digests(
     is_v1 = scheme == _V1_SCHEME
     if is_v1:  # v1 digests the whole body, and never consults the resolver for it
         yield _digest(_V1_SCHEME, payload)
-    paths = (resolve_derived or registered_derived_paths)(annotation.body_schema_uri)
+    paths = (resolve_derived or _registered_prefills)(annotation.body_schema_uri)
     if not paths:  # nothing to leave out: byte-identical to v1
         if not is_v1:
             yield _digest(_V1_SCHEME, payload)
         return
-    from lacing.derived import drop_paths, null_paths
+    from lacing.derived import drop_paths, fill_paths
 
-    exact = {tuple(path) for path in paths}
-    dropped_any = drop_paths(payload["body"], exact)  # the dump is private: edit it
+    prefills = {
+        tuple(path): paths[path] if isinstance(paths, Mapping) else None
+        for path in paths
+    }
+    dropped_any = drop_paths(payload["body"], set(prefills))  # private dump: edit it
     if not is_v1:
         yield _digest(VALUE_DIGEST_SCHEME, payload)
         yield _digest(_V1_SCHEME, _payload(annotation, VALUE_FIELDS))  # unchanged
     if not dropped_any:  # no derived field present: every fallback is the whole body
         return
     yield _digest(_V1_SCHEME, payload)  # derived fields absent when recorded
-    nulled = _payload(annotation, VALUE_FIELDS)
-    if null_paths(nulled["body"], exact):  # else it is the whole-body digest again
-        yield _digest(_V1_SCHEME, nulled)  # derived fields stored as null then
+    for fills in _distinct_fills(prefills):  # derived fields stored as null, or
+        filled = _payload(annotation, VALUE_FIELDS)  # at their default, then
+        if fill_paths(filled["body"], fills):  # else it is the whole body again
+            yield _digest(_V1_SCHEME, filled)
+
+
+def _distinct_fills(prefills: dict) -> list[dict]:
+    """The pre-fill bodies worth trying: every derived path ``None`` (a writer
+    that stores null), then each at its declared pre-fill value, when that
+    differs (a ``model_dump()`` of a field defaulting to ``""``)."""
+    nulled = dict.fromkeys(prefills)
+    return [nulled] if prefills == nulled else [nulled, prefills]
+
+
+def _registered_prefills(uri: str) -> Mapping[tuple[str | None, ...], Any]:
+    """:func:`registered_derived_paths`, each mapped to the JSON default its field
+    declares (``None`` when it declares none): what a ``model_dump()`` stored
+    there before the field was filled (lacing#109)."""
+    from lacing.schema import get_body_schema, is_registered
+    from lacing.derived import derived_defaults
+
+    if not is_registered(uri):
+        return {}
+    defaults = derived_defaults(get_body_schema(uri))
+    return {path: defaults.get(path) for path in registered_derived_paths(uri)}
 
 
 def _payload(annotation: "Annotation", fields: Sequence[str]) -> dict[str, Any]:

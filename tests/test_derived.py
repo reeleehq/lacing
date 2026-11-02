@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from itertools import product
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import uuid4
 
 import pytest
@@ -22,7 +22,7 @@ from lacing import (
     derived_paths,
     value_digest_matches,
 )
-from lacing.derived import drop_paths, null_paths
+from lacing.derived import derived_defaults, drop_paths, fill_paths, null_paths
 from lacing.digest import VALUE_DIGEST_SCHEME, VALUE_DIGEST_SCHEMES
 from lacing import schema as schema_module
 from lacing.schema import register_body_schema
@@ -354,6 +354,77 @@ def test_a_null_before_digest_still_sees_real_changes(registered):
         assert not value_digest_matches(_ann(changed), recorded, scheme=V1), changed
 
 
+# --- a derived field stored at its declared default (lacing#109) ------------
+
+_DEFAULT_BEFORE = {"images": [{"artifact_id": "a1", "asset_id": ""}]}  # Image()
+
+
+def test_a_derived_field_stored_at_its_default_then_filled_matches_under_v2(
+    registered,
+):
+    """``Image(artifact_id="a1").model_dump()`` stores ``asset_id=""`` until the
+    fill. Recorded by a producer that had not registered the schema."""
+    assert Image(artifact_id="a1").model_dump() == _DEFAULT_BEFORE["images"][0]
+    schema_module._BODY_REGISTRY.pop(URI)
+    recorded = _recorded_before_the_marker(_DEFAULT_BEFORE)
+    register_body_schema(URI, Body)
+    filled = _ann({"images": [{"artifact_id": "a1", "asset_id": "h"}]})
+    assert value_digest_matches(filled, recorded)
+    assert recorded in accepted_value_digests(filled)
+
+
+def test_a_derived_field_stored_at_its_default_then_filled_matches_under_v1(
+    registered,
+):
+    recorded = annotation_value_digest(_ann(_DEFAULT_BEFORE), scheme=V1)
+    filled = _ann({"images": [{"artifact_id": "a1", "asset_id": "h"}]})
+    assert value_digest_matches(filled, recorded, scheme=V1)
+    moved = _ann({"images": [{"artifact_id": "a2", "asset_id": "h"}]})
+    assert not value_digest_matches(moved, recorded, scheme=V1)
+
+
+def test_an_injected_resolver_can_name_the_prefill_values():
+    uri = "annot://schema/nope/v1"
+    recorded = annotation_value_digest(_ann({"x": 1, "y": 0}, uri=uri))
+    filled = _ann({"x": 1, "y": 9}, uri=uri)
+    assert value_digest_matches(filled, recorded, resolve_derived=lambda u: {("y",): 0})
+    assert not value_digest_matches(
+        filled, recorded, resolve_derived=lambda u: {("y",)}
+    )
+
+
+def test_derived_defaults_reads_the_declared_defaults():
+    assert derived_defaults(Body) == {
+        ("images", None, "asset_id"): "",
+        ("by_name", None, "asset_id"): "",
+        ("maybe",): None,
+    }
+
+
+def test_a_required_or_ambiguous_derived_field_has_no_default():
+    class A(BaseModel):
+        kind: Literal["a"] = "a"
+        src: str = ""
+        out: Annotated[str, Derived("src")] = "x"
+
+    class B(BaseModel):
+        kind: Literal["b"] = "b"
+        src: str = ""
+        out: Annotated[str, Derived("src")] = "y"
+
+    class Required(BaseModel):
+        src: str = ""
+        out: Annotated[str, Derived("src")]
+
+    class Either(BaseModel):
+        item: A | B
+
+    assert derived_paths(Either) == {("item", "out")}
+    assert derived_defaults(Either) == {}  # A says "x", B says "y"
+    assert derived_paths(Required) == {("out",)}
+    assert derived_defaults(Required) == {}
+
+
 def test_matching_uses_the_injected_resolver():
     uri = "annot://schema/nope/v1"
     recorded = annotation_value_digest(_ann({"x": 1}, uri=uri))
@@ -380,6 +451,7 @@ def _bodies():
         [{"artifact_id": "a1", "asset_id": "h"}],
         [{"artifact_id": "a1", "asset_id": "h2"}],  # derived field different
         [{"artifact_id": "a1", "asset_id": None}],  # a different scalar
+        [{"artifact_id": "a1", "asset_id": ""}],  # at its default (#109)
         [{"artifact_id": "a2", "asset_id": "h"}],  # source changed
     ]
     by_name = [
@@ -471,3 +543,10 @@ def test_null_paths_sets_present_entries_to_none_and_reports_a_change():
         "images": [{"artifact_id": "a1"}, {"asset_id": None}],
         "maybe": None,
     }
+
+
+def test_fill_paths_sets_each_present_entry_to_its_own_value():
+    body = {"images": [{"asset_id": "h"}, {}], "maybe": "m"}
+    assert fill_paths(body, {("images", None, "asset_id"): "", ("maybe",): None})
+    assert body == {"images": [{"asset_id": ""}, {}], "maybe": None}
+    assert not fill_paths(body, {("images", None, "asset_id"): ""})  # no change

@@ -45,10 +45,11 @@ Field names and aliases are both read as spellings of a field, as in
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from itertools import product
+from types import MappingProxyType
 from typing import Any
 
 from pydantic import BaseModel
@@ -58,7 +59,9 @@ __all__ = [
     "DerivedPath",
     "ANY_ITEM",
     "derived_paths",
+    "derived_defaults",
     "drop_paths",
+    "fill_paths",
     "null_paths",
 ]
 
@@ -94,10 +97,23 @@ class Derived:
         return {**schema, _MARK: self.source}
 
 
+_NO_DEFAULT = object()
+"""A derived field whose schema declares no default (a required field), or whose
+defaults disagree across union members or schema modes."""
+
+
+def _note(out: dict, path: DerivedPath, default: Any) -> None:
+    """Record ``path`` with ``default``; a disagreeing second default forgets it."""
+    if out.get(path, default) != default:
+        default = _NO_DEFAULT
+    out[path] = default
+
+
 def _collect(
-    node: Any, defs: dict, prefix: DerivedPath, stack: tuple[str, ...], out: set
+    node: Any, defs: dict, prefix: DerivedPath, stack: tuple[str, ...], out: dict
 ) -> None:
-    """Add to ``out`` the path of every marked property reachable from ``node``."""
+    """Add to ``out`` the path of every marked property reachable from ``node``,
+    mapped to its declared JSON default (:data:`_NO_DEFAULT` when none)."""
     if not isinstance(node, dict):
         return
     if _MARK in node:  # marked properties are consumed below, never recursed into
@@ -121,16 +137,16 @@ def _collect(
                 f"another, non-derived field of the same object"
             )
         else:
-            out.add((*prefix, name))
+            _note(out, (*prefix, name), prop.get("default", _NO_DEFAULT))
     for member in node.get("allOf", ()):
         _collect(member, defs, prefix, stack, out)
     for key in ("anyOf", "oneOf"):
-        out |= _common(node.get(key, ()), defs, prefix, stack)
+        _merge(out, _common(node.get(key, ()), defs, prefix, stack))
     # One path per element is only sound if every element agrees, so a tuple's
     # positions are intersected; a map's extra values are skipped when the
     # object also declares properties (they would be told apart from them only
     # by key name).
-    out |= _common(node.get("prefixItems", ()), defs, (*prefix, ANY_ITEM), stack)
+    _merge(out, _common(node.get("prefixItems", ()), defs, (*prefix, ANY_ITEM), stack))
     if isinstance(node.get("items"), dict):
         _collect(node["items"], defs, (*prefix, ANY_ITEM), stack, out)
     extra = node.get("additionalProperties")
@@ -138,21 +154,43 @@ def _collect(
         _collect(extra, defs, (*prefix, ANY_ITEM), stack, out)
 
 
+def _merge(out: dict, found: dict) -> None:
+    for path, default in found.items():
+        _note(out, path, default)
+
+
 def _common(
     members: Any, defs: dict, prefix: DerivedPath, stack: tuple[str, ...]
-) -> set[DerivedPath]:
-    """Paths marked by *every* non-scalar member (``A | B`` drops only what both mark)."""
+) -> dict:
+    """Paths marked by *every* non-scalar member (``A | B`` drops only what both
+    mark), each with the default they all declare."""
     per_member = []
     for member in members:
         if isinstance(member, dict) and member.get("type") in _SCALAR_TYPES:
             continue  # a null / str / number alternative has no fields to confuse
-        found: set[DerivedPath] = set()
+        found: dict = {}
         _collect(member, defs, prefix, stack, found)
         per_member.append(found)
-    return set.intersection(*per_member) if per_member else set()
+    if not per_member:
+        return {}
+    shared = set.intersection(*(set(found) for found in per_member))
+    out: dict = {}
+    for found in per_member:
+        for path in shared:
+            _note(out, path, found[path])
+    return out
 
 
 @lru_cache(maxsize=256)
+def _derived(model: type[BaseModel]) -> Mapping[DerivedPath, Any]:
+    """Every derived path of ``model``, with its declared default; cached."""
+    out: dict = {}
+    for mode, by_alias in product(_SCHEMA_MODES, (True, False)):
+        schema = model.model_json_schema(mode=mode, by_alias=by_alias)
+        _collect(schema, schema.get("$defs", {}), (), (), out)
+    return MappingProxyType(out)
+
+
 def derived_paths(model: type[BaseModel]) -> frozenset[DerivedPath]:
     """The paths, from the root of a ``model`` body, of its :class:`Derived` fields.
 
@@ -165,11 +203,20 @@ def derived_paths(model: type[BaseModel]) -> frozenset[DerivedPath]:
         ValueError: a marker names a source that is not a non-derived sibling,
             or sits on a container item / union member instead of a whole field.
     """
-    out: set[DerivedPath] = set()
-    for mode, by_alias in product(_SCHEMA_MODES, (True, False)):
-        schema = model.model_json_schema(mode=mode, by_alias=by_alias)
-        _collect(schema, schema.get("$defs", {}), (), (), out)
-    return frozenset(out)
+    return frozenset(_derived(model))
+
+
+def derived_defaults(model: type[BaseModel]) -> dict[DerivedPath, Any]:
+    """The JSON default each of ``model``'s :class:`Derived` fields declares,
+    by path: what a ``model_dump()`` stores there before the field is filled.
+
+    Only paths with one unambiguous default: a required field has none, and
+    neither has a path whose union members or schema modes disagree.
+
+    Raises:
+        ValueError: as :func:`derived_paths`.
+    """
+    return {p: d for p, d in _derived(model).items() if d is not _NO_DEFAULT}
 
 
 def drop_paths(value: Any, paths: PathSet) -> bool:
@@ -181,7 +228,15 @@ def drop_paths(value: Any, paths: PathSet) -> bool:
 def null_paths(value: Any, paths: PathSet) -> bool:
     """Set, in place, the entries of the JSON-like ``value`` named by ``paths`` to
     ``None`` (keys that are absent stay absent); return whether any changed."""
-    return _edit_paths(value, paths, _set_none)
+    return fill_paths(value, dict.fromkeys(paths))
+
+
+def fill_paths(value: Any, fills: Mapping[DerivedPath, Any]) -> bool:
+    """Set, in place, each entry of the JSON-like ``value`` named by a path of
+    ``fills`` to that path's value (keys that are absent stay absent); return
+    whether any changed."""
+    # a list, not a generator: ``any`` would stop at the first path edited
+    return any([_edit(value, path, _setter(fill)) for path, fill in fills.items()])
 
 
 def _delete(container: dict, key: Any) -> bool:
@@ -189,10 +244,13 @@ def _delete(container: dict, key: Any) -> bool:
     return True
 
 
-def _set_none(container: dict, key: Any) -> bool:
-    changed = container[key] is not None
-    container[key] = None
-    return changed
+def _setter(fill: Any) -> Callable[[dict, Any], bool]:
+    def set_(container: dict, key: Any) -> bool:
+        changed = container[key] != fill or type(container[key]) is not type(fill)
+        container[key] = fill
+        return changed
+
+    return set_
 
 
 def _edit_paths(
