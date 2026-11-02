@@ -9,6 +9,8 @@ in common lives here, once:
   from :class:`~lacing.time.RationalTime`, never through floats;
 - :func:`hms_to_ms` / :func:`format_hms`: clock fields to milliseconds and back,
   with the decimal separator as an argument;
+- :func:`cue_payload` / :func:`format_cue_time`: what a cue writer emits for a
+  text and a time;
 - :func:`iter_with_intervals` / :func:`interval_sort_key`: the annotations a
   cue writer can emit (those with a time interval, whatever their reference
   kind), in cue order.
@@ -25,6 +27,7 @@ sweep test skips ``_``-prefixed modules and checks that they register none).
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Callable, Iterator
 from fractions import Fraction
 from pathlib import Path
@@ -141,3 +144,27 @@ def interval_sort_key(a: Annotation) -> tuple[Fraction, Fraction]:
     iv = a.interval
     assert iv is not None  # callers pass what iter_with_intervals yields
     return (iv.start.to_fraction(), iv.end.to_fraction())
+
+
+_LINE_BREAK = re.compile(r"\r\n|\r|\n")
+
+
+def cue_payload(text: str) -> str:
+    """``text`` as a cue payload: lines joined by ``\\n``, blank ones dropped,
+    since in both WebVTT and SubRip a blank line ends the cue.
+
+    >>> cue_payload("one\\n\\n  \\r\\ntwo")
+    'one\\ntwo'
+    """
+    return "\n".join(line for line in _LINE_BREAK.split(text) if line.strip())
+
+
+def format_cue_time(t: RationalTime, *, separator: str, format_name: str) -> str:
+    """``t`` as ``HH:MM:SS<separator>mmm``, sub-milliseconds truncated.
+
+    Raises ``ValueError`` for a negative time, checked before truncation (which
+    would turn ``-1/3000`` s into zero): neither format can write one.
+    """
+    if t.to_fraction() < 0:
+        raise ValueError(f"{format_name} cannot represent a negative time: {t!r}")
+    return format_hms(rational_to_ms(t), separator=separator)

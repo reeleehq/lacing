@@ -64,12 +64,12 @@ from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
 from lacing.adapters._cues import (
-    format_hms,
+    cue_payload,
+    format_cue_time,
     hms_to_ms,
     interval_sort_key,
     iter_with_intervals,
     ms_to_rational,
-    rational_to_ms,
     read_text,
 )
 from lacing.model import Annotation, MediaRef, Provenance
@@ -130,9 +130,7 @@ def _format_timestamp(t: RationalTime) -> str:
     >>> _format_timestamp(RationalTime(1001, 1000))
     '00:00:01,001'
     """
-    if t.to_fraction() < 0:  # before truncation, which would hide -1/3000 s
-        raise ValueError(f"SubRip cannot represent a negative time: {t!r}")
-    return format_hms(rational_to_ms(t), separator=DECIMAL_SEPARATOR)
+    return format_cue_time(t, separator=DECIMAL_SEPARATOR, format_name="SubRip")
 
 
 def _looks_like_inline_srt(s: str) -> bool:
@@ -256,8 +254,7 @@ def _cue_text(body: Any) -> str | None:
     text = body.get("text") if isinstance(body, dict) else None
     if text is None:
         return None
-    lines = _LINE_BREAK_RE.split(str(text))
-    return "\n".join(line for line in lines if not _is_blank(line))
+    return cue_payload(str(text))
 
 
 def dump(
