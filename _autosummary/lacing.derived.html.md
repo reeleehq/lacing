@@ -54,9 +54,10 @@ Field names and aliases are both read as spellings of a field, as in
 
 ### Functions
 
-| [`derived_paths`](#lacing.derived.derived_paths)(model)     | The paths, from the root of a `model` body, of its [`Derived`](#lacing.derived.Derived) fields.   |
-|---------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
-| [`drop_paths`](#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`; return whether any was there to delete.      |
+| [`derived_paths`](#lacing.derived.derived_paths)(model)     | The paths, from the root of a `model` body, of its [`Derived`](#lacing.derived.Derived) fields.                            |
+|---------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`drop_paths`](#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`; return whether any was there to delete.                               |
+| [`null_paths`](#lacing.derived.null_paths)(value, paths) | Set, in place, the entries of the JSON-like `value` named by `paths` to `None` (keys that are absent stay absent); return whether any changed. |
 
 ### Classes
 
@@ -101,6 +102,14 @@ name, `alias` and `serialization_alias` all count, as in
 
 Delete, in place, the entries of the JSON-like `value` named by `paths`;
 return whether any was there to delete.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.derived.null_paths(value, paths)
+
+Set, in place, the entries of the JSON-like `value` named by `paths` to
+`None` (keys that are absent stay absent); return whether any changed.
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)

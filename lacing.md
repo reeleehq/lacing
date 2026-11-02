@@ -1,4 +1,4 @@
-> built 2026-10-30 12:54 UTC from 1e68042 (main) · lacing 0.0.67. Details: build_info.json
+> built 2026-11-02 15:19 UTC from 7572089 (main) · lacing 0.0.68. Details: build_info.json
 
 # index.html.md
 
@@ -3024,9 +3024,10 @@ Field names and aliases are both read as spellings of a field, as in
 
 ### Functions
 
-| [`derived_paths`](_autosummary/lacing.derived.html.md#lacing.derived.derived_paths)(model)     | The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.derived.html.md#lacing.derived.Derived) fields.   |
-|---------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
-| [`drop_paths`](_autosummary/lacing.derived.html.md#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`; return whether any was there to delete.      |
+| [`derived_paths`](_autosummary/lacing.derived.html.md#lacing.derived.derived_paths)(model)     | The paths, from the root of a `model` body, of its [`Derived`](_autosummary/lacing.derived.html.md#lacing.derived.Derived) fields.                            |
+|---------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`drop_paths`](_autosummary/lacing.derived.html.md#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`; return whether any was there to delete.                               |
+| [`null_paths`](_autosummary/lacing.derived.html.md#lacing.derived.null_paths)(value, paths) | Set, in place, the entries of the JSON-like `value` named by `paths` to `None` (keys that are absent stay absent); return whether any changed. |
 
 ### Classes
 
@@ -3071,6 +3072,14 @@ name, `alias` and `serialization_alias` all count, as in
 
 Delete, in place, the entries of the JSON-like `value` named by `paths`;
 return whether any was there to delete.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.derived.null_paths(value, paths)
+
+Set, in place, the entries of the JSON-like `value` named by `paths` to
+`None` (keys that are absent stay absent); return whether any changed.
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
@@ -3490,20 +3499,23 @@ describes `annotation`’s value.
 
 The check a freshness verifier makes, instead of comparing
 [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) with `recorded` by hand. Besides the
-digest computed now, it accepts the two a producer that did not know the
+digest computed now, it accepts the ones a producer that did not know the
 body’s [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) paths (no marker yet, or schema not
-registered) would have recorded for the same value, both `v1`-tagged: the
-whole current body (nothing changed since), and the current body with the
+registered) would have recorded for the same value, all `v1`-tagged: the
+whole current body (nothing changed since); the current body with the
 derived fields dropped (they were absent then and have been filled since,
-the change `v2` exists to ignore). It does so under `v1` as well, where
-the whole-body digest is the computed one: which fields are derivable
-belongs to the schema, not to the scheme.
+the change `v2` exists to ignore); and the current body with the derived
+fields set to `None` (they were stored as `null` then, as a
+`model_dump()` of a model whose field defaults to `None` stores them).
+It does so under `v1` as well, where the whole-body digest is the computed
+one: which fields are derivable belongs to the schema, not to the scheme.
 
 None of these is a wrong cache hit. With `D` today’s derived paths, the
 whole-body digest matches only if the recorded body *is* the current one,
-and the dropped one only if it is the current body minus `D`. Dropping
-only deletes, so either way the two bodies agree outside `D`, which is
-exactly what the `v2` digest already accepts under `D`.
+the dropped one only if it is the current body minus `D`, and the nulled
+one only if it is the current body with `D` set to `None`. Dropping and
+nulling touch nothing outside `D`, so either way the two bodies agree
+outside `D`, which is exactly what the `v2` digest already accepts.
 
 ```pycon
 >>> from uuid import uuid4
@@ -5804,20 +5816,23 @@ describes `annotation`’s value.
 
 The check a freshness verifier makes, instead of comparing
 [`annotation_value_digest()`](_autosummary/lacing.html.md#lacing.annotation_value_digest) with `recorded` by hand. Besides the
-digest computed now, it accepts the two a producer that did not know the
+digest computed now, it accepts the ones a producer that did not know the
 body’s [`lacing.Derived`](_autosummary/lacing.html.md#lacing.Derived) paths (no marker yet, or schema not
-registered) would have recorded for the same value, both `v1`-tagged: the
-whole current body (nothing changed since), and the current body with the
+registered) would have recorded for the same value, all `v1`-tagged: the
+whole current body (nothing changed since); the current body with the
 derived fields dropped (they were absent then and have been filled since,
-the change `v2` exists to ignore). It does so under `v1` as well, where
-the whole-body digest is the computed one: which fields are derivable
-belongs to the schema, not to the scheme.
+the change `v2` exists to ignore); and the current body with the derived
+fields set to `None` (they were stored as `null` then, as a
+`model_dump()` of a model whose field defaults to `None` stores them).
+It does so under `v1` as well, where the whole-body digest is the computed
+one: which fields are derivable belongs to the schema, not to the scheme.
 
 None of these is a wrong cache hit. With `D` today’s derived paths, the
 whole-body digest matches only if the recorded body *is* the current one,
-and the dropped one only if it is the current body minus `D`. Dropping
-only deletes, so either way the two bodies agree outside `D`, which is
-exactly what the `v2` digest already accepts under `D`.
+the dropped one only if it is the current body minus `D`, and the nulled
+one only if it is the current body with `D` set to `None`. Dropping and
+nulling touch nothing outside `D`, so either way the two bodies agree
+outside `D`, which is exactly what the `v2` digest already accepts.
 
 ```pycon
 >>> from uuid import uuid4
@@ -8984,7 +8999,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-10-30 12:54 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/1e68042dec9e6e10e1d0bb4c0b98850af702654d"><code>1e68042</code></a> on branch <code>main</code>, for **lacing 0.0.67** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 15:19 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/7572089009d41895d2c61ff4c35072e5c59b7927"><code>7572089</code></a> on branch <code>main</code>, for **lacing 0.0.68** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -8993,7 +9008,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/1e68042dec9e6e10e1d0bb4c0b98850af702654d"><code>1e68042dec9e6e10e1d0bb4c0b98850af702654d</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/7572089009d41895d2c61ff4c35072e5c59b7927"><code>7572089009d41895d2c61ff4c35072e5c59b7927</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -9004,9 +9019,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41058699008">41058699008</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41470025150">41470025150</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>1e68042dec9e6e10e1d0bb4c0b98850af702654d</code> (in the history of the built commit) |
+| Event commit | <code>7572089009d41895d2c61ff4c35072e5c59b7927</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9031,13 +9046,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.67/">0.0.67</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.68/">0.0.68</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 1e68042dec9e6e10e1d0bb4c0b98850af702654d
+git checkout 7572089009d41895d2c61ff4c35072e5c59b7927
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -2173,20 +2173,23 @@ describes `annotation`’s value.
 
 The check a freshness verifier makes, instead of comparing
 [`annotation_value_digest()`](#lacing.annotation_value_digest) with `recorded` by hand. Besides the
-digest computed now, it accepts the two a producer that did not know the
+digest computed now, it accepts the ones a producer that did not know the
 body’s [`lacing.Derived`](#lacing.Derived) paths (no marker yet, or schema not
-registered) would have recorded for the same value, both `v1`-tagged: the
-whole current body (nothing changed since), and the current body with the
+registered) would have recorded for the same value, all `v1`-tagged: the
+whole current body (nothing changed since); the current body with the
 derived fields dropped (they were absent then and have been filled since,
-the change `v2` exists to ignore). It does so under `v1` as well, where
-the whole-body digest is the computed one: which fields are derivable
-belongs to the schema, not to the scheme.
+the change `v2` exists to ignore); and the current body with the derived
+fields set to `None` (they were stored as `null` then, as a
+`model_dump()` of a model whose field defaults to `None` stores them).
+It does so under `v1` as well, where the whole-body digest is the computed
+one: which fields are derivable belongs to the schema, not to the scheme.
 
 None of these is a wrong cache hit. With `D` today’s derived paths, the
 whole-body digest matches only if the recorded body *is* the current one,
-and the dropped one only if it is the current body minus `D`. Dropping
-only deletes, so either way the two bodies agree outside `D`, which is
-exactly what the `v2` digest already accepts under `D`.
+the dropped one only if it is the current body minus `D`, and the nulled
+one only if it is the current body with `D` set to `None`. Dropping and
+nulling touch nothing outside `D`, so either way the two bodies agree
+outside `D`, which is exactly what the `v2` digest already accepts.
 
 ```pycon
 >>> from uuid import uuid4

@@ -1,32 +1,32 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-30T12:54:59Z",
+  "built_at": "2026-11-02T15:19:24Z",
   "package": {
     "name": "lacing",
-    "version": "0.0.67",
+    "version": "0.0.68",
     "display_name": "lacing",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "1e68042dec9e6e10e1d0bb4c0b98850af702654d",
-    "short_commit": "1e68042",
+    "commit": "7572089009d41895d2c61ff4c35072e5c59b7927",
+    "short_commit": "7572089",
     "branch": "main",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/reeleehq/lacing",
-    "commit_url": "https://github.com/reeleehq/lacing/commit/1e68042dec9e6e10e1d0bb4c0b98850af702654d",
+    "commit_url": "https://github.com/reeleehq/lacing/commit/7572089009d41895d2c61ff4c35072e5c59b7927",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "reeleehq/lacing",
-    "sha": "1e68042dec9e6e10e1d0bb4c0b98850af702654d",
+    "sha": "7572089009d41895d2c61ff4c35072e5c59b7927",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "41058699008",
-    "run_url": "https://github.com/reeleehq/lacing/actions/runs/41058699008",
+    "run_id": "41470025150",
+    "run_url": "https://github.com/reeleehq/lacing/actions/runs/41470025150",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -56,15 +56,15 @@
   },
   "site": {
     "modules_documented": 46,
-    "objects_documented": 500
+    "objects_documented": 501
   },
   "pypi": {
     "checked": true,
-    "latest": "0.0.67",
+    "latest": "0.0.68",
     "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout 1e68042dec9e6e10e1d0bb4c0b98850af702654d\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout 7572089009d41895d2c61ff4c35072e5c59b7927\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,

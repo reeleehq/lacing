@@ -17,6 +17,7 @@ lacing.derived
    
       derived_paths
       drop_paths
+      null_paths
    
    .. rubric:: Classes
 
