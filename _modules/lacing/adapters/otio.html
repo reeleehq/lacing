@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=ae06b2e5"></script>
+    <script src="../../../_static/documentation_options.js?v=5c6fbccc"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.79" />
+  <meta name="docsearch:version" content="0.0.80" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -833,8 +833,9 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    Each track becomes a tier. Each clip becomes one ``Annotation`` with</span>
 <span class="sd">    ``MediaRef`` pointing at the clip's media reference (or the</span>
-<span class="sd">    ``asset_id`` override). Markers on the timeline, track, or clip</span>
-<span class="sd">    become point ``Annotation``s on a ``markers`` tier.</span>
+<span class="sd">    ``asset_id`` override). Markers on the timeline or on a clip become point</span>
+<span class="sd">    ``Annotation``s on a ``markers`` tier; markers on a track stay on that</span>
+<span class="sd">    track's tier, which is where :func:`dump` writes a tier's points.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        source: Path or bytes containing OTIO JSON.</span>
@@ -955,6 +956,21 @@ window.runMermaid = runMermaid;</script>
 
             <span class="n">cursor</span> <span class="o">+=</span> <span class="n">duration_seconds</span>
 
+        <span class="c1"># Markers on the track itself: where dump puts a tier's point</span>
+        <span class="c1"># annotations, so they come back on that tier (lacing#132).</span>
+        <span class="k">for</span> <span class="n">marker</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">track</span><span class="p">,</span> <span class="s2">"markers"</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]:</span>
+            <span class="n">_add_marker_annotation</span><span class="p">(</span>
+                <span class="n">store</span><span class="p">,</span>
+                <span class="n">marker</span><span class="p">,</span>
+                <span class="n">tier_name</span><span class="o">=</span><span class="n">tier_name</span><span class="p">,</span>
+                <span class="n">asset_id</span><span class="o">=</span><span class="n">asset_id</span> <span class="ow">or</span> <span class="n">DEFAULT_ASSET_ID</span><span class="p">,</span>
+                <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">,</span>
+                <span class="n">attribution</span><span class="o">=</span><span class="n">attribution</span><span class="p">,</span>
+                <span class="n">now</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
+                <span class="n">ensure_tier</span><span class="o">=</span><span class="n">_ensure_tier</span><span class="p">,</span>
+                <span class="n">otio_module</span><span class="o">=</span><span class="n">otio</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="n">track_offset_seconds</span><span class="p">[</span><span class="n">tier_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">cursor</span>
 
     <span class="k">return</span> <span class="n">store</span></div>
@@ -1027,6 +1043,13 @@ window.runMermaid = runMermaid;</script>
 <span class="c1"># ---------------------------------------------------------------------------</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_otio_name</span><span class="p">(</span><span class="n">ann</span><span class="p">:</span> <span class="n">Annotation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The body's ``name`` for an OTIO clip or marker, ``""`` when it has none:</span>
+<span class="sd">    OTIO's bindings refuse ``None`` (lacing#132)."""</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">name</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="s2">""</span>
+
+
 <div class="viewcode-block" id="dump">
 <a class="viewcode-back" href="../../../_autosummary/lacing.adapters.otio.html#lacing.adapters.otio.dump">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">dump</span><span class="p">(</span>
@@ -1088,7 +1111,7 @@ window.runMermaid = runMermaid;</script>
                     <span class="n">rate</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">marker</span> <span class="o">=</span> <span class="n">otio</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Marker</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">_otio_name</span><span class="p">(</span><span class="n">ann</span><span class="p">),</span>
                     <span class="n">marked_range</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">TimeRange</span><span class="p">(</span>
                         <span class="n">start_time</span><span class="o">=</span><span class="n">marker_t</span><span class="p">,</span>
                         <span class="n">duration</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">RationalTime</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">),</span>
@@ -1115,7 +1138,7 @@ window.runMermaid = runMermaid;</script>
             <span class="n">duration_seconds</span> <span class="o">=</span> <span class="n">end_s</span> <span class="o">-</span> <span class="n">start_s</span>
             <span class="n">asset_url</span> <span class="o">=</span> <span class="n">ann</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">asset_id</span>  <span class="c1"># type: ignore[union-attr]</span>
             <span class="n">clip</span> <span class="o">=</span> <span class="n">otio</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Clip</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="n">ann</span><span class="o">.</span><span class="n">tier</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">_otio_name</span><span class="p">(</span><span class="n">ann</span><span class="p">),</span>
                 <span class="n">media_reference</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">ExternalReference</span><span class="p">(</span><span class="n">target_url</span><span class="o">=</span><span class="n">asset_url</span><span class="p">),</span>
                 <span class="n">source_range</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">TimeRange</span><span class="p">(</span>
                     <span class="n">start_time</span><span class="o">=</span><span class="n">otio</span><span class="o">.</span><span class="n">opentime</span><span class="o">.</span><span class="n">RationalTime</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">),</span>

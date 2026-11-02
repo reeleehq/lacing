@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=ae06b2e5"></script>
+    <script src="../_static/documentation_options.js?v=5c6fbccc"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.79" />
+  <meta name="docsearch:version" content="0.0.80" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -524,8 +524,9 @@ tier; gaps between intervals become explicit <code class="docutils literal notra
 <dd><p>Load an OTIO file/JSON into a <code class="docutils literal notranslate"><span class="pre">MemoryStore</span></code>.</p>
 <p>Each track becomes a tier. Each clip becomes one <code class="docutils literal notranslate"><span class="pre">Annotation</span></code> with
 <code class="docutils literal notranslate"><span class="pre">MediaRef</span></code> pointing at the clip’s media reference (or the
-<code class="docutils literal notranslate"><span class="pre">asset_id</span></code> override). Markers on the timeline, track, or clip
-become point <code class="docutils literal notranslate"><span class="pre">Annotation``s</span> <span class="pre">on</span> <span class="pre">a</span> <span class="pre">``markers</span></code> tier.</p>
+<code class="docutils literal notranslate"><span class="pre">asset_id</span></code> override). Markers on the timeline or on a clip become point
+<code class="docutils literal notranslate"><span class="pre">Annotation``s</span> <span class="pre">on</span> <span class="pre">a</span> <span class="pre">``markers</span></code> tier; markers on a track stay on that
+track’s tier, which is where <a class="reference internal" href="#lacing.adapters.otio.dump" title="lacing.adapters.otio.dump"><code class="xref py py-func docutils literal notranslate"><span class="pre">dump()</span></code></a> writes a tier’s points.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

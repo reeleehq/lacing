@@ -69,8 +69,9 @@ Load an OTIO file/JSON into a `MemoryStore`.
 
 Each track becomes a tier. Each clip becomes one `Annotation` with
 `MediaRef` pointing at the clip’s media reference (or the
-`asset_id` override). Markers on the timeline, track, or clip
-become point `Annotation``s on a ``markers` tier.
+`asset_id` override). Markers on the timeline or on a clip become point
+`Annotation``s on a ``markers` tier; markers on a track stay on that
+track’s tier, which is where [`dump()`](#lacing.adapters.otio.dump) writes a tier’s points.
 
 * **Parameters:**
   * **source** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike)) – Path or bytes containing OTIO JSON.
