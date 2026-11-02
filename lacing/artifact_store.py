@@ -292,7 +292,7 @@ def keep_rights(
 
     >>> from lacing import Artifact, Rights
     >>> def made(rights=None):
-    ...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",
+    ...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="user:t",
     ...                                was_attributed_to="u", rights=rights)
     >>> acquired = made(Rights(provider="openverse"))
     >>> keep_rights(made(), lambda: acquired).rights.provider
@@ -365,7 +365,7 @@ def resolve_in_mall(
 
     >>> from lacing import Artifact
     >>> takes = ArtifactStore.in_memory()
-    >>> art = Artifact.from_bytes(b"x", kind="text", was_generated_by="t",
+    >>> art = Artifact.from_bytes(b"x", kind="text", was_generated_by="user:t",
     ...                           was_attributed_to="u")
     >>> _ = takes.save("a", art, data=b"x")
     >>> mall = {"transcripts": ArtifactStore.in_memory(), "takes": takes}
@@ -560,11 +560,11 @@ class ArtifactStore(MutableMapping):
 
         >>> from lacing import Artifact, ArtifactRef
         >>> st = ArtifactStore.in_memory()
-        >>> first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="t",
+        >>> first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="user:t",
         ...                             was_attributed_to="u")
         >>> _ = st.save("k", first, data=b"v1")
         >>> pinned = ArtifactRef("k", pin=first.asset_id)
-        >>> second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="t",
+        >>> second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="user:t",
         ...                              was_attributed_to="u")
         >>> _ = st.save("k", second, data=b"v2")
         >>> st.resolve("artifact:k").data, st.resolve(pinned).data

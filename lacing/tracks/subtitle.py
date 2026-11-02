@@ -151,7 +151,7 @@ class SubtitleBuilder:
             to. Typically a path or content-hash of the audio file.
         rate: Tick rate for time intervals. Defaults to 1000 (ms).
         was_generated_by: ``Provenance.was_generated_by``. Defaults to
-            ``"lacing.tracks.subtitle"``.
+            ``"processor:lacing.tracks.subtitle"``.
         was_attributed_to: ``Provenance.was_attributed_to``.
         ensure_tiers: When True (default), creates the three tiers if
             they don't exist. Pass False if your store uses different
@@ -164,7 +164,7 @@ class SubtitleBuilder:
         *,
         asset_id: str,
         rate: int = DEFAULT_RATE,
-        was_generated_by: str = "lacing.tracks.subtitle",
+        was_generated_by: str = "processor:lacing.tracks.subtitle",
         was_attributed_to: str = "lacing",
         ensure_tiers: bool = True,
     ) -> None:

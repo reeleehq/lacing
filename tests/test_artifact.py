@@ -71,8 +71,10 @@ def test_from_bytes_no_path():
 
 def test_artifact_is_frozen():
     art = Artifact.from_bytes(
-        b"x", kind="binary",
-        was_generated_by="t", was_attributed_to="t",
+        b"x",
+        kind="binary",
+        was_generated_by="user:t",
+        was_attributed_to="t",
     )
     with pytest.raises(Exception):  # pydantic ValidationError on frozen model
         art.kind = "image"  # type: ignore[misc]
@@ -86,9 +88,11 @@ def test_asset_id_validates_format():
             kind="image",
             bytes_size=1,
             provenance=Provenance(
-                was_generated_by="t",
+                was_generated_by="user:t",
                 was_attributed_to="t",
-                generated_at_time=__import__("lacing.time", fromlist=["RationalTime"]).RationalTime.from_fraction(
+                generated_at_time=__import__(
+                    "lacing.time", fromlist=["RationalTime"]
+                ).RationalTime.from_fraction(
                     __import__("fractions").Fraction(0), rate=24000
                 ),
             ),
@@ -98,8 +102,10 @@ def test_asset_id_validates_format():
 def test_to_media_ref_uses_asset_id():
     data = b"some image bytes"
     art = Artifact.from_bytes(
-        data, kind="image",
-        was_generated_by="t", was_attributed_to="t",
+        data,
+        kind="image",
+        was_generated_by="user:t",
+        was_attributed_to="t",
     )
     ref = art.to_media_ref(TimeInterval.from_seconds(0, 1))
     assert isinstance(ref, MediaRef)
@@ -109,8 +115,10 @@ def test_to_media_ref_uses_asset_id():
 def test_provenance_chain():
     """An artifact derived from another artifact records the lineage."""
     parent = Artifact.from_bytes(
-        b"parent", kind="image",
-        was_generated_by="agent:flux", was_attributed_to="user:t",
+        b"parent",
+        kind="image",
+        was_generated_by="agent:flux",
+        was_attributed_to="user:t",
     )
     # Re-purpose a deterministic pseudo-id for the parent (in real use,
     # was_derived_from holds annotation UUIDs; for artifact lineage we'd
@@ -118,6 +126,7 @@ def test_provenance_chain():
     # field accepts any list of UUIDs and the test exercises that
     # the field round-trips).
     import uuid
+
     parent_uuid = uuid.uuid4()
     child = Artifact.from_bytes(
         b"derived",
@@ -137,6 +146,7 @@ def test_top_level_imports_work():
     """The point of putting Artifact in lacing is that producers import it from lacing."""
     from lacing import Artifact as A1
     from lacing.artifact import Artifact as A2
+
     assert A1 is A2
 
 
@@ -192,7 +202,9 @@ class TestRights:
         assert set(json.loads(a.model_dump_json())) == set(_PRE_RIGHTS_ROW)
 
     def test_explicit_null_rights_loads_as_none(self):
-        assert Artifact.model_validate({**_PRE_RIGHTS_ROW, "rights": None}).rights is None
+        assert (
+            Artifact.model_validate({**_PRE_RIGHTS_ROW, "rights": None}).rights is None
+        )
 
     def test_full_record_round_trips_losslessly(self):
         a = Artifact.model_validate({**_PRE_RIGHTS_ROW, "rights": _FULL_RIGHTS})
@@ -252,12 +264,16 @@ class TestRights:
     def test_constructors_accept_rights(self, tmp_path: Path):
         r = Rights(**_FULL_RIGHTS)
         b = Artifact.from_bytes(
-            b"x", kind="image", was_generated_by="t", was_attributed_to="u", rights=r
+            b"x",
+            kind="image",
+            was_generated_by="user:t",
+            was_attributed_to="u",
+            rights=r,
         )
         p = tmp_path / "f.png"
         p.write_bytes(b"x")
         f = Artifact.from_path(
-            p, kind="image", was_generated_by="t", was_attributed_to="u", rights=r
+            p, kind="image", was_generated_by="user:t", was_attributed_to="u", rights=r
         )
         assert b.rights == f.rights == r
 
@@ -266,7 +282,10 @@ class TestRights:
 
         store = ArtifactStore.from_directory(tmp_path, record_type=Artifact)
         a = Artifact.from_bytes(
-            b"x", kind="image", was_generated_by="t", was_attributed_to="u",
+            b"x",
+            kind="image",
+            was_generated_by="user:t",
+            was_attributed_to="u",
             rights=Rights(**_FULL_RIGHTS),
         )
         store[a.asset_id] = a
@@ -282,7 +301,7 @@ class TestRightsCarryForward:
         return Artifact.from_bytes(
             data,
             kind="image",
-            was_generated_by="t",
+            was_generated_by="user:t",
             was_attributed_to="u",
             rights=rights,
         )
