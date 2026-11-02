@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=6eb1e6b8"></script>
+    <script src="../../_static/documentation_options.js?v=cac962a1"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.68" />
+  <meta name="docsearch:version" content="0.0.69" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -731,6 +731,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">TypeVar</span>
@@ -795,6 +796,25 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="mf">0.0</span> <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="n">y</span> <span class="k">else</span> <span class="mf">1.0</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_missing</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``None`` or a float NaN (how pandas marks a missing rating)."""</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_pair_disagreement</span><span class="p">(</span><span class="n">counts</span><span class="p">:</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">distance</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">T</span><span class="p">,</span> <span class="n">T</span><span class="p">],</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Sum of ``n_c * n_k * distance(c, k)`` over ordered pairs of distinct values.</span>
+
+<span class="sd">    Pairs of equal values are skipped, so a value never disagrees with itself</span>
+<span class="sd">    whatever ``distance`` returns for it.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span>
+        <span class="n">n_c</span> <span class="o">*</span> <span class="n">n_k</span> <span class="o">*</span> <span class="n">distance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">n_c</span> <span class="ow">in</span> <span class="n">counts</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">n_k</span> <span class="ow">in</span> <span class="n">counts</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">k</span>
+    <span class="p">)</span>
+
+
 <div class="viewcode-block" id="krippendorff_alpha">
 <a class="viewcode-back" href="../../_autosummary/lacing.quality.html#lacing.krippendorff_alpha">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">krippendorff_alpha</span><span class="p">(</span>
@@ -804,19 +824,44 @@ window.runMermaid = runMermaid;</script>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Krippendorff's α across any number of annotators.</span>
 
+<span class="sd">    Computed by the coincidence-matrix method (Krippendorff 2011, "Computing</span>
+<span class="sd">    Krippendorff's Alpha-Reliability"): only *pairable* units (two or more</span>
+<span class="sd">    non-missing values) count, and each ordered pair of values within a unit of</span>
+<span class="sd">    ``m`` values weighs ``1 / (m - 1)``, so every pairable value contributes</span>
+<span class="sd">    exactly one to the coincidences, whatever the number of annotators who</span>
+<span class="sd">    rated its unit. The observed disagreement sums, unit by unit, the distance</span>
+<span class="sd">    over ordered pairs of distinct values (weighted by their counts in the</span>
+<span class="sd">    unit) divided by ``m - 1``; the expected disagreement does the same over</span>
+<span class="sd">    the marginal value counts ``n_c`` of all pairable values, divided by</span>
+<span class="sd">    ``n - 1``. Pairs of equal values never contribute.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        annotations: A list of annotators, each a sequence of labels (one per</span>
-<span class="sd">            unit). Use ``None`` for a missing annotation by that annotator on</span>
-<span class="sd">            that unit.</span>
+<span class="sd">            unit). Use ``None`` (or a float NaN, as pandas gives) for a missing</span>
+<span class="sd">            annotation by that annotator on that unit. Labels are hashed and</span>
+<span class="sd">            compared with ``==``, so ``1``, ``1.0`` and ``True`` are one value.</span>
 <span class="sd">        distance: Function ``(x, y) -&gt; float`` measuring disagreement between</span>
-<span class="sd">            two label values. Default is the nominal (0/1) distance.</span>
+<span class="sd">            two distinct label values. Default is the nominal (0/1) distance;</span>
+<span class="sd">            ``(x - y) ** 2`` gives the interval metric. Metrics that depend on</span>
+<span class="sd">            the value frequencies (ordinal) are not expressible this way.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        α. 1.0 = perfect agreement, 0.0 = chance.</span>
+<span class="sd">        α. 1.0 = perfect agreement, 0.0 = chance. 1.0 also when the pairable</span>
+<span class="sd">        values show no variation at all (no expected disagreement).</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If sequences differ in length, fewer than 2 annotators</span>
-<span class="sd">            given, or fewer than 2 paired observations exist.</span>
+<span class="sd">            given, or no unit has two or more non-missing values.</span>
+
+<span class="sd">    Krippendorff's 2011 worked example: four annotators, twelve units, with</span>
+<span class="sd">    missing ratings (canonical nominal α = 0.743):</span>
+
+<span class="sd">    &gt;&gt;&gt; A = [1, 2, 3, 3, 2, 1, 4, 1, 2, None, None, None]</span>
+<span class="sd">    &gt;&gt;&gt; B = [1, 2, 3, 3, 2, 2, 4, 1, 2, 5, None, 3]</span>
+<span class="sd">    &gt;&gt;&gt; C = [None, 3, 3, 3, 2, 3, 4, 2, 2, 5, 1, None]</span>
+<span class="sd">    &gt;&gt;&gt; D = [1, 2, 3, 3, 2, 4, 4, 1, 2, 5, 1, None]</span>
+<span class="sd">    &gt;&gt;&gt; round(krippendorff_alpha([A, B, C, D]), 3)</span>
+<span class="sd">    0.743</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">annotations</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"need at least 2 annotators"</span><span class="p">)</span>
@@ -827,56 +872,23 @@ window.runMermaid = runMermaid;</script>
                 <span class="sa">f</span><span class="s2">"all annotator rows must have the same length; got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">)</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="n">n_units</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
 
-    <span class="c1"># Observed disagreement: across all unordered pairs of annotators within</span>
-    <span class="c1"># each unit (with both values present).</span>
-    <span class="n">observed_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">observed_pairs</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_units</span><span class="p">):</span>
-        <span class="n">present</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">annotations</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">present</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">present</span><span class="p">)):</span>
-            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">present</span><span class="p">)):</span>
-                <span class="n">observed_sum</span> <span class="o">+=</span> <span class="n">distance</span><span class="p">(</span><span class="n">present</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">present</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>  <span class="c1"># type: ignore[arg-type]</span>
-                <span class="n">observed_pairs</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">units</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">Counter</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">annotations</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_missing</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">u</span><span class="p">]))</span>
+        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_units</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">sized</span> <span class="o">=</span> <span class="p">((</span><span class="n">counts</span><span class="p">,</span> <span class="n">counts</span><span class="o">.</span><span class="n">total</span><span class="p">())</span> <span class="k">for</span> <span class="n">counts</span> <span class="ow">in</span> <span class="n">units</span><span class="p">)</span>
+    <span class="n">pairable</span> <span class="o">=</span> <span class="p">[(</span><span class="n">counts</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">counts</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">sized</span> <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pairable</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"no unit has two or more non-missing values"</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">observed_pairs</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"not enough paired observations to compute alpha"</span><span class="p">)</span>
-
-    <span class="c1"># Expected disagreement: across all unordered pairs of values regardless</span>
-    <span class="c1"># of which annotator/unit.</span>
-    <span class="n">all_values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">T</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">v</span>
-        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">annotations</span>
-        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">row</span>
-        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>  <span class="c1"># type: ignore[misc]</span>
-    <span class="p">]</span>
-    <span class="n">counts</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">all_values</span><span class="p">)</span>
-    <span class="n">n_total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-    <span class="k">if</span> <span class="n">n_total</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"not enough total observations to compute alpha"</span><span class="p">)</span>
-
-    <span class="n">expected_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ki</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)):</span>
-            <span class="n">kj</span> <span class="o">=</span> <span class="n">keys</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">j</span><span class="p">:</span>
-                <span class="n">pairs</span> <span class="o">=</span> <span class="n">counts</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">pairs</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">counts</span><span class="p">[</span><span class="n">ki</span><span class="p">]</span> <span class="o">*</span> <span class="n">counts</span><span class="p">[</span><span class="n">kj</span><span class="p">]</span>
-            <span class="n">expected_sum</span> <span class="o">+=</span> <span class="n">pairs</span> <span class="o">*</span> <span class="n">distance</span><span class="p">(</span><span class="n">ki</span><span class="p">,</span> <span class="n">kj</span><span class="p">)</span>
-
-    <span class="n">expected_pairs</span> <span class="o">=</span> <span class="n">n_total</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_total</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">expected_pairs</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">expected_sum</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="c1"># All values identical → perfect agreement</span>
+    <span class="n">observed</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">_pair_disagreement</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">distance</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">pairable</span><span class="p">)</span>
+    <span class="n">marginals</span><span class="p">:</span> <span class="n">Counter</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">counts</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">pairable</span><span class="p">:</span>
+        <span class="n">marginals</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+    <span class="n">expected</span> <span class="o">=</span> <span class="n">_pair_disagreement</span><span class="p">(</span><span class="n">marginals</span><span class="p">,</span> <span class="n">distance</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">marginals</span><span class="o">.</span><span class="n">total</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">expected</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="mf">1.0</span>
-
-    <span class="n">do</span> <span class="o">=</span> <span class="n">observed_sum</span> <span class="o">/</span> <span class="n">observed_pairs</span>
-    <span class="n">de</span> <span class="o">=</span> <span class="n">expected_sum</span> <span class="o">/</span> <span class="n">expected_pairs</span>
-    <span class="k">if</span> <span class="n">de</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="mf">1.0</span>
-    <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">do</span> <span class="o">/</span> <span class="n">de</span></div>
+    <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">observed</span> <span class="o">/</span> <span class="n">expected</span></div>
 
 
 

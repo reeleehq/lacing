@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=6eb1e6b8"></script>
+    <script src="../_static/documentation_options.js?v=cac962a1"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.68" />
+  <meta name="docsearch:version" content="0.0.69" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -534,27 +534,51 @@ if they don’t intersect (including when only one is a point).</p>
 <dt class="sig sig-object py" id="lacing.quality.krippendorff_alpha">
 <span class="sig-prename descclassname"><span class="pre">lacing.quality.</span></span><span class="sig-name descname"><span class="pre">krippendorff_alpha</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">_nominal_distance&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/quality.html#krippendorff_alpha"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.quality.krippendorff_alpha" title="Link to this definition">#</a></dt>
 <dd><p>Krippendorff’s α across any number of annotators.</p>
+<p>Computed by the coincidence-matrix method (Krippendorff 2011, “Computing
+Krippendorff’s Alpha-Reliability”): only <em>pairable</em> units (two or more
+non-missing values) count, and each ordered pair of values within a unit of
+<code class="docutils literal notranslate"><span class="pre">m</span></code> values weighs <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">/</span> <span class="pre">(m</span> <span class="pre">-</span> <span class="pre">1)</span></code>, so every pairable value contributes
+exactly one to the coincidences, whatever the number of annotators who
+rated its unit. The observed disagreement sums, unit by unit, the distance
+over ordered pairs of distinct values (weighted by their counts in the
+unit) divided by <code class="docutils literal notranslate"><span class="pre">m</span> <span class="pre">-</span> <span class="pre">1</span></code>; the expected disagreement does the same over
+the marginal value counts <code class="docutils literal notranslate"><span class="pre">n_c</span></code> of all pairable values, divided by
+<code class="docutils literal notranslate"><span class="pre">n</span> <span class="pre">-</span> <span class="pre">1</span></code>. Pairs of equal values never contribute.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>annotations</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<code class="docutils literal notranslate"><span class="pre">T</span></code>]]]</span>) – A list of annotators, each a sequence of labels (one per
-unit). Use <code class="docutils literal notranslate"><span class="pre">None</span></code> for a missing annotation by that annotator on
-that unit.</p></li>
+unit). Use <code class="docutils literal notranslate"><span class="pre">None</span></code> (or a float NaN, as pandas gives) for a missing
+annotation by that annotator on that unit. Labels are hashed and
+compared with <code class="docutils literal notranslate"><span class="pre">==</span></code>, so <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">1.0</span></code> and <code class="docutils literal notranslate"><span class="pre">True</span></code> are one value.</p></li>
 <li><p><strong>distance</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<code class="docutils literal notranslate"><span class="pre">T</span></code>, <code class="docutils literal notranslate"><span class="pre">T</span></code>], <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]</span>) – Function <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span> <span class="pre">-&gt;</span> <span class="pre">float</span></code> measuring disagreement between
-two label values. Default is the nominal (0/1) distance.</p></li>
+two distinct label values. Default is the nominal (0/1) distance;
+<code class="docutils literal notranslate"><span class="pre">(x</span> <span class="pre">-</span> <span class="pre">y)</span> <span class="pre">**</span> <span class="pre">2</span></code> gives the interval metric. Metrics that depend on
+the value frequencies (ordinal) are not expressible this way.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span></p>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>α. 1.0 = perfect agreement, 0.0 = chance.</p>
+<dd class="field-odd"><p>α. 1.0 = perfect agreement, 0.0 = chance. 1.0 also when the pairable
+values show no variation at all (no expected disagreement).</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If sequences differ in length, fewer than 2 annotators
-    given, or fewer than 2 paired observations exist.</p>
+    given, or no unit has two or more non-missing values.</p>
 </dd>
 </dl>
+<p>Krippendorff’s 2011 worked example: four annotators, twelve units, with
+missing ratings (canonical nominal α = 0.743):</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">A</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">D</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">krippendorff_alpha</span><span class="p">([</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">D</span><span class="p">]),</span> <span class="mi">3</span><span class="p">)</span>
+<span class="go">0.743</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </section>

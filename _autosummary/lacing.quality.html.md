@@ -70,16 +70,43 @@ if they don’t intersect (including when only one is a point).
 
 Krippendorff’s α across any number of annotators.
 
+Computed by the coincidence-matrix method (Krippendorff 2011, “Computing
+Krippendorff’s Alpha-Reliability”): only *pairable* units (two or more
+non-missing values) count, and each ordered pair of values within a unit of
+`m` values weighs `1 / (m - 1)`, so every pairable value contributes
+exactly one to the coincidences, whatever the number of annotators who
+rated its unit. The observed disagreement sums, unit by unit, the distance
+over ordered pairs of distinct values (weighted by their counts in the
+unit) divided by `m - 1`; the expected disagreement does the same over
+the marginal value counts `n_c` of all pairable values, divided by
+`n - 1`. Pairs of equal values never contribute.
+
 * **Parameters:**
   * **annotations** ([`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Sequence`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`T`]]]) – A list of annotators, each a sequence of labels (one per
-    unit). Use `None` for a missing annotation by that annotator on
-    that unit.
+    unit). Use `None` (or a float NaN, as pandas gives) for a missing
+    annotation by that annotator on that unit. Labels are hashed and
+    compared with `==`, so `1`, `1.0` and `True` are one value.
   * **distance** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`T`, `T`], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – Function `(x, y) -> float` measuring disagreement between
-    two label values. Default is the nominal (0/1) distance.
+    two distinct label values. Default is the nominal (0/1) distance;
+    `(x - y) ** 2` gives the interval metric. Metrics that depend on
+    the value frequencies (ordinal) are not expressible this way.
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
 * **Returns:**
-  α. 1.0 = perfect agreement, 0.0 = chance.
+  α. 1.0 = perfect agreement, 0.0 = chance. 1.0 also when the pairable
+  values show no variation at all (no expected disagreement).
 * **Raises:**
   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – If sequences differ in length, fewer than 2 annotators
-      given, or fewer than 2 paired observations exist.
+      given, or no unit has two or more non-missing values.
+
+Krippendorff’s 2011 worked example: four annotators, twelve units, with
+missing ratings (canonical nominal α = 0.743):
+
+```pycon
+>>> A = [1, 2, 3, 3, 2, 1, 4, 1, 2, None, None, None]
+>>> B = [1, 2, 3, 3, 2, 2, 4, 1, 2, 5, None, 3]
+>>> C = [None, 3, 3, 3, 2, 3, 4, 2, 2, 5, 1, None]
+>>> D = [1, 2, 3, 3, 2, 4, 4, 1, 2, 5, 1, None]
+>>> round(krippendorff_alpha([A, B, C, D]), 3)
+0.743
+```
