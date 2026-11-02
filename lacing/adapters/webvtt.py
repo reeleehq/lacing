@@ -11,7 +11,9 @@ Each cue becomes one ``Annotation`` whose body holds:
 
 Lossy fields on dump:
     Provenance, confidence, schema URIs, and tier metadata are dropped.
-    Only the text, id (if present), and settings are emitted.
+    Only the text, id (if present), and settings are emitted. Blank lines
+    inside a cue's text are dropped (a blank line ends a cue), and a negative
+    time raises ``ValueError`` (WebVTT has none).
 
 Time discipline:
     WebVTT timestamps are ``HH:MM:SS.mmm`` or ``MM:SS.mmm`` (with milliseconds).
@@ -34,19 +36,19 @@ from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
 from lacing.adapters._cues import (
-    format_hms,
+    cue_payload,
+    format_cue_time,
     hms_to_ms,
     interval_sort_key,
     iter_with_intervals,
     ms_to_rational,
-    rational_to_ms,
     read_text,
+    split_cue_lines,
 )
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import RationalTime, TimeInterval
-
 
 ADAPTER_NAME = "webvtt"
 ADAPTER_VERSION = "1.0.0"
@@ -83,7 +85,7 @@ def _parse_timestamp(s: str, rate: int) -> RationalTime:
 
 def _format_timestamp(t: RationalTime) -> str:
     """Format as ``HH:MM:SS.mmm``; sub-millisecond times are truncated."""
-    return format_hms(rational_to_ms(t), separator=".")
+    return format_cue_time(t, separator=".", format_name="WebVTT")
 
 
 def _parse_settings(s: str) -> dict[str, str]:
@@ -154,7 +156,7 @@ def _looks_like_inline_vtt(s: Any) -> bool:
 
 
 def _iter_cues(text: str, rate: int):
-    lines = text.splitlines()
+    lines = split_cue_lines(text)
     if not lines or not lines[0].lstrip().upper().startswith("WEBVTT"):
         raise ValueError("WebVTT files must start with a 'WEBVTT' header line")
 
@@ -249,7 +251,7 @@ def dump(
         if settings:
             timing += " " + _format_settings(settings)
         out_lines.append(timing)
-        out_lines.append(str(text))
+        out_lines.append(cue_payload(str(text)))
         out_lines.append("")
 
     blob = "\n".join(out_lines).encode("utf-8")

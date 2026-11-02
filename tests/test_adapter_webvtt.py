@@ -255,3 +255,51 @@ class TestRoundTrip:
             for a in loaded.all()
         )
         assert loaded_cues == original_cues
+
+
+# --- edge cases (lacing#126) ---------------------------------------------------
+
+
+def _one_cue_store(start, end, text):
+    store = MemoryStore()
+    store.add(
+        Annotation(
+            id=uuid4(),
+            tier="cues",
+            reference=MediaRef(asset_id="x", interval=TimeInterval(start, end)),
+            body={"text": text},
+            body_schema_uri="annot://schema/webvtt-cue/v1",
+            provenance=Provenance(
+                was_generated_by="user:t",
+                was_attributed_to="t",
+                generated_at_time=RationalTime.now(),
+            ),
+        )
+    )
+    return store
+
+
+def test_a_negative_time_is_refused_not_written_as_a_bad_timestamp():
+    store = _one_cue_store(RationalTime(-1, 3000), RationalTime(1, 1), "x")
+    with pytest.raises(ValueError, match="negative"):
+        adapter_module.dump(store)
+
+
+def test_blank_lines_inside_cue_text_are_dropped_so_the_file_round_trips():
+    store = _one_cue_store(RationalTime(0, 1), RationalTime(1, 1), "one\n\ntwo")
+    back = adapter_module.load(adapter_module.dump(store))
+    assert [a.body["text"] for a in back.all()] == ["one\ntwo"]
+
+
+@pytest.mark.parametrize(
+    "text, reloaded",
+    [
+        ("one\u2028\u2028two", "one\u2028\u2028two"),  # not a WebVTT line break
+        ("one\x0c\x0ctwo", "one\x0c\x0ctwo"),
+        ("  \nx", "x"),  # a whitespace-only line used to swallow the rest
+    ],
+)
+def test_text_survives_a_round_trip(text, reloaded):
+    store = _one_cue_store(RationalTime(0, 1), RationalTime(1, 1), text)
+    back = adapter_module.load(adapter_module.dump(store))
+    assert [a.body["text"] for a in back.all()] == [reloaded]
