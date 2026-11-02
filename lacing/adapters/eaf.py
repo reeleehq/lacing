@@ -48,6 +48,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
+from lacing.adapters._common import iter_with_media_intervals
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier, TierStereotype
@@ -277,7 +278,7 @@ def dump(
     if "default" in eaf.get_tier_names():
         eaf.remove_tier("default")
 
-    annotations = list(_all_with_intervals(store))
+    annotations = list(iter_with_media_intervals(store))
 
     # Resolve media URL.
     chosen_media: str | None = media_url
@@ -395,19 +396,6 @@ def _linguistic_type_for_tier(tier: Tier) -> str:
     if tier.stereotype == TierStereotype.NONE:
         return "default-lt"
     return f"lt_{tier.stereotype.value.lower()}"
-
-
-def _all_with_intervals(store: IntervalAnnotationStore):
-    iter_all = getattr(store, "all", None)
-    if callable(iter_all):
-        for a in iter_all():
-            if a.interval is not None and isinstance(a.reference, MediaRef):
-                yield a
-        return
-    for key in store:  # type: ignore[attr-defined]
-        for a in store[key]:  # type: ignore[index]
-            if a.interval is not None and isinstance(a.reference, MediaRef):
-                yield a
 
 
 # ---------------------------------------------------------------------------

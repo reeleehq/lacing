@@ -39,20 +39,15 @@ Spec: https://opentimelineio.readthedocs.io/
 from __future__ import annotations
 
 import os
-import tempfile
-from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
+from lacing.adapters._common import iter_with_media_intervals
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import DEFAULT_RATE, RationalTime, TimeInterval
-
-if TYPE_CHECKING:
-    import opentimelineio as _otio_lib
-
 
 ADAPTER_NAME = "otio"
 ADAPTER_VERSION = "1.0.0"
@@ -335,9 +330,8 @@ def dump(
 
     timeline = otio.schema.Timeline(name=name)
     by_tier: dict[str, list[Annotation]] = {}
-    for ann in _all_with_intervals(store):
-        if isinstance(ann.reference, MediaRef):
-            by_tier.setdefault(ann.tier, []).append(ann)
+    for ann in iter_with_media_intervals(store):
+        by_tier.setdefault(ann.tier, []).append(ann)
 
     declared_tiers = []
     tiers_iter = getattr(store, "tiers", None)
@@ -419,19 +413,6 @@ def dump(
 
     otio.adapters.write_to_file(timeline, os.fspath(target))
     return None
-
-
-def _all_with_intervals(store: IntervalAnnotationStore):
-    iter_all = getattr(store, "all", None)
-    if callable(iter_all):
-        for a in iter_all():
-            if a.interval is not None and isinstance(a.reference, MediaRef):
-                yield a
-        return
-    for key in store:  # type: ignore[attr-defined]
-        for a in store[key]:  # type: ignore[index]
-            if a.interval is not None and isinstance(a.reference, MediaRef):
-                yield a
 
 
 # ---------------------------------------------------------------------------

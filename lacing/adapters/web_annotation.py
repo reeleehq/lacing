@@ -40,6 +40,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
+from lacing.adapters._common import iter_with_intervals, load_json
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
@@ -199,7 +200,7 @@ def load(
         tier: Tier name to assign annotations that have no explicit
             ``body['tier']`` value.
     """
-    data = _load_json(source)
+    data = load_json(source)
 
     items: list[dict]
     if isinstance(data, dict):
@@ -269,21 +270,6 @@ def load(
     return store
 
 
-def _load_json(source: str | bytes | os.PathLike) -> Any:
-    if isinstance(source, (bytes, bytearray)):
-        return json.loads(bytes(source).decode("utf-8"))
-    if not isinstance(source, str) and isinstance(source, os.PathLike):
-        return json.loads(Path(os.fspath(source)).read_text(encoding="utf-8"))
-    s = str(source)
-    stripped = s.lstrip()
-    if stripped.startswith(("{", "[")):
-        return json.loads(s)
-    p = Path(s)
-    if p.exists():
-        return json.loads(p.read_text(encoding="utf-8"))
-    return json.loads(s)
-
-
 def _coerce_uuid(value: Any) -> UUID:
     """Try to coerce an id value to UUID; if it fails, fall back to ``uuid4()``.
 
@@ -324,7 +310,7 @@ def dump(
         pretty: Pretty-print with 2-space indent.
     """
     items: list[dict] = []
-    for ann in _all_with_intervals(store):
+    for ann in iter_with_intervals(store):
         items.append(_annotation_to_jsonld(ann))
 
     if not as_collection and len(items) == 1:
@@ -350,7 +336,7 @@ def _annotation_to_jsonld(ann: Annotation) -> dict:
     body = ann.body if isinstance(ann.body, dict) else {}
     interval = ann.interval
 
-    if interval is None:  # pragma: no cover  — _all_with_intervals filters
+    if interval is None:  # pragma: no cover  — iter_with_intervals filters
         raise RuntimeError("annotation has no interval — should have been filtered")
 
     asset_id = (
@@ -396,19 +382,6 @@ def _annotation_to_jsonld(ann: Annotation) -> dict:
     out["tier"] = ann.tier
 
     return out
-
-
-def _all_with_intervals(store: IntervalAnnotationStore):
-    iter_all = getattr(store, "all", None)
-    if callable(iter_all):
-        for a in iter_all():
-            if a.interval is not None:
-                yield a
-        return
-    for key in store:  # type: ignore[attr-defined]
-        for a in store[key]:  # type: ignore[index]
-            if a.interval is not None:
-                yield a
 
 
 # ---------------------------------------------------------------------------

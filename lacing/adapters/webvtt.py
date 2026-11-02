@@ -39,14 +39,13 @@ from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
+from lacing.adapters._common import iter_with_intervals, read_text
 from lacing.adapters._cues import (
     cue_payload,
     format_cue_time,
     hms_to_ms,
     interval_sort_key,
-    iter_with_intervals,
     ms_to_rational,
-    read_text,
     split_cue_lines,
 )
 from lacing.model import Annotation, MediaRef, Provenance
@@ -253,7 +252,8 @@ def dump(
 
     Args:
         store: Source store. Only annotations from ``tier`` (default: all
-            tiers) with a ``MediaRef`` interval are emitted, sorted by start.
+            tiers) with a time interval (any reference kind) are emitted,
+            sorted by start then end.
         target: Output path. If None, returns bytes (UTF-8).
         tier: Restrict export to this tier. None = export all annotations.
     """

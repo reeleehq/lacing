@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
+from lacing.adapters._common import iter_with_intervals
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
@@ -238,9 +239,9 @@ def dump(
     min_t = float("inf")
     max_t = float("-inf")
 
-    for ann in _all_with_intervals(store):
+    for ann in iter_with_intervals(store):
         iv = ann.interval
-        assert iv is not None  # invariant of _all_with_intervals
+        assert iv is not None  # invariant of iter_with_intervals
         label = _label_of(ann)
 
         if iv.is_point:
@@ -298,21 +299,6 @@ def dump(
 
     grid.save(os.fspath(target), format=format, includeBlankSpaces=include_empty)
     return None
-
-
-def _all_with_intervals(store: IntervalAnnotationStore):
-    """Iterate annotations with a non-None ``MediaRef`` interval."""
-    # Backends provide either .all() or are MutableMapping-shaped.
-    iter_all = getattr(store, "all", None)
-    if callable(iter_all):
-        for a in iter_all():
-            if a.interval is not None:
-                yield a
-        return
-    for key in store:  # type: ignore[attr-defined]
-        for a in store[key]:  # type: ignore[index]
-            if a.interval is not None:
-                yield a
 
 
 def _label_of(ann: Annotation) -> str:

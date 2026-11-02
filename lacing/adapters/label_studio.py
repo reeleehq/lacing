@@ -43,6 +43,7 @@ from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
+from lacing.adapters._common import iter_with_media_intervals, load_json
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
@@ -126,7 +127,7 @@ def load(
         asset_id: Override the resolved asset for every annotation.
         attribution: Override per-annotation attribution.
     """
-    data = _load_json(source)
+    data = load_json(source)
 
     if isinstance(data, dict):
         tasks = [data]
@@ -281,21 +282,6 @@ def load(
     return store
 
 
-def _load_json(source: str | bytes | os.PathLike) -> Any:
-    if isinstance(source, (bytes, bytearray)):
-        return json.loads(bytes(source).decode("utf-8"))
-    if not isinstance(source, str) and isinstance(source, os.PathLike):
-        return json.loads(Path(os.fspath(source)).read_text(encoding="utf-8"))
-    s = str(source)
-    stripped = s.lstrip()
-    if stripped.startswith(("{", "[")):
-        return json.loads(s)
-    p = Path(s)
-    if p.exists():
-        return json.loads(p.read_text(encoding="utf-8"))
-    return json.loads(s)
-
-
 # ---------------------------------------------------------------------------
 # dump
 # ---------------------------------------------------------------------------
@@ -316,9 +302,7 @@ def dump(
     ``predictions`` slot rather than ``annotations``.
     """
     by_asset: dict[str, list[Annotation]] = {}
-    for ann in _all_with_intervals(store):
-        if not isinstance(ann.reference, MediaRef):
-            continue
+    for ann in iter_with_media_intervals(store):
         by_asset.setdefault(ann.reference.asset_id, []).append(ann)
 
     tasks: list[dict[str, Any]] = []
@@ -394,19 +378,6 @@ def dump(
         return blob
     Path(os.fspath(target)).write_bytes(blob)
     return None
-
-
-def _all_with_intervals(store: IntervalAnnotationStore):
-    iter_all = getattr(store, "all", None)
-    if callable(iter_all):
-        for a in iter_all():
-            if a.interval is not None and isinstance(a.reference, MediaRef):
-                yield a
-        return
-    for key in store:  # type: ignore[attr-defined]
-        for a in store[key]:  # type: ignore[index]
-            if a.interval is not None and isinstance(a.reference, MediaRef):
-                yield a
 
 
 # ---------------------------------------------------------------------------
