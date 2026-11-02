@@ -40,7 +40,7 @@ from lacing.quality import (
     interval_iou,
     krippendorff_alpha,
 )
-from lacing.derived import Derived, derived_paths
+from lacing.derived import Derived, derived_paths, derived_prefills
 from lacing.locations import Location, LocationKind, location_fields
 from lacing.schema import (
     BodySchemaError,
@@ -97,6 +97,7 @@ from lacing.digest import (
     annotation_value_digest,
     value_digest_matches,
     accepted_value_digests,
+    registered_prefills,
 )
 from lacing.store import (
     IntervalAnnotationStore,
@@ -165,6 +166,7 @@ __all__ = [
     "annotation_body_digest",
     "value_digest_matches",
     "accepted_value_digests",
+    "registered_prefills",
     "NonStringBodyKeyError",
     # allen
     "AllenRelation",
@@ -208,6 +210,7 @@ __all__ = [
     "Location",
     "Derived",
     "derived_paths",
+    "derived_prefills",
     "LocationKind",
     "location_fields",
     "register_migration",
