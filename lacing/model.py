@@ -15,7 +15,13 @@ from uuid import UUID
 from pydantic import Field, field_validator
 
 from lacing.digest import reject_non_string_keys
-from lacing.generator_id import GeneratorIdWarning, parse_generator_id
+from lacing.generator_id import (
+    GENERATOR_ID_SHAPE,
+    GENERATOR_PREFIXES,
+    GeneratorIdWarning,
+    _external_stacklevel,
+    parse_generator_id,
+)
 from lacing.json_schema import SchemaModel
 from lacing.time import RationalTime, TimeInterval
 
@@ -159,12 +165,9 @@ class Provenance(SchemaModel):
 
     was_generated_by: str = Field(
         ...,
-        description=(
-            "Generator identifier, ``<prefix>:<name>[@<version>]``: e.g. "
-            "``user:<handle>``, ``agent:<model>@<version digest or snapshot>``, "
-            "``adapter:<format>``, ``processor:<name>``. Grammar and the advisory "
-            "check: ``lacing.generator_id``."
-        ),
+        description=f"Generator identifier, ``{GENERATOR_ID_SHAPE}``. Prefixes: "
+        + "; ".join(GENERATOR_PREFIXES.values())
+        + ". Grammar and the advisory check: ``lacing.generator_id``.",
     )
     was_attributed_to: str = Field(
         ..., description="Responsible party (user, org, or agent)."
@@ -187,8 +190,10 @@ class Provenance(SchemaModel):
     activity: str = Field(
         "create",
         description="One of: "
-        + ", ".join(f"``{name}``" for name in PROVENANCE_ACTIVITIES)
-        + ". ``cache-hit`` marks a result answered from a cache, not a billable run.",
+        + "; ".join(
+            f"``{name}`` ({meaning})" for name, meaning in PROVENANCE_ACTIVITIES.items()
+        )
+        + ".",
     )
 
     @field_validator("was_generated_by")
@@ -198,9 +203,9 @@ class Provenance(SchemaModel):
         if parse_generator_id(value) is None:
             warnings.warn(
                 f"was_generated_by={value!r} is not of the shape "
-                "'<prefix>:<name>[@<version>]' (see lacing.generator_id)",
+                f"{GENERATOR_ID_SHAPE!r} (see lacing.generator_id)",
                 GeneratorIdWarning,
-                stacklevel=2,
+                stacklevel=_external_stacklevel(),
             )
         return value
 

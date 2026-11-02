@@ -68,6 +68,7 @@ from lacing.model import (
 )
 from lacing.generator_id import (
     GENERATOR_PREFIXES,
+    VERSIONED_PREFIXES,
     GeneratorId,
     GeneratorIdWarning,
     generator_id_findings,
@@ -134,6 +135,7 @@ __all__ = [
     "UNKNOWN_GENERATED_AT",
     # generator id (was_generated_by grammar)
     "GENERATOR_PREFIXES",
+    "VERSIONED_PREFIXES",
     "GeneratorId",
     "GeneratorIdWarning",
     "generator_id_findings",

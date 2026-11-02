@@ -53,7 +53,7 @@ class OpLogEntry:
     """JSON-serializable payload sufficient to replay the operation."""
 
     actor: str = "anonymous"
-    """``user:<handle>`` or ``agent:<model>@<hash>`` or ``adapter:<format>``."""
+    """A generator identifier, ``<prefix>:<name>[@<version>]``; see ``lacing.generator_id``."""
 
     received_at: float = field(default_factory=lambda: _time.time())
     """Wall-clock time the operation was received (seconds since epoch)."""
