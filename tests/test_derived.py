@@ -584,3 +584,11 @@ def test_fill_paths_sets_each_present_entry_to_its_own_value():
     assert fill_paths(body, {("images", None, "asset_id"): "", ("maybe",): None})
     assert body == {"images": [{"asset_id": ""}, {}], "maybe": None}
     assert not fill_paths(body, {("images", None, "asset_id"): ""})  # no change
+
+
+def test_null_and_fill_paths_accept_values_that_are_not_json():
+    from datetime import datetime
+
+    body = {"maybe": datetime(2026, 1, 1), "images": [{"asset_id": {1, 2}}]}
+    assert null_paths(body, {("maybe",), ("images", None, "asset_id")}) is True
+    assert body == {"maybe": None, "images": [{"asset_id": None}]}

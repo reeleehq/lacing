@@ -106,10 +106,19 @@ with a ``default_factory``), or whose defaults disagree across union members or
 schema modes."""
 
 
+def _json_key(value: Any) -> Any:
+    """``value`` as canonical JSON text, so that ``0`` is not ``False``, ``1`` is
+    not ``1.0`` and ``[0]`` is not ``[False]``; ``value`` itself when it is not
+    JSON (compared by ``==`` then)."""
+    try:
+        return json.dumps(value, sort_keys=True)
+    except (TypeError, ValueError):
+        return value
+
+
 def _same(a: Any, b: Any) -> bool:
-    """Whether two JSON values are equal as JSON: unlike ``==``, ``0`` is not
-    ``False``, ``1`` is not ``1.0`` and ``[0]`` is not ``[False]``."""
-    return a is b or json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
+    """Whether two values are equal as JSON (see :func:`_json_key`)."""
+    return a is b or _json_key(a) == _json_key(b)
 
 
 def _note(out: dict, path: DerivedPath, default: Any) -> None:
@@ -278,10 +287,25 @@ def _delete(container: dict, key: Any) -> bool:
     return True
 
 
+_IMMUTABLE_JSON = (str, int, float, bool, type(None))
+
+
 def _setter(fill: Any) -> Callable[[dict, Any], bool]:
+    if fill is None:  # the common fill: no encoding needed, nothing to copy
+
+        def set_none(container: dict, key: Any) -> bool:
+            changed = container[key] is not None
+            container[key] = None
+            return changed
+
+        return set_none
+    fill_key = _json_key(fill)  # once per path, not once per entry
+    copy = (lambda v: v) if isinstance(fill, _IMMUTABLE_JSON) else deepcopy
+
     def set_(container: dict, key: Any) -> bool:
-        changed = not _same(container[key], fill)
-        container[key] = deepcopy(fill)
+        current = container[key]
+        changed = current is not fill and _json_key(current) != fill_key
+        container[key] = copy(fill)
         return changed
 
     return set_
