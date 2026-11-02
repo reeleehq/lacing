@@ -15,9 +15,11 @@ Lossy fields on dump:
 
 Time discipline:
     WebVTT timestamps are ``HH:MM:SS.mmm`` or ``MM:SS.mmm`` (with milliseconds).
-    Parsing goes through string fractions to avoid float ingestion. Default
+    Parsing goes through integer milliseconds to avoid float ingestion. Default
     rate is 1000 (millisecond precision); override with ``rate=`` if your
-    project uses a different canonical rate.
+    project uses a different canonical rate. On dump, sub-millisecond times
+    are truncated to the millisecond (shared with SubRip, see
+    :mod:`lacing.adapters._cues`).
 
 Spec: https://www.w3.org/TR/webvtt1/
 """
@@ -26,12 +28,20 @@ from __future__ import annotations
 
 import os
 import re
-from fractions import Fraction
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
+from lacing.adapters._cues import (
+    format_hms,
+    hms_to_ms,
+    interval_sort_key,
+    iter_with_intervals,
+    ms_to_rational,
+    rational_to_ms,
+    read_text,
+)
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
@@ -65,29 +75,13 @@ def _parse_timestamp(s: str, rate: int) -> RationalTime:
     if m is None:
         raise ValueError(f"invalid WebVTT timestamp: {s!r}")
     hours = int(m.group(1)) if m.group(1) else 0
-    minutes = int(m.group(2))
-    seconds = int(m.group(3))
-    millis = int(m.group(4))
-    total_ms = ((hours * 3600 + minutes * 60 + seconds) * 1000) + millis
-    # Exact: ms / 1000 → quantized at `rate`
-    return RationalTime.from_seconds(Fraction(total_ms, 1000), rate=rate)
+    total_ms = hms_to_ms(hours, int(m.group(2)), int(m.group(3)), int(m.group(4)))
+    return ms_to_rational(total_ms, rate)  # exact: ms / 1000 quantized at `rate`
 
 
 def _format_timestamp(t: RationalTime) -> str:
-    """Format as ``HH:MM:SS.mmm``."""
-    f = t.to_fraction()
-    # Exact ms count = round(f * 1000) — but require exact divisibility.
-    ms_frac = f * 1000
-    if ms_frac.denominator != 1:
-        # Sub-millisecond precision can't survive WebVTT round-trip; round.
-        # Documented in module docstring as a lossy edge.
-        total_ms = int(ms_frac)
-    else:
-        total_ms = int(ms_frac)
-    hours, rem = divmod(total_ms, 3_600_000)
-    minutes, rem = divmod(rem, 60_000)
-    seconds, ms = divmod(rem, 1000)
-    return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{ms:03d}"
+    """Format as ``HH:MM:SS.mmm``; sub-millisecond times are truncated."""
+    return format_hms(rational_to_ms(t), separator=".")
 
 
 def _parse_settings(s: str) -> dict[str, str]:
@@ -119,7 +113,7 @@ def load(
     **_kwargs: Any,
 ) -> IntervalAnnotationStore:
     """Parse a WebVTT file or string/bytes into a ``MemoryStore``."""
-    text = _read_text(source)
+    text = read_text(source, looks_inline=_looks_like_inline_vtt)
 
     store = MemoryStore()
     store.add_tier(Tier(tier))
@@ -148,25 +142,6 @@ def load(
         )
 
     return store
-
-
-def _read_text(source: str | bytes | os.PathLike) -> str:
-    if isinstance(source, (bytes, bytearray)):
-        # WebVTT is UTF-8 per spec; tolerate BOM.
-        return bytes(source).decode("utf-8-sig")
-    # PathLike that's not a str → must be a path
-    if not isinstance(source, str) and isinstance(source, os.PathLike):
-        return Path(os.fspath(source)).read_text(encoding="utf-8-sig")
-    # str: treat as inline content if it looks like one (header) or has no
-    # plausible path resolution; otherwise as a path.
-    s = str(source)
-    if _looks_like_inline_vtt(s):
-        return s
-    p = Path(s)
-    if p.exists():
-        return p.read_text(encoding="utf-8-sig")
-    # Treat as inline content; the header check downstream will raise if invalid.
-    return s
 
 
 def _looks_like_inline_vtt(s: Any) -> bool:
@@ -251,12 +226,10 @@ def dump(
     """
     out_lines: list[str] = ["WEBVTT", ""]
 
-    candidates = list(_all_with_intervals(store))
+    candidates = list(iter_with_intervals(store))
     if tier is not None:
         candidates = [a for a in candidates if a.tier == tier]
-    candidates.sort(
-        key=lambda a: (a.interval.start.to_fraction(), a.interval.end.to_fraction())
-    )  # type: ignore[union-attr]
+    candidates.sort(key=interval_sort_key)
 
     for ann in candidates:
         body = ann.body if isinstance(ann.body, dict) else {}
@@ -283,19 +256,6 @@ def dump(
         return blob
     Path(os.fspath(target)).write_bytes(blob)
     return None
-
-
-def _all_with_intervals(store: IntervalAnnotationStore):
-    iter_all = getattr(store, "all", None)
-    if callable(iter_all):
-        for a in iter_all():
-            if a.interval is not None:
-                yield a
-        return
-    for key in store:  # type: ignore[attr-defined]
-        for a in store[key]:  # type: ignore[index]
-            if a.interval is not None:
-                yield a
 
 
 # ---------------------------------------------------------------------------

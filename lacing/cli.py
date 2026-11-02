@@ -66,6 +66,7 @@ from lacing.allen import AllenRelation
 _ENABLED_ADAPTERS = (
     "lacing.adapters.textgrid",
     "lacing.adapters.webvtt",
+    "lacing.adapters.srt",
     "lacing.adapters.web_annotation",
     "lacing.adapters.annot",
     "lacing.adapters.eaf",

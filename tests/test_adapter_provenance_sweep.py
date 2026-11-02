@@ -26,6 +26,7 @@ STAMPING_ADAPTERS = (
     "eaf",
     "textgrid",
     "webvtt",
+    "srt",
     "jams",
     "otio",
     "label_studio",
@@ -49,6 +50,12 @@ def _load_webvtt(tmp_path):
     from tests.test_adapter_webvtt import SAMPLE_VTT, adapter_module
 
     return adapter_module.load(SAMPLE_VTT, rate=1000)
+
+
+def _load_srt(tmp_path):
+    from tests.test_adapter_srt import SAMPLE_SRT, adapter_module
+
+    return adapter_module.load(SAMPLE_SRT, rate=1000)
 
 
 def _load_jams(tmp_path):
@@ -79,6 +86,7 @@ _LOADERS = {
     "eaf": _load_eaf,
     "textgrid": _load_textgrid,
     "webvtt": _load_webvtt,
+    "srt": _load_srt,
     "jams": _load_jams,
     "otio": _load_otio,
     "label_studio": _load_label_studio,
@@ -101,6 +109,13 @@ def test_import_stamps_a_known_generation_time(name, tmp_path):
 
 
 def test_every_adapter_module_is_swept():
-    """A new adapter module lands in this sweep or this fails."""
-    modules = {m.name for m in pkgutil.iter_modules(lacing.adapters.__path__)}
+    """A new adapter module lands in this sweep or this fails.
+
+    ``_``-prefixed modules are shared helpers, not formats.
+    """
+    modules = {
+        m.name
+        for m in pkgutil.iter_modules(lacing.adapters.__path__)
+        if not m.name.startswith("_")
+    }
     assert modules == {"annot", *STAMPING_ADAPTERS}

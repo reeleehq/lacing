@@ -32,6 +32,7 @@ router = APIRouter(tags=["adapters"])
 _PHASE_01_ADAPTERS = (
     "lacing.adapters.textgrid",
     "lacing.adapters.webvtt",
+    "lacing.adapters.srt",
     "lacing.adapters.web_annotation",
     "lacing.adapters.annot",
     "lacing.adapters.eaf",
@@ -59,6 +60,7 @@ def ensure_adapters_registered() -> None:
 _DEFAULT_MEDIA_TYPES: dict[str, str] = {
     "textgrid": "text/x-praat-textgrid",
     "webvtt": "text/vtt",
+    "srt": "application/x-subrip",
     "web_annotation": "application/ld+json",
     "annot": "application/x-lacing-annot",
     "eaf": "application/x-eaf+xml",
