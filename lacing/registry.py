@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Hashable, Mapping
+from dataclasses import fields, is_dataclass
 from typing import Any
 
 __all__ = ["RegistryConflictWarning", "warn_if_replacing"]
@@ -40,15 +41,12 @@ def warn_if_replacing(
     *,
     what: str,
     force: bool = False,
-    stacklevel: int = 2,
 ) -> None:
     """Warn when writing ``new`` under ``key`` would replace a different object.
 
     Call it just before the write. ``what`` names the registry in the message
-    (``"body schema"``). ``stacklevel`` is counted from *this function's caller*,
-    as in :func:`warnings.warn`: the default ``2`` points the warning at whoever
-    called the register function, or, for a decorator, at the decorated
-    definition.
+    (``"body schema"``). The warning points at whoever called the register
+    function, or, for a decorator, at the decorated definition.
 
     Identical means ``is`` or ``==``: a model class compares by identity, a
     migration's ``(to_version, func)`` and a frozen ``AdapterSpec`` compare
@@ -65,9 +63,21 @@ def warn_if_replacing(
     if old is new or old == new:
         return
     warnings.warn(
-        f"{what} {key!r} is already registered as {old!r}; replacing it with "
-        f"{new!r}. Replacing a registered {what} with a different object will "
-        "become an error: pass force=True to replace on purpose.",
+        f"{what} {key!r} is already registered as a different object "
+        f"({_difference(old, new)}); replacing it. Replacing a registered {what} "
+        "with a different object will become an error: pass force=True to "
+        "replace on purpose.",
         RegistryConflictWarning,
-        stacklevel=stacklevel + 1,
+        stacklevel=3,  # warn_if_replacing <- register function <- its caller
     )
+
+
+def _difference(old: Any, new: Any) -> str:
+    """What differs, short: the differing fields of two dataclasses of one type,
+    else both objects."""
+    if is_dataclass(old) and type(old) is type(new):
+        names = [
+            f.name for f in fields(old) if getattr(old, f.name) != getattr(new, f.name)
+        ]
+        return "differs in " + ", ".join(names)
+    return f"was {old!r}, now {new!r}"

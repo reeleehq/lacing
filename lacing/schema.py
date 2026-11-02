@@ -406,8 +406,11 @@ def register_migration(
 
     def decorator(func: Callable[[dict], dict]) -> Callable[[dict], dict]:
         key, step = (schema_name, from_version), (to_version, func)
-        warn_if_replacing(_MIGRATION_REGISTRY, key, step, what="migration", force=force)
-        _MIGRATION_REGISTRY[key] = step
+        with _REGISTRY_LOCK:
+            warn_if_replacing(
+                _MIGRATION_REGISTRY, key, step, what="migration", force=force
+            )
+            _MIGRATION_REGISTRY[key] = step
         return func
 
     return decorator
@@ -471,16 +474,29 @@ def default_version(schema_name: str) -> int | None:
     The version declared with ``register_body_schema(..., default=True)``, else
     :func:`latest_version`. Declaring it is what keeps publishing a new version
     from silently redirecting every :func:`migrate_to_default` caller.
+
+    Raises:
+        UnknownBodySchemaError: the declared default's schema is no longer
+            registered (falling back to the highest would be the silent redirect
+            the declaration exists to prevent).
     """
-    if schema_name in _DEFAULT_VERSIONS:
-        return _DEFAULT_VERSIONS[schema_name]
-    return latest_version(schema_name)
+    if schema_name not in _DEFAULT_VERSIONS:
+        return latest_version(schema_name)
+    declared = _DEFAULT_VERSIONS[schema_name]
+    if not is_registered(make_uri(schema_name, declared)):
+        raise UnknownBodySchemaError(
+            f"{schema_name!r} declares v{declared} its default, but "
+            f"{make_uri(schema_name, declared)} is not registered"
+        )
+    return declared
 
 
 def migrate_to_default(body: dict, *, from_uri: str) -> tuple[dict, str]:
     """Migrate ``body`` to the :func:`default_version` of its schema.
 
-    Returns ``(migrated_body, target_uri)``.
+    Returns ``(migrated_body, target_uri)``. A body already *above* a declared
+    default raises :class:`MigrationError` (migrations run forward only), which
+    could not happen while the target was always the highest version.
     """
     from_name, _ = parse_uri(from_uri)
     target = default_version(from_name)

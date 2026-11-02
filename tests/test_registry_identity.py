@@ -200,6 +200,20 @@ class TestDefaultVersion:
             assert target == "annot://schema/identity-demo/v2"
             assert body == {"text": "hi", "to_v2": True}
 
+    def test_without_a_declared_default_v1_goes_to_v3(self):
+        """The control for the test above: the same setup, no declaration."""
+        _three_versions_with_chain()
+        body, target = migrate_to_latest({"text": "hi"}, from_uri=URI)
+        assert target == "annot://schema/identity-demo/v3"
+        assert body == {"text": "hi", "to_v2": True, "to_v3": True}
+
+    def test_a_declared_default_that_is_gone_raises_rather_than_redirect(self):
+        _three_versions_with_chain()
+        register_body_schema("annot://schema/identity-demo/v2", _A, default=True)
+        lacing_schema._BODY_REGISTRY.pop("annot://schema/identity-demo/v2")
+        with pytest.raises(lacing_schema.UnknownBodySchemaError, match="v2"):
+            default_version("identity-demo")
+
     def test_declaring_a_different_default_warns(self):
         _three_versions_with_chain()
         register_body_schema("annot://schema/identity-demo/v2", _A, default=True)

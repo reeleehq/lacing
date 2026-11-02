@@ -13,6 +13,7 @@ Or by using the convenience top-level loaders that look up by extension or
 from __future__ import annotations
 
 import os
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -62,6 +63,7 @@ class AdapterSpec:
 
 
 _REGISTRY: dict[str, AdapterSpec] = {}
+_REGISTRY_LOCK = threading.Lock()  # check-then-write is one step
 
 
 def register_adapter(
@@ -92,8 +94,9 @@ def register_adapter(
         description=description,
         version=version,
     )
-    warn_if_replacing(_REGISTRY, name, spec, what="adapter", force=force)
-    _REGISTRY[name] = spec
+    with _REGISTRY_LOCK:
+        warn_if_replacing(_REGISTRY, name, spec, what="adapter", force=force)
+        _REGISTRY[name] = spec
     return spec
 
 
