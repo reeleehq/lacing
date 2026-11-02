@@ -120,6 +120,8 @@ lacing/
 │   ├── webvtt.py          .vtt subtitles/captions
 │   ├── srt.py             .srt SubRip subtitles
 │   ├── lrc.py             .lrc lyrics, plain and enhanced (word timing)
+│   ├── podcast_transcript.py  Podcasting 2.0 podcast:transcript JSON (.transcript.json)
+│   ├── podcast_chapters.py    Podcasting 2.0 podcast:chapters JSON (.chapters.json)
 │   ├── web_annotation.py  W3C Web Annotation Data Model (JSON-LD)
 │   ├── annot.py           .annot SQLite portable file format (lossless)
 │   ├── eaf.py             ELAN EAF (4 stereotypes verbatim)

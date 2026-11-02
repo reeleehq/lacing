@@ -10,7 +10,8 @@ What several adapters need, whatever the format, lives here once:
 - :func:`read_text`: a text ``source`` given as bytes, a path, or inline
   text, byte-order mark stripped (WebVTT, SubRip);
 - :func:`load_json`: a JSON ``source`` given as bytes, a path, or inline text
-  (Label Studio, W3C Web Annotation). It keeps its own rules (plain UTF-8, a
+  (Label Studio, W3C Web Annotation, and, with exact ``Decimal`` numbers, the
+  Podcasting 2.0 transcript and chapters adapters). It keeps its own rules (plain UTF-8, a
   BOM is a JSON error, a folder is read as a path) rather than calling
   :func:`read_text`, so those two adapters behave exactly as before.
 
@@ -101,24 +102,39 @@ def read_text(
     return s
 
 
-def load_json(source: str | bytes | os.PathLike) -> Any:
+def load_json(
+    source: str | bytes | os.PathLike,
+    *,
+    parse_float: Callable[[str], Any] | None = None,
+) -> Any:
     """The JSON value of ``source``: bytes (UTF-8), a path, or inline JSON.
 
     A ``str`` whose first non-blank character opens an object or an array is
     inline JSON; otherwise it is read as a path if one exists there, and is
     parsed as inline JSON if not (``json`` then reports what is wrong).
 
+    ``parse_float`` is passed to :func:`json.loads`: ``None`` (the default)
+    reads non-integer numbers as ``float``; ``decimal.Decimal`` reads them
+    exactly, as written (the podcast adapters' times).
+
     >>> load_json(b'[1, 2]')
     [1, 2]
+    >>> from decimal import Decimal
+    >>> load_json('[1.001]', parse_float=Decimal)
+    [Decimal('1.001')]
     """
+
+    def parse(text: str) -> Any:
+        return json.loads(text, parse_float=parse_float)
+
     if isinstance(source, (bytes, bytearray)):
-        return json.loads(bytes(source).decode(_JSON_ENCODING))
+        return parse(bytes(source).decode(_JSON_ENCODING))
     if not isinstance(source, str) and isinstance(source, os.PathLike):
-        return json.loads(Path(os.fspath(source)).read_text(encoding=_JSON_ENCODING))
+        return parse(Path(os.fspath(source)).read_text(encoding=_JSON_ENCODING))
     s = str(source)
     if s.lstrip().startswith(_JSON_INLINE_PREFIXES):
-        return json.loads(s)
+        return parse(s)
     p = Path(s)
     if p.exists():
-        return json.loads(p.read_text(encoding=_JSON_ENCODING))
-    return json.loads(s)
+        return parse(p.read_text(encoding=_JSON_ENCODING))
+    return parse(s)

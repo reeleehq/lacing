@@ -16,6 +16,7 @@ import os
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from lacing.generator_id import GeneratorId
@@ -123,6 +124,24 @@ def find_adapter(
     return None
 
 
+def find_adapter_for_path(path: str | os.PathLike) -> AdapterSpec | None:
+    """Find an adapter by the extension of ``path``, longest suffix first.
+
+    A compound extension (``ep.chapters.json``, ``task.labelstudio.json``)
+    is tried before its last part (``.json``), so a format registered under
+    ``.chapters.json`` wins over one registered under ``.json``.
+
+    >>> find_adapter_for_path("no_extension") is None
+    True
+    """
+    suffixes = [s.lower() for s in Path(os.fspath(path)).suffixes]
+    for i in range(len(suffixes)):
+        spec = find_adapter(extension="".join(suffixes[i:]))
+        if spec is not None:
+            return spec
+    return None
+
+
 def registered() -> list[AdapterSpec]:
     """All currently registered adapters (in registration order)."""
     return list(_REGISTRY.values())
@@ -159,11 +178,9 @@ def _resolve_adapter(source: Any, format: str | None) -> AdapterSpec:
     if format is not None:
         return get_adapter(format)
     if isinstance(source, (str, os.PathLike)) and not isinstance(source, bytes):
-        ext = os.path.splitext(os.fspath(source))[1]
-        if ext:
-            spec = find_adapter(extension=ext)
-            if spec is not None:
-                return spec
+        spec = find_adapter_for_path(source)
+        if spec is not None:
+            return spec
     raise ValueError(
         "Cannot infer adapter: pass `format=<name>` or use a recognized extension."
     )

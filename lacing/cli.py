@@ -74,6 +74,8 @@ _ENABLED_ADAPTERS = (
     "lacing.adapters.jams",
     "lacing.adapters.label_studio",
     "lacing.adapters.otio",
+    "lacing.adapters.podcast_transcript",
+    "lacing.adapters.podcast_chapters",
 )
 
 
@@ -119,14 +121,9 @@ def convert(
 
 
 def _infer_format_from_extension(path: str) -> "str | None":
-    from lacing.adapters import find_adapter
+    from lacing.adapters import find_adapter_for_path
 
-    import os
-
-    ext = os.path.splitext(path)[1]
-    if not ext:
-        return None
-    spec = find_adapter(extension=ext)
+    spec = find_adapter_for_path(path)
     return spec.name if spec is not None else None
 
 
