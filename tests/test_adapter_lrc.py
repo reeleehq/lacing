@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from uuid import uuid4
 
 import pytest
@@ -11,7 +12,7 @@ from lacing.adapters import lrc as adapter_module  # noqa: F401  registers
 from lacing.adapters import srt
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import MemoryStore
-from lacing.tier import TierStereotype
+from lacing.tier import TierStereotype, validate_tier_constraint
 from lacing.time import LossyTimeConversionError, RationalTime, TimeInterval
 
 
@@ -57,6 +58,17 @@ def _view(store):
     return sorted(
         (a.tier, a.interval.start, a.interval.end, a.body_schema_uri, repr(a.body))
         for a in store.all()
+    )
+
+
+def _included_in_violations(store):
+    """Violations of the words tier's INCLUDED_IN constraint on the lines tier."""
+    lines, words = store.get_tier("lines"), store.get_tier("words")
+    return validate_tier_constraint(
+        lines,
+        words,
+        [a.interval for a in _tier(store, "lines")],
+        [a.interval for a in _tier(store, "words")],
     )
 
 
@@ -256,9 +268,31 @@ class TestTimes:
         assert _spans(store) == [("a b", 2000, 10000)]
         assert _spans(store, "words") == [("a", 2000, 2500), ("b", 2500, 10000)]
 
-    def test_offset_that_makes_a_time_negative_raises(self):
-        with pytest.raises(ValueError, match=r"^line 2: .*negative"):
-            adapter_module.load("[offset:+2000]\n[00:01.00]a\n")
+    def test_offset_that_makes_a_time_negative_clamps_to_zero(self):
+        # a common file: "+" offset and an "Artist - Title" line at 0 (ffmpeg's
+        # lrcdec lets the negative time through; lacing clamps it, inexactly)
+        src = "[offset:+500]\n[00:00.00]Artist - Title\n[00:05.00]a\n"
+        store = adapter_module.load(src)
+        assert _spans(store) == [("Artist - Title", 0, 4500), ("a", 4500, 4500)]
+        assert adapter_module.dump(store).decode() == (
+            "[offset:+500]\n[00:00.50]Artist - Title\n[00:05.00]a\n"
+        )
+
+    def test_clamped_word_stamps_keep_their_order(self):
+        store = adapter_module.load(
+            "[offset:+2000]\n[00:01.00]<00:01.00>a <00:03.00>b\n"
+        )
+        assert _spans(store, "words") == [("a", 0, 1000), ("b", 1000, 1000)]
+
+    def test_an_empty_offset_is_zero(self):
+        store = adapter_module.load("[ar:]\n[ti:]\n[offset:]\n[00:01.00]a\n")
+        assert _spans(store) == [("a", 1000, 1000)]
+        assert _tags(store) == [("ar", ""), ("ti", ""), ("offset", "")]
+
+    def test_comma_before_the_fraction(self):
+        store = adapter_module.load("[00:01,50]<00:01,50>a <00:02,25>b\n")
+        assert _spans(store) == [("a b", 1500, 2250)]
+        assert _spans(store, "words") == [("a", 1500, 2250), ("b", 2250, 2250)]
 
 
 # --- load: enhanced --------------------------------------------------------
@@ -310,6 +344,75 @@ class TestLoadEnhanced:
         assert ann.body["text"] == "I <3 you <b>"
 
 
+# --- load: lenient input and karaoke ------------------------------------
+
+
+class TestLenient:
+    def test_a_bracket_that_is_not_a_clock_starts_the_text(self):
+        store = adapter_module.load("[00:01.00][2x] la\n[00:02.00][00:7x]y\n")
+        assert [t for t, _, _ in _spans(store)] == ["[2x] la", "[00:7x]y"]
+
+    def test_text_like_a_bracket_tag_round_trips(self):
+        s = MemoryStore()
+        s.add(_ann(1000, 2000, "[2x] la"))
+        assert _spans(adapter_module.load(adapter_module.dump(s))) == [
+            ("[2x] la", 1000, 1000)
+        ]
+
+    def test_several_id_tags_on_one_line(self):
+        store = adapter_module.load("[ar:A][ti:T]\n[al:B] [by:C]\n[00:01.00]la\n")
+        assert _tags(store) == [("ar", "A"), ("ti", "T"), ("al", "B"), ("by", "C")]
+
+    @pytest.mark.parametrize("stray", ["some stray text", "[Chorus]", "Chorus [x]"])
+    def test_untagged_lines_are_skipped(self, stray):
+        store = adapter_module.load(f"[00:01.00]la\n{stray}\n[00:02.00]di\n")
+        assert _spans(store) == [("la", 1000, 2000), ("di", 2000, 2000)]
+
+
+class TestKaraoke:
+    # the reviewer's input: "world" is sung past the next line's tag
+    KARAOKE = (
+        "[00:10.00]<00:10.50>Hello <00:11.00>world<00:12.50>\n"
+        "[00:12.00]<00:12.60>next<00:13.00>\n"
+    )
+
+    def test_lines_widen_to_hold_their_words(self):
+        store = adapter_module.load(self.KARAOKE)
+        assert _spans(store) == [("Hello world", 10000, 12500), ("next", 12000, 13000)]
+        assert _spans(store, "words") == [
+            ("Hello", 10500, 11000),
+            ("world", 11000, 12500),
+            ("next", 12600, 13000),
+        ]
+        assert _included_in_violations(store) == []
+
+    def test_round_trips(self):
+        original = adapter_module.load(self.KARAOKE)
+        once = adapter_module.dump(original)
+        assert once.decode() == self.KARAOKE  # "world" is no longer dropped
+        assert _view(adapter_module.load(once)) == _view(original)
+
+    def test_a_word_stamped_before_its_line_starts_the_line(self):
+        store = adapter_module.load("[00:13.00]<00:12.00>a <00:13.50>b\n[00:20.00]c\n")
+        assert _spans(store) == [("a b", 12000, 20000), ("c", 20000, 20000)]
+        assert _included_in_violations(store) == []
+        assert _view(adapter_module.load(adapter_module.dump(store))) == _view(store)
+
+    @pytest.mark.parametrize(
+        "src",
+        [
+            "[00:01.00]<00:01.00>a <00:05.00>b\n[00:03.00]c\n",
+            "[00:01.00]<00:01.00>a <00:01.50>b\n",
+            "[length:0:01]\n[00:02.00]<00:02.00>a <00:02.50>b\n",
+            "[00:01.00][00:10.00]<00:10.00>la <00:10.50>la\n[00:05.00]x\n[00:12.00]y\n",
+        ],
+    )
+    def test_loaded_words_always_satisfy_included_in(self, src):
+        store = adapter_module.load(src)
+        assert _included_in_violations(store) == []
+        assert _view(adapter_module.load(adapter_module.dump(store))) == _view(store)
+
+
 # --- malformed input -------------------------------------------------------
 
 
@@ -320,10 +423,9 @@ class TestMalformed:
             ("[00:61.00]x", r"malformed LRC time tag \[00:61\.00\]"),
             ("[00:1x.00]x", "malformed LRC time tag"),
             ("[00:12.0000]x", "malformed LRC time tag"),
-            ("[00:12.00][00:7x]x", r"malformed LRC time tag \[00:7x\]"),
             ("[-00:01.00]x", "malformed LRC time tag"),
-            ("[00:01.00 x", "expected an LRC time tag or ID tag"),
-            ("just some text", "expected an LRC time tag or ID tag"),
+            ("[00:01.00 x", "malformed LRC time tag .no closing bracket."),
+            ("[ 00:01.00 ]x", "malformed LRC time tag"),
             ("[ar:Artist] trailing", "text after the ID tag"),
             ("[00:01.00]<00:9x.00>word", r"malformed LRC word stamp <00:9x\.00>"),
             ("[offset:fast]", r"malformed LRC \[offset:\] value 'fast'"),
@@ -341,9 +443,14 @@ class TestMalformed:
         with pytest.raises(ValueError, match=r"^line 2: a second \[offset:\] tag"):
             adapter_module.load("[offset:1]\n[OFFSET:2]\n")
 
-    def test_length_before_the_last_line(self):
-        with pytest.raises(ValueError, match=r"^line 1: \[length:\] ends before"):
-            adapter_module.load("[length:0:01]\n[00:05.00]x\n")
+    def test_length_before_the_last_line_is_ignored(self):
+        store = adapter_module.load("[length:0:01]\n[00:01.00]a\n[00:05.00]x\n")
+        assert _spans(store) == [("a", 1000, 5000), ("x", 5000, 5000)]
+
+    def test_an_empty_length_is_no_length(self):
+        assert _spans(adapter_module.load("[length:]\n[00:01.00]a\n")) == [
+            ("a", 1000, 1000)
+        ]
 
     def test_full_width_digits_are_not_a_time(self):
         with pytest.raises(ValueError):
@@ -441,16 +548,70 @@ class TestDump:
             ("world", 2200, 2800),
         ]
 
-    def test_words_not_in_the_text_are_written_alone(self):
+    def test_words_not_in_the_text_are_dropped_and_the_text_kept(self):
         s = MemoryStore()
         s.add(_ann(1000, 3000, "something else"))
         s.add(_ann(1000, 2000, "la", tier="words"))
         s.add(_ann(2000, 3000, "la", tier="words"))
-        assert adapter_module.dump(s) == b"[00:01.00]<00:01.00>la <00:02.00>la\n"
+        assert adapter_module.dump(s) == b"[00:01.00]something else\n"
+
+    def test_only_the_words_the_text_contains_are_stamped(self):
+        s = MemoryStore()
+        s.add(_ann(1000, 3000, "one two"))
+        s.add(_ann(1000, 1500, "one", tier="words"))
+        s.add(_ann(1500, 2000, "zzz", tier="words"))  # not in the text
+        s.add(_ann(2000, 3000, "two", tier="words"))
+        assert adapter_module.dump(s) == (
+            b"[00:01.00]<00:01.00>one <00:01.50><00:02.00>two<00:03.00>\n"
+        )
+
+    def test_a_point_line_does_not_hold_later_words(self):
+        # the reviewer's input: the lyric "last line" was replaced by "zzz"
+        s = adapter_module.load("[00:01.00]hello\n[00:04.00]last line\n")
+        s.add(_ann(5000, 5500, "zzz", tier="words"))
+        assert adapter_module.dump(s) == b"[00:01.00]hello\n[00:04.00]last line\n"
+
+    def test_a_multi_line_word_cannot_break_the_line(self):
+        s = MemoryStore()
+        s.add(_ann(1000, 3000, "a b c"))
+        s.add(_ann(1000, 2000, "a\nb", tier="words"))
+        # one physical line; the text after the word is read back as part of it
+        assert adapter_module.dump(s) == b"[00:01.00]<00:01.00>a b c<00:02.00>\n"
+
+    def test_overlapping_words_are_cut_so_the_file_reloads(self):
+        s = MemoryStore()
+        s.add(_ann(1000, 3000, "a b"))
+        s.add(_ann(1000, 2500, "a", tier="words"))  # runs past b's start
+        s.add(_ann(2000, 3000, "b", tier="words"))
+        back = adapter_module.load(adapter_module.dump(s))
+        assert _spans(back, "words") == [("a", 1000, 2000), ("b", 2000, 3000)]
+
+    def test_gap_words_dump_in_near_linear_time(self):
+        # was quadratic: each word outside every line scanned back to line 0
+        # (24.5 s for this input); measured well under 0.1 s now
+        n = 4000
+        s = MemoryStore()
+        for i in range(n):
+            s.add(_ann(i * 1000, i * 1000 + 400, f"L{i}"))
+            s.add(_ann(i * 1000 + 500, i * 1000 + 600, f"gap{i}", tier="words"))
+        began = time.perf_counter()
+        blob = adapter_module.dump(s)
+        assert time.perf_counter() - began < 2.0  # generous: no CI flakes
+        assert b"<" not in blob  # every word is in a gap: all dropped
 
     def test_bilingual_words_go_to_the_line_that_has_them(self):
         src = "[00:01.00]<00:01.00>Hello <00:01.50>world\n[00:01.00]Bonjour monde\n[00:03.00]x\n"
         assert adapter_module.dump(adapter_module.load(src)).decode() == src
+
+    def test_dump_defaults_to_the_lines_tier(self):
+        s = MemoryStore()
+        s.add(_ann(0, 1000, "alpha"))
+        s.add(_ann(0, 500, "a", tier="phones"))
+        assert adapter_module.dump(s) == b"[00:00.00]alpha\n"
+        s2 = MemoryStore()  # no lines tier: every text tier but the words
+        s2.add(_ann(0, 1000, "cue", tier="cues"))
+        s2.add(_ann(0, 500, "cue", tier="words"))
+        assert adapter_module.dump(s2) == b"[00:00.00]<00:00.00>cue<00:00.50>\n"
 
     def test_dump_filters_by_tier(self):
         s = MemoryStore()

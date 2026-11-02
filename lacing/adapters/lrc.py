@@ -18,45 +18,58 @@ Tiers and bodies (the names lacing's lyric tracks already use,
   tags (``[00:15.30][01:02.00]chorus``) becomes one annotation per tag, all
   with the same text. Leading and trailing blanks of the text are stripped; a
   tag with no text (``[01:30.00]``) is a line with text ``""``, the usual LRC
-  way to clear the display.
+  way to clear the display. Lines may overlap (see the end times below).
 - ``words`` (stereotype ``INCLUDED_IN`` ``lines``, only when the file has word
   stamps): one annotation per ``<mm:ss.xx>word`` segment, body
   ``annot://schema/word/v1`` ``{"text": str}``. Text before a line's first word
   stamp is a word starting at the line's time; a stamp followed only by blanks
-  ends the previous word without starting one.
+  ends the previous word without starting one. LRC has no escape, so a literal
+  ``<mm:ss.xx>`` inside lyric text is read as a word stamp.
 - ``tags`` (stereotype ``NONE``, only when the file has ID tags): **one**
   metadata annotation, a point at time 0, body ``annot://schema/lrc-tags/v1``
   ``{"tags": [{"key": str, "value": str}, ...]}``, every ID tag in file order
   with its key and value exactly as written (``[length: 3:20]`` keeps the value
-  ``" 3:20"``). :func:`dump` writes these tags back verbatim. They live on one
-  annotation rather than in every line body because they describe the file,
-  not a line, and so that a store from another format (SubRip, WebVTT) dumps
-  without inventing any.
+  ``" 3:20"``). :func:`dump` writes these tags back verbatim, one per row. They
+  live on one annotation rather than in every line body because they describe
+  the file, not a line, and so that a store from another format (SubRip,
+  WebVTT) dumps without inventing any.
 
 End times (LRC has none):
     A line ends where the next *later* line starts (lines sharing a start, as
     in bilingual files, all end at the next later start). The last line ends
-    at ``[length:]`` when the file gives one, else it is a point (``start ==
-    end``). A word ends at the next word stamp of its line, or, for the last
-    word, at its line's end (a point when that end is before the word starts,
-    as in a last line that is itself a point). When a line has several time
-    tags, its word stamps (absolute times) are read once, against the latest
-    of those tags at or before the first word stamp (the first tag if none).
+    at ``[length:]`` when the file gives one at or after its start, else it is
+    a point (``start == end``); a ``[length:]`` before the last line is only a
+    hint and is ignored. A word ends at the next word stamp of its line, or,
+    for the last word, at its line's end (a point when that end is before the
+    word starts, as in a last line that is itself a point). When a line has
+    several time tags, its word stamps (absolute times) are read once, against
+    the latest of those tags at or before the first word stamp (the first tag
+    if none). That line is then widened to hold its words, since the words
+    tier is ``INCLUDED_IN`` the lines tier: it starts at its first word when
+    that word is stamped before the line's tag, and it ends at its last word
+    when that word is sung past the next line's start (karaoke files do both).
+    A widened line overlaps its neighbours.
 
 Offset:
     ``[offset:+/-ms]`` shifts every line and word time; ``+`` makes lyrics
-    appear *sooner*, so a time is the tag minus the offset
+    appear *sooner*, so a time is the tag minus the offset. The primary source
+    is ffmpeg's LRC demuxer (``libavformat/lrcdec.c``:
+    ``sub->pts = ts_start - lrc->ts_offset``); Wikipedia agrees
     (https://en.wikipedia.org/wiki/LRC_(file_format): "with ``+`` causing
     lyrics to appear sooner"). It applies to the whole file wherever the tag
-    stands; ``[length:]`` is a media duration and is not shifted. On dump the
+    stands; ``[length:]`` is a media duration and is not shifted; an empty
+    ``[offset:]`` is 0. A time the offset makes negative (``[offset:+500]``
+    with a ``[00:00.00]Artist - Title`` line, a common file) is clamped to 0
+    where ffmpeg lets the negative time through; the clamped time is **not
+    exact**, and it dumps as the offset itself (``[00:00.50]``). On dump the
     offset tag is written back and the times are shifted back by it, so a file
-    with an offset round-trips. A time the offset makes negative raises.
+    with an offset round-trips.
 
 Time discipline:
-    Tags are ``[mm:ss.xx]`` or ``[mm:ss.xxx]`` (``.`` or ``:`` before the
-    fraction; one to three fraction digits are read as a decimal fraction of a
-    second, and ``[mm:ss]`` is a whole second). Every time is parsed as integer
-    milliseconds and converted exactly to ``RationalTime`` at ``rate``
+    Tags are ``[mm:ss.xx]`` or ``[mm:ss.xxx]`` (``.``, ``,`` or ``:`` before
+    the fraction; one to three fraction digits are read as a decimal fraction
+    of a second, and ``[mm:ss]`` is a whole second). Every time is parsed as
+    integer milliseconds and converted exactly to ``RationalTime`` at ``rate``
     (default 1000; it must hold a millisecond, or loading raises
     ``LossyTimeConversionError``), via :mod:`lacing.adapters._cues`. No float
     is involved. :func:`dump` writes centiseconds by default
@@ -66,24 +79,33 @@ Time discipline:
     written lines and word stamps keep their order.
 
 Lossy fields on dump:
-    End times are not written (except that ``[length:]`` tags pass through),
-    so a line's end becomes the next line's start; gaps between lines are
-    lost. Provenance, confidence, schema URIs and tier metadata are dropped.
-    A line's text is written on one line: a multi-line text (a SubRip cue) has
-    its lines joined by a space, blank ones dropped. Any annotation with a
-    time interval and a ``text`` body, on any tier but the words tier, is
-    written as a line, so SubRip and WebVTT cues dump to LRC. Word annotations
-    on the words tier become word stamps in the line that contains them (the
-    latest line starting at or before the word, whose interval holds the word
-    or which is a point); words outside every line are dropped. Stamps are put
-    before each word where it occurs in the line text; when a word is not
-    found there in order, the line is written as its words joined by spaces.
-    Text between two words is read back as part of the earlier word.
+    End times are not written (except that ``[length:]`` tags pass through,
+    and a word's end is stamped when it is not implied), so a line's end
+    becomes the next line's start (or its last word's end); gaps between lines
+    are lost. Provenance, confidence, schema URIs and tier metadata are
+    dropped. A line's text, and a word's, is written on one line: a multi-line
+    text (a SubRip cue) has its lines joined by a space, blank ones dropped.
+    By default (``tier=None``) the lines are the ``lines`` tier when the store
+    has text annotations on it, and otherwise every annotation with a time
+    interval and a ``text`` body on any tier but the words tier, so SubRip and
+    WebVTT cues dump to LRC. Word annotations on the words tier become word
+    stamps in the line that holds them (among the lines whose interval
+    contains the word, the one starting latest); a word no line holds is
+    dropped, and so is a word the line's text does not contain (in order):
+    the line's text is always written as it is, never replaced by its words.
+    Text between two words is read back as part of the earlier word, and text
+    before the first word as a word of its own. A word overlapping the next
+    one is cut at the next word's start. A line text that itself starts with
+    a ``[mm:ss.xx]`` clock reads back as another time tag.
 
-Malformed input raises ``ValueError`` naming the line number: a line that is
-neither blank, a time-tagged line nor a single ID tag; a bad time tag or word
-stamp; a bad ``[offset:]`` or ``[length:]`` value, or either tag twice; word
-stamps going backwards; a negative time; a ``[length:]`` before the last line.
+Lenient input, as ffmpeg's demuxer is: a line with no leading time tag or ID
+tag (stray text, a bare ``[Chorus]``) is skipped; after a line's first time
+tag, the first bracket that is not a clock (``[00:01.00][2x] la``) starts the
+text; several ID tags may share a line (``[ar:A][ti:T]``). Malformed input
+raises ``ValueError`` naming the line number: a line whose first bracket
+claims to be a time (``[`` digits ``:``) but is not a valid clock; a bad word
+stamp; a bad ``[offset:]`` or ``[length:]`` value, or either tag twice; text
+after ID tags; word stamps going backwards.
 """
 
 from __future__ import annotations
@@ -91,7 +113,7 @@ from __future__ import annotations
 import os
 import re
 from bisect import bisect_right
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
@@ -101,12 +123,12 @@ from uuid import uuid4
 from lacing.adapters import adapter_generator_id, register_adapter
 from lacing.adapters._common import iter_with_intervals, read_text
 from lacing.adapters._cues import (
+    MS_PER_MINUTE,
     MS_PER_SECOND,
     cue_payload,
     hms_to_ms,
-    interval_sort_key,
     ms_to_rational,
-    rational_to_ms,
+    nonnegative_ms,
     split_cue_lines,
 )
 from lacing.model import Annotation, MediaRef, Provenance
@@ -136,14 +158,18 @@ EXTENSION = ".lrc"
 MEDIA_TYPE = "application/x-lrc"
 OFFSET_KEY = "offset"
 LENGTH_KEY = "length"
+FORMAT_NAME = "LRC"
 
 _FRACTION_DIGITS = {"cs": 2, "ms": 3}
 _MS_PER_CS = 10
 
-_CLOCK = r"(\d+):([0-5]?\d)(?:[.:](\d{1,3}))?"
+_CLOCK = r"(\d+):([0-5]?\d)(?:[.,:](\d{1,3}))?"
 _CLOCK_RE = re.compile(rf"^{_CLOCK}$", re.ASCII)
 _LEADING_TAG_RE = re.compile(r"\[([^\]]*)\]")
 _ID_TAG_RE = re.compile(r"^([A-Za-z#][\w#-]*):(.*)$", re.ASCII | re.DOTALL)
+# A line whose first bracket claims to be a time: "[" digits ":" (any digits,
+# so a full-width "[００:01]" claims one too, and then fails as malformed).
+_CLAIMS_TIME_TAG_RE = re.compile(r"^\[\s*[-+]?\d+\s*:")
 # What claims to be a word stamp: "<" digits ":" ... ">". Its inside must then
 # be a valid clock; "<3" and other angle brackets in lyrics are plain text.
 _WORD_STAMP_RE = re.compile(r"<(\d+:[^<>]*)>", re.ASCII)
@@ -158,7 +184,7 @@ _OFFSET_RE = re.compile(r"^\s*([+-]?\d+)\s*$", re.ASCII)
 def _clock_to_ms(clock: str) -> int | None:
     """Milliseconds of an ``mm:ss[.xx]`` clock, ``None`` if it is not one.
 
-    >>> _clock_to_ms("01:02.5"), _clock_to_ms("01:02:05"), _clock_to_ms("0:02.005")
+    >>> _clock_to_ms("01:02.5"), _clock_to_ms("01:02:05"), _clock_to_ms("0:02,005")
     (62500, 62050, 2005)
     >>> _clock_to_ms("00:61.00") is None
     True
@@ -204,52 +230,63 @@ def _parse_segments(
     return _WORD_STAMP_RE.sub("", text).strip(), tuple(segments)
 
 
+def _id_tags(line: str, *, line_no: int) -> list[tuple[str, str]] | None:
+    """The ``(key, value)`` ID tags ``line`` consists of (``[ar:A][ti:T]``),
+    or None when it does not start with one."""
+    tags: list[tuple[str, str]] = []
+    rest = line
+    while (m := _LEADING_TAG_RE.match(rest)) and (t := _ID_TAG_RE.match(m.group(1))):
+        tags.append((t.group(1), t.group(2)))
+        rest = rest[m.end() :].lstrip()
+    if tags and rest:
+        raise ValueError(f"line {line_no}: text after the ID tag {line!r}")
+    return tags or None
+
+
+def _time_row(line: str, *, line_no: int) -> _Row:
+    """The row of a line starting with a time tag: its leading clocks, up to
+    the first bracket that is not one (``[2x]``, ``[Chorus]``), then text."""
+    tag_ms: list[int] = []
+    pos = 0
+    while (m := _LEADING_TAG_RE.match(line, pos)) is not None:
+        ms = _clock_to_ms(m.group(1))
+        if ms is None:
+            break
+        tag_ms.append(ms)
+        pos = m.end()
+    if not tag_ms:
+        first = _LEADING_TAG_RE.match(line)
+        what = f"[{first.group(1)}]" if first else f"(no closing bracket) in {line!r}"
+        raise ValueError(f"line {line_no}: malformed LRC time tag {what}")
+    plain, segments = _parse_segments(line[pos:], line_no=line_no)
+    return _Row(line_no, tuple(tag_ms), plain, segments)
+
+
 def _iter_lines(text: str) -> Iterator[tuple[int, str, Any]]:
     """Yield ``(line_no, "row", _Row)`` or ``(line_no, "tag", (key, value))``
-    for each non-blank line of ``text``."""
+    for each line of ``text`` that has a time tag or ID tags; skip the rest
+    (blank lines, stray text, a bare ``[Chorus]``), as ffmpeg's lrcdec does."""
     for line_no, line in enumerate(split_cue_lines(text), start=1):
-        if not line.strip():
-            continue
-        stripped = line.lstrip()
-        first = _LEADING_TAG_RE.match(stripped)
-        if first is None:
-            raise ValueError(
-                f"line {line_no}: expected an LRC time tag or ID tag, got {line!r}"
-            )
-        inner = first.group(1)
-        id_tag = _ID_TAG_RE.match(inner)
-        if id_tag is not None:
-            if stripped[first.end() :].strip():
-                raise ValueError(
-                    f"line {line_no}: text after the ID tag [{inner}]: {line!r}"
-                )
-            yield line_no, "tag", (id_tag.group(1), id_tag.group(2))
-            continue
-        tag_ms: list[int] = []
-        pos = 0
-        while (m := _LEADING_TAG_RE.match(stripped, pos)) is not None:
-            candidate = m.group(1)
-            if tag_ms and not candidate[:1].isdigit():
-                break  # "[00:12.00][Chorus] ..." keeps "[Chorus]" as text
-            ms = _clock_to_ms(candidate)
-            if ms is None:
-                raise ValueError(
-                    f"line {line_no}: malformed LRC time tag [{candidate}]"
-                )
-            tag_ms.append(ms)
-            pos = m.end()
-        plain, segments = _parse_segments(stripped[pos:], line_no=line_no)
-        yield line_no, "row", _Row(line_no, tuple(tag_ms), plain, segments)
+        stripped = line.strip()
+        if (tags := _id_tags(stripped, line_no=line_no)) is not None:
+            for tag in tags:
+                yield line_no, "tag", tag
+        elif _CLAIMS_TIME_TAG_RE.match(stripped):
+            yield line_no, "row", _time_row(stripped, line_no=line_no)
 
 
 def _parse_offset(value: str, *, where: str) -> int:
+    if not value.strip():
+        return 0  # an empty "[offset:]"
     m = _OFFSET_RE.match(value)
     if m is None:
         raise ValueError(f"{where}: malformed LRC [offset:] value {value!r}")
     return int(m.group(1))
 
 
-def _parse_length(value: str, *, where: str) -> int:
+def _parse_length(value: str, *, where: str) -> int | None:
+    if not value.strip():
+        return None  # an empty "[length:]"
     ms = _clock_to_ms(value.strip())
     if ms is None:
         raise ValueError(f"{where}: malformed LRC [length:] value {value!r}")
@@ -261,13 +298,13 @@ class _Parsed:
     rows: list[_Row]
     tags: list[tuple[str, str]]
     offset_ms: int
-    length: tuple[int, int] | None  # (ms, line_no)
+    length_ms: int | None
 
 
 def _parse(text: str) -> _Parsed:
     rows: list[_Row] = []
     tags: list[tuple[str, str]] = []
-    special: dict[str, tuple[int, int]] = {}  # key -> (value, line_no)
+    special: dict[str, int | None] = {}
     for line_no, kind, item in _iter_lines(text):
         if kind == "row":
             rows.append(item)
@@ -279,9 +316,8 @@ def _parse(text: str) -> _Parsed:
             if lowered in special:
                 raise ValueError(f"line {line_no}: a second [{lowered}:] tag")
             parse = _parse_offset if lowered == OFFSET_KEY else _parse_length
-            special[lowered] = (parse(value, where=f"line {line_no}"), line_no)
-    offset = special.get(OFFSET_KEY, (0, 0))[0]
-    return _Parsed(rows, tags, offset, special.get(LENGTH_KEY))
+            special[lowered] = parse(value, where=f"line {line_no}")
+    return _Parsed(rows, tags, special.get(OFFSET_KEY) or 0, special.get(LENGTH_KEY))
 
 
 # ---------------------------------------------------------------------------
@@ -294,42 +330,41 @@ def _looks_like_inline_lrc(s: str) -> bool:
     return "\n" in s or "\r" in s or s.lstrip().startswith("[")
 
 
-def _effective_ms(tag_ms: int, offset_ms: int, *, line_no: int) -> int:
-    ms = tag_ms - offset_ms  # "+" makes lyrics appear sooner
-    if ms < 0:
-        raise ValueError(
-            f"line {line_no}: time {tag_ms} ms minus offset {offset_ms} ms is negative"
-        )
-    return ms
+def _effective_ms(tag_ms: int, offset_ms: int) -> int:
+    """The time of a tag or stamp: minus the offset ("+" makes lyrics appear
+    sooner, as in ffmpeg's lrcdec), clamped to 0."""
+    return max(0, tag_ms - offset_ms)
 
 
-def _line_ends(starts: list[int], length_ms: int | None) -> list[int | None]:
+def _line_ends(starts: list, length: Any = None) -> list:
     """End of each line (``starts`` sorted): the next later start, then
-    ``length_ms`` (None, a point, without it)."""
+    ``length`` (None, a point, without it). Works on any ordered times."""
     distinct = sorted(set(starts))
-    ends: list[int | None] = []
+    ends = []
     for s in starts:
         i = bisect_right(distinct, s)
-        ends.append(distinct[i] if i < len(distinct) else length_ms)
+        ends.append(distinct[i] if i < len(distinct) else length)
     return ends
 
 
 def _words_of(
     row: _Row, occurrences: list[tuple[int, int]], offset_ms: int
-) -> list[tuple[str, int, int]]:
-    """``(text, start_ms, end_ms)`` of each word of an enhanced ``row``.
-
-    ``occurrences`` are the row's ``(start_ms, end_ms)`` lines, sorted.
-    """
+) -> tuple[int, list[tuple[str, int, int]]]:
+    """``(anchor, words)`` of an enhanced ``row``: the index, in
+    ``occurrences`` (the row's ``(start_ms, end_ms)`` lines, sorted), of the
+    line its stamps are read against, and ``(text, start_ms, end_ms)`` of each
+    word."""
     assert row.segments is not None
-    stamped = [ms for ms, _ in row.segments if ms is not None]
-    first_stamp = _effective_ms(stamped[0], offset_ms, line_no=row.line_no)
-    anchor = occurrences[0]
-    for occ in occurrences:
+    first_stamp = next(
+        _effective_ms(ms, offset_ms) for ms, _ in row.segments if ms is not None
+    )
+    anchor = 0
+    for k, occ in enumerate(occurrences):
         if occ[0] <= first_stamp:
-            anchor = occ
+            anchor = k
+    line_start, line_end = occurrences[anchor]
     times = [
-        anchor[0] if ms is None else _effective_ms(ms, offset_ms, line_no=row.line_no)
+        line_start if ms is None else _effective_ms(ms, offset_ms)
         for ms, _ in row.segments
     ]
     if any(b < a for a, b in zip(times, times[1:])):
@@ -339,8 +374,30 @@ def _words_of(
         word = seg.strip()
         if not word:
             continue  # a stamp followed by blanks only ends the previous word
-        end = times[i + 1] if i + 1 < len(times) else max(anchor[1], start)
+        end = times[i + 1] if i + 1 < len(times) else max(line_end, start)
         words.append((word, start, end))
+    return anchor, words
+
+
+def _read_words(
+    lines: list[tuple[int, _Row]], spans: list[tuple[int, int]], offset_ms: int
+) -> list[tuple[str, int, int]]:
+    """The words of every enhanced line, widening ``spans`` (in place) so
+    that the line each row's words are read against holds them."""
+    by_row: dict[int, list[int]] = {}
+    for i, (_, row) in enumerate(lines):
+        by_row.setdefault(row.line_no, []).append(i)
+    words: list[tuple[str, int, int]] = []
+    for indices in by_row.values():
+        row = lines[indices[0]][1]
+        if row.segments is None:
+            continue
+        anchor, row_words = _words_of(row, [spans[i] for i in indices], offset_ms)
+        if row_words:
+            i = indices[anchor]
+            start, end = spans[i]
+            spans[i] = (min(start, row_words[0][1]), max(end, row_words[-1][2]))
+            words.extend(row_words)
     return words
 
 
@@ -380,32 +437,15 @@ def load(
 
     # (start_ms, row) per time tag, sorted by start; file order breaks ties.
     lines = sorted(
-        (
-            (_effective_ms(ms, offset, line_no=row.line_no), row)
-            for row in parsed.rows
-            for ms in row.tag_ms
-        ),
+        ((_effective_ms(ms, offset), row) for row in parsed.rows for ms in row.tag_ms),
         key=lambda pair: pair[0],
     )
-    length_ms = None
-    if parsed.length is not None:
-        length_ms, length_line = parsed.length
-        if lines and length_ms < lines[-1][0]:
-            raise ValueError(
-                f"line {length_line}: [length:] ends before the last line starts"
-            )
+    length_ms = parsed.length_ms
+    if lines and length_ms is not None and length_ms < lines[-1][0]:
+        length_ms = None  # a hint only: the last line becomes a point
     ends = _line_ends([s for s, _ in lines], length_ms)
     spans = [(s, s if e is None else e) for (s, _), e in zip(lines, ends)]
-
-    occurrences: dict[int, list[tuple[int, int]]] = {}
-    for (_, row), span in zip(lines, spans):
-        occurrences.setdefault(row.line_no, []).append(span)
-    words = [
-        w
-        for row in parsed.rows
-        if row.segments is not None and row.tag_ms
-        for w in _words_of(row, occurrences[row.line_no], offset)
-    ]
+    words = _read_words(lines, spans, offset)
 
     store = MemoryStore()
     provenance = Provenance(
@@ -459,10 +499,9 @@ def _format_clock(t: RationalTime, *, offset_ms: int, precision: str) -> str:
     '00:00.583'
     """
     written = t.to_fraction() + Fraction(offset_ms, MS_PER_SECOND)
-    if written < 0:  # checked before truncation, which would round -1/3 ms to 0
-        raise ValueError(f"LRC cannot represent a negative time: {t!r}")
-    ms = rational_to_ms(RationalTime(written.numerator, written.denominator))
-    minutes, rem = divmod(ms, 60 * MS_PER_SECOND)
+    shifted = RationalTime(written.numerator, written.denominator)
+    ms = nonnegative_ms(shifted, format_name=FORMAT_NAME)
+    minutes, rem = divmod(ms, MS_PER_MINUTE)
     seconds, millis = divmod(rem, MS_PER_SECOND)
     if precision == "cs":
         return f"{minutes:02d}:{seconds:02d}.{millis // _MS_PER_CS:02d}"
@@ -477,72 +516,143 @@ def _line_text(body: Any) -> str | None:
     return " ".join(split_cue_lines(cue_payload(str(text))))
 
 
-def _stamped_text(
-    text: str, line_end: RationalTime, words: list[Annotation], stamp
-) -> str:
-    """``text`` with a ``<stamp>`` before each word, and an end stamp after a
-    word (and the text that follows it) whose end is not where the next word,
-    or the line's end, takes over."""
-    positions: list[int] = []
+@dataclass(frozen=True, slots=True)
+class _Timed:
+    """A line or word to write: its interval, exact bounds, one-line text."""
+
+    tier: str
+    interval: TimeInterval
+    start: Fraction
+    end: Fraction
+    text: str
+
+
+def _timed(a: Annotation) -> _Timed | None:
+    text = _line_text(a.body)
+    iv = a.interval
+    if text is None or iv is None:
+        return None
+    return _Timed(a.tier, iv, iv.start.to_fraction(), iv.end.to_fraction(), text)
+
+
+def _place_words(text: str, words: list[_Timed]) -> list[tuple[_Timed, int]]:
+    """``(word, position)`` of each word found in ``text``, in order; a word
+    the text does not contain (after the previous one) is dropped."""
+    placed: list[tuple[_Timed, int]] = []
     cursor = 0
     for w in words:
-        found = text.find(w.body["text"], cursor)
-        if found < 0:
-            positions = []
-            break
-        positions.append(found)
-        cursor = found + len(w.body["text"])
-    if not positions:  # a word not in the text: write the words alone
-        text = " ".join(w.body["text"] for w in words)
-        positions = []
-        cursor = 0
-        for w in words:
-            positions.append(cursor)
-            cursor += len(w.body["text"]) + 1
-    out = [text[: positions[0]]]
-    for i, (w, pos) in enumerate(zip(words, positions)):
-        iv = w.interval
-        assert iv is not None
-        word_end = pos + len(w.body["text"])
-        out.append(f"<{stamp(iv.start)}>{w.body['text']}")
-        nxt = positions[i + 1] if i + 1 < len(words) else len(text)
-        out.append(text[word_end:nxt])  # read back as part of this word
-        takes_over = words[i + 1].interval.start if i + 1 < len(words) else line_end
-        if iv.end != takes_over:
-            out.append(f"<{stamp(iv.end)}>")
+        found = text.find(w.text, cursor)
+        if found >= 0:
+            placed.append((w, found))
+            cursor = found + len(w.text)
+    return placed
+
+
+def _stamped_text(
+    text: str,
+    words: list[_Timed],
+    stamp: Callable[[RationalTime], str],
+    *,
+    line_end: Fraction | None,
+) -> str:
+    """``text`` with a ``<stamp>`` before each word it contains, and an end
+    stamp after a word (and the text that follows it) whose end is not where
+    loading would put it: the next word's start, or, for the last word, the
+    later of ``line_end`` (the next later line's start) and its own start,
+    always stamped when ``line_end`` is None. A word running past the next
+    word's start is cut there."""
+    placed = _place_words(text, words)
+    if not placed:
+        return text
+    out = [text[: placed[0][1]]]
+    for i, (w, pos) in enumerate(placed):
+        out.append(f"<{stamp(w.interval.start)}>{w.text}")
+        nxt = placed[i + 1][1] if i + 1 < len(placed) else len(text)
+        out.append(text[pos + len(w.text) : nxt])  # read back as part of w
+        if i + 1 < len(placed):
+            needs_end = w.end < placed[i + 1][0].start
+        else:
+            # with no later line, loading would end it at [length:] if any
+            needs_end = line_end is None or w.end != max(line_end, w.start)
+        if needs_end:
+            out.append(f"<{stamp(w.interval.end)}>")
     return "".join(out)
 
 
-def _assign_words(
-    lines: list[Annotation], words: list[Annotation]
-) -> dict[int, list[Annotation]]:
-    """Words per line index: the latest line starting at or before the word
-    that holds it (or is a point). Among lines with that same start (a
-    bilingual file), the first whose text contains the word."""
-    starts = [a.interval.start.to_fraction() for a in lines]
+def _start_groups(lines: list[_Timed]) -> list[list[int]]:
+    """Indices of ``lines`` (sorted by start then end), grouped by start."""
+    groups: list[list[int]] = []
+    for i, line in enumerate(lines):
+        if groups and lines[groups[-1][0]].start == line.start:
+            groups[-1].append(i)
+        else:
+            groups.append([i])
+    return groups
 
-    def holds(i: int, w: Annotation) -> bool:
-        iv = lines[i].interval
-        return iv.is_point or w.interval.end <= iv.end
 
-    by_line: dict[int, list[Annotation]] = {}
+def _assign_words(lines: list[_Timed], words: list[_Timed]) -> dict[int, list[_Timed]]:
+    """Words per line index. A word goes to the line starting latest among
+    those whose interval contains it; among lines with that start (a
+    bilingual file), to the first whose text contains the word, else the
+    first. A word no line contains is dropped.
+
+    Both lists are sorted by start then end. Groups of lines sharing a start
+    are pushed on a stack as the words reach their start; a group whose
+    latest end is no later than a newer group's is popped for good (the newer
+    one wins every later word it could hold), so the stack's ends decrease
+    and each word is one bisection: O((lines + words) log lines).
+    """
+    groups = _start_groups(lines)
+    stacked: list[list[int]] = []
+    neg_ends: list[Fraction] = []  # minus each stacked group's latest end
+    pushed = 0
+    by_line: dict[int, list[_Timed]] = {}
     for w in words:
-        start = w.interval.start.to_fraction()
-        tied: list[int] = []  # the holders sharing the latest holder's start
-        for i in range(bisect_right(starts, start) - 1, -1, -1):
-            if tied and starts[i] != starts[tied[0]]:
-                break
-            if holds(i, w):
-                tied.append(i)
-        if not tied:
-            continue  # outside every line: dropped
-        tied.reverse()
-        text = w.body["text"]
-        chosen = next(
-            (i for i in tied if text in (_line_text(lines[i].body) or "")), tied[0]
-        )
+        while pushed < len(groups) and lines[groups[pushed][0]].start <= w.start:
+            group = groups[pushed]
+            latest_end = lines[group[-1]].end
+            while neg_ends and -neg_ends[-1] <= latest_end:
+                neg_ends.pop()
+                stacked.pop()
+            neg_ends.append(-latest_end)
+            stacked.append(group)
+            pushed += 1
+        holding = bisect_right(neg_ends, -w.end)  # stacked groups ending >= w
+        if not holding:
+            continue
+        holders = [i for i in stacked[holding - 1] if lines[i].end >= w.end]
+        chosen = next((i for i in holders if w.text in lines[i].text), holders[0])
         by_line.setdefault(chosen, []).append(w)
     return by_line
+
+
+def _tags_to_write(annotations: list[Annotation]) -> list[tuple[str, str]]:
+    return [
+        (t["key"], t["value"])
+        for a in annotations
+        if a.body_schema_uri == TAGS_BODY_SCHEMA_URI and isinstance(a.body, dict)
+        for t in a.body.get("tags", [])
+    ]
+
+
+def _offset_to_write(tags: list[tuple[str, str]]) -> int:
+    offsets = [v for k, v in tags if k.lower() == OFFSET_KEY]
+    if len(offsets) > 1:
+        raise ValueError(f"more than one [{OFFSET_KEY}:] tag to write: {offsets}")
+    return _parse_offset(offsets[0], where="lrc-tags body") if offsets else 0
+
+
+def _is_line_tier(texts: list[_Timed], *, tier: str | None, words_tier: str):
+    """The test a text's tier passes to be written as a line."""
+    if tier is not None:
+        return lambda name: name == tier and name != words_tier
+    if any(t.tier == DEFAULT_TIER_NAME for t in texts):
+        return lambda name: name == DEFAULT_TIER_NAME
+    return lambda name: name != words_tier
+
+
+def _by_interval(t: _Timed) -> tuple[Fraction, Fraction]:
+    return (t.start, t.end)
 
 
 def dump(
@@ -563,11 +673,13 @@ def dump(
     by it, so that loading applies it again.
 
     Args:
-        store: Source store. Every annotation with a time interval and a
-            ``text`` body not on ``words_tier`` is a line (an LRC line, a
-            SubRip or WebVTT cue, or any other).
+        store: Source store. Lines are annotations with a time interval and a
+            ``text`` body (an LRC line, a SubRip or WebVTT cue, or any other).
         target: Output path. If None, returns bytes (UTF-8, no BOM, ``\\n``).
-        tier: Restrict lines to this tier. None = every tier but ``words_tier``.
+        tier: The tier whose texts are the lines. None (the default) means the
+            ``lines`` tier when the store has text annotations on it (so a
+            phones or notes tier beside it is not written as lyrics), and
+            otherwise every tier but ``words_tier``.
         words_tier: Tier whose annotations are written as word stamps.
         precision: ``"cs"`` (``[mm:ss.xx]``, default) or ``"ms"``
             (``[mm:ss.xxx]``); finer times are truncated.
@@ -575,44 +687,27 @@ def dump(
     if precision not in _FRACTION_DIGITS:
         raise ValueError(f"precision must be one of {sorted(_FRACTION_DIGITS)}")
     annotations = list(iter_with_intervals(store))
-    tags = [
-        (t["key"], t["value"])
-        for a in annotations
-        if a.body_schema_uri == TAGS_BODY_SCHEMA_URI and isinstance(a.body, dict)
-        for t in a.body.get("tags", [])
-    ]
-    offsets = [v for k, v in tags if k.lower() == OFFSET_KEY]
-    if len(offsets) > 1:
-        raise ValueError(f"more than one [{OFFSET_KEY}:] tag to write: {offsets}")
-    offset = _parse_offset(offsets[0], where="lrc-tags body") if offsets else 0
+    tags = _tags_to_write(annotations)
+    offset = _offset_to_write(tags)
 
     def stamp(t: RationalTime) -> str:
         return _format_clock(t, offset_ms=offset, precision=precision)
 
-    lines = sorted(
-        (
-            a
-            for a in annotations
-            if a.tier != words_tier
-            and (tier is None or a.tier == tier)
-            and _line_text(a.body) is not None
-        ),
-        key=interval_sort_key,
-    )
+    texts = [t for a in annotations if (t := _timed(a)) is not None]
+    is_line = _is_line_tier(texts, tier=tier, words_tier=words_tier)
+    lines = sorted((t for t in texts if is_line(t.tier)), key=_by_interval)
     words = sorted(
-        (a for a in annotations if a.tier == words_tier and _line_text(a.body)),
-        key=interval_sort_key,
+        (t for t in texts if t.tier == words_tier and t.text), key=_by_interval
     )
     words_by_line = _assign_words(lines, words)
+    next_starts = _line_ends([line.start for line in lines])
 
     rows = [f"[{key}:{value}]" for key, value in tags]
     for i, line in enumerate(lines):
-        iv = line.interval
-        assert iv is not None  # iter_with_intervals filters
-        text = _line_text(line.body) or ""
+        text = line.text
         if i in words_by_line:
-            text = _stamped_text(text, iv.end, words_by_line[i], stamp)
-        rows.append(f"[{stamp(iv.start)}]{text}")
+            text = _stamped_text(text, words_by_line[i], stamp, line_end=next_starts[i])
+        rows.append(f"[{stamp(line.interval.start)}]{text}")
 
     blob = "".join(f"{row}\n" for row in rows).encode("utf-8")
     if target is None:

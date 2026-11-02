@@ -9,7 +9,8 @@ in common lives here, once:
 - :func:`hms_to_ms` / :func:`format_hms`: clock fields to milliseconds and back,
   with the decimal separator as an argument;
 - :func:`cue_payload` / :func:`format_cue_time`: what a cue writer emits for a
-  text and a time;
+  text and a time; :func:`nonnegative_ms` is its negative-time check and
+  truncation, for writers with another clock layout (LRC's ``mm:ss.xx``);
 - :func:`interval_sort_key`: cue order, for the annotations a cue writer
   emits (:func:`lacing.adapters._common.iter_with_intervals`).
 
@@ -35,8 +36,8 @@ from lacing.time import RationalTime
 
 
 MS_PER_SECOND = 1000
-_MS_PER_MINUTE = 60 * MS_PER_SECOND
-_MS_PER_HOUR = 60 * _MS_PER_MINUTE
+MS_PER_MINUTE = 60 * MS_PER_SECOND
+_MS_PER_HOUR = 60 * MS_PER_MINUTE
 
 
 def hms_to_ms(hours: int, minutes: int, seconds: int, *, millis: int) -> int:
@@ -87,7 +88,7 @@ def format_hms(total_ms: int, *, separator: str) -> str:
     '00:00:01,001'
     """
     hours, rem = divmod(total_ms, _MS_PER_HOUR)
-    minutes, rem = divmod(rem, _MS_PER_MINUTE)
+    minutes, rem = divmod(rem, MS_PER_MINUTE)
     seconds, ms = divmod(rem, MS_PER_SECOND)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}{separator}{ms:03d}"
 
@@ -123,12 +124,21 @@ def cue_payload(text: str) -> str:
     return "\n".join(line for line in split_cue_lines(text) if line.strip())
 
 
-def format_cue_time(t: RationalTime, *, separator: str, format_name: str) -> str:
-    """``t`` as ``HH:MM:SS<separator>mmm``, sub-milliseconds truncated.
+def nonnegative_ms(t: RationalTime, *, format_name: str) -> int:
+    """``t`` in whole milliseconds, truncated (:func:`rational_to_ms`).
 
     Raises ``ValueError`` for a negative time, checked before truncation (which
-    would turn ``-1/3000`` s into zero): neither format can write one.
+    would turn ``-1/3000`` s into zero): no cue format can write one.
+
+    >>> nonnegative_ms(RationalTime(1, 3), format_name="X")
+    333
     """
     if t.to_fraction() < 0:
         raise ValueError(f"{format_name} cannot represent a negative time: {t!r}")
-    return format_hms(rational_to_ms(t), separator=separator)
+    return rational_to_ms(t)
+
+
+def format_cue_time(t: RationalTime, *, separator: str, format_name: str) -> str:
+    """``t`` as ``HH:MM:SS<separator>mmm``, sub-milliseconds truncated; a
+    negative time raises (:func:`nonnegative_ms`)."""
+    return format_hms(nonnegative_ms(t, format_name=format_name), separator=separator)
