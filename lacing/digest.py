@@ -180,7 +180,14 @@ __all__ = [
     "VALUE_DIGEST_SCHEME",
     "VALUE_DIGEST_SCHEMES",
     "BODY_DIGEST_SCHEME",
+    "registered_prefills",
     "registered_derived_paths",
+]
+
+#: What ``resolve_derived`` returns for a ``body_schema_uri``: the derived paths,
+#: or a ``Mapping`` of each path to the value its field holds before the fill.
+DerivedResolver = Callable[
+    [str], Collection[Sequence[str | None]] | Mapping[Sequence[str | None], Any]
 ]
 
 
@@ -271,7 +278,7 @@ def annotation_value_digest(
     annotation: "Annotation",
     *,
     scheme: str = VALUE_DIGEST_SCHEME,
-    resolve_derived: Callable[[str], Collection[Sequence[str | None]]] | None = None,
+    resolve_derived: DerivedResolver | None = None,
 ) -> str:
     """Return the SHA-256 hex digest of ``annotation``'s value.
 
@@ -288,11 +295,11 @@ def annotation_value_digest(
     ``scheme`` selects which computation to run, so a digest recorded under an
     older scheme can be re-verified (see :data:`VALUE_DIGEST_SCHEMES`).
     ``resolve_derived`` maps a ``body_schema_uri`` to the paths to leave out; the
-    default reads the registered body schema (:func:`registered_derived_paths`),
-    and a schema that is not registered excludes nothing. It may return a
-    ``Mapping`` of path to the value an unfilled field holds (its default), which
-    :func:`value_digest_matches` uses for one of its fallbacks; a plain
-    collection of paths means ``None`` for each.
+    default reads the registered body schema (:func:`registered_prefills`), and
+    a schema that is not registered excludes nothing. It may return a plain
+    collection of paths, or a ``Mapping`` of path to pre-fill value: the value
+    an unfilled field holds, which :func:`value_digest_matches` tries besides
+    ``None`` (a collection means ``None`` for each).
 
     Use this for freshness and early cutoff. For optimistic concurrency use
     :func:`lacing.server.etag.annotation_etag` instead — two digests, two
@@ -346,7 +353,7 @@ def value_digest_matches(
     recorded: str,
     *,
     scheme: str = VALUE_DIGEST_SCHEME,
-    resolve_derived: Callable[[str], Collection[Sequence[str | None]]] | None = None,
+    resolve_derived: DerivedResolver | None = None,
 ) -> bool:
     """Whether ``recorded``, a value digest a trace stored under ``scheme``, still
     describes ``annotation``'s value.
@@ -359,8 +366,10 @@ def value_digest_matches(
     whole current body (nothing changed since); the current body with the
     derived fields dropped (they were absent then and have been filled since,
     the change ``v2`` exists to ignore); and the current body with the derived
-    fields set to ``None``, or to the default their field declares (they were
-    stored that way then, as a ``model_dump()`` stores an unfilled field).
+    fields set to ``None``, or to their pre-fill values (they were stored that
+    way then: by default the JSON default each field declares, which is what a
+    ``model_dump()`` stores for a plain default, not for a ``default_factory``,
+    which declares none, nor through a ``field_serializer``).
     It does so under ``v1`` as well, where the whole-body digest is the computed
     one: which fields are derivable belongs to the schema, not to the scheme.
 
@@ -368,8 +377,10 @@ def value_digest_matches(
     whole-body digest matches only if the recorded body *is* the current one,
     the dropped one only if it is the current body minus ``D``, and the filled
     ones only if it is the current body with ``D`` set to ``None`` or to the
-    declared defaults. Dropping and filling touch nothing outside ``D``, so either way the two bodies agree
-    outside ``D``, which is exactly what the ``v2`` digest already accepts.
+    pre-fill values. Dropping and filling touch nothing outside ``D``, so either
+    way the two bodies agree outside ``D``, which is exactly what the ``v2``
+    digest already accepts. ``resolve_derived`` is as in
+    :func:`annotation_value_digest`.
 
     >>> from uuid import uuid4
     >>> from lacing import Annotation, MediaRef, Provenance
@@ -412,13 +423,13 @@ def accepted_value_digests(
     annotation: "Annotation",
     *,
     scheme: str = VALUE_DIGEST_SCHEME,
-    resolve_derived: Callable[[str], Collection[Sequence[str | None]]] | None = None,
+    resolve_derived: DerivedResolver | None = None,
 ) -> frozenset[str]:
     """Every digest :func:`value_digest_matches` accepts for ``annotation``.
 
     For a verifier that memoizes per annotation and scheme and checks many
     recorded digests against one set; ``value_digest_matches`` stays the lazy
-    one-off check.
+    one-off check. ``resolve_derived`` is as in :func:`annotation_value_digest`.
     """
     return frozenset(_value_digests(annotation, scheme, resolve_derived))
 
@@ -493,8 +504,27 @@ def annotation_body_digest(annotation: "Annotation") -> str:
     return _digest(BODY_DIGEST_SCHEME, _payload(annotation, BODY_FIELDS))
 
 
+def registered_prefills(uri: str) -> Mapping[tuple[str | None, ...], Any]:
+    """The :class:`lacing.Derived` paths of the body schema registered at ``uri``,
+    each mapped to its pre-fill value (:func:`lacing.derived_prefills`): the
+    default ``resolve_derived`` of :func:`annotation_value_digest` and
+    :func:`value_digest_matches` (lacing#109).
+
+    Empty for an unregistered ``uri``, as :func:`registered_derived_paths`.
+    """
+    from lacing.derived import derived_prefills
+    from lacing.schema import UnknownBodySchemaError, get_body_schema
+
+    try:
+        model = get_body_schema(uri)
+    except UnknownBodySchemaError:
+        return {}
+    return derived_prefills(model)
+
+
 def registered_derived_paths(uri: str) -> frozenset[tuple[str | None, ...]]:
-    """The :class:`lacing.Derived` paths of the body schema registered at ``uri``.
+    """The :class:`lacing.Derived` paths of the body schema registered at ``uri``:
+    the paths-only form of :func:`registered_prefills`.
 
     Empty for an unregistered ``uri``: excluding less can only cost a spurious
     miss, never a wrong hit. Imports :mod:`lacing.schema` on first use, so this
@@ -511,7 +541,7 @@ def registered_derived_paths(uri: str) -> frozenset[tuple[str | None, ...]]:
 def _value_digests(
     annotation: "Annotation",
     scheme: str,
-    resolve_derived: Callable[[str], Collection[Sequence[str | None]]] | None,
+    resolve_derived: DerivedResolver | None,
 ) -> Iterator[str]:
     """The digest of ``annotation`` under ``scheme``, then (lazily) the digests a
     producer unaware of the derived paths would have recorded under the same tag
@@ -527,7 +557,7 @@ def _value_digests(
     is_v1 = scheme == _V1_SCHEME
     if is_v1:  # v1 digests the whole body, and never consults the resolver for it
         yield _digest(_V1_SCHEME, payload)
-    paths = (resolve_derived or _registered_prefills)(annotation.body_schema_uri)
+    paths = (resolve_derived or registered_prefills)(annotation.body_schema_uri)
     if not paths:  # nothing to leave out: byte-identical to v1
         if not is_v1:
             yield _digest(_V1_SCHEME, payload)
@@ -557,19 +587,6 @@ def _distinct_fills(prefills: dict) -> list[dict]:
     differs (a ``model_dump()`` of a field defaulting to ``""``)."""
     nulled = dict.fromkeys(prefills)
     return [nulled] if prefills == nulled else [nulled, prefills]
-
-
-def _registered_prefills(uri: str) -> Mapping[tuple[str | None, ...], Any]:
-    """:func:`registered_derived_paths`, each mapped to the JSON default its field
-    declares (``None`` when it declares none): what a ``model_dump()`` stored
-    there before the field was filled (lacing#109)."""
-    from lacing.schema import get_body_schema, is_registered
-    from lacing.derived import derived_defaults
-
-    if not is_registered(uri):
-        return {}
-    defaults = derived_defaults(get_body_schema(uri))
-    return {path: defaults.get(path) for path in registered_derived_paths(uri)}
 
 
 def _payload(annotation: "Annotation", fields: Sequence[str]) -> dict[str, Any]:

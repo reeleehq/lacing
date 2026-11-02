@@ -45,7 +45,9 @@ Field names and aliases are both read as spellings of a field, as in
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+import json
+from collections.abc import Callable, Iterable, Mapping
+from copy import deepcopy
 from dataclasses import dataclass
 from functools import lru_cache
 from itertools import product
@@ -59,6 +61,7 @@ __all__ = [
     "DerivedPath",
     "ANY_ITEM",
     "derived_paths",
+    "derived_prefills",
     "derived_defaults",
     "drop_paths",
     "fill_paths",
@@ -98,13 +101,21 @@ class Derived:
 
 
 _NO_DEFAULT = object()
-"""A derived field whose schema declares no default (a required field), or whose
-defaults disagree across union members or schema modes."""
+"""A derived field whose schema declares no default (a required field, or one
+with a ``default_factory``), or whose defaults disagree across union members or
+schema modes."""
+
+
+def _same(a: Any, b: Any) -> bool:
+    """Whether two JSON values are equal as JSON: unlike ``==``, ``0`` is not
+    ``False``, ``1`` is not ``1.0`` and ``[0]`` is not ``[False]``."""
+    return a is b or json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
 
 
 def _note(out: dict, path: DerivedPath, default: Any) -> None:
     """Record ``path`` with ``default``; a disagreeing second default forgets it."""
-    if out.get(path, default) != default:
+    known = out.get(path, default)
+    if known is _NO_DEFAULT or default is _NO_DEFAULT or not _same(known, default):
         default = _NO_DEFAULT
     out[path] = default
 
@@ -206,23 +217,47 @@ def derived_paths(model: type[BaseModel]) -> frozenset[DerivedPath]:
     return frozenset(_derived(model))
 
 
-def derived_defaults(model: type[BaseModel]) -> dict[DerivedPath, Any]:
-    """The JSON default each of ``model``'s :class:`Derived` fields declares,
-    by path: what a ``model_dump()`` stores there before the field is filled.
+def derived_prefills(model: type[BaseModel]) -> Mapping[DerivedPath, Any]:
+    """Every path of :func:`derived_paths`, mapped to the value its field holds
+    before it is filled: its declared JSON default, or ``None`` when there is
+    none (see :func:`derived_defaults` for which paths have one).
 
-    Only paths with one unambiguous default: a required field has none, and
-    neither has a path whose union members or schema modes disagree.
+    A fresh deep copy on every call, so mutating it cannot reach the cache.
 
     Raises:
         ValueError: as :func:`derived_paths`.
     """
-    return {p: d for p, d in _derived(model).items() if d is not _NO_DEFAULT}
+    return {
+        path: None if default is _NO_DEFAULT else deepcopy(default)
+        for path, default in _derived(model).items()
+    }
+
+
+def derived_defaults(model: type[BaseModel]) -> dict[DerivedPath, Any]:
+    """The JSON default each of ``model``'s :class:`Derived` fields declares,
+    by path. For a plain default (``= ""``) that is what a ``model_dump()``
+    stores before the field is filled; a ``field_serializer`` may store
+    something else.
+
+    Only paths with one unambiguous default: a required field has none, nor has
+    a ``default_factory`` one (pydantic writes no JSON default for it), nor a
+    path whose union members or schema modes disagree. A fresh deep copy on
+    every call, so mutating it cannot reach the cache.
+
+    Raises:
+        ValueError: as :func:`derived_paths`.
+    """
+    return {
+        path: deepcopy(default)
+        for path, default in _derived(model).items()
+        if default is not _NO_DEFAULT
+    }
 
 
 def drop_paths(value: Any, paths: PathSet) -> bool:
     """Delete, in place, the entries of the JSON-like ``value`` named by ``paths``;
     return whether any was there to delete."""
-    return _edit_paths(value, paths, _delete)
+    return _edit_paths(value, ((path, _delete) for path in paths))
 
 
 def null_paths(value: Any, paths: PathSet) -> bool:
@@ -234,9 +269,8 @@ def null_paths(value: Any, paths: PathSet) -> bool:
 def fill_paths(value: Any, fills: Mapping[DerivedPath, Any]) -> bool:
     """Set, in place, each entry of the JSON-like ``value`` named by a path of
     ``fills`` to that path's value (keys that are absent stay absent); return
-    whether any changed."""
-    # a list, not a generator: ``any`` would stop at the first path edited
-    return any([_edit(value, path, _setter(fill)) for path, fill in fills.items()])
+    whether any changed. Each entry gets its own deep copy of the value."""
+    return _edit_paths(value, ((path, _setter(fill)) for path, fill in fills.items()))
 
 
 def _delete(container: dict, key: Any) -> bool:
@@ -246,20 +280,20 @@ def _delete(container: dict, key: Any) -> bool:
 
 def _setter(fill: Any) -> Callable[[dict, Any], bool]:
     def set_(container: dict, key: Any) -> bool:
-        changed = container[key] != fill or type(container[key]) is not type(fill)
-        container[key] = fill
+        changed = not _same(container[key], fill)
+        container[key] = deepcopy(fill)
         return changed
 
     return set_
 
 
 def _edit_paths(
-    value: Any,
-    paths: PathSet,
-    edit: Callable[[dict, Any], bool],
+    value: Any, edits: Iterable[tuple[DerivedPath, Callable[[dict, Any], bool]]]
 ) -> bool:
+    """Apply each ``(path, edit)`` pair to ``value`` (see :func:`_edit`); return
+    whether any reported a change."""
     # a list, not a generator: ``any`` would stop at the first path edited
-    return any([_edit(value, path, edit) for path in paths])
+    return any([_edit(value, path, edit) for path, edit in edits])
 
 
 def _edit(value: Any, path: DerivedPath, edit: Callable[[dict, Any], bool]) -> bool:

@@ -20,6 +20,8 @@ from lacing import (
     accepted_value_digests,
     annotation_value_digest,
     derived_paths,
+    derived_prefills,
+    registered_prefills,
     value_digest_matches,
 )
 from lacing.derived import derived_defaults, drop_paths, fill_paths, null_paths
@@ -423,6 +425,32 @@ def test_a_required_or_ambiguous_derived_field_has_no_default():
     assert derived_defaults(Either) == {}  # A says "x", B says "y"
     assert derived_paths(Required) == {("out",)}
     assert derived_defaults(Required) == {}
+    assert derived_prefills(Either) == {("item", "out"): None}  # None when none
+
+
+def test_defaults_are_handed_out_as_copies():
+    class M(BaseModel):
+        src: str = ""
+        tags: Annotated[list[str], Derived("src")] = []
+
+    derived_defaults(M)[("tags",)].append("x")
+    derived_prefills(M)[("tags",)].append("x")
+    assert derived_defaults(M) == derived_prefills(M) == {("tags",): []}
+    fills = derived_prefills(M)
+    a, b = {"tags": ["h"]}, {"tags": ["h"]}
+    assert fill_paths(a, fills) and fill_paths(b, fills)
+    a["tags"].append("y")
+    assert b == {"tags": []} and fills == {("tags",): []}
+
+
+def test_registered_prefills(registered):
+    assert registered_prefills(URI) == derived_prefills(Body)
+    assert registered_prefills("annot://schema/nope/v1") == {}
+
+
+def test_fill_paths_tells_json_types_apart():
+    assert fill_paths({"y": [0]}, {("y",): [False]})
+    assert fill_paths({"y": 1}, {("y",): 1.0})
 
 
 def test_matching_uses_the_injected_resolver():
@@ -459,6 +487,7 @@ def _bodies():
         {"k": {"artifact_id": "a1"}},
         {"k": {"artifact_id": "a1", "asset_id": "h"}},
         {"k": {"artifact_id": "a1", "asset_id": None}},  # stored as null (#102)
+        {"k": {"artifact_id": "a1", "asset_id": ""}},  # at its default (#109)
     ]
     for imgs, root, maybe, named in product(
         images, (None, "root", "other"), (_ABSENT, None, "m"), by_name
@@ -477,21 +506,20 @@ def test_matching_is_sound_across_every_pair(registered):
     """A match, under either scheme, only ever means the recorded and current
     bodies agree outside today's derived paths: never a wrong hit."""
     bodies = list(_bodies())
-    # Recorded by a producer that knew no marker, and by one that knew today's.
+    # Recorded by a producer that knew no marker, and by one that knew today's;
+    # each distinct digest once, with the bodies it was recorded for.
+    recorded = {scheme: {} for scheme in VALUE_DIGEST_SCHEMES}
+
+    def record():
+        for scheme, (r, b) in product(VALUE_DIGEST_SCHEMES, enumerate(bodies)):
+            digest = annotation_value_digest(_ann(b), scheme=scheme)
+            recorded[scheme].setdefault(digest, set()).add(r)
+
     schema_module._BODY_REGISTRY.pop(URI)
-    recorded = {
-        scheme: [
-            (r, annotation_value_digest(_ann(b), scheme=scheme))
-            for r, b in enumerate(bodies)
-        ]
-        for scheme in VALUE_DIGEST_SCHEMES
-    }
+    record()
     register_body_schema(URI, Body)
-    for scheme in VALUE_DIGEST_SCHEMES:
-        recorded[scheme] += [
-            (r, annotation_value_digest(_ann(b), scheme=scheme))
-            for r, b in enumerate(bodies)
-        ]
+    record()
+    nulls_only = lambda uri: dict.fromkeys(derived_paths(Body))  # no default fill
 
     def dropped(body):
         """Today's derived fields removed, by hand: the oracle shares no code
@@ -503,18 +531,24 @@ def test_matching_is_sound_across_every_pair(registered):
         return out
 
     stripped = [dropped(b) for b in bodies]
-    fallback_hits = 0
+    fallback_hits = default_only_hits = 0
     for scheme in VALUE_DIGEST_SCHEMES:
         for c, current in enumerate(bodies):
             ann = _ann(current)
             accepted = accepted_value_digests(ann, scheme=scheme)
-            for r, digest in recorded[scheme]:
+            without_defaults = accepted_value_digests(
+                ann, scheme=scheme, resolve_derived=nulls_only
+            )
+            for digest, rs in recorded[scheme].items():
                 matches = value_digest_matches(ann, digest, scheme=scheme)
                 assert matches == (digest in accepted)
                 if matches:
-                    assert stripped[r] == stripped[c], (scheme, bodies[r], current)
-                    fallback_hits += bodies[r] != current
+                    for r in rs:
+                        assert stripped[r] == stripped[c], (scheme, bodies[r], current)
+                        fallback_hits += bodies[r] != current
+                    default_only_hits += digest not in without_defaults
     assert fallback_hits  # not vacuous: some differing bodies do match
+    assert default_only_hits  # and some only through the default fill (#109)
     # The hand-written oracle above is right only for these paths.
     assert derived_paths(Body) == {
         ("images", None, "asset_id"),
