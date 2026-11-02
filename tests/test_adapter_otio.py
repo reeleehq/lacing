@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import uuid4
 
+from fractions import Fraction
+
 import pytest
 
 otio = pytest.importorskip("opentimelineio")
@@ -505,8 +507,28 @@ class TestExactTime:
                 otio.opentime.RationalTime(1, 48000),
             )
         )
-        with pytest.raises(LossyTimeConversionError):
+        with pytest.raises(LossyTimeConversionError, match="multiple of 48000"):
             adapter_module.load(blob, rate=1000)
+
+    @pytest.mark.parametrize(
+        "seconds, rate",
+        [
+            (Fraction(12345, 48000), 48000),  # odd samples, written as seconds
+            (Fraction(1, 10000), 240000),
+            (Fraction(1001, 30000), 240000),  # one NTSC frame, as seconds
+        ],
+    )
+    def test_times_written_as_seconds_at_rate_1_load_exactly(self, seconds, rate):
+        """OTIO's own from_seconds writes rate 1.0: the load rate is the hint
+        that recovers the time the writer meant (review of lacing#134)."""
+        blob = _timeline_with(
+            _otio_clip(
+                otio.opentime.RationalTime(0, 1),
+                otio.opentime.RationalTime(float(seconds), 1),
+            )
+        )
+        [clip] = adapter_module.load(blob, rate=rate).all()
+        assert clip.interval.end.to_fraction() == seconds
 
     def test_dump_refuses_integers_doubles_cannot_hold(self):
         from lacing.time import LossyTimeConversionError

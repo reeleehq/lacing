@@ -31,7 +31,7 @@ members as doubles. No time crosses this adapter as float seconds
   ``LossyTimeConversionError``.
 - **load** turns each OTIO double into an exact ``Fraction`` once, at the
   boundary (:func:`_otio_double_to_fraction`): an integral double is that
-  integer; otherwise the simplest rational with denominator at most
+  integer; otherwise the rational closest to it with denominator at most
   ``1001`` whose nearest double *is* that double, which recovers values
   such as ``1/3`` and NTSC rates written as ``24000/1001``
   (``23.976023976023978``); failing that, the double's exact binary value.
@@ -80,9 +80,11 @@ BODY_SCHEMA_URI_CLIP = "annot://schema/otio-clip/v1"
 BODY_SCHEMA_URI_MARKER = "annot://schema/otio-marker/v1"
 DEFAULT_ASSET_ID = "otio:unspecified"
 
-_MAX_RECOVERED_DENOMINATOR = 1001
-"""Largest denominator :func:`_otio_double_to_fraction` recovers from a
-non-integral double. ``1001`` covers the NTSC family (``k * 1000 / 1001``)."""
+_NTSC_DENOMINATOR = 1001
+"""Largest denominator :func:`_otio_double_to_fraction` recovers on its own from
+a non-integral double: the NTSC family of rates (``k * 1000 / 1001``) written as
+doubles (``23.976023976023978``). Finer times are recovered with the load rate as
+a hint (:func:`_otio_seconds`)."""
 
 _MAX_EXACT_DOUBLE_INT = 2**53
 """Integers with magnitude below this are exactly representable as doubles."""
@@ -104,8 +106,8 @@ def _otio_double_to_fraction(x: float) -> Fraction:
 
     - An integral double is that integer (the usual case: ``24.0``,
       ``48000.0``, ``1001.0``).
-    - Otherwise, the simplest rational with denominator at most
-      ``_MAX_RECOVERED_DENOMINATOR`` whose nearest double is exactly ``x``.
+    - Otherwise, the rational closest to ``x`` with denominator at most
+      ``_NTSC_DENOMINATOR``, if its nearest double is exactly ``x``.
       Rationals with such small denominators are far apart compared with the
       spacing of doubles, so at most one of them rounds to ``x``: this
       recovers ``1/3`` from ``0.333...`` and ``24000/1001`` from
@@ -117,15 +119,38 @@ def _otio_double_to_fraction(x: float) -> Fraction:
     exact = Fraction(x)  # exact binary value; raises on nan/inf
     if exact.denominator == 1:
         return exact
-    simple = exact.limit_denominator(_MAX_RECOVERED_DENOMINATOR)
+    simple = exact.limit_denominator(_NTSC_DENOMINATOR)
     if float(simple) == x:
         return simple
     return exact
 
 
-def _otio_seconds(t) -> Fraction:
-    """An ``opentime.RationalTime`` as exact ``Fraction`` seconds."""
-    return _otio_double_to_fraction(t.value) / _otio_double_to_fraction(t.rate)
+def _otio_seconds(t, *, grid: int) -> Fraction:
+    """An ``opentime.RationalTime`` as exact ``Fraction`` seconds.
+
+    ``grid`` is the lacing rate being loaded at: when ``t`` is a non-integral
+    double (OTIO's own ``from_seconds`` writes rate ``1.0``), the multiple of
+    ``1/grid`` whose double is ``t.value`` is the time the writer meant, so it
+    is preferred over the double's binary value. Never rounds: the result
+    always converts back to ``t`` exactly.
+    """
+    rate = _otio_double_to_fraction(t.rate)
+    seconds = _otio_double_to_fraction(t.value) / rate
+    if (seconds * grid).denominator != 1:
+        on_grid = Fraction(round(seconds * grid), grid)
+        if float(on_grid * rate) == t.value:
+            return on_grid
+    return seconds
+
+
+def _quantise(seconds: Fraction, rate: int) -> RationalTime:
+    """``seconds`` at ``rate``; on loss, the error names a rate that would work."""
+    try:
+        return RationalTime.from_seconds(seconds, rate=rate)
+    except LossyTimeConversionError as error:
+        raise LossyTimeConversionError(
+            f"{error}; load at a rate that is a multiple of {seconds.denominator}"
+        ) from error
 
 
 def _otio_rationaltime_to_lacing(t, rate: int) -> RationalTime:
@@ -133,7 +158,7 @@ def _otio_rationaltime_to_lacing(t, rate: int) -> RationalTime:
 
     Raises ``LossyTimeConversionError`` when the time is not exact at ``rate``.
     """
-    return RationalTime.from_seconds(_otio_seconds(t), rate=rate)
+    return _quantise(_otio_seconds(t, grid=rate), rate)
 
 
 def _lacing_to_otio_rationaltime(t: RationalTime, otio_module) -> Any:
@@ -232,12 +257,9 @@ def load(
         cursor = Fraction(0)
         for child in track:
             if hasattr(child, "source_range") and child.source_range is not None:
-                duration = _otio_seconds(child.source_range.duration)
+                duration = _otio_seconds(child.source_range.duration, grid=rate)
             elif hasattr(child, "duration"):
-                try:
-                    duration = _otio_seconds(child.duration())
-                except Exception:  # pragma: no cover  — defensive
-                    duration = Fraction(0)
+                duration = _otio_seconds(child.duration(), grid=rate)
             else:
                 duration = Fraction(0)
 
@@ -245,8 +267,8 @@ def load(
             if schema.startswith("Clip"):
                 clip_asset = asset_id or _media_url(child) or f"otio:clip:{child.name}"
                 interval = TimeInterval(
-                    RationalTime.from_seconds(cursor, rate=rate),
-                    RationalTime.from_seconds(cursor + duration, rate=rate),
+                    _quantise(cursor, rate),
+                    _quantise(cursor + duration, rate),
                 )
 
                 clip_metadata = (
@@ -275,11 +297,15 @@ def load(
                 # Markers on this clip — placed at clip-relative source_range start
                 # offset onto the track timeline.
                 if child.source_range is not None:
-                    clip_source_start = _otio_seconds(child.source_range.start_time)
+                    clip_source_start = _otio_seconds(
+                        child.source_range.start_time, grid=rate
+                    )
                 else:
                     clip_source_start = Fraction(0)
                 for marker in getattr(child, "markers", []) or []:
-                    marker_start_in_clip = _otio_seconds(marker.marked_range.start_time)
+                    marker_start_in_clip = _otio_seconds(
+                        marker.marked_range.start_time, grid=rate
+                    )
                     marker_track_pos = cursor + (
                         marker_start_in_clip - clip_source_start
                     )
@@ -337,7 +363,7 @@ def _add_marker_annotation(
     ensure_tier(tier_name)
 
     if track_pos is not None:
-        t = RationalTime.from_seconds(track_pos, rate=rate)
+        t = _quantise(track_pos, rate)
     else:
         t = _otio_rationaltime_to_lacing(marker.marked_range.start_time, rate)
 
