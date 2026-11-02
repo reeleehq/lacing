@@ -113,7 +113,6 @@ from __future__ import annotations
 import os
 import re
 from bisect import bisect_right
-from itertools import accumulate
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from fractions import Fraction
@@ -126,10 +125,12 @@ from lacing.adapters._common import display_text, iter_with_intervals, read_text
 from lacing.adapters._cues import (
     MS_PER_MINUTE,
     MS_PER_SECOND,
+    assign_words,
     cue_payload,
     hms_to_ms,
     ms_to_rational,
     nonnegative_ms,
+    place_words,
     split_cue_lines,
 )
 from lacing.model import Annotation, MediaRef, Provenance
@@ -547,19 +548,6 @@ def _timed(a: Annotation) -> _Timed | None:
     return _Timed(a.tier, iv, iv.start.to_fraction(), iv.end.to_fraction(), text)
 
 
-def _place_words(text: str, words: list[_Timed]) -> list[tuple[_Timed, int]]:
-    """``(word, position)`` of each word found in ``text``, in order; a word
-    the text does not contain (after the previous one) is dropped."""
-    placed: list[tuple[_Timed, int]] = []
-    cursor = 0
-    for w in words:
-        found = text.find(w.text, cursor)
-        if found >= 0:
-            placed.append((w, found))
-            cursor = found + len(w.text)
-    return placed
-
-
 def _stamped_text(
     text: str,
     words: list[_Timed],
@@ -573,7 +561,7 @@ def _stamped_text(
     later of ``line_end`` (the next later line's start) and its own start,
     always stamped when ``line_end`` is None. A word running past the next
     word's start is cut there."""
-    placed = _place_words(text, words)
+    placed = place_words(text, words)
     if not placed:
         return text
     out = [text[: placed[0][1]]]
@@ -589,36 +577,6 @@ def _stamped_text(
         if needs_end:
             out.append(f"<{stamp(w.interval.end)}>")
     return "".join(out)
-
-
-def _assign_words(lines: list[_Timed], words: list[_Timed]) -> dict[int, list[_Timed]]:
-    """Words per line index. A word goes to the latest-starting line that
-    contains it in time *and* whose text contains it; failing that, to the
-    latest-starting line that contains it in time. A word no line contains is
-    dropped.
-
-    ``lines`` is sorted by start. Each word scans back from the last line that
-    starts by the word's start, and stops as soon as no earlier line can reach
-    the word's end (a running maximum of ends), so a word in a gap costs one
-    step and the scan only walks lines that overlap the word.
-    """
-    starts = [line.start for line in lines]
-    reach = list(accumulate((line.end for line in lines), max))
-    by_line: dict[int, list[_Timed]] = {}
-    for w in words:
-        chosen = None
-        i = bisect_right(starts, w.start) - 1
-        while i >= 0 and reach[i] >= w.end:
-            if lines[i].end >= w.end:
-                if w.text in lines[i].text:
-                    chosen = i
-                    break
-                if chosen is None:
-                    chosen = i  # the latest holder, kept unless a better one
-            i -= 1
-        if chosen is not None:
-            by_line.setdefault(chosen, []).append(w)
-    return by_line
 
 
 def _tags_to_write(annotations: list[Annotation]) -> list[tuple[str, str]]:
@@ -694,7 +652,7 @@ def dump(
     words = sorted(
         (t for t in texts if t.tier == words_tier and t.text), key=_by_interval
     )
-    words_by_line = _assign_words(lines, words)
+    words_by_line = assign_words(lines, words)
     next_starts = _line_ends([line.start for line in lines])
 
     rows = [f"[{key}:{value}]" for key, value in tags]
