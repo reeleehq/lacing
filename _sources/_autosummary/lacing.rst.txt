@@ -8,6 +8,9 @@
 
    .. autosummary::
    
+      generator_id_findings
+      parse_generator_id
+      warn_if_malformed
       keep_rights
       resolve_in_mall
       content_hash_of
@@ -58,6 +61,7 @@
       NodeRef
       AnnotationRef
       Provenance
+      GeneratorId
       Artifact
       Rights
       ArtifactStore
@@ -80,6 +84,7 @@
    .. autosummary::
    
       LossyTimeConversionError
+      GeneratorIdWarning
       NonStringBodyKeyError
       SchemaMismatchError
       StoreMigrationError
@@ -105,6 +110,7 @@
    derived
    digest
    exhibit
+   generator_id
    locations
    model
    oplog

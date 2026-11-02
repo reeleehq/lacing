@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=cac962a1"></script>
+    <script src="../../_static/documentation_options.js?v=29ed05f3"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.69" />
+  <meta name="docsearch:version" content="0.0.70" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1011,7 +1011,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    &gt;&gt;&gt; from lacing import Artifact, Rights</span>
 <span class="sd">    &gt;&gt;&gt; def made(rights=None):</span>
-<span class="sd">    ...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",</span>
+<span class="sd">    ...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="user:t",</span>
 <span class="sd">    ...                                was_attributed_to="u", rights=rights)</span>
 <span class="sd">    &gt;&gt;&gt; acquired = made(Rights(provider="openverse"))</span>
 <span class="sd">    &gt;&gt;&gt; keep_rights(made(), lambda: acquired).rights.provider</span>
@@ -1090,7 +1090,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    &gt;&gt;&gt; from lacing import Artifact</span>
 <span class="sd">    &gt;&gt;&gt; takes = ArtifactStore.in_memory()</span>
-<span class="sd">    &gt;&gt;&gt; art = Artifact.from_bytes(b"x", kind="text", was_generated_by="t",</span>
+<span class="sd">    &gt;&gt;&gt; art = Artifact.from_bytes(b"x", kind="text", was_generated_by="user:t",</span>
 <span class="sd">    ...                           was_attributed_to="u")</span>
 <span class="sd">    &gt;&gt;&gt; _ = takes.save("a", art, data=b"x")</span>
 <span class="sd">    &gt;&gt;&gt; mall = {"transcripts": ArtifactStore.in_memory(), "takes": takes}</span>
@@ -1296,11 +1296,11 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">        &gt;&gt;&gt; from lacing import Artifact, ArtifactRef</span>
 <span class="sd">        &gt;&gt;&gt; st = ArtifactStore.in_memory()</span>
-<span class="sd">        &gt;&gt;&gt; first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="t",</span>
+<span class="sd">        &gt;&gt;&gt; first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="user:t",</span>
 <span class="sd">        ...                             was_attributed_to="u")</span>
 <span class="sd">        &gt;&gt;&gt; _ = st.save("k", first, data=b"v1")</span>
 <span class="sd">        &gt;&gt;&gt; pinned = ArtifactRef("k", pin=first.asset_id)</span>
-<span class="sd">        &gt;&gt;&gt; second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="t",</span>
+<span class="sd">        &gt;&gt;&gt; second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="user:t",</span>
 <span class="sd">        ...                              was_attributed_to="u")</span>
 <span class="sd">        &gt;&gt;&gt; _ = st.save("k", second, data=b"v2")</span>
 <span class="sd">        &gt;&gt;&gt; st.resolve("artifact:k").data, st.resolve(pinned).data</span>
@@ -1614,6 +1614,33 @@ window.runMermaid = runMermaid;</script>
             <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span>
             <span class="k">return</span>
         <span class="k">yield from</span> <span class="n">_ContainedDirStore</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ArtifactStore.interrupted_writes">
+<a class="viewcode-back" href="../../_autosummary/lacing.artifact_store.html#lacing.ArtifactStore.interrupted_writes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">interrupted_writes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""The staging files of blob writes that never finished (lacing#104).</span>
+
+<span class="sd">        :meth:`put_blob_stream` (and so :meth:`put_blob`) spools into a hidden</span>
+<span class="sd">        ``.blob-*.part`` file beside the blobs and renames it into place when</span>
+<span class="sd">        the bytes are complete; a failed write unlinks it. A process killed</span>
+<span class="sd">        mid-write (SIGKILL, power loss) cannot, and the file, possibly a whole</span>
+<span class="sd">        video, stays where no listing sees it. This lists those files, for a</span>
+<span class="sd">        collector to delete.</span>
+
+<span class="sd">        It also lists writes **in flight right now**: a collector should spare</span>
+<span class="sd">        a file modified recently (``an cache gc`` does, by mtime). Paths are</span>
+<span class="sd">        absolute. Empty for a store whose blobs are not on a filesystem (no</span>
+<span class="sd">        ``rootdir``), for one with no blob store, and when the blob folder does</span>
+<span class="sd">        not exist.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            OSError: the blob folder exists but cannot be listed (not a</span>
+<span class="sd">                directory, no permission). Nothing is known, so a collector</span>
+<span class="sd">                should delete nothing.</span>
+<span class="sd">        """</span>
+        <span class="n">rootdir</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">,</span> <span class="s2">"rootdir"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">rootdir</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_spool_files</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">rootdir</span><span class="p">)</span><span class="o">.</span><span class="n">absolute</span><span class="p">())</span></div>
 
 
 <div class="viewcode-block" id="ArtifactStore.blob_location">
@@ -2283,6 +2310,29 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">missing</span>
 
 
+<span class="n">_SPOOL_PREFIX</span><span class="p">,</span> <span class="n">_SPOOL_SUFFIX</span> <span class="o">=</span> <span class="s2">".blob-"</span><span class="p">,</span> <span class="s2">".part"</span>
+<span class="sd">"""How :func:`_spool_chunks_to_dir` names its staging file, and so what</span>
+<span class="sd">:meth:`ArtifactStore.interrupted_writes` lists. The leading ``.`` is</span>
+<span class="sd">load-bearing: hidden entries are what keep spool files out of</span>
+<span class="sd">:meth:`ArtifactStore.iter_blobs` (and ``dol.Files``' listing)."""</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_spool_files</span><span class="p">(</span><span class="n">rootdir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The staging files directly in ``rootdir``: regular files only, never a</span>
+<span class="sd">    symlink (it could point outside the root) or a directory."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">entries</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">rootdir</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="n">Path</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">entries</span>
+        <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">_SPOOL_PREFIX</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">_SPOOL_SUFFIX</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="n">entry</span><span class="o">.</span><span class="n">is_file</span><span class="p">(</span><span class="n">follow_symlinks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_spool_chunks_to_dir</span><span class="p">(</span><span class="n">chunks</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">bytes</span><span class="p">],</span> <span class="n">rootdir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Hash-while-spooling to a same-directory tempfile, then atomic rename.</span>
 
@@ -2295,7 +2345,9 @@ window.runMermaid = runMermaid;</script>
 
     <span class="n">rootdir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
-    <span class="n">fd</span><span class="p">,</span> <span class="n">tmp_path</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">".blob-"</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">".part"</span><span class="p">)</span>
+    <span class="n">fd</span><span class="p">,</span> <span class="n">tmp_path</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">(</span>
+        <span class="nb">dir</span><span class="o">=</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">_SPOOL_PREFIX</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="n">_SPOOL_SUFFIX</span>
+    <span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">os</span><span class="o">.</span><span class="n">fdopen</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">spool</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">:</span>

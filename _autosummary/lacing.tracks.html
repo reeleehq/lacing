@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=cac962a1"></script>
+    <script src="../_static/documentation_options.js?v=29ed05f3"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.69" />
+  <meta name="docsearch:version" content="0.0.70" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -349,6 +349,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.derived.html">lacing.derived</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.digest.html">lacing.digest</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.exhibit.html">lacing.exhibit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.generator_id.html">lacing.generator_id</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.locations.html">lacing.locations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.model.html">lacing.model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.oplog.html">lacing.oplog</a></li>
@@ -473,7 +474,7 @@ the common case ergonomic and consistent.</p>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.tracks.SubtitleBuilder">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.tracks.</span></span><span class="sig-name descname"><span class="pre">SubtitleBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">asset_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">was_generated_by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing.tracks.subtitle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">was_attributed_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_tiers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/tracks/subtitle.html#SubtitleBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.tracks.SubtitleBuilder" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.tracks.</span></span><span class="sig-name descname"><span class="pre">SubtitleBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">asset_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">was_generated_by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'processor:lacing.tracks.subtitle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">was_attributed_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_tiers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/tracks/subtitle.html#SubtitleBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.tracks.SubtitleBuilder" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Builder for <code class="docutils literal notranslate"><span class="pre">(sections,</span> <span class="pre">lines,</span> <span class="pre">words)</span></code> tiers over one asset.</p>
 <p>The builder is a context manager <em>only as a convenience</em>; it has no
@@ -487,7 +488,7 @@ transactional semantics. Calling <code class="docutils literal notranslate"><spa
 to. Typically a path or content-hash of the audio file.</p></li>
 <li><p><strong>rate</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Tick rate for time intervals. Defaults to 1000 (ms).</p></li>
 <li><p><strong>was_generated_by</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – <code class="docutils literal notranslate"><span class="pre">Provenance.was_generated_by</span></code>. Defaults to
-<code class="docutils literal notranslate"><span class="pre">&quot;lacing.tracks.subtitle&quot;</span></code>.</p></li>
+<code class="docutils literal notranslate"><span class="pre">&quot;processor:lacing.tracks.subtitle&quot;</span></code>.</p></li>
 <li><p><strong>was_attributed_to</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – <code class="docutils literal notranslate"><span class="pre">Provenance.was_attributed_to</span></code>.</p></li>
 <li><p><strong>ensure_tiers</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – When True (default), creates the three tiers if
 they don’t exist. Pass False if your store uses different

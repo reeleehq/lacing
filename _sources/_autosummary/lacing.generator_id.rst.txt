@@ -1,0 +1,34 @@
+lacing.generator\_id
+====================
+
+.. automodule:: lacing.generator_id
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      GENERATOR_ID_SHAPE
+      GENERATOR_PREFIXES
+      VERSIONED_PREFIXES
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      parse_generator_id
+      generator_id_findings
+      warn_if_malformed
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      GeneratorId
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      GeneratorIdWarning
+   

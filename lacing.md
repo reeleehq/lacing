@@ -1,4 +1,4 @@
-> built 2026-11-02 15:45 UTC from c80e718 (main) · lacing 0.0.69. Details: build_info.json
+> built 2026-11-02 15:51 UTC from 03d16f8 (main) · lacing 0.0.70. Details: build_info.json
 
 # index.html.md
 
@@ -1341,7 +1341,7 @@ record (`None` means “we made this”, not “unknown”):
 ...     rights=Rights(provider="openverse", license="by-sa", author="Ada"))
 >>> a.rights.license
 'by-sa'
->>> Artifact.from_bytes(b"x", kind="text", was_generated_by="t",
+>>> Artifact.from_bytes(b"x", kind="text", was_generated_by="user:t",
 ...     was_attributed_to="u").rights is None
 True
 ```
@@ -2086,6 +2086,30 @@ Return the whole catalog as a plain dict (e.g. for UI hydration).
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), `BaseModel`]
 
+#### interrupted_writes()
+
+The staging files of blob writes that never finished (lacing#104).
+
+[`put_blob_stream()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.put_blob_stream) (and so [`put_blob()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.put_blob)) spools into a hidden
+`.blob-*.part` file beside the blobs and renames it into place when
+the bytes are complete; a failed write unlinks it. A process killed
+mid-write (SIGKILL, power loss) cannot, and the file, possibly a whole
+video, stays where no listing sees it. This lists those files, for a
+collector to delete.
+
+It also lists writes **in flight right now**: a collector should spare
+a file modified recently (`an cache gc` does, by mtime). Paths are
+absolute. Empty for a store whose blobs are not on a filesystem (no
+`rootdir`), for one with no blob store, and when the blob folder does
+not exist.
+
+* **Raises:**
+  [**OSError**](https://docs.python.org/3/builtins/exceptions.html#OSError) – the blob folder exists but cannot be listed (not a
+      directory, no permission). Nothing is known, so a collector
+      should delete nothing.
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
+
 #### iter_blob(content_hash, , chunk_size=65536)
 
 Yield the blob’s bytes in `chunk_size` chunks.
@@ -2151,7 +2175,7 @@ atomic. `content_hash` reads a record’s hash (as the default policy,
 ```pycon
 >>> from lacing import Artifact, Rights
 >>> def made(rights=None):
-...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",
+...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="user:t",
 ...                                was_attributed_to="u", rights=rights)
 >>> acquired = made(Rights(provider="openverse"))
 >>> keep_rights(made(), lambda: acquired).rights.provider
@@ -2243,11 +2267,11 @@ pin; with `read=True` a pinned read does.
 ```pycon
 >>> from lacing import Artifact, ArtifactRef
 >>> st = ArtifactStore.in_memory()
->>> first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="t",
+>>> first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="user:t",
 ...                             was_attributed_to="u")
 >>> _ = st.save("k", first, data=b"v1")
 >>> pinned = ArtifactRef("k", pin=first.asset_id)
->>> second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="t",
+>>> second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="user:t",
 ...                              was_attributed_to="u")
 >>> _ = st.save("k", second, data=b"v2")
 >>> st.resolve("artifact:k").data, st.resolve(pinned).data
@@ -2354,7 +2378,7 @@ atomic. `content_hash` reads a record’s hash (as the default policy,
 ```pycon
 >>> from lacing import Artifact, Rights
 >>> def made(rights=None):
-...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",
+...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="user:t",
 ...                                was_attributed_to="u", rights=rights)
 >>> acquired = made(Rights(provider="openverse"))
 >>> keep_rights(made(), lambda: acquired).rights.provider
@@ -2382,7 +2406,7 @@ store’s [`ArtifactStore.resolve()`](_autosummary/lacing.artifact_store.html.md
 ```pycon
 >>> from lacing import Artifact
 >>> takes = ArtifactStore.in_memory()
->>> art = Artifact.from_bytes(b"x", kind="text", was_generated_by="t",
+>>> art = Artifact.from_bytes(b"x", kind="text", was_generated_by="user:t",
 ...                           was_attributed_to="u")
 >>> _ = takes.save("a", art, data=b"x")
 >>> mall = {"transcripts": ArtifactStore.in_memory(), "takes": takes}
@@ -3639,6 +3663,149 @@ the graph actually has images.
       message names the install command.
 
 
+# _autosummary/lacing.generator_id.html.md
+
+# lacing.generator_id
+
+The grammar of `Provenance.was_generated_by`, and an advisory check of it.
+
+A generator identifier names the activity that produced an annotation or
+artifact:
+
+```default
+<prefix>:<name>[@<version>]
+```
+
+`prefix` is lower-case kebab (`user`, `agent`, `adapter` …), `name`
+is anything without whitespace or `@` (model names carry `/` and `.`), and
+`version`, after the one `@`, is what pins the generator: a weights or
+version digest, a dated snapshot, or a probe digest. For `agent:` it is the
+slot a model-drift defence depends on (lacing#17), so the convention asks for it.
+
+`@` is reserved: it is the version separator under every prefix, so a name
+never contains one. `user:a@b.com` parses as name `a`, version `b.com`;
+a handle that is an e-mail address has to be written without its `@`.
+
+The check is **advisory** (lacing#17): writers already in production disagree
+with the documented convention (`agent:` with no `@`, an application slug in
+the `@` slot, prefixes nobody documented), and real data has to show the
+census before anything starts rejecting. So:
+
+- a value that is not of the `<prefix>:<name>[@<version>]` shape at all makes
+  [`lacing.Provenance`](_autosummary/lacing.html.md#lacing.Provenance) emit a [`GeneratorIdWarning`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.GeneratorIdWarning) at construction.
+
+  Escalate it to an error with the warnings filter
+  (`-W error::lacing.GeneratorIdWarning`), silence it the same way. Escalating
+  also rejects *reads* of legacy rows, since the stores rebuild a `Provenance`
+  on every read: it is a census tool, not a write gate;
+- the convention-level findings (an undocumented prefix, an `agent:` without a
+  version) are only reported by [`generator_id_findings()`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.generator_id_findings), for a census:
+  ```default
+  Counter(f for a in annotations
+          for f in generator_id_findings(a.provenance.was_generated_by))
+  ```
+
+Whether the `@` slot holds a digest or a slug cannot be told from the string
+(a dated snapshot is neither hex nor a slug), so it is not checked here.
+
+### Module Attributes
+
+| [`GENERATOR_ID_SHAPE`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.GENERATOR_ID_SHAPE)   | The shape every `was_generated_by` is checked against.   |
+|-----------------------------------------------------------------------|----------------------------------------------------------|
+| [`GENERATOR_PREFIXES`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.GENERATOR_PREFIXES)   | The documented prefixes, each with what follows it.      |
+| [`VERSIONED_PREFIXES`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.VERSIONED_PREFIXES)   | Prefixes whose convention asks for an `@<version>`.      |
+
+### Functions
+
+| [`parse_generator_id`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.parse_generator_id)(value)                         | Parse `value`, or return `None` when it is not of the generator-id shape.                                                                                                        |
+|----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`generator_id_findings`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.generator_id_findings)(value, \*[, prefixes, ...]) | What `value` does differently from the documented convention; empty if nothing.                                                                                                  |
+| [`warn_if_malformed`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.warn_if_malformed)(value)                          | Emit a [`GeneratorIdWarning`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.GeneratorIdWarning), pointed at the caller outside lacing, when `value` is not of the generator-id shape; return `value`. |
+
+### Classes
+
+| [`GeneratorId`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.GeneratorId)(prefix, name[, version])   | A parsed `was_generated_by`: `<prefix>:<name>[@<version>]`.   |
+|-----------------------------------------------------------------------------------------|---------------------------------------------------------------|
+
+### Exceptions
+
+| [`GeneratorIdWarning`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.GeneratorIdWarning)   | A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.   |
+|-----------------------------------------------------------------------|--------------------------------------------------------------------------------|
+
+### lacing.generator_id.GENERATOR_ID_SHAPE *= '<prefix>:<name>[@<version>]'*
+
+The shape every `was_generated_by` is checked against.
+
+### lacing.generator_id.GENERATOR_PREFIXES *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= {'adapter': 'an import/export format adapter: \`\`adapter:<format>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}*
+
+The documented prefixes, each with what follows it. `transform`, `server`
+and `fetch` were in production before they were documented (lacing#17).
+
+### *class* lacing.generator_id.GeneratorId(prefix, name, version=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+A parsed `was_generated_by`: `<prefix>:<name>[@<version>]`.
+
+### *exception* lacing.generator_id.GeneratorIdWarning
+
+Bases: [`UserWarning`](https://docs.python.org/3/builtins/exceptions.html#UserWarning)
+
+A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.
+
+### lacing.generator_id.VERSIONED_PREFIXES *: [frozenset](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= frozenset({'agent'})*
+
+Prefixes whose convention asks for an `@<version>`.
+
+### lacing.generator_id.generator_id_findings(value, , prefixes={'adapter': 'an import/export format adapter: \`\`adapter:<format>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}, versioned=frozenset({'agent'}))
+
+What `value` does differently from the documented convention; empty if nothing.
+
+Advisory: nothing here rejects. `prefixes` is the set of known prefixes and
+`versioned` the ones that ask for an `@<version>`; pass your own to check
+against a wider or stricter convention.
+
+```pycon
+>>> generator_id_findings("agent:flux@sha256:9f2c")
+[]
+>>> generator_id_findings("agent:nw.graph")
+["prefix 'agent' expects an @<version>"]
+>>> generator_id_findings("test:doctest")
+["undocumented prefix 'test'"]
+>>> generator_id_findings("t")
+["not of the shape '<prefix>:<name>[@<version>]'"]
+```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### lacing.generator_id.parse_generator_id(value)
+
+Parse `value`, or return `None` when it is not of the generator-id shape.
+
+```pycon
+>>> parse_generator_id("agent:fal-ai/flux@sha256:9f2c")
+GeneratorId(prefix='agent', name='fal-ai/flux', version='sha256:9f2c')
+>>> parse_generator_id("adapter:textgrid")
+GeneratorId(prefix='adapter', name='textgrid', version=None)
+>>> parse_generator_id("thor") is None
+True
+```
+
+* **Return type:**
+  [`GeneratorId`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.GeneratorId) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### lacing.generator_id.warn_if_malformed(value)
+
+Emit a [`GeneratorIdWarning`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.GeneratorIdWarning), pointed at the caller outside lacing,
+when `value` is not of the generator-id shape; return `value`.
+
+The advisory check [`lacing.Provenance`](_autosummary/lacing.html.md#lacing.Provenance) runs on `was_generated_by`.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+
 # _autosummary/lacing.html.md
 
 # lacing
@@ -3660,8 +3827,11 @@ full story. `.claude/skills/` contains the rules.
 
 ### Functions
 
-| [`keep_rights`](_autosummary/lacing.html.md#lacing.keep_rights)(record, previous, \*[, content_hash])   | `record`, carrying forward the `rights` of the record it replaces when it states none for the same bytes (lacing#60; the choice is in lacing#94).                                            |
+| [`generator_id_findings`](_autosummary/lacing.html.md#lacing.generator_id_findings)(value, \*[, prefixes, ...])   | What `value` does differently from the documented convention; empty if nothing.                                                                                                              |
 |------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`parse_generator_id`](_autosummary/lacing.html.md#lacing.parse_generator_id)(value)                           | Parse `value`, or return `None` when it is not of the generator-id shape.                                                                                                                    |
+| [`warn_if_malformed`](_autosummary/lacing.html.md#lacing.warn_if_malformed)(value)                            | Emit a [`GeneratorIdWarning`](_autosummary/lacing.html.md#lacing.GeneratorIdWarning), pointed at the caller outside lacing, when `value` is not of the generator-id shape; return `value`.             |
+| [`keep_rights`](_autosummary/lacing.html.md#lacing.keep_rights)(record, previous, \*[, content_hash])   | `record`, carrying forward the `rights` of the record it replaces when it states none for the same bytes (lacing#60; the choice is in lacing#94).                                            |
 | [`resolve_in_mall`](_autosummary/lacing.html.md#lacing.resolve_in_mall)(ref, mall, \*, default_store)       | What `ref` names in `mall` (store names -> [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)).                                                                                  |
 | [`content_hash_of`](_autosummary/lacing.html.md#lacing.content_hash_of)(record)                             | The content hash naming `record`'s bytes in the blob store, if it has one.                                                                                                                   |
 | [`hash_bytes`](_autosummary/lacing.html.md#lacing.hash_bytes)(data)                                    | Return the canonical `asset_id` (SHA-256 hex) for `data`.                                                                                                                                    |
@@ -3710,6 +3880,7 @@ full story. `.claude/skills/` contains the rules.
 | [`NodeRef`](_autosummary/lacing.html.md#lacing.NodeRef)(\*[, kind])                               | Reference to a node in a structured scene/document graph.                                                                                                                                                          |
 | [`AnnotationRef`](_autosummary/lacing.html.md#lacing.AnnotationRef)(\*[, kind, interval])               | Reference to another annotation (for discussion threads, review, derivations).                                                                                                                                     |
 | [`Provenance`](_autosummary/lacing.html.md#lacing.Provenance)(\*, was_generated_by, ...[, ...])      | W3C PROV-O subset, embedded inline on every annotation.                                                                                                                                                            |
+| [`GeneratorId`](_autosummary/lacing.html.md#lacing.GeneratorId)(prefix, name[, version])              | A parsed `was_generated_by`: `<prefix>:<name>[@<version>]`.                                                                                                                                                        |
 | [`Artifact`](_autosummary/lacing.html.md#lacing.Artifact)(\*, asset_id, kind[, path, url, ...])    | A content-addressed generated file with provenance.                                                                                                                                                                |
 | [`Rights`](_autosummary/lacing.html.md#lacing.Rights)(\*, provider[, id, title, license, ...])   | Who owns the bytes of an *acquired* artifact, and on what terms.                                                                                                                                                   |
 | [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)(catalog[, blobs, on_write, ...])    | Facade over an artifact `catalog` and an optional `blobs` store.                                                                                                                                                   |
@@ -3729,16 +3900,17 @@ full story. `.claude/skills/` contains the rules.
 
 ### Exceptions
 
-| [`LossyTimeConversionError`](_autosummary/lacing.html.md#lacing.LossyTimeConversionError)   | Raised when a rate or seconds conversion would lose precision.           |
-|-----------------------------------------------------------------------------|--------------------------------------------------------------------------|
-| [`NonStringBodyKeyError`](_autosummary/lacing.html.md#lacing.NonStringBodyKeyError)      | An annotation `body` contains a mapping key that is not a `str`.         |
-| [`SchemaMismatchError`](_autosummary/lacing.html.md#lacing.SchemaMismatchError)        | Raised when opening a `.annot` file with an incompatible schema.         |
-| [`StoreMigrationError`](_autosummary/lacing.html.md#lacing.StoreMigrationError)        | Raised when a store migration step is missing or fails.                  |
-| [`ProcessorError`](_autosummary/lacing.html.md#lacing.ProcessorError)             | Raised when a registered processor's invocation fails.                   |
-| [`BodySchemaError`](_autosummary/lacing.html.md#lacing.BodySchemaError)            | Raised when a body fails validation against its registered schema.       |
-| [`EmptySchemaRegistryError`](_autosummary/lacing.html.md#lacing.EmptySchemaRegistryError)   | Raised when an export would write an empty registry over real artifacts. |
-| [`UnknownBodySchemaError`](_autosummary/lacing.html.md#lacing.UnknownBodySchemaError)     | Raised when an annotation's body_schema_uri has no registered model.     |
-| [`MigrationError`](_autosummary/lacing.html.md#lacing.MigrationError)             | Raised when a migration step is missing or fails.                        |
+| [`LossyTimeConversionError`](_autosummary/lacing.html.md#lacing.LossyTimeConversionError)   | Raised when a rate or seconds conversion would lose precision.               |
+|-----------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [`GeneratorIdWarning`](_autosummary/lacing.html.md#lacing.GeneratorIdWarning)         | A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape. |
+| [`NonStringBodyKeyError`](_autosummary/lacing.html.md#lacing.NonStringBodyKeyError)      | An annotation `body` contains a mapping key that is not a `str`.             |
+| [`SchemaMismatchError`](_autosummary/lacing.html.md#lacing.SchemaMismatchError)        | Raised when opening a `.annot` file with an incompatible schema.             |
+| [`StoreMigrationError`](_autosummary/lacing.html.md#lacing.StoreMigrationError)        | Raised when a store migration step is missing or fails.                      |
+| [`ProcessorError`](_autosummary/lacing.html.md#lacing.ProcessorError)             | Raised when a registered processor's invocation fails.                       |
+| [`BodySchemaError`](_autosummary/lacing.html.md#lacing.BodySchemaError)            | Raised when a body fails validation against its registered schema.           |
+| [`EmptySchemaRegistryError`](_autosummary/lacing.html.md#lacing.EmptySchemaRegistryError)   | Raised when an export would write an empty registry over real artifacts.     |
+| [`UnknownBodySchemaError`](_autosummary/lacing.html.md#lacing.UnknownBodySchemaError)     | Raised when an annotation's body_schema_uri has no registered model.         |
+| [`MigrationError`](_autosummary/lacing.html.md#lacing.MigrationError)             | Raised when a migration step is missing or fails.                            |
 
 ### *class* lacing.AllenRelation(\*values)
 
@@ -4275,6 +4447,30 @@ Return the whole catalog as a plain dict (e.g. for UI hydration).
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), `BaseModel`]
 
+#### interrupted_writes()
+
+The staging files of blob writes that never finished (lacing#104).
+
+[`put_blob_stream()`](_autosummary/lacing.html.md#lacing.ArtifactStore.put_blob_stream) (and so [`put_blob()`](_autosummary/lacing.html.md#lacing.ArtifactStore.put_blob)) spools into a hidden
+`.blob-*.part` file beside the blobs and renames it into place when
+the bytes are complete; a failed write unlinks it. A process killed
+mid-write (SIGKILL, power loss) cannot, and the file, possibly a whole
+video, stays where no listing sees it. This lists those files, for a
+collector to delete.
+
+It also lists writes **in flight right now**: a collector should spare
+a file modified recently (`an cache gc` does, by mtime). Paths are
+absolute. Empty for a store whose blobs are not on a filesystem (no
+`rootdir`), for one with no blob store, and when the blob folder does
+not exist.
+
+* **Raises:**
+  [**OSError**](https://docs.python.org/3/builtins/exceptions.html#OSError) – the blob folder exists but cannot be listed (not a
+      directory, no permission). Nothing is known, so a collector
+      should delete nothing.
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
+
 #### iter_blob(content_hash, , chunk_size=65536)
 
 Yield the blob’s bytes in `chunk_size` chunks.
@@ -4340,7 +4536,7 @@ atomic. `content_hash` reads a record’s hash (as the default policy,
 ```pycon
 >>> from lacing import Artifact, Rights
 >>> def made(rights=None):
-...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",
+...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="user:t",
 ...                                was_attributed_to="u", rights=rights)
 >>> acquired = made(Rights(provider="openverse"))
 >>> keep_rights(made(), lambda: acquired).rights.provider
@@ -4432,11 +4628,11 @@ pin; with `read=True` a pinned read does.
 ```pycon
 >>> from lacing import Artifact, ArtifactRef
 >>> st = ArtifactStore.in_memory()
->>> first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="t",
+>>> first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="user:t",
 ...                             was_attributed_to="u")
 >>> _ = st.save("k", first, data=b"v1")
 >>> pinned = ArtifactRef("k", pin=first.asset_id)
->>> second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="t",
+>>> second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="user:t",
 ...                              was_attributed_to="u")
 >>> _ = st.save("k", second, data=b"v2")
 >>> st.resolve("artifact:k").data, st.resolve(pinned).data
@@ -4488,6 +4684,18 @@ Almost always means the caller forgot `import lacing.bodies`: the
 registry is populated by importing the body modules, so exporting without
 that import silently truncates `index.json` to `{}` and leaves the
 committed `v<N>.json` files orphaned.
+
+### *class* lacing.GeneratorId(prefix, name, version=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+A parsed `was_generated_by`: `<prefix>:<name>[@<version>]`.
+
+### *exception* lacing.GeneratorIdWarning
+
+Bases: [`UserWarning`](https://docs.python.org/3/builtins/exceptions.html#UserWarning)
+
+A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.
 
 ### *class* lacing.InMemoryOpLog
 
@@ -4794,7 +5002,7 @@ One row of the op-log.
 
 #### actor *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
 
-`user:<handle>` or `agent:<model>@<hash>` or `adapter:<format>`.
+A generator identifier, `<prefix>:<name>[@<version>]`; see `lacing.generator_id`.
 
 #### clock *: [int](https://docs.python.org/3/builtins/functions.html#int)*
 
@@ -5426,6 +5634,28 @@ written, in registration order.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 
+### lacing.generator_id_findings(value, , prefixes={'adapter': 'an import/export format adapter: \`\`adapter:<format>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}, versioned=frozenset({'agent'}))
+
+What `value` does differently from the documented convention; empty if nothing.
+
+Advisory: nothing here rejects. `prefixes` is the set of known prefixes and
+`versioned` the ones that ask for an `@<version>`; pass your own to check
+against a wider or stricter convention.
+
+```pycon
+>>> generator_id_findings("agent:flux@sha256:9f2c")
+[]
+>>> generator_id_findings("agent:nw.graph")
+["prefix 'agent' expects an @<version>"]
+>>> generator_id_findings("test:doctest")
+["undocumented prefix 'test'"]
+>>> generator_id_findings("t")
+["not of the shape '<prefix>:<name>[@<version>]'"]
+```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 ### lacing.get_tracer(name='lacing', version=None)
 
 Return a tracer or a no-op fallback.
@@ -5537,7 +5767,7 @@ atomic. `content_hash` reads a record’s hash (as the default policy,
 ```pycon
 >>> from lacing import Artifact, Rights
 >>> def made(rights=None):
-...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",
+...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="user:t",
 ...                                was_attributed_to="u", rights=rights)
 >>> acquired = made(Rights(provider="openverse"))
 >>> keep_rights(made(), lambda: acquired).rights.provider
@@ -5668,6 +5898,22 @@ listener (idempotent).
 * **Return type:**
   [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
+### lacing.parse_generator_id(value)
+
+Parse `value`, or return `None` when it is not of the generator-id shape.
+
+```pycon
+>>> parse_generator_id("agent:fal-ai/flux@sha256:9f2c")
+GeneratorId(prefix='agent', name='fal-ai/flux', version='sha256:9f2c')
+>>> parse_generator_id("adapter:textgrid")
+GeneratorId(prefix='adapter', name='textgrid', version=None)
+>>> parse_generator_id("thor") is None
+True
+```
+
+* **Return type:**
+  [`GeneratorId`](_autosummary/lacing.generator_id.html.md#lacing.generator_id.GeneratorId) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### lacing.register_body_schema(uri, model)
 
 Register `model` as the validator for `uri`. Returns `model`.
@@ -5788,7 +6034,7 @@ store’s [`ArtifactStore.resolve()`](_autosummary/lacing.html.md#lacing.Artifac
 ```pycon
 >>> from lacing import Artifact
 >>> takes = ArtifactStore.in_memory()
->>> art = Artifact.from_bytes(b"x", kind="text", was_generated_by="t",
+>>> art = Artifact.from_bytes(b"x", kind="text", was_generated_by="user:t",
 ...                           was_attributed_to="u")
 >>> _ = takes.save("a", art, data=b"x")
 >>> mall = {"transcripts": ArtifactStore.in_memory(), "takes": takes}
@@ -5902,6 +6148,16 @@ False
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
+### lacing.warn_if_malformed(value)
+
+Emit a [`GeneratorIdWarning`](_autosummary/lacing.html.md#lacing.GeneratorIdWarning), pointed at the caller outside lacing,
+when `value` is not of the generator-id shape; return `value`.
+
+The advisory check [`lacing.Provenance`](_autosummary/lacing.html.md#lacing.Provenance) runs on `was_generated_by`.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### Modules
 
 | [`adapters`](_autosummary/lacing.adapters.html.md#module-lacing.adapters)             | I/O adapter registry.                                                               |
@@ -5915,6 +6171,7 @@ False
 | [`derived`](_autosummary/lacing.derived.html.md#module-lacing.derived)               | Which body fields are *derived* from another field of the same object.              |
 | [`digest`](_autosummary/lacing.digest.html.md#module-lacing.digest)                 | Content digests over an annotation's *value* — the freshness primitive.             |
 | [`exhibit`](_autosummary/lacing.exhibit.html.md#module-lacing.exhibit)               | Artifact exhibit — render an annotation graph as a readable document.               |
+| [`generator_id`](_autosummary/lacing.generator_id.html.md#module-lacing.generator_id)     | The grammar of `Provenance.was_generated_by`, and an advisory check of it.          |
 | [`locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)           | Which body fields hold locations (urls, file paths).                                |
 | [`model`](_autosummary/lacing.model.html.md#module-lacing.model)                   | Annotation envelope, references, and provenance.                                    |
 | [`oplog`](_autosummary/lacing.oplog.html.md#module-lacing.oplog)                   | Operation log for time-travel debug + audit.                                        |
@@ -6003,11 +6260,12 @@ and `.claude/skills/lacing-schema-codegen/SKILL.md`.
 
 ### Module Attributes
 
-| [`Reference`](_autosummary/lacing.model.html.md#lacing.model.Reference)            | Discriminated union on `kind`.                                                                                                                                                                   |
-|-----------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`AssetId`](_autosummary/lacing.model.html.md#lacing.model.AssetId)              | A content-addressed artifact identity — the SHA-256 of the artifact's bytes, as [`lacing.Artifact`](_autosummary/lacing.html.md#lacing.Artifact) enforces: **bare 64-hex only**. |
-| [`ProvenanceRef`](_autosummary/lacing.model.html.md#lacing.model.ProvenanceRef)        | an annotation `id` (UUID) or an artifact `asset_id` (64-hex SHA-256).                                                                                                                            |
-| [`UNKNOWN_GENERATED_AT`](_autosummary/lacing.model.html.md#lacing.model.UNKNOWN_GENERATED_AT) | The `generated_at_time` an annotation carries when its generation time is **unknown** — tick 0, at any rate.                                                                                     |
+| [`Reference`](_autosummary/lacing.model.html.md#lacing.model.Reference)             | Discriminated union on `kind`.                                                                                                                                                                   |
+|------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`AssetId`](_autosummary/lacing.model.html.md#lacing.model.AssetId)               | A content-addressed artifact identity — the SHA-256 of the artifact's bytes, as [`lacing.Artifact`](_autosummary/lacing.html.md#lacing.Artifact) enforces: **bare 64-hex only**. |
+| [`ProvenanceRef`](_autosummary/lacing.model.html.md#lacing.model.ProvenanceRef)         | an annotation `id` (UUID) or an artifact `asset_id` (64-hex SHA-256).                                                                                                                            |
+| [`UNKNOWN_GENERATED_AT`](_autosummary/lacing.model.html.md#lacing.model.UNKNOWN_GENERATED_AT)  | The `generated_at_time` an annotation carries when its generation time is **unknown** — tick 0, at any rate.                                                                                     |
+| [`PROVENANCE_ACTIVITIES`](_autosummary/lacing.model.html.md#lacing.model.PROVENANCE_ACTIVITIES) | The documented values of `Provenance.activity`, each with its meaning.                                                                                                                           |
 
 ### Functions
 
@@ -6081,6 +6339,13 @@ Reference to a node in a structured scene/document graph.
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### lacing.model.PROVENANCE_ACTIVITIES *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= {'cache-hit': 'answered from a cache: no generation ran and nothing was billed; \`\`was_derived_from\`\` names the cached result', 'create': 'authored or generated fresh', 'derive': 'computed from other annotations or artifacts', 'import': 'read from an external format by an adapter', 'infer': 'predicted by a model', 'migrate': 'rewritten by a schema or store migration'}*
+
+The documented values of `Provenance.activity`, each with its meaning.
+
+Not enforced: `activity` stays a plain `str`, since tightening it to a
+`Literal` would reject persisted data nobody has surveyed (lacing#17).
 
 ### *class* lacing.model.Provenance(\*, was_generated_by, was_attributed_to, was_derived_from=<factory>, generated_at_time, activity='create')
 
@@ -6249,7 +6514,7 @@ One row of the op-log.
 
 #### actor *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
 
-`user:<handle>` or `agent:<model>@<hash>` or `adapter:<format>`.
+A generator identifier, `<prefix>:<name>[@<version>]`; see `lacing.generator_id`.
 
 #### clock *: [int](https://docs.python.org/3/builtins/functions.html#int)*
 
@@ -8713,7 +8978,7 @@ the common case ergonomic and consistent.
 |------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | [`SubtitleTrack`](_autosummary/lacing.tracks.html.md#lacing.tracks.SubtitleTrack)(store, \*, asset_id[, rate])          | Read-side facade for `(sections, lines, words)` over an asset. |
 
-### *class* lacing.tracks.SubtitleBuilder(store, , asset_id, rate=1000, was_generated_by='lacing.tracks.subtitle', was_attributed_to='lacing', ensure_tiers=True)
+### *class* lacing.tracks.SubtitleBuilder(store, , asset_id, rate=1000, was_generated_by='processor:lacing.tracks.subtitle', was_attributed_to='lacing', ensure_tiers=True)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -8729,7 +8994,7 @@ transactional semantics. Calling `.section()` / `.line()` /
     to. Typically a path or content-hash of the audio file.
   * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – Tick rate for time intervals. Defaults to 1000 (ms).
   * **was_generated_by** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_generated_by`. Defaults to
-    `"lacing.tracks.subtitle"`.
+    `"processor:lacing.tracks.subtitle"`.
   * **was_attributed_to** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to`.
   * **ensure_tiers** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – When True (default), creates the three tiers if
     they don’t exist. Pass False if your store uses different
@@ -8887,7 +9152,7 @@ Mapping of body URI → minimal example body. Used by
 [`register_subtitle_schemas()`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.register_subtitle_schemas) and as inline reference for
 callers building outside the builder.
 
-### *class* lacing.tracks.subtitle.SubtitleBuilder(store, , asset_id, rate=1000, was_generated_by='lacing.tracks.subtitle', was_attributed_to='lacing', ensure_tiers=True)
+### *class* lacing.tracks.subtitle.SubtitleBuilder(store, , asset_id, rate=1000, was_generated_by='processor:lacing.tracks.subtitle', was_attributed_to='lacing', ensure_tiers=True)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -8903,7 +9168,7 @@ transactional semantics. Calling `.section()` / `.line()` /
     to. Typically a path or content-hash of the audio file.
   * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – Tick rate for time intervals. Defaults to 1000 (ms).
   * **was_generated_by** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_generated_by`. Defaults to
-    `"lacing.tracks.subtitle"`.
+    `"processor:lacing.tracks.subtitle"`.
   * **was_attributed_to** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to`.
   * **ensure_tiers** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – When True (default), creates the three tiers if
     they don’t exist. Pass False if your store uses different
@@ -9053,7 +9318,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-02 15:45 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/c80e718024f9b67b0aa5bfd93bdd83cf94a8b34e"><code>c80e718</code></a> on branch <code>main</code>, for **lacing 0.0.69** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 15:51 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/03d16f85e10aad495cde5def91282c85d53d4c11"><code>03d16f8</code></a> on branch <code>main</code>, for **lacing 0.0.70** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -9062,7 +9327,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/c80e718024f9b67b0aa5bfd93bdd83cf94a8b34e"><code>c80e718024f9b67b0aa5bfd93bdd83cf94a8b34e</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/03d16f85e10aad495cde5def91282c85d53d4c11"><code>03d16f85e10aad495cde5def91282c85d53d4c11</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -9073,9 +9338,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41474308449">41474308449</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41475251472">41475251472</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>c80e718024f9b67b0aa5bfd93bdd83cf94a8b34e</code> (in the history of the built commit) |
+| Event commit | <code>a4c3f9728439eeed90edec09f083d113e50d052b</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9100,13 +9365,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.69/">0.0.69</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.70/">0.0.70</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout c80e718024f9b67b0aa5bfd93bdd83cf94a8b34e
+git checkout 03d16f85e10aad495cde5def91282c85d53d4c11
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=cac962a1"></script>
+    <script src="../_static/documentation_options.js?v=29ed05f3"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.69" />
+  <meta name="docsearch:version" content="0.0.70" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -349,6 +349,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.derived.html">lacing.derived</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.digest.html">lacing.digest</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.exhibit.html">lacing.exhibit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.generator_id.html">lacing.generator_id</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.locations.html">lacing.locations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.model.html">lacing.model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.oplog.html">lacing.oplog</a></li>
@@ -490,7 +491,7 @@ record (<code class="docutils literal notranslate"><span class="pre">None</span>
 <span class="gp">... </span>    <span class="n">rights</span><span class="o">=</span><span class="n">Rights</span><span class="p">(</span><span class="n">provider</span><span class="o">=</span><span class="s2">"openverse"</span><span class="p">,</span> <span class="n">license</span><span class="o">=</span><span class="s2">"by-sa"</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">"Ada"</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">.</span><span class="n">rights</span><span class="o">.</span><span class="n">license</span>
 <span class="go">'by-sa'</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"text"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"t"</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"text"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"user:t"</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">was_attributed_to</span><span class="o">=</span><span class="s2">"u"</span><span class="p">)</span><span class="o">.</span><span class="n">rights</span> <span class="ow">is</span> <span class="kc">None</span>
 <span class="go">True</span>
 </pre></div>

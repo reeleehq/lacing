@@ -33,6 +33,7 @@
 - [lacing.derived](_autosummary/lacing.derived.html.md): Which body fields are &#42;derived&#42; from another field of the same object.
 - [lacing.digest](_autosummary/lacing.digest.html.md): Content digests over an annotation’s &#42;value&#42; — the freshness primitive.
 - [lacing.exhibit](_autosummary/lacing.exhibit.html.md): Artifact exhibit — render an annotation graph as a readable document.
+- [lacing.generator_id](_autosummary/lacing.generator_id.html.md): The grammar of &#96;Provenance.was_generated_by&#96;, and an advisory check of it.
 - [lacing.locations](_autosummary/lacing.locations.html.md): Which body fields hold locations (urls, file paths).
 - [lacing.model](_autosummary/lacing.model.html.md): Annotation envelope, references, and provenance.
 - [lacing.oplog](_autosummary/lacing.oplog.html.md): Operation log for time-travel debug + audit.
@@ -54,7 +55,7 @@
 - [lacing.tracks.subtitle](_autosummary/lacing.tracks.subtitle.html.md): Subtitle / lyric / caption tracks — the (sections, lines, words) trio.
 - [lacing.worker](_autosummary/lacing.worker.html.md): Optional Arq integration — queue processors through Redis.
 - [For AI agents](ai-agents.html.md): &#96;lacing&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-02 15:45 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-02 15:51 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
 
 ## Optional
 

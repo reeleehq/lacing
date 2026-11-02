@@ -57,7 +57,7 @@ record (`None` means “we made this”, not “unknown”):
 ...     rights=Rights(provider="openverse", license="by-sa", author="Ada"))
 >>> a.rights.license
 'by-sa'
->>> Artifact.from_bytes(b"x", kind="text", was_generated_by="t",
+>>> Artifact.from_bytes(b"x", kind="text", was_generated_by="user:t",
 ...     was_attributed_to="u").rights is None
 True
 ```

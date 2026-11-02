@@ -8,11 +8,12 @@ and `.claude/skills/lacing-schema-codegen/SKILL.md`.
 
 ### Module Attributes
 
-| [`Reference`](#lacing.model.Reference)            | Discriminated union on `kind`.                                                                                                                                                                   |
-|-----------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`AssetId`](#lacing.model.AssetId)              | A content-addressed artifact identity — the SHA-256 of the artifact's bytes, as [`lacing.Artifact`](lacing.html.md#lacing.Artifact) enforces: **bare 64-hex only**. |
-| [`ProvenanceRef`](#lacing.model.ProvenanceRef)        | an annotation `id` (UUID) or an artifact `asset_id` (64-hex SHA-256).                                                                                                                            |
-| [`UNKNOWN_GENERATED_AT`](#lacing.model.UNKNOWN_GENERATED_AT) | The `generated_at_time` an annotation carries when its generation time is **unknown** — tick 0, at any rate.                                                                                     |
+| [`Reference`](#lacing.model.Reference)             | Discriminated union on `kind`.                                                                                                                                                                   |
+|------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`AssetId`](#lacing.model.AssetId)               | A content-addressed artifact identity — the SHA-256 of the artifact's bytes, as [`lacing.Artifact`](lacing.html.md#lacing.Artifact) enforces: **bare 64-hex only**. |
+| [`ProvenanceRef`](#lacing.model.ProvenanceRef)         | an annotation `id` (UUID) or an artifact `asset_id` (64-hex SHA-256).                                                                                                                            |
+| [`UNKNOWN_GENERATED_AT`](#lacing.model.UNKNOWN_GENERATED_AT)  | The `generated_at_time` an annotation carries when its generation time is **unknown** — tick 0, at any rate.                                                                                     |
+| [`PROVENANCE_ACTIVITIES`](#lacing.model.PROVENANCE_ACTIVITIES) | The documented values of `Provenance.activity`, each with its meaning.                                                                                                                           |
 
 ### Functions
 
@@ -86,6 +87,13 @@ Reference to a node in a structured scene/document graph.
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### lacing.model.PROVENANCE_ACTIVITIES *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= {'cache-hit': 'answered from a cache: no generation ran and nothing was billed; \`\`was_derived_from\`\` names the cached result', 'create': 'authored or generated fresh', 'derive': 'computed from other annotations or artifacts', 'import': 'read from an external format by an adapter', 'infer': 'predicted by a model', 'migrate': 'rewritten by a schema or store migration'}*
+
+The documented values of `Provenance.activity`, each with its meaning.
+
+Not enforced: `activity` stays a plain `str`, since tightening it to a
+`Literal` would reject persisted data nobody has surveyed (lacing#17).
 
 ### *class* lacing.model.Provenance(\*, was_generated_by, was_attributed_to, was_derived_from=<factory>, generated_at_time, activity='create')
 

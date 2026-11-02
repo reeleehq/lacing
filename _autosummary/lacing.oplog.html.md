@@ -79,7 +79,7 @@ One row of the op-log.
 
 #### actor *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
 
-`user:<handle>` or `agent:<model>@<hash>` or `adapter:<format>`.
+A generator identifier, `<prefix>:<name>[@<version>]`; see `lacing.generator_id`.
 
 #### clock *: [int](https://docs.python.org/3/builtins/functions.html#int)*
 

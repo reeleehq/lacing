@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=cac962a1"></script>
+    <script src="../../_static/documentation_options.js?v=29ed05f3"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.69" />
+  <meta name="docsearch:version" content="0.0.70" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -721,12 +721,18 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotated</span><span class="p">,</span> <span class="n">Literal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">UUID</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span><span class="p">,</span> <span class="n">field_validator</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.digest</span><span class="w"> </span><span class="kn">import</span> <span class="n">reject_non_string_keys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.generator_id</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">GENERATOR_ID_SHAPE</span><span class="p">,</span>
+    <span class="n">GENERATOR_PREFIXES</span><span class="p">,</span>
+    <span class="n">warn_if_malformed</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.json_schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">SchemaModel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.time</span><span class="w"> </span><span class="kn">import</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">TimeInterval</span>
 
@@ -858,6 +864,23 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">"""</span>
 
 
+<span class="n">PROVENANCE_ACTIVITIES</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"create"</span><span class="p">:</span> <span class="s2">"authored or generated fresh"</span><span class="p">,</span>
+    <span class="s2">"import"</span><span class="p">:</span> <span class="s2">"read from an external format by an adapter"</span><span class="p">,</span>
+    <span class="s2">"derive"</span><span class="p">:</span> <span class="s2">"computed from other annotations or artifacts"</span><span class="p">,</span>
+    <span class="s2">"migrate"</span><span class="p">:</span> <span class="s2">"rewritten by a schema or store migration"</span><span class="p">,</span>
+    <span class="s2">"infer"</span><span class="p">:</span> <span class="s2">"predicted by a model"</span><span class="p">,</span>
+    <span class="s2">"cache-hit"</span><span class="p">:</span> <span class="p">(</span>
+        <span class="s2">"answered from a cache: no generation ran and nothing was billed; "</span>
+        <span class="s2">"``was_derived_from`` names the cached result"</span>
+    <span class="p">),</span>
+<span class="p">}</span>
+<span class="sd">"""The documented values of :attr:`Provenance.activity`, each with its meaning.</span>
+
+<span class="sd">Not enforced: ``activity`` stays a plain ``str``, since tightening it to a</span>
+<span class="sd">``Literal`` would reject persisted data nobody has surveyed (lacing#17)."""</span>
+
+
 <div class="viewcode-block" id="Provenance">
 <a class="viewcode-back" href="../../_autosummary/lacing.model.html#lacing.Provenance">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Provenance</span><span class="p">(</span><span class="n">SchemaModel</span><span class="p">):</span>
@@ -867,10 +890,9 @@ window.runMermaid = runMermaid;</script>
 
     <span class="n">was_generated_by</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="o">...</span><span class="p">,</span>
-        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-            <span class="s2">"Activity identifier. Conventions: ``user:&lt;handle&gt;``, "</span>
-            <span class="s2">"``agent:&lt;model&gt;@&lt;hash&gt;``, ``adapter:&lt;format&gt;``, ``processor:&lt;name&gt;``."</span>
-        <span class="p">),</span>
+        <span class="n">description</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Generator identifier, ``</span><span class="si">{</span><span class="n">GENERATOR_ID_SHAPE</span><span class="si">}</span><span class="s2">``. Prefixes: "</span>
+        <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">GENERATOR_PREFIXES</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="o">+</span> <span class="s2">". Grammar and the advisory check: ``lacing.generator_id``."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">was_attributed_to</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Responsible party (user, org, or agent)."</span>
@@ -892,8 +914,18 @@ window.runMermaid = runMermaid;</script>
     <span class="p">)</span>
     <span class="n">activity</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="s2">"create"</span><span class="p">,</span>
-        <span class="n">description</span><span class="o">=</span><span class="s2">"One of: ``create``, ``import``, ``derive``, ``migrate``, ``infer``."</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"One of: "</span>
+        <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"``</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">`` (</span><span class="si">{</span><span class="n">meaning</span><span class="si">}</span><span class="s2">)"</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">meaning</span> <span class="ow">in</span> <span class="n">PROVENANCE_ACTIVITIES</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="o">+</span> <span class="s2">"."</span><span class="p">,</span>
     <span class="p">)</span>
+
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"was_generated_by"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_flag_malformed_generator_id</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Advisory (lacing#17): warn, never reject, on a value of the wrong shape."""</span>
+        <span class="k">return</span> <span class="n">warn_if_malformed</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">generated_at_is_known</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>

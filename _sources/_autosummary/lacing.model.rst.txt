@@ -12,6 +12,7 @@ lacing.model
       AssetId
       ProvenanceRef
       UNKNOWN_GENERATED_AT
+      PROVENANCE_ACTIVITIES
    
    .. rubric:: Functions
 

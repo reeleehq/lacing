@@ -24,7 +24,7 @@ the common case ergonomic and consistent.
 |------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | [`SubtitleTrack`](#lacing.tracks.SubtitleTrack)(store, \*, asset_id[, rate])          | Read-side facade for `(sections, lines, words)` over an asset. |
 
-### *class* lacing.tracks.SubtitleBuilder(store, , asset_id, rate=1000, was_generated_by='lacing.tracks.subtitle', was_attributed_to='lacing', ensure_tiers=True)
+### *class* lacing.tracks.SubtitleBuilder(store, , asset_id, rate=1000, was_generated_by='processor:lacing.tracks.subtitle', was_attributed_to='lacing', ensure_tiers=True)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -40,7 +40,7 @@ transactional semantics. Calling `.section()` / `.line()` /
     to. Typically a path or content-hash of the audio file.
   * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – Tick rate for time intervals. Defaults to 1000 (ms).
   * **was_generated_by** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_generated_by`. Defaults to
-    `"lacing.tracks.subtitle"`.
+    `"processor:lacing.tracks.subtitle"`.
   * **was_attributed_to** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to`.
   * **ensure_tiers** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – When True (default), creates the three tiers if
     they don’t exist. Pass False if your store uses different

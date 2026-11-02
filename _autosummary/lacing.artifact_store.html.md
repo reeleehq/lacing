@@ -449,6 +449,30 @@ Return the whole catalog as a plain dict (e.g. for UI hydration).
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), `BaseModel`]
 
+#### interrupted_writes()
+
+The staging files of blob writes that never finished (lacing#104).
+
+[`put_blob_stream()`](#lacing.artifact_store.ArtifactStore.put_blob_stream) (and so [`put_blob()`](#lacing.artifact_store.ArtifactStore.put_blob)) spools into a hidden
+`.blob-*.part` file beside the blobs and renames it into place when
+the bytes are complete; a failed write unlinks it. A process killed
+mid-write (SIGKILL, power loss) cannot, and the file, possibly a whole
+video, stays where no listing sees it. This lists those files, for a
+collector to delete.
+
+It also lists writes **in flight right now**: a collector should spare
+a file modified recently (`an cache gc` does, by mtime). Paths are
+absolute. Empty for a store whose blobs are not on a filesystem (no
+`rootdir`), for one with no blob store, and when the blob folder does
+not exist.
+
+* **Raises:**
+  [**OSError**](https://docs.python.org/3/builtins/exceptions.html#OSError) – the blob folder exists but cannot be listed (not a
+      directory, no permission). Nothing is known, so a collector
+      should delete nothing.
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
+
 #### iter_blob(content_hash, , chunk_size=65536)
 
 Yield the blob’s bytes in `chunk_size` chunks.
@@ -514,7 +538,7 @@ atomic. `content_hash` reads a record’s hash (as the default policy,
 ```pycon
 >>> from lacing import Artifact, Rights
 >>> def made(rights=None):
-...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",
+...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="user:t",
 ...                                was_attributed_to="u", rights=rights)
 >>> acquired = made(Rights(provider="openverse"))
 >>> keep_rights(made(), lambda: acquired).rights.provider
@@ -606,11 +630,11 @@ pin; with `read=True` a pinned read does.
 ```pycon
 >>> from lacing import Artifact, ArtifactRef
 >>> st = ArtifactStore.in_memory()
->>> first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="t",
+>>> first = Artifact.from_bytes(b"v1", kind="text", was_generated_by="user:t",
 ...                             was_attributed_to="u")
 >>> _ = st.save("k", first, data=b"v1")
 >>> pinned = ArtifactRef("k", pin=first.asset_id)
->>> second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="t",
+>>> second = Artifact.from_bytes(b"v2", kind="text", was_generated_by="user:t",
 ...                              was_attributed_to="u")
 >>> _ = st.save("k", second, data=b"v2")
 >>> st.resolve("artifact:k").data, st.resolve(pinned).data
@@ -717,7 +741,7 @@ atomic. `content_hash` reads a record’s hash (as the default policy,
 ```pycon
 >>> from lacing import Artifact, Rights
 >>> def made(rights=None):
-...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="t",
+...     return Artifact.from_bytes(b"x", kind="image", was_generated_by="user:t",
 ...                                was_attributed_to="u", rights=rights)
 >>> acquired = made(Rights(provider="openverse"))
 >>> keep_rights(made(), lambda: acquired).rights.provider
@@ -745,7 +769,7 @@ store’s [`ArtifactStore.resolve()`](#lacing.artifact_store.ArtifactStore.resol
 ```pycon
 >>> from lacing import Artifact
 >>> takes = ArtifactStore.in_memory()
->>> art = Artifact.from_bytes(b"x", kind="text", was_generated_by="t",
+>>> art = Artifact.from_bytes(b"x", kind="text", was_generated_by="user:t",
 ...                           was_attributed_to="u")
 >>> _ = takes.save("a", art, data=b"x")
 >>> mall = {"transcripts": ArtifactStore.in_memory(), "takes": takes}

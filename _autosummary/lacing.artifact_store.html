@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=cac962a1"></script>
+    <script src="../_static/documentation_options.js?v=29ed05f3"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.69" />
+  <meta name="docsearch:version" content="0.0.70" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -349,6 +349,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.derived.html">lacing.derived</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.digest.html">lacing.digest</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.exhibit.html">lacing.exhibit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.generator_id.html">lacing.generator_id</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.locations.html">lacing.locations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.model.html">lacing.model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.oplog.html">lacing.oplog</a></li>
@@ -944,6 +945,33 @@ persists across processes. <code class="docutils literal notranslate"><span clas
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lacing.artifact_store.ArtifactStore.interrupted_writes">
+<span class="sig-name descname"><span class="pre">interrupted_writes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/artifact_store.html#ArtifactStore.interrupted_writes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.artifact_store.ArtifactStore.interrupted_writes" title="Link to this definition">#</a></dt>
+<dd><p>The staging files of blob writes that never finished (lacing#104).</p>
+<p><a class="reference internal" href="#lacing.artifact_store.ArtifactStore.put_blob_stream" title="lacing.artifact_store.ArtifactStore.put_blob_stream"><code class="xref py py-meth docutils literal notranslate"><span class="pre">put_blob_stream()</span></code></a> (and so <a class="reference internal" href="#lacing.artifact_store.ArtifactStore.put_blob" title="lacing.artifact_store.ArtifactStore.put_blob"><code class="xref py py-meth docutils literal notranslate"><span class="pre">put_blob()</span></code></a>) spools into a hidden
+<code class="docutils literal notranslate"><span class="pre">.blob-*.part</span></code> file beside the blobs and renames it into place when
+the bytes are complete; a failed write unlinks it. A process killed
+mid-write (SIGKILL, power loss) cannot, and the file, possibly a whole
+video, stays where no listing sees it. This lists those files, for a
+collector to delete.</p>
+<p>It also lists writes <strong>in flight right now</strong>: a collector should spare
+a file modified recently (<code class="docutils literal notranslate"><span class="pre">an</span> <span class="pre">cache</span> <span class="pre">gc</span></code> does, by mtime). Paths are
+absolute. Empty for a store whose blobs are not on a filesystem (no
+<code class="docutils literal notranslate"><span class="pre">rootdir</span></code>), for one with no blob store, and when the blob folder does
+not exist.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#OSError" title="(in Python v3.15)"><strong>OSError</strong></a> – the blob folder exists but cannot be listed (not a
+    directory, no permission). Nothing is known, so a collector
+    should delete nothing.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lacing.artifact_store.ArtifactStore.iter_blob">
 <span class="sig-name descname"><span class="pre">iter_blob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content_hash</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">65536</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/artifact_store.html#ArtifactStore.iter_blob"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.artifact_store.ArtifactStore.iter_blob" title="Link to this definition">#</a></dt>
 <dd><p>Yield the blob’s bytes in <code class="docutils literal notranslate"><span class="pre">chunk_size</span></code> chunks.</p>
@@ -1014,7 +1042,7 @@ atomic. <code class="docutils literal notranslate"><span class="pre">content_has
 </dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Artifact</span><span class="p">,</span> <span class="n">Rights</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">made</span><span class="p">(</span><span class="n">rights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="k">return</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"image"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"t"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"image"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"user:t"</span><span class="p">,</span>
 <span class="gp">... </span>                               <span class="n">was_attributed_to</span><span class="o">=</span><span class="s2">"u"</span><span class="p">,</span> <span class="n">rights</span><span class="o">=</span><span class="n">rights</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">acquired</span> <span class="o">=</span> <span class="n">made</span><span class="p">(</span><span class="n">Rights</span><span class="p">(</span><span class="n">provider</span><span class="o">=</span><span class="s2">"openverse"</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">keep_rights</span><span class="p">(</span><span class="n">made</span><span class="p">(),</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">acquired</span><span class="p">)</span><span class="o">.</span><span class="n">rights</span><span class="o">.</span><span class="n">provider</span>
@@ -1116,11 +1144,11 @@ pin; with <code class="docutils literal notranslate"><span class="pre">read=True
 </dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Artifact</span><span class="p">,</span> <span class="n">ArtifactRef</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">st</span> <span class="o">=</span> <span class="n">ArtifactStore</span><span class="o">.</span><span class="n">in_memory</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">first</span> <span class="o">=</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"v1"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"text"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"t"</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">first</span> <span class="o">=</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"v1"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"text"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"user:t"</span><span class="p">,</span>
 <span class="gp">... </span>                            <span class="n">was_attributed_to</span><span class="o">=</span><span class="s2">"u"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"k"</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="sa">b</span><span class="s2">"v1"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pinned</span> <span class="o">=</span> <span class="n">ArtifactRef</span><span class="p">(</span><span class="s2">"k"</span><span class="p">,</span> <span class="n">pin</span><span class="o">=</span><span class="n">first</span><span class="o">.</span><span class="n">asset_id</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">second</span> <span class="o">=</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"v2"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"text"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"t"</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">second</span> <span class="o">=</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"v2"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"text"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"user:t"</span><span class="p">,</span>
 <span class="gp">... </span>                             <span class="n">was_attributed_to</span><span class="o">=</span><span class="s2">"u"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"k"</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="sa">b</span><span class="s2">"v2"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">st</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s2">"artifact:k"</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">pinned</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
@@ -1253,7 +1281,7 @@ atomic. <code class="docutils literal notranslate"><span class="pre">content_has
 </dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Artifact</span><span class="p">,</span> <span class="n">Rights</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">made</span><span class="p">(</span><span class="n">rights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="k">return</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"image"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"t"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"image"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"user:t"</span><span class="p">,</span>
 <span class="gp">... </span>                               <span class="n">was_attributed_to</span><span class="o">=</span><span class="s2">"u"</span><span class="p">,</span> <span class="n">rights</span><span class="o">=</span><span class="n">rights</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">acquired</span> <span class="o">=</span> <span class="n">made</span><span class="p">(</span><span class="n">Rights</span><span class="p">(</span><span class="n">provider</span><span class="o">=</span><span class="s2">"openverse"</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">keep_rights</span><span class="p">(</span><span class="n">made</span><span class="p">(),</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">acquired</span><span class="p">)</span><span class="o">.</span><span class="n">rights</span><span class="o">.</span><span class="n">provider</span>
@@ -1286,7 +1314,7 @@ store’s <a class="reference internal" href="#lacing.artifact_store.ArtifactSto
 </dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Artifact</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">takes</span> <span class="o">=</span> <span class="n">ArtifactStore</span><span class="o">.</span><span class="n">in_memory</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">art</span> <span class="o">=</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"text"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"t"</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">art</span> <span class="o">=</span> <span class="n">Artifact</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"text"</span><span class="p">,</span> <span class="n">was_generated_by</span><span class="o">=</span><span class="s2">"user:t"</span><span class="p">,</span>
 <span class="gp">... </span>                          <span class="n">was_attributed_to</span><span class="o">=</span><span class="s2">"u"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">takes</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">art</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="sa">b</span><span class="s2">"x"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">mall</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"transcripts"</span><span class="p">:</span> <span class="n">ArtifactStore</span><span class="o">.</span><span class="n">in_memory</span><span class="p">(),</span> <span class="s2">"takes"</span><span class="p">:</span> <span class="n">takes</span><span class="p">}</span>
@@ -1360,6 +1388,7 @@ store’s <a class="reference internal" href="#lacing.artifact_store.ArtifactSto
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ArtifactStore.has_blob"><code class="docutils literal notranslate"><span class="pre">ArtifactStore.has_blob()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ArtifactStore.in_memory"><code class="docutils literal notranslate"><span class="pre">ArtifactStore.in_memory()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ArtifactStore.index"><code class="docutils literal notranslate"><span class="pre">ArtifactStore.index()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ArtifactStore.interrupted_writes"><code class="docutils literal notranslate"><span class="pre">ArtifactStore.interrupted_writes()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ArtifactStore.iter_blob"><code class="docutils literal notranslate"><span class="pre">ArtifactStore.iter_blob()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ArtifactStore.iter_blobs"><code class="docutils literal notranslate"><span class="pre">ArtifactStore.iter_blobs()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact_store.ArtifactStore.on_write"><code class="docutils literal notranslate"><span class="pre">ArtifactStore.on_write()</span></code></a></li>
