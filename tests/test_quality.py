@@ -114,17 +114,27 @@ class TestKrippendorffAlpha:
             krippendorff_alpha(rows)
 
     def test_custom_distance(self):
-        # Ordinal-style distance: closer numbers disagree less.
-        def ordinal(x, y):
+        # Absolute-difference distance: closer numbers disagree less.
+        def absolute_difference(x, y):
             return abs(x - y)
 
         rows = [
             [1, 2, 3, 4],
             [1, 2, 3, 5],  # only the last one differs by 1
         ]
-        a = krippendorff_alpha(rows, distance=ordinal)
+        a = krippendorff_alpha(rows, distance=absolute_difference)
         # Strong agreement; α should be close to 1.
         assert 0.7 < a <= 1.0
+
+    def test_nan_is_missing(self):
+        nan = float("nan")
+        assert krippendorff_alpha([[1, nan, 2], [1, nan, 2]]) == 1.0
+        assert krippendorff_alpha([[1, nan, 2], [1, 3, 2]]) == 1.0
+
+    def test_constant_distance_perfect_agreement(self):
+        """A value never disagrees with itself, whatever ``distance`` says."""
+        rows = [["A", "B", "C"], ["A", "B", "C"]]
+        assert krippendorff_alpha(rows, distance=lambda x, y: 1.0) == 1.0
 
 
 # Krippendorff (2011), "Computing Krippendorff's Alpha-Reliability", section C:
@@ -151,7 +161,10 @@ def test_krippendorff_2011_worked_example(distance, canonical):
 
 
 def test_krippendorff_2011_nominal_is_not_the_unweighted_pair_mean():
-    assert krippendorff_alpha(_K2011) == pytest.approx(0.7434, abs=1e-4)
+    """The pre-lacing#108 unweighted pair mean gave 0.7196 here."""
+    alpha = krippendorff_alpha(_K2011)
+    assert alpha == pytest.approx(0.7434, abs=1e-4)
+    assert alpha != pytest.approx(0.7196, abs=1e-3)
 
 
 def _pairwise_alpha(rows, distance):
@@ -175,7 +188,7 @@ def test_on_complete_data_alpha_is_the_pairwise_form(seed):
     rows = [[rng.randint(1, 4) for _ in range(n_units)] for _ in range(n_raters)]
     nominal = lambda x, y: float(x != y)
     if len({v for row in rows for v in row}) < 2:
-        return
+        pytest.skip("no variation in the drawn values: expected disagreement is 0")
     assert krippendorff_alpha(rows) == pytest.approx(_pairwise_alpha(rows, nominal))
 
 
@@ -185,6 +198,46 @@ def test_single_rated_units_do_not_count():
     rows = [["A", "B", "A", "B"], ["A", "B", "B", "A"]]
     lonely = [row + [value] for row, value in zip(rows, ["C", None])]
     assert krippendorff_alpha(lonely) == krippendorff_alpha(rows)
+
+
+def _random_rows_with_missing(rng):
+    """Raters x units of values in 1..4, about a third missing as None or NaN,
+    with at least one pairable unit."""
+    missing = (None, float("nan"))
+    n_raters, n_units = rng.randint(2, 5), rng.randint(3, 15)
+    rows = [
+        [
+            rng.choice(missing) if rng.random() < 0.35 else rng.randint(1, 4)
+            for _ in range(n_units)
+        ]
+        for _ in range(n_raters)
+    ]
+    rows[0][0], rows[1][0] = 1, 2  # one pairable unit, with variation
+    return rows
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_alpha_with_missing_ignores_rater_order(seed):
+    import random
+
+    rng = random.Random(seed)
+    rows = _random_rows_with_missing(rng)
+    shuffled = rng.sample(rows, len(rows))
+    assert krippendorff_alpha(shuffled) == pytest.approx(krippendorff_alpha(rows))
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_alpha_with_missing_ignores_an_appended_single_rated_unit(seed):
+    import random
+
+    rng = random.Random(seed)
+    rows = _random_rows_with_missing(rng)
+    rater = rng.randrange(len(rows))
+    lonely = [
+        row + [rng.randint(1, 4) if i == rater else rng.choice([None, float("nan")])]
+        for i, row in enumerate(rows)
+    ]
+    assert krippendorff_alpha(lonely) == pytest.approx(krippendorff_alpha(rows))
 
 
 # --- interval_iou -----------------------------------------------------------

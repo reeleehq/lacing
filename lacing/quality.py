@@ -17,6 +17,7 @@ Pure functions — no numpy dependency in Phase 0.
 
 from __future__ import annotations
 
+import math
 from collections import Counter
 from collections.abc import Hashable, Iterable, Sequence
 from typing import Callable, TypeVar
@@ -78,6 +79,25 @@ def _nominal_distance(x: T, y: T) -> float:
     return 0.0 if x == y else 1.0
 
 
+def _is_missing(x: object) -> bool:
+    """``None`` or a float NaN (how pandas marks a missing rating)."""
+    return x is None or (isinstance(x, float) and math.isnan(x))
+
+
+def _pair_disagreement(counts: Counter, distance: Callable[[T, T], float]) -> float:
+    """Sum of ``n_c * n_k * distance(c, k)`` over ordered pairs of distinct values.
+
+    Pairs of equal values are skipped, so a value never disagrees with itself
+    whatever ``distance`` returns for it.
+    """
+    return sum(
+        n_c * n_k * distance(c, k)
+        for c, n_c in counts.items()
+        for k, n_k in counts.items()
+        if c != k
+    )
+
+
 def krippendorff_alpha(
     annotations: Sequence[Sequence[T | None]],
     *,
@@ -87,20 +107,23 @@ def krippendorff_alpha(
 
     Computed by the coincidence-matrix method (Krippendorff 2011, "Computing
     Krippendorff's Alpha-Reliability"): only *pairable* units (two or more
-    values present) count, and each ordered pair of values within a unit of
+    non-missing values) count, and each ordered pair of values within a unit of
     ``m`` values weighs ``1 / (m - 1)``, so every pairable value contributes
     exactly one to the coincidences, whatever the number of annotators who
-    rated its unit.
+    rated its unit. The observed disagreement sums, unit by unit, the distance
+    over ordered pairs of distinct values (weighted by their counts in the
+    unit) divided by ``m - 1``; the expected disagreement does the same over
+    the marginal value counts ``n_c`` of all pairable values, divided by
+    ``n - 1``. Pairs of equal values never contribute.
 
     Args:
         annotations: A list of annotators, each a sequence of labels (one per
-            unit). Use ``None`` for a missing annotation by that annotator on
-            that unit.
+            unit). Use ``None`` (or a float NaN, as pandas gives) for a missing
+            annotation by that annotator on that unit.
         distance: Function ``(x, y) -> float`` measuring disagreement between
-            two label values, with ``distance(x, x) == 0``. Default is the
-            nominal (0/1) distance; ``(x - y) ** 2`` gives the interval metric.
-            Metrics that depend on the value frequencies (ordinal) are not
-            expressible this way.
+            two distinct label values. Default is the nominal (0/1) distance;
+            ``(x - y) ** 2`` gives the interval metric. Metrics that depend on
+            the value frequencies (ordinal) are not expressible this way.
 
     Returns:
         α. 1.0 = perfect agreement, 0.0 = chance. 1.0 also when the pairable
@@ -108,7 +131,7 @@ def krippendorff_alpha(
 
     Raises:
         ValueError: If sequences differ in length, fewer than 2 annotators
-            given, or no unit has two values present.
+            given, or no unit has two or more non-missing values.
 
     Krippendorff's 2011 worked example: four annotators, twelve units, with
     missing ratings (canonical nominal α = 0.743):
@@ -130,33 +153,19 @@ def krippendorff_alpha(
             )
 
     units = (
-        [row[u] for row in annotations if row[u] is not None] for u in range(n_units)
+        Counter(row[u] for row in annotations if not _is_missing(row[u]))
+        for u in range(n_units)
     )
-    pairable = [values for values in units if len(values) >= 2]
+    pairable = [counts for counts in units if counts.total() >= 2]
     if not pairable:
-        raise ValueError("not enough paired observations to compute alpha")
+        raise ValueError("no unit has two or more non-missing values")
 
-    # Observed: sum over the coincidence matrix, o_ck * distance(c, k), built
-    # unit by unit with each ordered pair weighted 1 / (m_u - 1).
     observed = sum(
-        sum(
-            distance(values[i], values[j])  # type: ignore[arg-type]
-            for i in range(len(values))
-            for j in range(len(values))
-            if i != j
-        )
-        / (len(values) - 1)
-        for values in pairable
+        _pair_disagreement(counts, distance) / (counts.total() - 1)
+        for counts in pairable
     )
-    # Expected: from the marginals n_c of the coincidence matrix, which are the
-    # counts of each value over the pairable units.
-    marginals = Counter(v for values in pairable for v in values)
-    n = sum(marginals.values())
-    expected = sum(
-        n_c * (n_k - (c == k)) * distance(c, k)  # type: ignore[arg-type]
-        for c, n_c in marginals.items()
-        for k, n_k in marginals.items()
-    ) / (n - 1)
+    marginals = Counter(v for counts in pairable for v in counts.elements())
+    expected = _pair_disagreement(marginals, distance) / (marginals.total() - 1)
     if expected == 0:
         return 1.0
     return 1.0 - observed / expected
