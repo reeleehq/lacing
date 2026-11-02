@@ -118,14 +118,16 @@ lines, EAF is XML).
 
 ## Time discipline at the parsing boundary
 
-Parsers receive floats from external formats. Convert immediately:
+Parsers receive floats or decimal strings from external formats. Convert immediately, exactly, and let a lossy conversion raise rather than round:
 
 ```python
-def _to_rational(seconds: float | str, rate: int = 24000) -> RationalTime:
-    f = Fraction(seconds).limit_denominator(rate)
-    val = int(f * rate)
-    return RationalTime(value=val, rate=rate)
+def _to_rational(seconds: str | Fraction, rate: int = 24000) -> RationalTime:
+    # A decimal string ("1.001") or an exact Fraction; never a float's repr.
+    # Raises LossyTimeConversionError when `rate` cannot hold the time exactly.
+    return RationalTime.from_seconds(Fraction(seconds), rate=rate)
 ```
+
+Never `Fraction(x).limit_denominator(rate)` followed by `int(...)`: it rounds silently. For integer ticks or milliseconds, build the `Fraction` from the integers (`Fraction(ms, 1000)`); for a format whose times are doubles (OTIO), convert the double once at the boundary to an exact `Fraction` (see `lacing/adapters/otio.py`).
 
 - Convert **once at the parse boundary**; everything internal is `RationalTime`.
 - If the source format guarantees integer ticks (MIDI PPQN, ELAN ms), use them directly — don't go through float.
