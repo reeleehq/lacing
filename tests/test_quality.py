@@ -127,6 +127,66 @@ class TestKrippendorffAlpha:
         assert 0.7 < a <= 1.0
 
 
+# Krippendorff (2011), "Computing Krippendorff's Alpha-Reliability", section C:
+# four observers, twelve units, missing ratings (lacing#108).
+_K2011 = [
+    [1, 2, 3, 3, 2, 1, 4, 1, 2, None, None, None],
+    [1, 2, 3, 3, 2, 2, 4, 1, 2, 5, None, 3],
+    [None, 3, 3, 3, 2, 3, 4, 2, 2, 5, 1, None],
+    [1, 2, 3, 3, 2, 4, 4, 1, 2, 5, 1, None],
+]
+
+
+@pytest.mark.parametrize(
+    "distance, canonical",
+    [
+        (None, 0.743),  # nominal
+        (lambda x, y: (x - y) ** 2, 0.849),  # interval
+        (lambda x, y: ((x - y) / (x + y)) ** 2, 0.797),  # ratio
+    ],
+)
+def test_krippendorff_2011_worked_example(distance, canonical):
+    kw = {} if distance is None else {"distance": distance}
+    assert round(krippendorff_alpha(_K2011, **kw), 3) == canonical
+
+
+def test_krippendorff_2011_nominal_is_not_the_unweighted_pair_mean():
+    assert krippendorff_alpha(_K2011) == pytest.approx(0.7434, abs=1e-4)
+
+
+def _pairwise_alpha(rows, distance):
+    """The textbook pairwise form, right only for complete data: the oracle for
+    'complete data is unaffected' (lacing#108)."""
+    columns = list(zip(*rows))
+    pairs = [(x, y) for col in columns for i, x in enumerate(col) for y in col[i + 1 :]]
+    values = [v for col in columns for v in col]
+    all_pairs = [(x, y) for i, x in enumerate(values) for y in values[i + 1 :]]
+    do = sum(distance(x, y) for x, y in pairs) / len(pairs)
+    de = sum(distance(x, y) for x, y in all_pairs) / len(all_pairs)
+    return 1.0 - do / de
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_on_complete_data_alpha_is_the_pairwise_form(seed):
+    import random
+
+    rng = random.Random(seed)
+    n_raters, n_units = rng.randint(2, 5), rng.randint(3, 15)
+    rows = [[rng.randint(1, 4) for _ in range(n_units)] for _ in range(n_raters)]
+    nominal = lambda x, y: float(x != y)
+    if len({v for row in rows for v in row}) < 2:
+        return
+    assert krippendorff_alpha(rows) == pytest.approx(_pairwise_alpha(rows, nominal))
+
+
+def test_single_rated_units_do_not_count():
+    """A unit with one value is not pairable: it must not move the expected
+    disagreement (the second half of lacing#108)."""
+    rows = [["A", "B", "A", "B"], ["A", "B", "B", "A"]]
+    lonely = [row + [value] for row, value in zip(rows, ["C", None])]
+    assert krippendorff_alpha(lonely) == krippendorff_alpha(rows)
+
+
 # --- interval_iou -----------------------------------------------------------
 
 
