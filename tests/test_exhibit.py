@@ -118,3 +118,131 @@ def test_require_raises_an_install_hint_for_a_missing_converter():
     naming the install command — never a silent drop."""
     with pytest.raises(RuntimeError, match=r"pip install lacing\[exhibit\]"):
         _require("lacing_no_such_converter_xyz", "the PDF export")
+
+
+# --- label= and edges= seams (lacing#142) -----------------------------------
+
+
+def test_label_seam_titles_cards_and_links():
+    """A graph whose text lives under other fields gets real card titles,
+    in the heading and in the links to the card."""
+    from lacing.exhibit import label_from_fields
+
+    line = _ann("l-1", "lyric-line", {"text": "I came down   to the river"})
+    note = _ann("n-1", "note", {"title": "Gloss"}, derived_from=["l-1"])
+    label = label_from_fields("title", "text")
+    html = _build_exhibit_html(
+        [line, note], title="T", image_resolver=_resolver, label=label
+    )
+    assert '<span class="label">I came down to the river</span>' in html
+    assert "lyric-line · I came down to the river</a>" in html
+    assert '<span class="label">Gloss</span>' in html
+    # The default label does not know those fields: the kind stands in.
+    default = _build_exhibit_html([line], title="T", image_resolver=_resolver)
+    assert '<span class="label">lyric-line</span>' in default
+
+
+def test_label_seam_blank_or_long_labels():
+    long = _ann("x", "beat", {})
+    assert _artifact_label(long, lambda a: None) == "beat"
+    assert _artifact_label(long, lambda a: "  \n ") == "beat"
+    cut = _artifact_label(long, lambda a: "word " * 40)
+    assert len(cut) <= 70 and cut.endswith("…")
+
+
+def _real(body, *, reference=None, derived_from=()):
+    from uuid import uuid4
+
+    from lacing.model import Annotation, MediaRef, Provenance
+    from lacing.time import RationalTime, TimeInterval
+
+    return Annotation(
+        id=uuid4(),
+        tier="t",
+        reference=reference
+        or MediaRef(
+            asset_id="a",
+            interval=TimeInterval(RationalTime(0, 1), RationalTime(1, 1)),
+        ),
+        body=body,
+        body_schema_uri="annot://schema/note/v1",
+        provenance=Provenance(
+            was_generated_by="user:test",
+            was_attributed_to="test",
+            generated_at_time=RationalTime(0, 1),
+            was_derived_from=list(derived_from),
+        ),
+    )
+
+
+def test_annotates_edge_links_annotation_refs_without_touching_provenance():
+    from lacing.exhibit import ANNOTATES, DERIVED_FROM
+    from lacing.model import AnnotationRef
+
+    line = _real({"name": "a line"})
+    referent = _real({"name": "a referent"}, reference=AnnotationRef(target_id=line.id))
+    derived = _real({"name": "derived"}, derived_from=[line.id])
+
+    default = _build_exhibit_html(
+        [line, referent, derived], title="T", image_resolver=_resolver
+    )
+    assert "annotates" not in default and "derived from" in default
+
+    html = _build_exhibit_html(
+        [line, referent, derived],
+        title="T",
+        image_resolver=_resolver,
+        edges=(DERIVED_FROM, ANNOTATES),
+    )
+    assert "↑ annotates: " in html and "↓ annotated by: " in html
+    assert html.count(f'href="#a-{line.id}"') == 2  # from referent and derived
+    assert referent.provenance.was_derived_from == []
+
+
+def test_custom_edge_and_no_edges():
+    from lacing.exhibit import ExhibitEdge
+
+    a = _ann("a-1", "shot", {"name": "A", "next": "b-1"})
+    b = _ann("b-1", "shot", {"name": "B"})
+    follows = ExhibitEdge(
+        targets=lambda ann: [ann.body["next"]] if "next" in ann.body else [],
+        forward="followed by",
+        backward="follows",
+    )
+    html = _build_exhibit_html(
+        [a, b], title="T", image_resolver=_resolver, edges=[follows]
+    )
+    assert "↑ followed by: " in html and "↓ follows: " in html
+    bare = _build_exhibit_html([a, b], title="T", image_resolver=_resolver, edges=())
+    assert 'class="links"' not in bare
+
+
+def test_render_artifact_exhibit_passes_label_and_edges(tmp_path):
+    from lacing.exhibit import label_from_fields
+
+    written = render_artifact_exhibit(
+        [_ann("t-1", "line", {"text": "hello there"}),
+         _ann("t-2", "line", {"text": "x"}, derived_from=["t-1"])],
+        out_dir=tmp_path,
+        formats=("html",),
+        label=label_from_fields("text"),
+        edges=(),
+    )
+    html = written[0].read_text()
+    assert '<span class="label">hello there</span>' in html
+    assert 'class="links"' not in html
+
+
+def test_edges_given_as_a_generator_still_draw_links():
+    from lacing.exhibit import DERIVED_FROM
+
+    t = _ann("t-1", "treatment", {"logline": "x"})
+    b = _ann("b-1", "beat", {}, derived_from=["t-1"])
+    html = _build_exhibit_html(
+        [t, b], title="T", image_resolver=_resolver, edges=(e for e in [DERIVED_FROM])
+    )
+    assert "↑ derived from: " in html and "↓ feeds into: " in html
+
+
+def test_a_non_string_label_is_shown_as_text():
+    assert _artifact_label(_ann("x", "take", {}), lambda a: 42) == "42"

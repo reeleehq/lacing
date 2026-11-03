@@ -11,9 +11,10 @@ Markdown stay small. The PDF is still self-contained — weasyprint
 resolves the relative paths (via ``base_url``) and embeds the bytes.
 
 The annotation graph — annotations + ``provenance.was_derived_from`` +
-image references — *is* the "artifacts and links" model, so this runs on
-**any** lacing graph: a project, a test run's artifacts, anything. The
-renderer is pure (graph → document) and has no knowledge of where the
+image references — *is* the "artifacts and links" model (``edges=``
+adds other links, such as ``AnnotationRef`` targets; ``label=`` sets card
+titles), so this runs on **any** lacing graph: a project, a test run's
+artifacts, anything. The renderer is pure (graph → document) and has no knowledge of where the
 graph came from.
 
 HTML is the authored format; the PDF and Markdown derive from it so the
@@ -42,17 +43,27 @@ import html as _html
 import importlib
 import json
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
-__all__ = ["render_artifact_exhibit"]
+__all__ = [
+    "ANNOTATES",
+    "DEFAULT_LABEL_FIELDS",
+    "DERIVED_FROM",
+    "ExhibitEdge",
+    "default_label",
+    "label_from_fields",
+    "render_artifact_exhibit",
+]
 
 
 # --------------------------------------------------------------------------
 # Per-artifact rendering helpers
 # --------------------------------------------------------------------------
 
-_LABEL_FIELDS = (
+#: The body fields :data:`default_label` tries, in order.
+DEFAULT_LABEL_FIELDS: tuple[str, ...] = (
     "caption",
     "logline",
     "description",
@@ -62,6 +73,8 @@ _LABEL_FIELDS = (
     "label",
     "kind",
 )
+_LABEL_MAX_CHARS = 70
+"""A card label longer than this is cut, with an ellipsis."""
 
 
 def _artifact_kind(ann: Any) -> str:
@@ -72,16 +85,92 @@ def _artifact_kind(ann: Any) -> str:
     return parts[-2] if len(parts) >= 2 else uri
 
 
-def _artifact_label(ann: Any) -> str:
-    """A short human label — the first populated of a few well-known
-    body fields, else the kind."""
-    body = ann.body or {}
-    for field in _LABEL_FIELDS:
-        value = body.get(field)
-        if isinstance(value, str) and value.strip():
-            text = " ".join(value.split())
-            return text if len(text) <= 70 else text[:67] + "…"
-    return _artifact_kind(ann)
+def label_from_fields(*fields: str) -> Callable[[Any], Optional[str]]:
+    """A ``label=`` for :func:`render_artifact_exhibit`: the first of the body
+    ``fields`` holding a non-blank string, else ``None`` (the card is then
+    labelled by its kind).
+
+    >>> from types import SimpleNamespace
+    >>> label = label_from_fields("title", "text")
+    >>> label(SimpleNamespace(body={"text": "a line", "title": " "}))
+    'a line'
+    >>> label(SimpleNamespace(body={})) is None
+    True
+    """
+
+    def label(ann: Any) -> Optional[str]:
+        body = ann.body or {}
+        for field in fields:
+            value = body.get(field)
+            if isinstance(value, str) and value.strip():
+                return value
+        return None
+
+    return label
+
+
+default_label = label_from_fields(*DEFAULT_LABEL_FIELDS)
+"""The default ``label=``: the first of :data:`DEFAULT_LABEL_FIELDS` set."""
+
+
+def _artifact_label(
+    ann: Any, label: Callable[[Any], Optional[str]] = default_label
+) -> str:
+    """A card's label: ``label(ann)`` on one line, cut to
+    ``_LABEL_MAX_CHARS``; the kind when it gives nothing."""
+    raw = label(ann)
+    text = "" if raw is None else " ".join(str(raw).split())
+    if not text:
+        return _artifact_kind(ann)
+    if len(text) <= _LABEL_MAX_CHARS:
+        return text
+    return text[: _LABEL_MAX_CHARS - 3] + "…"
+
+
+# --------------------------------------------------------------------------
+# Edges — which links a card shows, as named strategies
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ExhibitEdge:
+    """One kind of link between exhibit cards (an ``edges=`` strategy).
+
+    ``targets(ann)`` gives the ids ``ann`` links to. Its card lists them
+    under ``↑ <forward>``, and each target's card lists ``ann`` under
+    ``↓ <backward>``. An id that is not among the exhibited annotations is
+    shown as a short id, not a link.
+    """
+
+    targets: Callable[[Any], Iterable[Any]]
+    forward: str
+    backward: str
+
+
+def _derived_from_targets(ann: Any) -> Iterable[Any]:
+    return ann.provenance.was_derived_from
+
+
+def _annotation_ref_targets(ann: Any) -> Iterable[Any]:
+    ref = getattr(ann, "reference", None)
+    target = getattr(ref, "target_id", None)  # an AnnotationRef
+    return () if target is None else (target,)
+
+
+DERIVED_FROM = ExhibitEdge(
+    targets=_derived_from_targets, forward="derived from", backward="feeds into"
+)
+"""Provenance: ``provenance.was_derived_from`` (the default ``edges=``)."""
+
+ANNOTATES = ExhibitEdge(
+    targets=_annotation_ref_targets, forward="annotates", backward="annotated by"
+)
+"""Reference: the annotation an ``AnnotationRef`` points at (a note on a line,
+a referent annotating an entity), found as the reference's ``target_id``
+(any reference that has one counts). ``edges=(DERIVED_FROM, ANNOTATES)`` shows
+both, each under its own name, without touching provenance."""
+
+_DEFAULT_EDGES: tuple[ExhibitEdge, ...] = (DERIVED_FROM,)
 
 
 def _image_src(
@@ -180,25 +269,45 @@ def _build_exhibit_html(
     title: str,
     image_resolver: Callable[[Mapping], Optional[str]],
     images_dir: Optional[Path] = None,
+    label: Callable[[Any], Optional[str]] = default_label,
+    edges: Iterable[ExhibitEdge] = _DEFAULT_EDGES,
 ) -> str:
     """Render the annotation graph as one HTML document — each artifact a
-    card, derivation links as in-document hyperlinks.
+    card, each of ``edges`` as in-document hyperlinks.
 
     With ``images_dir`` set, panel images are written there as sibling
     files and referenced relatively; with it ``None`` they are inlined
     as ``data:`` URIs (a single self-contained file)."""
+    edges = tuple(edges)  # iterated twice: a generator would draw no links
     by_id = {str(a.id): a for a in annotations}
-    feeds: dict[str, list[str]] = {}
-    for ann in annotations:
-        for src in ann.provenance.was_derived_from:
-            feeds.setdefault(str(src), []).append(str(ann.id))
+    # Per edge kind: the ids each annotation links to, and the reverse map.
+    forward = [
+        {str(a.id): [str(t) for t in edge.targets(a)] for a in annotations}
+        for edge in edges
+    ]
+    backward: list[dict[str, list[str]]] = []
+    for links in forward:
+        reverse: dict[str, list[str]] = {}
+        for aid, targets in links.items():
+            for target in targets:
+                reverse.setdefault(target, []).append(aid)
+        backward.append(reverse)
 
     def _link(aid: str) -> str:
         target = by_id.get(aid)
         if target is None:
             return f'<span class="aid">{_html.escape(aid[:8])}</span>'
-        text = f"{_artifact_kind(target)} · {_artifact_label(target)}"
+        text = f"{_artifact_kind(target)} · {_artifact_label(target, label)}"
         return f'<a href="#a-{aid}">{_html.escape(text)}</a>'
+
+    def _links(arrow: str, name: str, ids: Sequence[str]) -> str:
+        if not ids:
+            return ""
+        return (
+            f'<div class="links">{arrow} {_html.escape(name)}: '
+            + ", ".join(_link(i) for i in ids)
+            + "</div>"
+        )
 
     kinds: dict[str, int] = {}
     for ann in annotations:
@@ -218,27 +327,18 @@ def _build_exhibit_html(
                 else f"<p><em>image unavailable: "
                 f"{_html.escape(str(image.get('url') or ''))}</em></p>"
             )
-        derived = ann.provenance.was_derived_from
-        links = ""
-        if derived:
-            links += (
-                '<div class="links">↑ derived from: '
-                + ", ".join(_link(str(s)) for s in derived)
-                + "</div>"
-            )
-        if feeds.get(aid):
-            links += (
-                '<div class="links">↓ feeds into: '
-                + ", ".join(_link(c) for c in feeds[aid])
-                + "</div>"
-            )
+        links = "".join(
+            _links("↑", edge.forward, outgoing[aid])
+            + _links("↓", edge.backward, back.get(aid, ()))
+            for edge, outgoing, back in zip(edges, forward, backward)
+        )
         # Literal spaces between the heading spans: the flex layout
         # ignores them for the HTML render, but they give the HTML→md
         # conversion the word boundaries it needs.
         cards.append(
             f'<section class="artifact" id="a-{aid}">'
             f'<h2><span class="kind">{_html.escape(_artifact_kind(ann))}</span> '
-            f'<span class="label">{_html.escape(_artifact_label(ann))}</span> '
+            f'<span class="label">{_html.escape(_artifact_label(ann, label))}</span> '
             f'<span class="aid">{_html.escape(aid[:8])}</span></h2>'
             f"{imgs}{_render_body(body)}{links}</section>"
         )
@@ -287,6 +387,8 @@ def render_artifact_exhibit(
     formats: Sequence[str] = ("html", "pdf", "md"),
     title: str = "Artifact exhibit",
     image_resolver: Optional[Callable[[Mapping], Optional[str]]] = None,
+    label: Callable[[Any], Optional[str]] = default_label,
+    edges: Iterable[ExhibitEdge] = _DEFAULT_EDGES,
 ) -> list[Path]:
     """Render an annotation graph as a human-readable artifact exhibit.
 
@@ -312,6 +414,14 @@ def render_artifact_exhibit(
             Defaults to reading the reference's own ``path`` field; a
             caller whose images live behind URLs passes a resolver that
             downloads / caches them (keeping this module media-agnostic).
+        label: ``annotation → card title`` (``None`` or blank: the card is
+            titled by its kind; long titles are cut). Defaults to the first
+            of :data:`DEFAULT_LABEL_FIELDS` in the body; a graph whose text
+            lives elsewhere passes ``label_from_fields("title", "text")`` or
+            any function.
+        edges: which links to draw, as :class:`ExhibitEdge` strategies, in
+            order. Defaults to provenance (:data:`DERIVED_FROM`); add
+            :data:`ANNOTATES` for ``AnnotationRef`` links, or define your own.
 
     Returns:
         The written file paths.
@@ -334,6 +444,8 @@ def render_artifact_exhibit(
         title=title,
         image_resolver=resolver,
         images_dir=out / "images",
+        label=label,
+        edges=edges,
     )
     written: list[Path] = []
 
