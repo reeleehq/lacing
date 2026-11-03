@@ -11,6 +11,12 @@
     "path": "continuity-violation/v1.json",
     "version": "1"
   },
+  "annot://schema/lyric-line/v1": {
+    "model": "lacing.bodies.lyric_line.LyricLineBodyV1",
+    "name": "lyric-line",
+    "path": "lyric-line/v1.json",
+    "version": "1"
+  },
   "annot://schema/named-entity/v1": {
     "model": "lacing.bodies.named_entity.NamedEntityBodyV1",
     "name": "named-entity",
@@ -39,6 +45,12 @@
     "model": "lacing.bodies.review.ReviewBodyV1",
     "name": "review",
     "path": "review/v1.json",
+    "version": "1"
+  },
+  "annot://schema/song-section/v1": {
+    "model": "lacing.bodies.song_section.SongSectionBodyV1",
+    "name": "song-section",
+    "path": "song-section/v1.json",
     "version": "1"
   },
   "annot://schema/word/v1": {

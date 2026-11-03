@@ -96,10 +96,9 @@ track.sections_covering(20.0)  # sections containing this instant
 
 The facade reuses `at_tier` / `by_tier` under the hood; anything you
 can build with it could also be hand-built with the raw API. Body
-schema URIs are conventional (`annot://schema/song-section/v1`,
-`lyric-line/v1`, `word/v1`). Words use lacing's built-in `word/v1`
-schema; call `register_subtitle_schemas()` once if you also want
-Pydantic validation of sections and lines.
+schemas (`annot://schema/song-section/v1`, `lyric-line/v1`, `word/v1`)
+are lacing built-in bodies, registered on import: sections and lines
+keep any extra fields you pass, words use the strict `word/v1`.
 
 ## What's in the core
 
