@@ -36,27 +36,8 @@ from lacing.schema import (
 
 
 @pytest.fixture(autouse=True)
-def isolated_registry():
-    """Snapshot + restore the global registry around each test.
-
-    Forces ``lacing.bodies`` import first so the built-in schemas are in
-    the snapshot — otherwise, depending on test order, they could be
-    cleared by a prior test's snapshot restoration.
-    """
-    import lacing.bodies  # noqa: F401  ensures built-ins are registered
-
-    body_snap = dict(lacing_schema._BODY_REGISTRY)
-    mig_snap = dict(lacing_schema._MIGRATION_REGISTRY)
-    default_snap = dict(lacing_schema._DEFAULT_VERSIONS)
-    try:
-        yield
-    finally:
-        lacing_schema._BODY_REGISTRY.clear()
-        lacing_schema._BODY_REGISTRY.update(body_snap)
-        lacing_schema._MIGRATION_REGISTRY.clear()
-        lacing_schema._MIGRATION_REGISTRY.update(mig_snap)
-        lacing_schema._DEFAULT_VERSIONS.clear()
-        lacing_schema._DEFAULT_VERSIONS.update(default_snap)
+def isolated_registry(isolated_body_registry):
+    """Every test here restores the schema registries after it (conftest)."""
 
 
 # ---------------------------------------------------------------------------
