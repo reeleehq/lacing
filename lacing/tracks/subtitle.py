@@ -91,8 +91,8 @@ def _interval(start_s: float, end_s: float, rate: int) -> TimeInterval:
     (:meth:`RationalTime.from_seconds_lossy`, as
     :meth:`TimeInterval.from_seconds_lossy` does), so a value like ``14.2``
     at rate=1000 doesn't trip the strict "lossy decimal" guard. An empty or
-    reversed range is widened to one tick after its start: the store
-    rejects zero-length intervals.
+    reversed range is widened to one tick after its start: a section, line
+    or word must have a duration.
     """
     if not (rate > 0):
         raise ValueError(f"rate must be positive (got {rate})")

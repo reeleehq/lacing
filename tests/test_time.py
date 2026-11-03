@@ -188,11 +188,17 @@ class TestTimeInterval:
         assert i.start == RationalTime(tick, 1000) == i.end
         assert i.start == RationalTime.from_seconds_lossy(x, rate=1000)
 
-    @pytest.mark.parametrize("mode", ["round", "floor", "ceil"])
-    def test_from_seconds_lossy_mode_applies_to_both_ends(self, mode):
+    @pytest.mark.parametrize(
+        "mode, ticks", [("round", (0, 2)), ("floor", (0, 1)), ("ceil", (1, 2))]
+    )
+    def test_from_seconds_lossy_mode_applies_to_both_ends(self, mode, ticks):
         i = TimeInterval.from_seconds_lossy("0.1", "0.5", rate=3, mode=mode)
-        assert i.start == RationalTime.from_seconds_lossy("0.1", rate=3, mode=mode)
-        assert i.end == RationalTime.from_seconds_lossy("0.5", rate=3, mode=mode)
+        assert (i.start.value, i.end.value) == ticks
+
+    @pytest.mark.parametrize("x", [float("inf"), float("-inf"), float("nan")])
+    def test_from_seconds_lossy_refuses_non_finite(self, x):
+        with pytest.raises(ValueError):
+            TimeInterval.from_seconds_lossy(0, x)
 
     def test_from_seconds_lossy_reversed_and_bad_mode(self):
         with pytest.raises(ValueError):
