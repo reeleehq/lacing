@@ -110,7 +110,7 @@ from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import iter_with_intervals
+from lacing.adapters._common import DISPLAY_TEXT_KEYS, display_text, iter_with_intervals
 from lacing.adapters._podcast import (
     END_INFERRED_KEY,
     TIME_FIELDS,
@@ -132,6 +132,8 @@ ADAPTER_VERSION = "1.0.0"
 GENERATED_BY = str(adapter_generator_id(ADAPTER_NAME, ADAPTER_VERSION))
 BODY_SCHEMA_URI = "annot://schema/podcast-chapter/v1"
 EPISODE_BODY_SCHEMA_URI = "annot://schema/podcast-chapters-episode/v1"
+# A chapter from another format is titled by its title first, then its text.
+_TITLE_KEYS = ("title", *(k for k in DISPLAY_TEXT_KEYS if k != "title"))
 DEFAULT_TIER_NAME = "chapters"
 DEFAULT_EPISODE_TIER_NAME = "episode"
 DEFAULT_ASSET_ID = "podcast-chapters:unspecified"
@@ -265,10 +267,8 @@ def _chapter_fields(a: Annotation) -> dict[str, Any]:
     body = a.body
     if a.body_schema_uri == BODY_SCHEMA_URI:
         return {k: v for k, v in _without_nulls(body).items() if k not in TIME_FIELDS}
-    title = body.get("title")
-    if not isinstance(title, str):
-        title = body.get("text")
-    return {"title": title} if isinstance(title, str) else {}
+    title = display_text(body, keys=_TITLE_KEYS)
+    return {} if title is None else {"title": title}
 
 
 def _chapter(a: Annotation, inferred_end: Fraction) -> dict[str, Any]:

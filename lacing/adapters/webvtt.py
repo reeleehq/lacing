@@ -39,7 +39,7 @@ from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import iter_with_intervals, read_text
+from lacing.adapters._common import display_text, iter_with_intervals, read_text
 from lacing.adapters._cues import (
     cue_payload,
     format_cue_time,
@@ -252,8 +252,10 @@ def dump(
 
     Args:
         store: Source store. Only annotations from ``tier`` (default: all
-            tiers) with a time interval (any reference kind) are emitted,
-            sorted by start then end.
+            tiers) with a time interval (any reference kind) and readable
+            text (:func:`lacing.adapters._common.display_text`: ``text``,
+            else ``title``, else ``name``) are emitted, sorted by start then
+            end.
         target: Output path. If None, returns bytes (UTF-8).
         tier: Restrict export to this tier. None = export all annotations.
     """
@@ -265,9 +267,11 @@ def dump(
     candidates.sort(key=interval_sort_key)
 
     for ann in candidates:
+        text = display_text(ann.body)
+        if text is None:  # metadata-only: an empty cue would be invented
+            continue
         body = ann.body if isinstance(ann.body, dict) else {}
         cue_id = body.get("id")
-        text = body.get("text", "")
         settings = body.get("settings", {})
 
         if cue_id:
@@ -280,7 +284,7 @@ def dump(
         if settings:
             timing += " " + _format_settings(settings)
         out_lines.append(timing)
-        out_lines.append(_escape_arrows(cue_payload(str(text))))
+        out_lines.append(_escape_arrows(cue_payload(text)))
         out_lines.append("")
 
     blob = "\n".join(out_lines).encode("utf-8")
