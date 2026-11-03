@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=6b9736a6"></script>
+    <script src="../_static/documentation_options.js?v=a01ea66b"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.83" />
+  <meta name="docsearch:version" content="0.0.84" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -460,7 +460,7 @@ the common case ergonomic and consistent.</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.tracks.register_subtitle_schemas" title="lacing.tracks.register_subtitle_schemas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_subtitle_schemas</span></code></a>()</p></td>
-<td><p>Register permissive body validators for the subtitle URIs.</p></td>
+<td><p>Register permissive body validators for the section and line URIs.</p></td>
 </tr>
 </tbody>
 </table>
@@ -539,7 +539,8 @@ tuples that will be inserted on the <code class="docutils literal notranslate"><
 <dl class="py method">
 <dt class="sig sig-object py" id="lacing.tracks.SubtitleBuilder.word">
 <span class="sig-name descname"><span class="pre">word</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_s</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">line_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/tracks/subtitle.html#SubtitleBuilder.word"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.tracks.SubtitleBuilder.word" title="Link to this definition">#</a></dt>
-<dd><p>Add one word.</p>
+<dd><p>Add one word. <code class="docutils literal notranslate"><span class="pre">confidence</span></code> goes in the body and on the envelope
+(<code class="docutils literal notranslate"><span class="pre">Annotation.confidence</span></code>, which <code class="docutils literal notranslate"><span class="pre">low_confidence_review</span></code> reads).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">_BuiltAnnotation</span></code></span></p>
@@ -605,11 +606,12 @@ whose <code class="docutils literal notranslate"><span class="pre">MediaRef.asse
 <dl class="py function">
 <dt class="sig sig-object py" id="lacing.tracks.register_subtitle_schemas">
 <span class="sig-prename descclassname"><span class="pre">lacing.tracks.</span></span><span class="sig-name descname"><span class="pre">register_subtitle_schemas</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/tracks/subtitle.html#register_subtitle_schemas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.tracks.register_subtitle_schemas" title="Link to this definition">#</a></dt>
-<dd><p>Register permissive body validators for the subtitle URIs.</p>
+<dd><p>Register permissive body validators for the section and line URIs.</p>
 <p>Calling this is <em>optional</em>; the builder works fine without
 registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later. It replaces whatever is
-registered under those URIs, the built-in <code class="docutils literal notranslate"><span class="pre">word/v1</span></code> included.</p>
+surface at write time rather than later. The models are module-level,
+so calling it again is a no-op. Words need nothing: they use the
+built-in <code class="docutils literal notranslate"><span class="pre">word/v1</span></code> schema, which this leaves alone (lacing#122).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>

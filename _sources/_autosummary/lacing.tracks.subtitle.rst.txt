@@ -9,6 +9,7 @@ lacing.tracks.subtitle
    .. autosummary::
    
       BUILT_IN_BODY_SCHEMAS
+      SUBTITLE_BODY_MODELS
    
    .. rubric:: Functions
 

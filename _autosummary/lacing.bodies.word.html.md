@@ -6,10 +6,10 @@ URI: `annot://schema/word/v1`
 
 ### Classes
 
-| [`WordBodyV1`](#lacing.bodies.word.WordBodyV1)(\*, text[, speaker])   | A single word annotation.   |
-|------------------------------------------------------------------------------------|-----------------------------|
+| [`WordBodyV1`](#lacing.bodies.word.WordBodyV1)(\*, text[, speaker, line_index, ...])   | A single word annotation.   |
+|-----------------------------------------------------------------------------------------------------|-----------------------------|
 
-### *class* lacing.bodies.word.WordBodyV1(, text, speaker=None)
+### *class* lacing.bodies.word.WordBodyV1(, text, speaker=None, line_index=None, confidence=None)
 
 Bases: `SchemaModel`
 

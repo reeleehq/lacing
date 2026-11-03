@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=6b9736a6"></script>
+    <script src="../../../_static/documentation_options.js?v=a01ea66b"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.83" />
+  <meta name="docsearch:version" content="0.0.84" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -725,13 +725,14 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">- ``annot://schema/song-section/v1`` — ``{label, title?, energy?, mood?}``</span>
 <span class="sd">- ``annot://schema/lyric-line/v1`` — ``{text, line_index?, section?}``</span>
-<span class="sd">- ``annot://schema/word/v1`` — ``{text, line_index?, confidence?}``</span>
-<span class="sd">   (matches the built-in :mod:`lacing.bodies.word` schema)</span>
+<span class="sd">- ``annot://schema/word/v1`` — ``{text, line_index?, confidence?}``, the</span>
+<span class="sd">   built-in strict :mod:`lacing.bodies.word` schema, registered on import.</span>
 
-<span class="sd">These are not enforced unless the caller has registered Pydantic</span>
-<span class="sd">validators for them; ``register_subtitle_schemas`` will register simple</span>
-<span class="sd">permissive validators if you want body validation. Otherwise the body</span>
-<span class="sd">is just a dict.</span>
+<span class="sd">Sections and lines are not validated unless the caller registers validators</span>
+<span class="sd">for them: ``register_subtitle_schemas`` registers permissive ones. Words use</span>
+<span class="sd">the built-in ``word/v1``, so wherever bodies are validated (``validate_body``,</span>
+<span class="sd">the server) a word's ``extra=`` keys must be fields of that schema; use</span>
+<span class="sd">:meth:`SubtitleBuilder.add` with your own URI for anything else.</span>
 
 <span class="sd">Quick start::</span>
 
@@ -759,6 +760,8 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">uuid4</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.allen</span><span class="w"> </span><span class="kn">import</span> <span class="n">AllenRelation</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">MediaRef</span><span class="p">,</span> <span class="n">Provenance</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntervalAnnotationStore</span>
@@ -776,9 +779,9 @@ window.runMermaid = runMermaid;</script>
 
 <span class="n">DEFAULT_RATE</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># ms-precision is plenty for sung-text alignment</span>
 
-<span class="c1">#: Mapping of body URI → minimal example body. Used by</span>
-<span class="c1">#: :func:`register_subtitle_schemas` and as inline reference for</span>
-<span class="c1">#: callers building outside the builder.</span>
+<span class="c1">#: Mapping of body URI → minimal example body: an inline reference for</span>
+<span class="c1">#: callers building outside the builder. Each validates against its schema</span>
+<span class="c1">#: (``SUBTITLE_BODY_MODELS``, or the built-in ``word/v1``).</span>
 <span class="n">BUILT_IN_BODY_SCHEMAS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">SECTION_SCHEMA_URI</span><span class="p">:</span> <span class="p">{</span>
         <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"verse_1"</span><span class="p">,</span>
@@ -821,41 +824,46 @@ window.runMermaid = runMermaid;</script>
     <span class="n">end_s</span><span class="p">:</span> <span class="nb">float</span>
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">_SectionBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s2">"allow"</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Permissive ``song-section/v1`` body: a label plus optional descriptors."""</span>
+
+    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">title</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">energy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">mood</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_LineBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s2">"allow"</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Permissive ``lyric-line/v1`` body: the line's text plus its position."""</span>
+
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">line_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">section</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="c1">#: The validators :func:`register_subtitle_schemas` registers. Words are absent:</span>
+<span class="c1">#: ``WORD_SCHEMA_URI`` is the built-in :mod:`lacing.bodies.word` schema.</span>
+<span class="n">SUBTITLE_BODY_MODELS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">SECTION_SCHEMA_URI</span><span class="p">:</span> <span class="n">_SectionBody</span><span class="p">,</span>
+    <span class="n">LINE_SCHEMA_URI</span><span class="p">:</span> <span class="n">_LineBody</span><span class="p">,</span>
+<span class="p">}</span>
+
+
 <div class="viewcode-block" id="register_subtitle_schemas">
 <a class="viewcode-back" href="../../../_autosummary/lacing.tracks.subtitle.html#lacing.tracks.register_subtitle_schemas">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">register_subtitle_schemas</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Register permissive body validators for the subtitle URIs.</span>
+<span class="w">    </span><span class="sd">"""Register permissive body validators for the section and line URIs.</span>
 
 <span class="sd">    Calling this is *optional*; the builder works fine without</span>
 <span class="sd">    registered schemas. Use it when you want body-shape errors to</span>
-<span class="sd">    surface at write time rather than later. It replaces whatever is</span>
-<span class="sd">    registered under those URIs, the built-in ``word/v1`` included.</span>
+<span class="sd">    surface at write time rather than later. The models are module-level,</span>
+<span class="sd">    so calling it again is a no-op. Words need nothing: they use the</span>
+<span class="sd">    built-in ``word/v1`` schema, which this leaves alone (lacing#122).</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_body_schema</span>
 
-    <span class="k">class</span><span class="w"> </span><span class="nc">_Section</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s2">"allow"</span><span class="p">):</span>
-        <span class="n">label</span><span class="p">:</span> <span class="nb">str</span>
-        <span class="n">title</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">energy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">mood</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="k">class</span><span class="w"> </span><span class="nc">_Line</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s2">"allow"</span><span class="p">):</span>
-        <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>
-        <span class="n">line_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">section</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="k">class</span><span class="w"> </span><span class="nc">_Word</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s2">"allow"</span><span class="p">):</span>
-        <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>
-        <span class="n">line_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">confidence</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="c1"># force: replacing is the point. These classes are new on every call, and</span>
-    <span class="c1"># WORD_SCHEMA_URI is also the strict built-in lacing.bodies.word schema,</span>
-    <span class="c1"># which this permissive one deliberately takes over (lacing#19).</span>
-    <span class="n">register_body_schema</span><span class="p">(</span><span class="n">SECTION_SCHEMA_URI</span><span class="p">,</span> <span class="n">_Section</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">register_body_schema</span><span class="p">(</span><span class="n">LINE_SCHEMA_URI</span><span class="p">,</span> <span class="n">_Line</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">register_body_schema</span><span class="p">(</span><span class="n">WORD_SCHEMA_URI</span><span class="p">,</span> <span class="n">_Word</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+    <span class="k">for</span> <span class="n">uri</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">SUBTITLE_BODY_MODELS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">register_body_schema</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span></div>
 
 
 
@@ -989,15 +997,19 @@ window.runMermaid = runMermaid;</script>
         <span class="n">confidence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">extra</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_BuiltAnnotation</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Add one word."""</span>
+<span class="w">        </span><span class="sd">"""Add one word. ``confidence`` goes in the body and on the envelope</span>
+<span class="sd">        (``Annotation.confidence``, which ``low_confidence_review`` reads)."""</span>
         <span class="n">body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"text"</span><span class="p">:</span> <span class="n">text</span><span class="p">}</span>
         <span class="k">if</span> <span class="n">line_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">body</span><span class="p">[</span><span class="s2">"line_index"</span><span class="p">]</span> <span class="o">=</span> <span class="n">line_index</span>
         <span class="k">if</span> <span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">body</span><span class="p">[</span><span class="s2">"confidence"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">confidence</span><span class="p">)</span>
+            <span class="n">confidence</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">confidence</span><span class="p">)</span>
+            <span class="n">body</span><span class="p">[</span><span class="s2">"confidence"</span><span class="p">]</span> <span class="o">=</span> <span class="n">confidence</span>
         <span class="k">if</span> <span class="n">extra</span><span class="p">:</span>
             <span class="n">body</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">extra</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">WORDS_TIER</span><span class="p">,</span> <span class="n">WORD_SCHEMA_URI</span><span class="p">,</span> <span class="n">start_s</span><span class="p">,</span> <span class="n">end_s</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span>
+            <span class="n">WORDS_TIER</span><span class="p">,</span> <span class="n">WORD_SCHEMA_URI</span><span class="p">,</span> <span class="n">start_s</span><span class="p">,</span> <span class="n">end_s</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="n">confidence</span>
+        <span class="p">)</span></div>
 
 
     <span class="c1"># --- low-level escape hatch ------------------------------------------</span>
@@ -1055,6 +1067,8 @@ window.runMermaid = runMermaid;</script>
         <span class="n">start_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">end_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">confidence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_BuiltAnnotation</span><span class="p">:</span>
         <span class="n">ann_id</span> <span class="o">=</span> <span class="n">uuid4</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
@@ -1068,6 +1082,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">,</span>
                 <span class="n">body_schema_uri</span><span class="o">=</span><span class="n">schema_uri</span><span class="p">,</span>
                 <span class="n">provenance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_provenance</span><span class="p">,</span>
+                <span class="n">confidence</span><span class="o">=</span><span class="n">confidence</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">_BuiltAnnotation</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">ann_id</span><span class="p">,</span> <span class="n">tier</span><span class="o">=</span><span class="n">tier</span><span class="p">,</span> <span class="n">start_s</span><span class="o">=</span><span class="n">start_s</span><span class="p">,</span> <span class="n">end_s</span><span class="o">=</span><span class="n">end_s</span><span class="p">)</span></div>

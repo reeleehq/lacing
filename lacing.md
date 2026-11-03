@@ -1,4 +1,4 @@
-> built 2026-11-02 18:45 UTC from 91588c0 (main) · lacing 0.0.83. Details: build_info.json
+> built 2026-11-03 11:01 UTC from 44cdc5c (main) · lacing 0.0.84. Details: build_info.json
 
 # index.html.md
 
@@ -103,8 +103,9 @@ track.sections_covering(20.0)  # sections containing this instant
 The facade reuses `at_tier` / `by_tier` under the hood; anything you
 can build with it could also be hand-built with the raw API. Body
 schema URIs are conventional (`annot://schema/song-section/v1`,
-`lyric-line/v1`, `word/v1`) — pass `register_subtitle_schemas()` once
-if you want Pydantic body validation.
+`lyric-line/v1`, `word/v1`). Words use lacing’s built-in `word/v1`
+schema; call `register_subtitle_schemas()` once if you also want
+Pydantic validation of sections and lines.
 
 ## What’s in the core
 
@@ -3491,10 +3492,10 @@ URI: `annot://schema/word/v1`
 
 ### Classes
 
-| [`WordBodyV1`](_autosummary/lacing.bodies.word.html.md#lacing.bodies.word.WordBodyV1)(\*, text[, speaker])   | A single word annotation.   |
-|------------------------------------------------------------------------------------|-----------------------------|
+| [`WordBodyV1`](_autosummary/lacing.bodies.word.html.md#lacing.bodies.word.WordBodyV1)(\*, text[, speaker, line_index, ...])   | A single word annotation.   |
+|-----------------------------------------------------------------------------------------------------|-----------------------------|
 
-### *class* lacing.bodies.word.WordBodyV1(, text, speaker=None)
+### *class* lacing.bodies.word.WordBodyV1(, text, speaker=None, line_index=None, confidence=None)
 
 Bases: `SchemaModel`
 
@@ -9884,8 +9885,8 @@ the common case ergonomic and consistent.
 
 ### Functions
 
-| [`register_subtitle_schemas`](_autosummary/lacing.tracks.html.md#lacing.tracks.register_subtitle_schemas)()   | Register permissive body validators for the subtitle URIs.   |
-|--------------------------------------------------------------------------------|--------------------------------------------------------------|
+| [`register_subtitle_schemas`](_autosummary/lacing.tracks.html.md#lacing.tracks.register_subtitle_schemas)()   | Register permissive body validators for the section and line URIs.   |
+|--------------------------------------------------------------------------------|----------------------------------------------------------------------|
 
 ### Classes
 
@@ -9940,7 +9941,8 @@ Add a song section.
 
 #### word(text, start_s, end_s, , line_index=None, confidence=None, extra=None)
 
-Add one word.
+Add one word. `confidence` goes in the body and on the envelope
+(`Annotation.confidence`, which `low_confidence_review` reads).
 
 * **Return type:**
   `_BuiltAnnotation`
@@ -9984,12 +9986,13 @@ Words that overlap `[start_s, end_s]`.
 
 ### lacing.tracks.register_subtitle_schemas()
 
-Register permissive body validators for the subtitle URIs.
+Register permissive body validators for the section and line URIs.
 
 Calling this is *optional*; the builder works fine without
 registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later. It replaces whatever is
-registered under those URIs, the built-in `word/v1` included.
+surface at write time rather than later. The models are module-level,
+so calling it again is a no-op. Words need nothing: they use the
+built-in `word/v1` schema, which this leaves alone (lacing#122).
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -10017,13 +10020,14 @@ Body schemas are conventional URIs:
 
 - `annot://schema/song-section/v1` — `{label, title?, energy?, mood?}`
 - `annot://schema/lyric-line/v1` — `{text, line_index?, section?}`
-- `annot://schema/word/v1` — `{text, line_index?, confidence?}`
-  : (matches the built-in [`lacing.bodies.word`](_autosummary/lacing.bodies.word.html.md#module-lacing.bodies.word) schema)
+- `annot://schema/word/v1` — `{text, line_index?, confidence?}`, the
+  : built-in strict [`lacing.bodies.word`](_autosummary/lacing.bodies.word.html.md#module-lacing.bodies.word) schema, registered on import.
 
-These are not enforced unless the caller has registered Pydantic
-validators for them; `register_subtitle_schemas` will register simple
-permissive validators if you want body validation. Otherwise the body
-is just a dict.
+Sections and lines are not validated unless the caller registers validators
+for them: `register_subtitle_schemas` registers permissive ones. Words use
+the built-in `word/v1`, so wherever bodies are validated (`validate_body`,
+the server) a word’s `extra=` keys must be fields of that schema; use
+[`SubtitleBuilder.add()`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.SubtitleBuilder.add) with your own URI for anything else.
 
 Quick start:
 
@@ -10048,13 +10052,14 @@ section_at_42 = track.sections_covering(42.0)
 
 ### Module Attributes
 
-| [`BUILT_IN_BODY_SCHEMAS`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.BUILT_IN_BODY_SCHEMAS)   | Mapping of body URI → minimal example body.   |
-|--------------------------------------------------------------------------|-----------------------------------------------|
+| [`BUILT_IN_BODY_SCHEMAS`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.BUILT_IN_BODY_SCHEMAS)   | an inline reference for callers building outside the builder.                                          |
+|--------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| [`SUBTITLE_BODY_MODELS`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.SUBTITLE_BODY_MODELS)    | The validators [`register_subtitle_schemas()`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.register_subtitle_schemas) registers. |
 
 ### Functions
 
-| [`register_subtitle_schemas`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.register_subtitle_schemas)()   | Register permissive body validators for the subtitle URIs.   |
-|--------------------------------------------------------------------------------|--------------------------------------------------------------|
+| [`register_subtitle_schemas`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.register_subtitle_schemas)()   | Register permissive body validators for the section and line URIs.   |
+|--------------------------------------------------------------------------------|----------------------------------------------------------------------|
 
 ### Classes
 
@@ -10064,9 +10069,17 @@ section_at_42 = track.sections_covering(42.0)
 
 ### lacing.tracks.subtitle.BUILT_IN_BODY_SCHEMAS *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Any](https://docs.python.org/3/library/typing.html#typing.Any)]]* *= {'annot://schema/lyric-line/v1': {'line_index': 0, 'section': 'verse_1', 'text': 'I came down to the river'}, 'annot://schema/song-section/v1': {'energy': 'medium', 'label': 'verse_1', 'mood': 'wistful', 'title': 'verse 1'}, 'annot://schema/word/v1': {'confidence': 0.94, 'line_index': 0, 'text': 'river'}}*
 
-Mapping of body URI → minimal example body. Used by
-[`register_subtitle_schemas()`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.register_subtitle_schemas) and as inline reference for
-callers building outside the builder.
+an inline reference for
+callers building outside the builder. Each validates against its schema
+(`SUBTITLE_BODY_MODELS`, or the built-in `word/v1`).
+
+* **Type:**
+  *Mapping* of body URI → minimal example body
+
+### lacing.tracks.subtitle.SUBTITLE_BODY_MODELS *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [type](https://docs.python.org/3/builtins/functions.html#type)[BaseModel]]* *= {'annot://schema/lyric-line/v1': <class 'lacing.tracks.subtitle._LineBody'>, 'annot://schema/song-section/v1': <class 'lacing.tracks.subtitle._SectionBody'>}*
+
+The validators [`register_subtitle_schemas()`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.register_subtitle_schemas) registers. Words are absent:
+`WORD_SCHEMA_URI` is the built-in [`lacing.bodies.word`](_autosummary/lacing.bodies.word.html.md#module-lacing.bodies.word) schema.
 
 ### *class* lacing.tracks.subtitle.SubtitleBuilder(store, , asset_id, rate=1000, was_generated_by='processor:lacing.tracks.subtitle', was_attributed_to='lacing', ensure_tiers=True)
 
@@ -10115,7 +10128,8 @@ Add a song section.
 
 #### word(text, start_s, end_s, , line_index=None, confidence=None, extra=None)
 
-Add one word.
+Add one word. `confidence` goes in the body and on the envelope
+(`Annotation.confidence`, which `low_confidence_review` reads).
 
 * **Return type:**
   `_BuiltAnnotation`
@@ -10159,12 +10173,13 @@ Words that overlap `[start_s, end_s]`.
 
 ### lacing.tracks.subtitle.register_subtitle_schemas()
 
-Register permissive body validators for the subtitle URIs.
+Register permissive body validators for the section and line URIs.
 
 Calling this is *optional*; the builder works fine without
 registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later. It replaces whatever is
-registered under those URIs, the built-in `word/v1` included.
+surface at write time rather than later. The models are module-level,
+so calling it again is a no-op. Words need nothing: they use the
+built-in `word/v1` schema, which this leaves alone (lacing#122).
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -10235,18 +10250,16 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-02 18:45 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/91588c0222b397018761824e654fa73a51077e1b"><code>91588c0</code></a> on branch <code>main</code>, for **lacing 0.0.83** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-03 11:01 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/44cdc5ca9410af23524e96ccd33572e57651c65f"><code>44cdc5c</code></a> on branch <code>main</code>, for **lacing 0.0.84** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.83) is behind the latest release on PyPI (0.0.84): `pip install lacing` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/91588c0222b397018761824e654fa73a51077e1b"><code>91588c0222b397018761824e654fa73a51077e1b</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/44cdc5ca9410af23524e96ccd33572e57651c65f"><code>44cdc5ca9410af23524e96ccd33572e57651c65f</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -10257,9 +10270,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41502988861">41502988861</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41623670127">41623670127</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>91588c0222b397018761824e654fa73a51077e1b</code> (in the history of the built commit) |
+| Event commit | <code>44cdc5ca9410af23524e96ccd33572e57651c65f</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10284,13 +10297,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.84/">0.0.84</a>, newer than the documented version (0.0.83).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.84/">0.0.84</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 91588c0222b397018761824e654fa73a51077e1b
+git checkout 44cdc5ca9410af23524e96ccd33572e57651c65f
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

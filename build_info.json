@@ -1,32 +1,32 @@
 {
   "schema_version": 1,
-  "built_at": "2026-11-02T18:45:03Z",
+  "built_at": "2026-11-03T11:01:54Z",
   "package": {
     "name": "lacing",
-    "version": "0.0.83",
+    "version": "0.0.84",
     "display_name": "lacing",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "91588c0222b397018761824e654fa73a51077e1b",
-    "short_commit": "91588c0",
+    "commit": "44cdc5ca9410af23524e96ccd33572e57651c65f",
+    "short_commit": "44cdc5c",
     "branch": "main",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/reeleehq/lacing",
-    "commit_url": "https://github.com/reeleehq/lacing/commit/91588c0222b397018761824e654fa73a51077e1b",
+    "commit_url": "https://github.com/reeleehq/lacing/commit/44cdc5ca9410af23524e96ccd33572e57651c65f",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "reeleehq/lacing",
-    "sha": "91588c0222b397018761824e654fa73a51077e1b",
+    "sha": "44cdc5ca9410af23524e96ccd33572e57651c65f",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "41502988861",
-    "run_url": "https://github.com/reeleehq/lacing/actions/runs/41502988861",
+    "run_id": "41623670127",
+    "run_url": "https://github.com/reeleehq/lacing/actions/runs/41623670127",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -56,20 +56,18 @@
   },
   "site": {
     "modules_documented": 52,
-    "objects_documented": 541
+    "objects_documented": 542
   },
   "pypi": {
     "checked": true,
     "latest": "0.0.84",
-    "relation": "behind",
+    "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout 91588c0222b397018761824e654fa73a51077e1b\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout 44cdc5ca9410af23524e96ccd33572e57651c65f\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
-    "aligned": false,
-    "notes": [
-      "The documented version (0.0.83) is behind the latest release on PyPI (0.0.84): `pip install lacing` gives newer code than these docs describe."
-    ]
+    "aligned": true,
+    "notes": []
   }
 }

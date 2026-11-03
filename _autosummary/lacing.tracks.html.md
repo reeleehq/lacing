@@ -15,8 +15,8 @@ the common case ergonomic and consistent.
 
 ### Functions
 
-| [`register_subtitle_schemas`](#lacing.tracks.register_subtitle_schemas)()   | Register permissive body validators for the subtitle URIs.   |
-|--------------------------------------------------------------------------------|--------------------------------------------------------------|
+| [`register_subtitle_schemas`](#lacing.tracks.register_subtitle_schemas)()   | Register permissive body validators for the section and line URIs.   |
+|--------------------------------------------------------------------------------|----------------------------------------------------------------------|
 
 ### Classes
 
@@ -71,7 +71,8 @@ Add a song section.
 
 #### word(text, start_s, end_s, , line_index=None, confidence=None, extra=None)
 
-Add one word.
+Add one word. `confidence` goes in the body and on the envelope
+(`Annotation.confidence`, which `low_confidence_review` reads).
 
 * **Return type:**
   `_BuiltAnnotation`
@@ -115,12 +116,13 @@ Words that overlap `[start_s, end_s]`.
 
 ### lacing.tracks.register_subtitle_schemas()
 
-Register permissive body validators for the subtitle URIs.
+Register permissive body validators for the section and line URIs.
 
 Calling this is *optional*; the builder works fine without
 registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later. It replaces whatever is
-registered under those URIs, the built-in `word/v1` included.
+surface at write time rather than later. The models are module-level,
+so calling it again is a no-op. Words need nothing: they use the
+built-in `word/v1` schema, which this leaves alone (lacing#122).
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)

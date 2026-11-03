@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="_static/documentation_options.js?v=6b9736a6"></script>
+    <script src="_static/documentation_options.js?v=a01ea66b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.83" />
+  <meta name="docsearch:version" content="0.0.84" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -432,8 +432,9 @@ trio over one audio asset, with float-second times and the
 <p>The facade reuses <code class="docutils literal notranslate"><span class="pre">at_tier</span></code> / <code class="docutils literal notranslate"><span class="pre">by_tier</span></code> under the hood; anything you
 can build with it could also be hand-built with the raw API. Body
 schema URIs are conventional (<code class="docutils literal notranslate"><span class="pre">annot://schema/song-section/v1</span></code>,
-<code class="docutils literal notranslate"><span class="pre">lyric-line/v1</span></code>, <code class="docutils literal notranslate"><span class="pre">word/v1</span></code>) — pass <code class="docutils literal notranslate"><span class="pre">register_subtitle_schemas()</span></code> once
-if you want Pydantic body validation.</p>
+<code class="docutils literal notranslate"><span class="pre">lyric-line/v1</span></code>, <code class="docutils literal notranslate"><span class="pre">word/v1</span></code>). Words use lacing’s built-in <code class="docutils literal notranslate"><span class="pre">word/v1</span></code>
+schema; call <code class="docutils literal notranslate"><span class="pre">register_subtitle_schemas()</span></code> once if you also want
+Pydantic validation of sections and lines.</p>
 </section>
 <section id="what-s-in-the-core">
 <h2>What’s in the core<a class="headerlink" href="#what-s-in-the-core" title="Link to this heading">#</a></h2>
@@ -811,7 +812,7 @@ cache at once.</p>
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-02 18:45 UTC from <a href="https://github.com/reeleehq/lacing/commit/91588c0222b397018761824e654fa73a51077e1b">91588c0</a> (main) · lacing 0.0.83 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-03 11:01 UTC from <a href="https://github.com/reeleehq/lacing/commit/44cdc5ca9410af23524e96ccd33572e57651c65f">44cdc5c</a> (main) · lacing 0.0.84 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               
