@@ -163,6 +163,7 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
+import operator
 from collections.abc import Callable, Collection, Iterator, Mapping
 from typing import TYPE_CHECKING, Any, Sequence
 
@@ -279,12 +280,19 @@ MAX_MIXED_FILLS = 1024
 occurrence at a time was recorded with each occurrence in its own state (as
 now, absent, ``null``, at its pre-fill value), and every combination is a
 candidate. There are ``3**n`` of them or more, so they are tried likeliest
-first, fewest occurrences off their current state first, and at most this many:
-with ``null`` pre-fills, a trace recorded before a panel's last fill is
-reached on up to 512 images, before its last two on up to 31, its last three
-on up to 13; and a miss costs at most this many digests. Past the budget a
-body recorded in a less likely state reads as changed: a spurious miss, never a
-wrong hit."""
+first (see :func:`value_digest_matches`), and at most this many.
+
+What it reaches, by enumeration, counting only the images filled now (those
+still ``null`` now are held as they are): with a ``null`` pre-fill (artful's
+``PanelImage``), a trace recorded before a panel's last fill on up to 1024
+images when that image was ``null`` then, 512 when absent; before its last two
+on up to 43 when both were ``null``, 22 when one was absent and one ``null``;
+before its last three, all ``null``, on up to 15. A non-null pre-fill adds a
+state per image: 512, 341, 31, 15 and 11. Past the budget, a body recorded in
+a less likely state reads as changed: a spurious miss, never a wrong hit.
+
+Cost: a miss computes up to this many more digests, each over the whole body
+(about 0.45 s at 1,000 images)."""
 
 BODY_DIGEST_SCHEME = "lacing/annotation-body-digest/v1"
 """Domain-separation tag mixed into :func:`annotation_body_digest`."""
@@ -403,9 +411,12 @@ def value_digest_matches(
     leave bodies recorded in **mixed** states: one occurrence filled, another
     ``null``, a third absent. Those are accepted too, each occurrence in any of
     its states (lacing#152), and for the same reason: every mix agrees with the
-    current body outside ``D``. They are tried last, fewest occurrences moved
-    first, and at most ``max_mixed_fills`` of them (:data:`MAX_MIXED_FILLS`,
-    lacing#157); a body recorded in a state past that budget reads as changed.
+    current body outside ``D``. They are tried last, likeliest first
+    (lacing#157): moving only the occurrences filled now before moving those
+    still ``null`` or at their pre-fill, fewest occurrences moved first, each
+    at its pre-fill value before ``null`` before absent; and at most
+    ``max_mixed_fills`` of them (:data:`MAX_MIXED_FILLS`). A body recorded in a
+    state past that budget reads as changed.
 
     >>> from uuid import uuid4
     >>> from lacing import Annotation, MediaRef, Provenance
@@ -613,10 +624,15 @@ def _value_digests(
     if not dropped:  # no derived field present: every fallback is the whole body
         return
     yield _digest(_V1_SCHEME, payload)  # derived fields absent when recorded
+    seen = set()  # the null and pre-fill bodies coincide when every occurrence
+    # present is of a path whose pre-fill is null: yield that body's digest once
     for fills in _distinct_fills(prefills):  # derived fields stored as null, or
         filled = _payload(annotation, VALUE_FIELDS)  # at their default, then
         if fill_paths(filled["body"], fills):  # else it is the whole body again
-            yield _digest(_V1_SCHEME, filled)
+            digest = _digest(_V1_SCHEME, filled)
+            if digest not in seen:
+                seen.add(digest)
+                yield digest
     # last, each occurrence in its own state, editing the dropped dump in place
     for mixed in _mixed_fills(payload, dropped, limit=max_mixed_fills):
         yield _digest(_V1_SCHEME, mixed)
@@ -646,109 +662,133 @@ def _pop_entries(body: dict, prefills: dict) -> list[tuple]:
     return dropped
 
 
-_KEEP, _DROP = 0, 1
-"""A site's state is an index: as now, absent, then its written values."""
+_ABSENT = object()
+"""The state of an occurrence recorded without its key (every other state is
+the value it held)."""
 
 
 def _mixed_fills(payload: dict, dropped: list, *, limit: int) -> Iterator[dict]:
     """``payload``, whose derived entries ``dropped`` were removed, with each of
     them in its own state: as now, absent, ``None``, or its path's pre-fill
     value. Only the mixed combinations (the bodies of the uniform ones were
-    tried before), at most ``limit`` of them, the likeliest first (see
-    :func:`_by_distance`), so a large body costs ``limit`` digests on a miss,
-    never ``3**n``.
+    tried before), at most ``limit`` of them, the likeliest first, so a miss
+    costs ``limit`` digests, never ``3**n``.
+
+    Likeliest first (lacing#157): the occurrences filled now (not ``None``, not
+    at their pre-fill) are where a late fill happened, so the combinations that
+    move only those come first, each other occurrence held as now (still
+    ``null`` or at its pre-fill now, it most likely was then too); then those
+    that also move the others. Each in :func:`_by_distance` order.
 
     ``payload`` is edited in place from one combination to the next, only where
-    a site's state changes, so each yield is valid only until the next (the
-    caller digests it at once)."""
+    an occurrence's state changes, so each yield is valid only until the next
+    (the caller digests it at once)."""
     from lacing.derived import same_json
 
-    sites = [
-        (container, key, value, _written(value, prefill, same_json), prefill)
-        for container, key, value, prefill in dropped
-    ]
-    if len(sites) < 2 or limit < 1:  # one site: every combination is uniform
+    if len(dropped) < 2 or limit < 1:  # one site: every combination is uniform
         return
+    options = [_states(value, prefill, same_json) for _, _, value, prefill in dropped]
 
-    def uniform(fill_of: Callable[[Any], Any]) -> frozenset:
-        """The combination a uniform fill leaves the sites in: each at its
-        written value equal to the fill, else as now (it already was)."""
-        return frozenset(
-            (i, 2 + w)
-            for i, (_, _, _, written, prefill) in enumerate(sites)
-            for w in [_index(written, fill_of(prefill), same_json)]
-            if w is not None
-        )
+    def uniform(fills: Sequence) -> dict[int, Any]:
+        """The combination a uniform fill leaves the sites in: each at the
+        state equal to its fill, else as now (it already held it)."""
+        return {
+            i: state
+            for i, (states, fill) in enumerate(zip(options, fills))
+            for state in states
+            if same_json(state, fill)
+        }
 
-    tried = {
-        frozenset((i, _DROP) for i in range(len(sites))),
-        uniform(lambda prefill: None),
-        uniform(lambda prefill: prefill),
-    }
-    for container, key, value, _, _ in sites:  # start from the body as now
-        container[key] = value
-    forms = [
-        {"absent": _DROP} | {_form(w): 2 + i for i, w in enumerate(written)}
-        for _, _, _, written, _ in sites
+    n = len(dropped)
+    tried = [
+        uniform([_ABSENT] * n),
+        uniform([None] * n),
+        uniform([prefill for *_, prefill in dropped]),
     ]
-    applied: dict[int, int] = {}  # the sites ``payload`` holds off "as now"
-    combos = (c for c in _by_distance(forms) if frozenset(c.items()) not in tried)
-    for combo in itertools.islice(combos, limit):
+    filled = [
+        i
+        for i, (_, _, value, prefill) in enumerate(dropped)
+        if value is not None and not same_json(value, prefill)
+    ]
+    unfilled = set(range(n)).difference(filled)
+    first = (
+        {filled[j]: state for j, state in combo.items()}
+        for combo in _by_distance([options[i] for i in filled], same=same_json)
+    )
+    then = (
+        combo
+        for combo in _by_distance(options, same=same_json)
+        if not unfilled.isdisjoint(combo)
+    )
+    combos = itertools.chain(first, then if unfilled else ())
+
+    def place(i: int, state: Any) -> None:
+        container, key, *_ = dropped[i]
+        if state is _ABSENT:
+            del container[key]
+        else:
+            container[key] = state
+
+    for container, key, value, _ in dropped:  # start from the body as now
+        container[key] = value
+    applied: dict[int, Any] = {}  # the sites ``payload`` holds off "as now"
+    for combo in itertools.islice((c for c in combos if c not in tried), limit):
         for i in applied.keys() - combo.keys():
-            container, key, value, _, _ = sites[i]
-            container[key] = value
+            place(i, dropped[i][2])
         for i, state in combo.items():
-            if applied.get(i) != state:
-                container, key, _, written, _ = sites[i]
-                if state == _DROP:
-                    del container[key]
-                else:
-                    container[key] = written[state - 2]
+            if i not in applied or applied[i] is not state:
+                place(i, state)
         applied = combo
         yield payload
 
 
-def _by_distance(forms: Sequence[Mapping[str, int]]) -> Iterator[dict[int, int]]:
+def _by_distance(
+    options: Sequence[Sequence],
+    *,
+    same: Callable[[Any, Any], bool] = operator.eq,
+) -> Iterator[dict[int, Any]]:
     """Every combination of the sites' states other than "all as now", each as
-    ``{site: state}`` for the sites it moves off "as now"; ``forms[i]`` maps
-    each form site ``i`` may have been recorded in (absent, null, pre-fill) to
-    its state.
+    ``{site: state}`` for the sites it moves off "as now"; ``options[i]`` lists
+    the states site ``i`` may be moved to, likeliest first.
 
     Fewest sites moved first: a trace recorded just before the last fill or two
-    (the common case, lacing#157) is reached after ``n`` or ``n**2`` bodies, not
-    after ``3**n``. At each distance, the bodies whose moved sites share one
-    form (``k`` images still ``null``) come before those mixing forms (one
-    absent, one ``null``: images appended by different writers)."""
-    n = len(forms)
-    labels = list(dict.fromkeys(label for f in forms for label in f))
-    for distance in range(1, n + 1):
-        for label in labels:
-            eligible = [i for i, f in enumerate(forms) if label in f]
-            for moved in itertools.combinations(eligible, distance):
-                yield {i: forms[i][label] for i in moved}
-        for moved in itertools.combinations(range(n), distance):
-            for chosen in itertools.product(*(forms[i].items() for i in moved)):
-                if len({label for label, _ in chosen}) > 1:
-                    yield {i: state for i, (_, state) in zip(moved, chosen)}
+    (the common case, lacing#157) is reached after about ``n`` or ``n**2``
+    bodies, not ``3**n``. At each distance, the combinations whose moved sites
+    share one state (``same``) come before those mixing states (one absent, one
+    ``null``: images appended by different writers), the states taken in the
+    order the sites rank them.
+
+    >>> list(_by_distance([["a", "b"], ["a"]]))
+    [{0: 'a'}, {1: 'a'}, {0: 'b'}, {0: 'a', 1: 'a'}, {0: 'b', 1: 'a'}]
+    """
+    forms: list = []  # every distinct state, in the order the sites rank them
+    for rank in range(max(map(len, options), default=0)):
+        for states in options:
+            if rank < len(states) and not any(same(states[rank], f) for f in forms):
+                forms.append(states[rank])
+    sharing = [
+        [(i, s) for i, states in enumerate(options) for s in states if same(s, form)]
+        for form in forms
+    ]
+    for distance in range(1, len(options) + 1):
+        for eligible in sharing:
+            yield from map(dict, itertools.combinations(eligible, distance))
+        for moved in itertools.combinations(range(len(options)), distance):
+            for chosen in itertools.product(*(options[i] for i in moved)):
+                if not all(same(s, chosen[0]) for s in chosen[1:]):
+                    yield dict(zip(moved, chosen))
 
 
-def _form(value: Any) -> str:
-    return "null" if value is None else "prefill"
-
-
-def _index(values: Sequence, target: Any, same: Callable[[Any, Any], bool]):
-    return next((i for i, v in enumerate(values) if same(v, target)), None)
-
-
-def _written(current: Any, prefill: Any, same: Callable[[Any, Any], bool]) -> list:
-    """The values one occurrence may have been recorded holding besides its
-    current one: ``None``, its pre-fill value; one equal to the current value or
-    to an earlier one is left out."""
-    written: list = []
-    for value in (None, prefill):
-        if not any(same(value, other) for other in (current, *written)):
-            written.append(value)
-    return written
+def _states(current: Any, prefill: Any, same: Callable[[Any, Any], bool]) -> list:
+    """The states one occurrence may have been recorded in besides its current
+    value, likeliest first: its pre-fill value (what ``model_dump()`` writes for
+    a plain default), ``None``, absent; one equal to the current value or to an
+    earlier one is left out."""
+    states: list = []
+    for state in (prefill, None, _ABSENT):
+        if not any(same(state, other) for other in (current, *states)):
+            states.append(state)
+    return states
 
 
 def _get(value: Any, address: Sequence) -> Any:
