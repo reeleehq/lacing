@@ -1,4 +1,4 @@
-> built 2026-11-03 11:23 UTC from 73e80a5 (main) · lacing 0.0.87. Details: build_info.json
+> built 2026-11-03 11:55 UTC from b73f0ed (main) · lacing 0.0.88. Details: build_info.json
 
 # index.html.md
 
@@ -2009,8 +2009,10 @@ True
 
 ### Module Attributes
 
-| [`ArtifactKind`](_autosummary/lacing.artifact.html.md#lacing.artifact.ArtifactKind)   | Coarse mime-class.   |
-|-----------------------------------------------------------------|----------------------|
+| [`ArtifactKind`](_autosummary/lacing.artifact.html.md#lacing.artifact.ArtifactKind)       | Coarse mime-class.                                                                                                                                         |
+|---------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`REVENUE_CAP`](_autosummary/lacing.artifact.html.md#lacing.artifact.REVENUE_CAP)        | use is allowed only below an annual revenue, given as `usd` (a positive int), e.g. a model licence's USD 1,000,000 cap.                                    |
+| [`TERRITORY_EXCLUDED`](_autosummary/lacing.artifact.html.md#lacing.artifact.TERRITORY_EXCLUDED) | use is not allowed in the territories listed in `codes` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such as `"EU"`, recorded verbatim). |
 
 ### Functions
 
@@ -2020,9 +2022,10 @@ True
 
 ### Classes
 
-| [`Artifact`](_autosummary/lacing.artifact.html.md#lacing.artifact.Artifact)(\*, asset_id, kind[, path, url, ...])   | A content-addressed generated file with provenance.              |
-|---------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
-| [`Rights`](_autosummary/lacing.artifact.html.md#lacing.artifact.Rights)(\*, provider[, id, title, license, ...])  | Who owns the bytes of an *acquired* artifact, and on what terms. |
+| [`Artifact`](_autosummary/lacing.artifact.html.md#lacing.artifact.Artifact)(\*, asset_id, kind[, path, url, ...])   | A content-addressed generated file with provenance.                    |
+|---------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| [`Restriction`](_autosummary/lacing.artifact.html.md#lacing.artifact.Restriction)(\*, kind[, terms])                   | One usage restriction that a licence code does not imply (lacing#106). |
+| [`Rights`](_autosummary/lacing.artifact.html.md#lacing.artifact.Rights)(\*, provider[, id, title, license, ...])  | Who owns the bytes of an *acquired* artifact, and on what terms.       |
 
 ### *class* lacing.artifact.Artifact(, asset_id, kind, path=None, url=None, bytes_size, duration_s=None, mime=None, provenance, cost_usd=None, producer_call_id=None, rights=None)
 
@@ -2075,7 +2078,53 @@ should switch on this *before* falling back to `mime`/`path.suffix`.
 
 alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[‘image’, ‘video’, ‘audio’, ‘json’, ‘text’, ‘binary’]
 
-### *class* lacing.artifact.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None)
+### lacing.artifact.REVENUE_CAP *= 'revenue_cap'*
+
+use is allowed only below an annual revenue,
+given as `usd` (a positive int), e.g. a model licence’s USD 1,000,000 cap.
+
+* **Type:**
+  A [`Restriction`](_autosummary/lacing.artifact.html.md#lacing.artifact.Restriction) kind
+
+### *class* lacing.artifact.Restriction(, kind, terms=None, \*\*extra_data)
+
+Bases: `BaseModel`
+
+One usage restriction that a licence code does not imply (lacing#106).
+
+A `kind`, the `terms` that impose it, and the kind’s own parameters as
+further fields. For example a CC BY sound edited with a model whose
+licence caps revenue:
+
+```default
+Rights(provider="freesound", license="CC-BY-4.0", restrictions=[
+    Restriction(kind=REVENUE_CAP, usd=1_000_000, terms="stability-community"),
+    Restriction(kind=TERRITORY_EXCLUDED, codes=["EU", "GB", "KR"]),
+])
+```
+
+`kind` is an open vocabulary, like `Rights.license`: lacing records a
+restriction and never classifies it. The well-known kinds
+([`REVENUE_CAP`](_autosummary/lacing.artifact.html.md#lacing.artifact.REVENUE_CAP), [`TERRITORY_EXCLUDED`](_autosummary/lacing.artifact.html.md#lacing.artifact.TERRITORY_EXCLUDED)) have their parameters
+checked; any other kind is kept as given. \*\*A consumer that does not know
+a kind must treat the artifact as not cleared\*\*, never skip the
+restriction.
+
+```pycon
+>>> Restriction(kind=REVENUE_CAP, usd=1_000_000).usd
+1000000
+>>> Restriction(kind=REVENUE_CAP, usd="lots")
+Traceback (most recent call last):
+...
+pydantic_core._pydantic_core.ValidationError: 1 validation error for Restriction
+...
+```
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'allow', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* lacing.artifact.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None, restrictions=())
 
 Bases: `BaseModel`
 
@@ -2105,6 +2154,12 @@ Semantics worth the trap they avoid:
   a third-party image carries no `Rights` of its own; its obligations
   travel through `provenance.was_derived_from` and are rolled up by the
   consumer. `rights is None` on a derivative is *not* a clearance.
+- `restrictions` carries what a licence code cannot: a revenue cap, an
+  excluded territory ([`Restriction`](_autosummary/lacing.artifact.html.md#lacing.artifact.Restriction)). Consumers classify by
+  `license` and enforce every restriction on top.
+
+`model_copy(update=...)` skips validation (pydantic’s rule); build a new
+`Rights` to change a field.
 
 `provider` is required, so an empty `Rights()` cannot exist: an
 artifact either has no record (we made it) or says where it came from.
@@ -2123,6 +2178,15 @@ a write instead is a small function passed as `on_write`.
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### lacing.artifact.TERRITORY_EXCLUDED *= 'territory_excluded'*
+
+use is not allowed in the territories listed in
+`codes` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such
+as `"EU"`, recorded verbatim).
+
+* **Type:**
+  A [`Restriction`](_autosummary/lacing.artifact.html.md#lacing.artifact.Restriction) kind
 
 ### lacing.artifact.hash_bytes(data)
 
@@ -4684,6 +4748,7 @@ full story. `.claude/skills/` contains the rules.
 | [`GeneratorId`](_autosummary/lacing.html.md#lacing.GeneratorId)(prefix, name[, version])              | A parsed `was_generated_by`: `<prefix>:<name>[@<version>]`.                                                                                                                                                        |
 | [`Artifact`](_autosummary/lacing.html.md#lacing.Artifact)(\*, asset_id, kind[, path, url, ...])    | A content-addressed generated file with provenance.                                                                                                                                                                |
 | [`Rights`](_autosummary/lacing.html.md#lacing.Rights)(\*, provider[, id, title, license, ...])   | Who owns the bytes of an *acquired* artifact, and on what terms.                                                                                                                                                   |
+| [`Restriction`](_autosummary/lacing.html.md#lacing.Restriction)(\*, kind[, terms])                    | One usage restriction that a licence code does not imply (lacing#106).                                                                                                                                             |
 | [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)(catalog[, blobs, on_write, ...])    | Facade over an artifact `catalog` and an optional `blobs` store.                                                                                                                                                   |
 | [`ResolvedArtifact`](_autosummary/lacing.html.md#lacing.ResolvedArtifact)(key, record, content_hash, data) | What [`ArtifactStore.resolve()`](_autosummary/lacing.html.md#lacing.ArtifactStore.resolve) found.                                                                                                                               |
 | [`ArtifactRef`](_autosummary/lacing.html.md#lacing.ArtifactRef)(key[, store, pin])                    | A reference to an artifact: its `key`, the `store` that files it when known, and the content `pin` when it names one: the store's content hash, 64 hex digits of SHA-256 (an `Artifact.asset_id`), kept lowercase. |
@@ -6010,7 +6075,45 @@ Alias for field number 0
 
 Alias for field number 1
 
-### *class* lacing.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None)
+### *class* lacing.Restriction(, kind, terms=None, \*\*extra_data)
+
+Bases: `BaseModel`
+
+One usage restriction that a licence code does not imply (lacing#106).
+
+A `kind`, the `terms` that impose it, and the kind’s own parameters as
+further fields. For example a CC BY sound edited with a model whose
+licence caps revenue:
+
+```default
+Rights(provider="freesound", license="CC-BY-4.0", restrictions=[
+    Restriction(kind=REVENUE_CAP, usd=1_000_000, terms="stability-community"),
+    Restriction(kind=TERRITORY_EXCLUDED, codes=["EU", "GB", "KR"]),
+])
+```
+
+`kind` is an open vocabulary, like `Rights.license`: lacing records a
+restriction and never classifies it. The well-known kinds
+(`REVENUE_CAP`, `TERRITORY_EXCLUDED`) have their parameters
+checked; any other kind is kept as given. \*\*A consumer that does not know
+a kind must treat the artifact as not cleared\*\*, never skip the
+restriction.
+
+```pycon
+>>> Restriction(kind=REVENUE_CAP, usd=1_000_000).usd
+1000000
+>>> Restriction(kind=REVENUE_CAP, usd="lots")
+Traceback (most recent call last):
+...
+pydantic_core._pydantic_core.ValidationError: 1 validation error for Restriction
+...
+```
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'allow', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* lacing.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None, restrictions=())
 
 Bases: `BaseModel`
 
@@ -6040,6 +6143,12 @@ Semantics worth the trap they avoid:
   a third-party image carries no `Rights` of its own; its obligations
   travel through `provenance.was_derived_from` and are rolled up by the
   consumer. `rights is None` on a derivative is *not* a clearance.
+- `restrictions` carries what a licence code cannot: a revenue cap, an
+  excluded territory ([`Restriction`](_autosummary/lacing.html.md#lacing.Restriction)). Consumers classify by
+  `license` and enforce every restriction on top.
+
+`model_copy(update=...)` skips validation (pydantic’s rule); build a new
+`Rights` to change a field.
 
 `provider` is required, so an empty `Rights()` cannot exist: an
 artifact either has no record (we made it) or says where it came from.
@@ -6175,6 +6284,33 @@ Always `start <= end`; constructor raises `ValueError` otherwise.
 #### *property* duration *: [RationalTime](_autosummary/lacing.time.html.md#lacing.time.RationalTime)*
 
 `end - start` at the same rate as `start`.
+
+#### *classmethod* from_seconds_lossy(start, end, , rate=24000, mode='round')
+
+Build from seconds, quantizing each end to a tick at `rate`.
+
+The interval form of [`RationalTime.from_seconds_lossy()`](_autosummary/lacing.html.md#lacing.RationalTime.from_seconds_lossy), with
+its exact rule (the float’s own value as a `Fraction`, then
+`mode`: `"round"`, ties to even; `"floor"`; `"ceil"`), so
+every caller holding computed float timings quantizes the same way
+instead of each writing `round(x * rate)`, which rounds the float
+product and disagrees on inputs such as `0.0005`. Both ends use
+`mode`, which keeps `start <= end` and puts the shared edge of two
+adjacent windows on one tick; a window shorter than a tick can collapse
+to a point. Use `from_seconds()` when a lossy conversion should be
+an error.
+
+### Examples
+
+```pycon
+>>> TimeInterval.from_seconds_lossy(3.48, 4.0, rate=1000)
+TimeInterval(RationalTime(3480, 1000), RationalTime(4000, 1000))
+>>> TimeInterval.from_seconds_lossy("0.1", "0.2", rate=3, mode="ceil").start.value
+1
+```
+
+* **Return type:**
+  [`TimeInterval`](_autosummary/lacing.time.html.md#lacing.time.TimeInterval)
 
 #### *classmethod* from_wire(d)
 
@@ -9789,10 +9925,11 @@ and third-party libs that demand a float.
 
 ### Module Attributes
 
-| [`DEFAULT_RATE`](_autosummary/lacing.time.html.md#lacing.time.DEFAULT_RATE)              | Default rate (ticks/second).                                                |
-|----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| [`RATIONAL_TIME_JSON_SCHEMA`](_autosummary/lacing.time.html.md#lacing.time.RATIONAL_TIME_JSON_SCHEMA) | JSON Schema for the `RationalTime` wire shape `{"v": int, "r": int}`.       |
-| [`TIME_INTERVAL_JSON_SCHEMA`](_autosummary/lacing.time.html.md#lacing.time.TIME_INTERVAL_JSON_SCHEMA) | JSON Schema for the `TimeInterval` wire shape `{"start": ..., "end": ...}`. |
+| [`DEFAULT_RATE`](_autosummary/lacing.time.html.md#lacing.time.DEFAULT_RATE)              | Default rate (ticks/second).                                                      |
+|----------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| [`RATIONAL_TIME_JSON_SCHEMA`](_autosummary/lacing.time.html.md#lacing.time.RATIONAL_TIME_JSON_SCHEMA) | JSON Schema for the `RationalTime` wire shape `{"v": int, "r": int}`.             |
+| [`TIME_INTERVAL_JSON_SCHEMA`](_autosummary/lacing.time.html.md#lacing.time.TIME_INTERVAL_JSON_SCHEMA) | JSON Schema for the `TimeInterval` wire shape `{"start": ..., "end": ...}`.       |
+| [`QuantizeMode`](_autosummary/lacing.time.html.md#lacing.time.QuantizeMode)              | nearest (ties to even), or the one at or before, or at or after, the exact value. |
 
 ### Classes
 
@@ -9814,6 +9951,16 @@ Default rate (ticks/second). LCM 1008000 covers all common video rates exactly.
 Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
 
 Raised when a rate or seconds conversion would lose precision.
+
+### lacing.time.QuantizeMode
+
+nearest (ties to even), or the one
+at or before, or at or after, the exact value.
+
+* **Type:**
+  How `from_seconds_lossy` picks a tick
+
+alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[‘round’, ‘floor’, ‘ceil’]
 
 ### lacing.time.RATIONAL_TIME_JSON_SCHEMA *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Any](https://docs.python.org/3/library/typing.html#typing.Any)]* *= {'additionalProperties': False, 'description': 'A point in time as v/r seconds. Both members are integers — never a float, never a JSON number with a fractional part.', 'properties': {'r': {'description': 'Rate in ticks per second. Strictly positive.', 'exclusiveMinimum': 0, 'type': 'integer'}, 'v': {'description': 'Tick count (may be negative).', 'type': 'integer'}}, 'required': ['v', 'r'], 'title': 'RationalTime', 'type': 'object'}*
 
@@ -9949,6 +10096,33 @@ Always `start <= end`; constructor raises `ValueError` otherwise.
 #### *property* duration *: [RationalTime](_autosummary/lacing.time.html.md#lacing.time.RationalTime)*
 
 `end - start` at the same rate as `start`.
+
+#### *classmethod* from_seconds_lossy(start, end, , rate=24000, mode='round')
+
+Build from seconds, quantizing each end to a tick at `rate`.
+
+The interval form of [`RationalTime.from_seconds_lossy()`](_autosummary/lacing.time.html.md#lacing.time.RationalTime.from_seconds_lossy), with
+its exact rule (the float’s own value as a `Fraction`, then
+`mode`: `"round"`, ties to even; `"floor"`; `"ceil"`), so
+every caller holding computed float timings quantizes the same way
+instead of each writing `round(x * rate)`, which rounds the float
+product and disagrees on inputs such as `0.0005`. Both ends use
+`mode`, which keeps `start <= end` and puts the shared edge of two
+adjacent windows on one tick; a window shorter than a tick can collapse
+to a point. Use `from_seconds()` when a lossy conversion should be
+an error.
+
+### Examples
+
+```pycon
+>>> TimeInterval.from_seconds_lossy(3.48, 4.0, rate=1000)
+TimeInterval(RationalTime(3480, 1000), RationalTime(4000, 1000))
+>>> TimeInterval.from_seconds_lossy("0.1", "0.2", rate=3, mode="ceil").start.value
+1
+```
+
+* **Return type:**
+  [`TimeInterval`](_autosummary/lacing.time.html.md#lacing.time.TimeInterval)
 
 #### *classmethod* from_wire(d)
 
@@ -10342,18 +10516,16 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-03 11:23 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/73e80a58cf17b2a1bfb2d89d62f99a005a455c30"><code>73e80a5</code></a> on branch <code>main</code>, for **lacing 0.0.87** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-03 11:55 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/b73f0ed19cdd054f38f7c0b5b09ca3d0d32aab5d"><code>b73f0ed</code></a> on branch <code>main</code>, for **lacing 0.0.88** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.87) is behind the latest release on PyPI (0.0.88): `pip install lacing` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/73e80a58cf17b2a1bfb2d89d62f99a005a455c30"><code>73e80a58cf17b2a1bfb2d89d62f99a005a455c30</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/b73f0ed19cdd054f38f7c0b5b09ca3d0d32aab5d"><code>b73f0ed19cdd054f38f7c0b5b09ca3d0d32aab5d</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -10364,9 +10536,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41626734417">41626734417</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41630439498">41630439498</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>429fe56238a051bb73f621cb75a57b29e1e3405d</code> (in the history of the built commit) |
+| Event commit | <code>e48c4eaadf705de51eb1db2cc9067c1d54b1d0fa</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10391,13 +10563,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.88/">0.0.88</a>, newer than the documented version (0.0.87).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.88/">0.0.88</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 73e80a58cf17b2a1bfb2d89d62f99a005a455c30
+git checkout b73f0ed19cdd054f38f7c0b5b09ca3d0d32aab5d
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

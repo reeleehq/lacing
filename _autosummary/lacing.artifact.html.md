@@ -74,8 +74,10 @@ True
 
 ### Module Attributes
 
-| [`ArtifactKind`](#lacing.artifact.ArtifactKind)   | Coarse mime-class.   |
-|-----------------------------------------------------------------|----------------------|
+| [`ArtifactKind`](#lacing.artifact.ArtifactKind)       | Coarse mime-class.                                                                                                                                         |
+|---------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`REVENUE_CAP`](#lacing.artifact.REVENUE_CAP)        | use is allowed only below an annual revenue, given as `usd` (a positive int), e.g. a model licence's USD 1,000,000 cap.                                    |
+| [`TERRITORY_EXCLUDED`](#lacing.artifact.TERRITORY_EXCLUDED) | use is not allowed in the territories listed in `codes` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such as `"EU"`, recorded verbatim). |
 
 ### Functions
 
@@ -85,9 +87,10 @@ True
 
 ### Classes
 
-| [`Artifact`](#lacing.artifact.Artifact)(\*, asset_id, kind[, path, url, ...])   | A content-addressed generated file with provenance.              |
-|---------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
-| [`Rights`](#lacing.artifact.Rights)(\*, provider[, id, title, license, ...])  | Who owns the bytes of an *acquired* artifact, and on what terms. |
+| [`Artifact`](#lacing.artifact.Artifact)(\*, asset_id, kind[, path, url, ...])   | A content-addressed generated file with provenance.                    |
+|---------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| [`Restriction`](#lacing.artifact.Restriction)(\*, kind[, terms])                   | One usage restriction that a licence code does not imply (lacing#106). |
+| [`Rights`](#lacing.artifact.Rights)(\*, provider[, id, title, license, ...])  | Who owns the bytes of an *acquired* artifact, and on what terms.       |
 
 ### *class* lacing.artifact.Artifact(, asset_id, kind, path=None, url=None, bytes_size, duration_s=None, mime=None, provenance, cost_usd=None, producer_call_id=None, rights=None)
 
@@ -140,7 +143,53 @@ should switch on this *before* falling back to `mime`/`path.suffix`.
 
 alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[‘image’, ‘video’, ‘audio’, ‘json’, ‘text’, ‘binary’]
 
-### *class* lacing.artifact.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None)
+### lacing.artifact.REVENUE_CAP *= 'revenue_cap'*
+
+use is allowed only below an annual revenue,
+given as `usd` (a positive int), e.g. a model licence’s USD 1,000,000 cap.
+
+* **Type:**
+  A [`Restriction`](#lacing.artifact.Restriction) kind
+
+### *class* lacing.artifact.Restriction(, kind, terms=None, \*\*extra_data)
+
+Bases: `BaseModel`
+
+One usage restriction that a licence code does not imply (lacing#106).
+
+A `kind`, the `terms` that impose it, and the kind’s own parameters as
+further fields. For example a CC BY sound edited with a model whose
+licence caps revenue:
+
+```default
+Rights(provider="freesound", license="CC-BY-4.0", restrictions=[
+    Restriction(kind=REVENUE_CAP, usd=1_000_000, terms="stability-community"),
+    Restriction(kind=TERRITORY_EXCLUDED, codes=["EU", "GB", "KR"]),
+])
+```
+
+`kind` is an open vocabulary, like `Rights.license`: lacing records a
+restriction and never classifies it. The well-known kinds
+([`REVENUE_CAP`](#lacing.artifact.REVENUE_CAP), [`TERRITORY_EXCLUDED`](#lacing.artifact.TERRITORY_EXCLUDED)) have their parameters
+checked; any other kind is kept as given. \*\*A consumer that does not know
+a kind must treat the artifact as not cleared\*\*, never skip the
+restriction.
+
+```pycon
+>>> Restriction(kind=REVENUE_CAP, usd=1_000_000).usd
+1000000
+>>> Restriction(kind=REVENUE_CAP, usd="lots")
+Traceback (most recent call last):
+...
+pydantic_core._pydantic_core.ValidationError: 1 validation error for Restriction
+...
+```
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'allow', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* lacing.artifact.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None, restrictions=())
 
 Bases: `BaseModel`
 
@@ -170,6 +219,12 @@ Semantics worth the trap they avoid:
   a third-party image carries no `Rights` of its own; its obligations
   travel through `provenance.was_derived_from` and are rolled up by the
   consumer. `rights is None` on a derivative is *not* a clearance.
+- `restrictions` carries what a licence code cannot: a revenue cap, an
+  excluded territory ([`Restriction`](#lacing.artifact.Restriction)). Consumers classify by
+  `license` and enforce every restriction on top.
+
+`model_copy(update=...)` skips validation (pydantic’s rule); build a new
+`Rights` to change a field.
 
 `provider` is required, so an empty `Rights()` cannot exist: an
 artifact either has no record (we made it) or says where it came from.
@@ -188,6 +243,15 @@ a write instead is a small function passed as `on_write`.
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### lacing.artifact.TERRITORY_EXCLUDED *= 'territory_excluded'*
+
+use is not allowed in the territories listed in
+`codes` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such
+as `"EU"`, recorded verbatim).
+
+* **Type:**
+  A [`Restriction`](#lacing.artifact.Restriction) kind
 
 ### lacing.artifact.hash_bytes(data)
 

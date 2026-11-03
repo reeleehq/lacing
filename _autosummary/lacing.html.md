@@ -77,6 +77,7 @@ full story. `.claude/skills/` contains the rules.
 | [`GeneratorId`](#lacing.GeneratorId)(prefix, name[, version])              | A parsed `was_generated_by`: `<prefix>:<name>[@<version>]`.                                                                                                                                                        |
 | [`Artifact`](#lacing.Artifact)(\*, asset_id, kind[, path, url, ...])    | A content-addressed generated file with provenance.                                                                                                                                                                |
 | [`Rights`](#lacing.Rights)(\*, provider[, id, title, license, ...])   | Who owns the bytes of an *acquired* artifact, and on what terms.                                                                                                                                                   |
+| [`Restriction`](#lacing.Restriction)(\*, kind[, terms])                    | One usage restriction that a licence code does not imply (lacing#106).                                                                                                                                             |
 | [`ArtifactStore`](#lacing.ArtifactStore)(catalog[, blobs, on_write, ...])    | Facade over an artifact `catalog` and an optional `blobs` store.                                                                                                                                                   |
 | [`ResolvedArtifact`](#lacing.ResolvedArtifact)(key, record, content_hash, data) | What [`ArtifactStore.resolve()`](#lacing.ArtifactStore.resolve) found.                                                                                                                               |
 | [`ArtifactRef`](#lacing.ArtifactRef)(key[, store, pin])                    | A reference to an artifact: its `key`, the `store` that files it when known, and the content `pin` when it names one: the store's content hash, 64 hex digits of SHA-256 (an `Artifact.asset_id`), kept lowercase. |
@@ -1403,7 +1404,45 @@ Alias for field number 0
 
 Alias for field number 1
 
-### *class* lacing.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None)
+### *class* lacing.Restriction(, kind, terms=None, \*\*extra_data)
+
+Bases: `BaseModel`
+
+One usage restriction that a licence code does not imply (lacing#106).
+
+A `kind`, the `terms` that impose it, and the kind’s own parameters as
+further fields. For example a CC BY sound edited with a model whose
+licence caps revenue:
+
+```default
+Rights(provider="freesound", license="CC-BY-4.0", restrictions=[
+    Restriction(kind=REVENUE_CAP, usd=1_000_000, terms="stability-community"),
+    Restriction(kind=TERRITORY_EXCLUDED, codes=["EU", "GB", "KR"]),
+])
+```
+
+`kind` is an open vocabulary, like `Rights.license`: lacing records a
+restriction and never classifies it. The well-known kinds
+(`REVENUE_CAP`, `TERRITORY_EXCLUDED`) have their parameters
+checked; any other kind is kept as given. \*\*A consumer that does not know
+a kind must treat the artifact as not cleared\*\*, never skip the
+restriction.
+
+```pycon
+>>> Restriction(kind=REVENUE_CAP, usd=1_000_000).usd
+1000000
+>>> Restriction(kind=REVENUE_CAP, usd="lots")
+Traceback (most recent call last):
+...
+pydantic_core._pydantic_core.ValidationError: 1 validation error for Restriction
+...
+```
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'allow', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* lacing.Rights(, provider, id=None, title=None, license=None, license_url=None, attribution=None, source_page_url=None, author=None, author_url=None, cacheable=None, restrictions=())
 
 Bases: `BaseModel`
 
@@ -1433,6 +1472,12 @@ Semantics worth the trap they avoid:
   a third-party image carries no `Rights` of its own; its obligations
   travel through `provenance.was_derived_from` and are rolled up by the
   consumer. `rights is None` on a derivative is *not* a clearance.
+- `restrictions` carries what a licence code cannot: a revenue cap, an
+  excluded territory ([`Restriction`](#lacing.Restriction)). Consumers classify by
+  `license` and enforce every restriction on top.
+
+`model_copy(update=...)` skips validation (pydantic’s rule); build a new
+`Rights` to change a field.
 
 `provider` is required, so an empty `Rights()` cannot exist: an
 artifact either has no record (we made it) or says where it came from.
@@ -1568,6 +1613,33 @@ Always `start <= end`; constructor raises `ValueError` otherwise.
 #### *property* duration *: [RationalTime](lacing.time.html.md#lacing.time.RationalTime)*
 
 `end - start` at the same rate as `start`.
+
+#### *classmethod* from_seconds_lossy(start, end, , rate=24000, mode='round')
+
+Build from seconds, quantizing each end to a tick at `rate`.
+
+The interval form of [`RationalTime.from_seconds_lossy()`](#lacing.RationalTime.from_seconds_lossy), with
+its exact rule (the float’s own value as a `Fraction`, then
+`mode`: `"round"`, ties to even; `"floor"`; `"ceil"`), so
+every caller holding computed float timings quantizes the same way
+instead of each writing `round(x * rate)`, which rounds the float
+product and disagrees on inputs such as `0.0005`. Both ends use
+`mode`, which keeps `start <= end` and puts the shared edge of two
+adjacent windows on one tick; a window shorter than a tick can collapse
+to a point. Use `from_seconds()` when a lossy conversion should be
+an error.
+
+### Examples
+
+```pycon
+>>> TimeInterval.from_seconds_lossy(3.48, 4.0, rate=1000)
+TimeInterval(RationalTime(3480, 1000), RationalTime(4000, 1000))
+>>> TimeInterval.from_seconds_lossy("0.1", "0.2", rate=3, mode="ceil").start.value
+1
+```
+
+* **Return type:**
+  [`TimeInterval`](lacing.time.html.md#lacing.time.TimeInterval)
 
 #### *classmethod* from_wire(d)
 

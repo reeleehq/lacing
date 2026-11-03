@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=97e62c01"></script>
+    <script src="../../_static/documentation_options.js?v=7ffc8fc3"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.87" />
+  <meta name="docsearch:version" content="0.0.88" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -728,7 +728,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fractions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fraction</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">GetCoreSchemaHandler</span><span class="p">,</span> <span class="n">GetJsonSchemaHandler</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic.json_schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonSchemaValue</span>
@@ -786,6 +786,11 @@ window.runMermaid = runMermaid;</script>
 <span class="k">class</span><span class="w"> </span><span class="nc">LossyTimeConversionError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Raised when a rate or seconds conversion would lose precision."""</span></div>
 
+
+
+<span class="n">QuantizeMode</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"round"</span><span class="p">,</span> <span class="s2">"floor"</span><span class="p">,</span> <span class="s2">"ceil"</span><span class="p">]</span>
+<span class="sd">"""How ``from_seconds_lossy`` picks a tick: nearest (ties to even), or the one</span>
+<span class="sd">at or before, or at or after, the exact value."""</span>
 
 
 <div class="viewcode-block" id="RationalTime">
@@ -861,7 +866,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Fraction</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_RATE</span><span class="p">,</span>
-        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"round"</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="n">QuantizeMode</span> <span class="o">=</span> <span class="s2">"round"</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"RationalTime"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Build from seconds, quantizing to the nearest sample at ``rate``.</span>
 
@@ -891,6 +896,8 @@ window.runMermaid = runMermaid;</script>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">Fraction</span><span class="p">)):</span>
             <span class="n">f</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">seconds</span><span class="p">):</span>  <span class="c1"># Fraction raises OverflowError for inf</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"seconds must be finite, got </span><span class="si">{</span><span class="n">seconds</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
             <span class="n">f</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
@@ -1146,6 +1153,42 @@ window.runMermaid = runMermaid;</script>
             <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">),</span>
             <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">),</span>
         <span class="p">)</span>
+
+<div class="viewcode-block" id="TimeInterval.from_seconds_lossy">
+<a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.TimeInterval.from_seconds_lossy">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_seconds_lossy</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">start</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Fraction</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">end</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Fraction</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_RATE</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="n">QuantizeMode</span> <span class="o">=</span> <span class="s2">"round"</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"TimeInterval"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Build from seconds, quantizing each end to a tick at ``rate``.</span>
+
+<span class="sd">        The interval form of :meth:`RationalTime.from_seconds_lossy`, with</span>
+<span class="sd">        its exact rule (the float's own value as a ``Fraction``, then</span>
+<span class="sd">        ``mode``: ``"round"``, ties to even; ``"floor"``; ``"ceil"``), so</span>
+<span class="sd">        every caller holding computed float timings quantizes the same way</span>
+<span class="sd">        instead of each writing ``round(x * rate)``, which rounds the float</span>
+<span class="sd">        product and disagrees on inputs such as ``0.0005``. Both ends use</span>
+<span class="sd">        ``mode``, which keeps ``start &lt;= end`` and puts the shared edge of two</span>
+<span class="sd">        adjacent windows on one tick; a window shorter than a tick can collapse</span>
+<span class="sd">        to a point. Use :meth:`from_seconds` when a lossy conversion should be</span>
+<span class="sd">        an error.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; TimeInterval.from_seconds_lossy(3.48, 4.0, rate=1000)</span>
+<span class="sd">            TimeInterval(RationalTime(3480, 1000), RationalTime(4000, 1000))</span>
+<span class="sd">            &gt;&gt;&gt; TimeInterval.from_seconds_lossy("0.1", "0.2", rate=3, mode="ceil").start.value</span>
+<span class="sd">            1</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds_lossy</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">),</span>
+            <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds_lossy</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="nf">shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">by</span><span class="p">:</span> <span class="n">RationalTime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"TimeInterval"</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">_start</span> <span class="o">+</span> <span class="n">by</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_end</span> <span class="o">+</span> <span class="n">by</span><span class="p">)</span>

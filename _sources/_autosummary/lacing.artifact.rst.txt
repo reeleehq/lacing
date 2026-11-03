@@ -9,6 +9,8 @@ lacing.artifact
    .. autosummary::
    
       ArtifactKind
+      REVENUE_CAP
+      TERRITORY_EXCLUDED
    
    .. rubric:: Functions
 
@@ -22,5 +24,6 @@ lacing.artifact
    .. autosummary::
    
       Artifact
+      Restriction
       Rights
    

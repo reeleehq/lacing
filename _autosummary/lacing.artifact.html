@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=97e62c01"></script>
+    <script src="../_static/documentation_options.js?v=7ffc8fc3"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.87" />
+  <meta name="docsearch:version" content="0.0.88" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -515,6 +515,12 @@ record (<code class="docutils literal notranslate"><span class="pre">None</span>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.artifact.ArtifactKind" title="lacing.artifact.ArtifactKind"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArtifactKind</span></code></a></p></td>
 <td><p>Coarse mime-class.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.artifact.REVENUE_CAP" title="lacing.artifact.REVENUE_CAP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">REVENUE_CAP</span></code></a></p></td>
+<td><p>use is allowed only below an annual revenue, given as <code class="docutils literal notranslate"><span class="pre">usd</span></code> (a positive int), e.g. a model licence's USD 1,000,000 cap.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.artifact.TERRITORY_EXCLUDED" title="lacing.artifact.TERRITORY_EXCLUDED"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TERRITORY_EXCLUDED</span></code></a></p></td>
+<td><p>use is not allowed in the territories listed in <code class="docutils literal notranslate"><span class="pre">codes</span></code> (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such as <code class="docutils literal notranslate"><span class="pre">&quot;EU&quot;</span></code>, recorded verbatim).</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -536,7 +542,10 @@ record (<code class="docutils literal notranslate"><span class="pre">None</span>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.artifact.Artifact" title="lacing.artifact.Artifact"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Artifact</span></code></a>(*, asset_id, kind[, path, url, ...])</p></td>
 <td><p>A content-addressed generated file with provenance.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.artifact.Rights" title="lacing.artifact.Rights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Rights</span></code></a>(*, provider[, id, title, license, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.artifact.Restriction" title="lacing.artifact.Restriction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Restriction</span></code></a>(*, kind[, terms])</p></td>
+<td><p>One usage restriction that a licence code does not imply (lacing#106).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.artifact.Rights" title="lacing.artifact.Rights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Rights</span></code></a>(*, provider[, id, title, license, ...])</p></td>
 <td><p>Who owns the bytes of an <em>acquired</em> artifact, and on what terms.</p></td>
 </tr>
 </tbody>
@@ -609,9 +618,60 @@ should switch on this <em>before</em> falling back to <code class="docutils lite
 <p>alias of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Literal</span></code></a>[‘image’, ‘video’, ‘audio’, ‘json’, ‘text’, ‘binary’]</p>
 </dd></dl>
 
+<dl class="py data">
+<dt class="sig sig-object py" id="lacing.artifact.REVENUE_CAP">
+<span class="sig-prename descclassname"><span class="pre">lacing.artifact.</span></span><span class="sig-name descname"><span class="pre">REVENUE_CAP</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'revenue_cap'</span></span><a class="headerlink" href="#lacing.artifact.REVENUE_CAP" title="Link to this definition">#</a></dt>
+<dd><p>use is allowed only below an annual revenue,
+given as <code class="docutils literal notranslate"><span class="pre">usd</span></code> (a positive int), e.g. a model licence’s USD 1,000,000 cap.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A <a class="reference internal" href="#lacing.artifact.Restriction" title="lacing.artifact.Restriction"><code class="xref py py-class docutils literal notranslate"><span class="pre">Restriction</span></code></a> kind</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lacing.artifact.Restriction">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.artifact.</span></span><span class="sig-name descname"><span class="pre">Restriction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">terms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">extra_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/artifact.html#Restriction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.artifact.Restriction" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>One usage restriction that a licence code does not imply (lacing#106).</p>
+<p>A <code class="docutils literal notranslate"><span class="pre">kind</span></code>, the <code class="docutils literal notranslate"><span class="pre">terms</span></code> that impose it, and the kind’s own parameters as
+further fields. For example a CC BY sound edited with a model whose
+licence caps revenue:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Rights</span><span class="p">(</span><span class="n">provider</span><span class="o">=</span><span class="s2">"freesound"</span><span class="p">,</span> <span class="n">license</span><span class="o">=</span><span class="s2">"CC-BY-4.0"</span><span class="p">,</span> <span class="n">restrictions</span><span class="o">=</span><span class="p">[</span>
+    <span class="n">Restriction</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="n">REVENUE_CAP</span><span class="p">,</span> <span class="n">usd</span><span class="o">=</span><span class="mi">1_000_000</span><span class="p">,</span> <span class="n">terms</span><span class="o">=</span><span class="s2">"stability-community"</span><span class="p">),</span>
+    <span class="n">Restriction</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="n">TERRITORY_EXCLUDED</span><span class="p">,</span> <span class="n">codes</span><span class="o">=</span><span class="p">[</span><span class="s2">"EU"</span><span class="p">,</span> <span class="s2">"GB"</span><span class="p">,</span> <span class="s2">"KR"</span><span class="p">]),</span>
+<span class="p">])</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">kind</span></code> is an open vocabulary, like <code class="docutils literal notranslate"><span class="pre">Rights.license</span></code>: lacing records a
+restriction and never classifies it. The well-known kinds
+(<a class="reference internal" href="#lacing.artifact.REVENUE_CAP" title="lacing.artifact.REVENUE_CAP"><code class="xref py py-data docutils literal notranslate"><span class="pre">REVENUE_CAP</span></code></a>, <a class="reference internal" href="#lacing.artifact.TERRITORY_EXCLUDED" title="lacing.artifact.TERRITORY_EXCLUDED"><code class="xref py py-data docutils literal notranslate"><span class="pre">TERRITORY_EXCLUDED</span></code></a>) have their parameters
+checked; any other kind is kept as given. **A consumer that does not know
+a kind must treat the artifact as not cleared**, never skip the
+restriction.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Restriction</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="n">REVENUE_CAP</span><span class="p">,</span> <span class="n">usd</span><span class="o">=</span><span class="mi">1_000_000</span><span class="p">)</span><span class="o">.</span><span class="n">usd</span>
+<span class="go">1000000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Restriction</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="n">REVENUE_CAP</span><span class="p">,</span> <span class="n">usd</span><span class="o">=</span><span class="s2">"lots"</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">pydantic_core._pydantic_core.ValidationError</span>: <span class="n">1 validation error for Restriction</span>
+<span class="x">...</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lacing.artifact.Restriction.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.ClassVar" title="(in Python v3.15)"><span class="pre">ClassVar</span></a><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'extra':</span> <span class="pre">'allow',</span> <span class="pre">'frozen':</span> <span class="pre">True}</span></span><a class="headerlink" href="#lacing.artifact.Restriction.model_config" title="Link to this definition">#</a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<code class="code docutils literal notranslate"><span class="pre">ConfigDict</span></code>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.artifact.Rights">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.artifact.</span></span><span class="sig-name descname"><span class="pre">Rights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">provider</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">license</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">license_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_page_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">author</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">author_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cacheable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/artifact.html#Rights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.artifact.Rights" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.artifact.</span></span><span class="sig-name descname"><span class="pre">Rights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">provider</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">license</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">license_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_page_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">author</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">author_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cacheable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restrictions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/artifact.html#Rights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.artifact.Rights" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Who owns the bytes of an <em>acquired</em> artifact, and on what terms.</p>
 <p>The fields a Creative-Commons-family licence needs to discharge its
@@ -637,7 +697,12 @@ bytes, <code class="docutils literal notranslate"><span class="pre">True</span><
 a third-party image carries no <code class="docutils literal notranslate"><span class="pre">Rights</span></code> of its own; its obligations
 travel through <code class="docutils literal notranslate"><span class="pre">provenance.was_derived_from</span></code> and are rolled up by the
 consumer. <code class="docutils literal notranslate"><span class="pre">rights</span> <span class="pre">is</span> <span class="pre">None</span></code> on a derivative is <em>not</em> a clearance.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">restrictions</span></code> carries what a licence code cannot: a revenue cap, an
+excluded territory (<a class="reference internal" href="#lacing.artifact.Restriction" title="lacing.artifact.Restriction"><code class="xref py py-class docutils literal notranslate"><span class="pre">Restriction</span></code></a>). Consumers classify by
+<code class="docutils literal notranslate"><span class="pre">license</span></code> and enforce every restriction on top.</p></li>
 </ul>
+<p><code class="docutils literal notranslate"><span class="pre">model_copy(update=...)</span></code> skips validation (pydantic’s rule); build a new
+<code class="docutils literal notranslate"><span class="pre">Rights</span></code> to change a field.</p>
 <p><code class="docutils literal notranslate"><span class="pre">provider</span></code> is required, so an empty <code class="docutils literal notranslate"><span class="pre">Rights()</span></code> cannot exist: an
 artifact either has no record (we made it) or says where it came from.
 Text fields are <code class="docutils literal notranslate"><span class="pre">None</span></code> or non-blank; a blank string is refused.</p>
@@ -658,6 +723,19 @@ a write instead is a small function passed as <code class="docutils literal notr
 <dd><p>Configuration for the model, should be a dictionary conforming to [<code class="code docutils literal notranslate"><span class="pre">ConfigDict</span></code>][pydantic.config.ConfigDict].</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="lacing.artifact.TERRITORY_EXCLUDED">
+<span class="sig-prename descclassname"><span class="pre">lacing.artifact.</span></span><span class="sig-name descname"><span class="pre">TERRITORY_EXCLUDED</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'territory_excluded'</span></span><a class="headerlink" href="#lacing.artifact.TERRITORY_EXCLUDED" title="Link to this definition">#</a></dt>
+<dd><p>use is not allowed in the territories listed in
+<code class="docutils literal notranslate"><span class="pre">codes</span></code> (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such
+as <code class="docutils literal notranslate"><span class="pre">&quot;EU&quot;</span></code>, recorded verbatim).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A <a class="reference internal" href="#lacing.artifact.Restriction" title="lacing.artifact.Restriction"><code class="xref py py-class docutils literal notranslate"><span class="pre">Restriction</span></code></a> kind</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -744,10 +822,16 @@ a write instead is a small function passed as <code class="docutils literal notr
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.ArtifactKind"><code class="docutils literal notranslate"><span class="pre">ArtifactKind</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.REVENUE_CAP"><code class="docutils literal notranslate"><span class="pre">REVENUE_CAP</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.Restriction"><code class="docutils literal notranslate"><span class="pre">Restriction</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.Restriction.model_config"><code class="docutils literal notranslate"><span class="pre">Restriction.model_config</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.Rights"><code class="docutils literal notranslate"><span class="pre">Rights</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.Rights.model_config"><code class="docutils literal notranslate"><span class="pre">Rights.model_config</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.TERRITORY_EXCLUDED"><code class="docutils literal notranslate"><span class="pre">TERRITORY_EXCLUDED</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.hash_bytes"><code class="docutils literal notranslate"><span class="pre">hash_bytes()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
 </ul>

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=97e62c01"></script>
+    <script src="../../../_static/documentation_options.js?v=7ffc8fc3"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.87" />
+  <meta name="docsearch:version" content="0.0.88" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -799,19 +799,22 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_interval</span><span class="p">(</span><span class="n">start_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">end_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeInterval</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Lossless float-seconds → ``TimeInterval`` at ``rate`` ticks/second.</span>
+<span class="w">    </span><span class="sd">"""Float seconds → ``TimeInterval`` at ``rate`` ticks/second.</span>
 
-<span class="sd">    Rounds to integer ticks so a value like ``14.2`` at rate=1000 doesn't</span>
-<span class="sd">    trip the strict "lossy decimal" guard. Empty ranges are widened by</span>
-<span class="sd">    one tick — the store rejects zero-length intervals.</span>
+<span class="sd">    Rounds each end to the nearest tick with lacing's exact rule</span>
+<span class="sd">    (:meth:`RationalTime.from_seconds_lossy`, as</span>
+<span class="sd">    :meth:`TimeInterval.from_seconds_lossy` does), so a value like ``14.2``</span>
+<span class="sd">    at rate=1000 doesn't trip the strict "lossy decimal" guard. An empty or</span>
+<span class="sd">    reversed range is widened to one tick after its start: a section, line</span>
+<span class="sd">    or word must have a duration.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">rate</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"rate must be positive (got </span><span class="si">{</span><span class="n">rate</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
-    <span class="n">start_t</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">start_s</span> <span class="o">*</span> <span class="n">rate</span><span class="p">))</span>
-    <span class="n">end_t</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">end_s</span> <span class="o">*</span> <span class="n">rate</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">end_t</span> <span class="o">&lt;=</span> <span class="n">start_t</span><span class="p">:</span>
-        <span class="n">end_t</span> <span class="o">=</span> <span class="n">start_t</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="k">return</span> <span class="n">TimeInterval</span><span class="p">(</span><span class="n">RationalTime</span><span class="p">(</span><span class="n">start_t</span><span class="p">,</span> <span class="n">rate</span><span class="p">),</span> <span class="n">RationalTime</span><span class="p">(</span><span class="n">end_t</span><span class="p">,</span> <span class="n">rate</span><span class="p">))</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds_lossy</span><span class="p">(</span><span class="n">start_s</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds_lossy</span><span class="p">(</span><span class="n">end_s</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">end</span><span class="o">.</span><span class="n">value</span> <span class="o">&lt;=</span> <span class="n">start</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">RationalTime</span><span class="p">(</span><span class="n">start</span><span class="o">.</span><span class="n">value</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">rate</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">TimeInterval</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
 
 
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>

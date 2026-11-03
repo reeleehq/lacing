@@ -11,10 +11,11 @@ and third-party libs that demand a float.
 
 ### Module Attributes
 
-| [`DEFAULT_RATE`](#lacing.time.DEFAULT_RATE)              | Default rate (ticks/second).                                                |
-|----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| [`RATIONAL_TIME_JSON_SCHEMA`](#lacing.time.RATIONAL_TIME_JSON_SCHEMA) | JSON Schema for the `RationalTime` wire shape `{"v": int, "r": int}`.       |
-| [`TIME_INTERVAL_JSON_SCHEMA`](#lacing.time.TIME_INTERVAL_JSON_SCHEMA) | JSON Schema for the `TimeInterval` wire shape `{"start": ..., "end": ...}`. |
+| [`DEFAULT_RATE`](#lacing.time.DEFAULT_RATE)              | Default rate (ticks/second).                                                      |
+|----------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| [`RATIONAL_TIME_JSON_SCHEMA`](#lacing.time.RATIONAL_TIME_JSON_SCHEMA) | JSON Schema for the `RationalTime` wire shape `{"v": int, "r": int}`.             |
+| [`TIME_INTERVAL_JSON_SCHEMA`](#lacing.time.TIME_INTERVAL_JSON_SCHEMA) | JSON Schema for the `TimeInterval` wire shape `{"start": ..., "end": ...}`.       |
+| [`QuantizeMode`](#lacing.time.QuantizeMode)              | nearest (ties to even), or the one at or before, or at or after, the exact value. |
 
 ### Classes
 
@@ -36,6 +37,16 @@ Default rate (ticks/second). LCM 1008000 covers all common video rates exactly.
 Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
 
 Raised when a rate or seconds conversion would lose precision.
+
+### lacing.time.QuantizeMode
+
+nearest (ties to even), or the one
+at or before, or at or after, the exact value.
+
+* **Type:**
+  How `from_seconds_lossy` picks a tick
+
+alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[‘round’, ‘floor’, ‘ceil’]
 
 ### lacing.time.RATIONAL_TIME_JSON_SCHEMA *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Any](https://docs.python.org/3/library/typing.html#typing.Any)]* *= {'additionalProperties': False, 'description': 'A point in time as v/r seconds. Both members are integers — never a float, never a JSON number with a fractional part.', 'properties': {'r': {'description': 'Rate in ticks per second. Strictly positive.', 'exclusiveMinimum': 0, 'type': 'integer'}, 'v': {'description': 'Tick count (may be negative).', 'type': 'integer'}}, 'required': ['v', 'r'], 'title': 'RationalTime', 'type': 'object'}*
 
@@ -171,6 +182,33 @@ Always `start <= end`; constructor raises `ValueError` otherwise.
 #### *property* duration *: [RationalTime](#lacing.time.RationalTime)*
 
 `end - start` at the same rate as `start`.
+
+#### *classmethod* from_seconds_lossy(start, end, , rate=24000, mode='round')
+
+Build from seconds, quantizing each end to a tick at `rate`.
+
+The interval form of [`RationalTime.from_seconds_lossy()`](#lacing.time.RationalTime.from_seconds_lossy), with
+its exact rule (the float’s own value as a `Fraction`, then
+`mode`: `"round"`, ties to even; `"floor"`; `"ceil"`), so
+every caller holding computed float timings quantizes the same way
+instead of each writing `round(x * rate)`, which rounds the float
+product and disagrees on inputs such as `0.0005`. Both ends use
+`mode`, which keeps `start <= end` and puts the shared edge of two
+adjacent windows on one tick; a window shorter than a tick can collapse
+to a point. Use `from_seconds()` when a lossy conversion should be
+an error.
+
+### Examples
+
+```pycon
+>>> TimeInterval.from_seconds_lossy(3.48, 4.0, rate=1000)
+TimeInterval(RationalTime(3480, 1000), RationalTime(4000, 1000))
+>>> TimeInterval.from_seconds_lossy("0.1", "0.2", rate=3, mode="ceil").start.value
+1
+```
+
+* **Return type:**
+  [`TimeInterval`](#lacing.time.TimeInterval)
 
 #### *classmethod* from_wire(d)
 

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=97e62c01"></script>
+    <script src="../../_static/documentation_options.js?v=7ffc8fc3"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.87" />
+  <meta name="docsearch:version" content="0.0.88" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -785,14 +785,18 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotated</span><span class="p">,</span> <span class="n">Literal</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseModel</span><span class="p">,</span>
     <span class="n">Field</span><span class="p">,</span>
     <span class="n">StrictBool</span><span class="p">,</span>
+    <span class="n">StrictInt</span><span class="p">,</span>
+    <span class="n">StrictStr</span><span class="p">,</span>
+    <span class="n">StringConstraints</span><span class="p">,</span>
     <span class="n">field_validator</span><span class="p">,</span>
     <span class="n">model_serializer</span><span class="p">,</span>
+    <span class="n">model_validator</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Provenance</span><span class="p">,</span> <span class="n">ProvenanceRef</span>
@@ -837,6 +841,113 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_refuse_blank</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``value`` unless it is blank text: ``""`` is neither "unknown" (``None``)</span>
+<span class="sd">    nor a statement, so a blank string may not stand in for one nobody made."""</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"must be None or non-blank text, not an empty string"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="n">REVENUE_CAP</span> <span class="o">=</span> <span class="s2">"revenue_cap"</span>
+<span class="sd">"""A :class:`Restriction` kind: use is allowed only below an annual revenue,</span>
+<span class="sd">given as ``usd`` (a positive int), e.g. a model licence's USD 1,000,000 cap."""</span>
+
+<span class="n">TERRITORY_EXCLUDED</span> <span class="o">=</span> <span class="s2">"territory_excluded"</span>
+<span class="sd">"""A :class:`Restriction` kind: use is not allowed in the territories listed in</span>
+<span class="sd">``codes`` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such</span>
+<span class="sd">as ``"EU"``, recorded verbatim)."""</span>
+
+
+<span class="n">_NonBlankStr</span> <span class="o">=</span> <span class="n">Annotated</span><span class="p">[</span><span class="n">StrictStr</span><span class="p">,</span> <span class="n">StringConstraints</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">"\S"</span><span class="p">)]</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_RevenueCapParams</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""The parameters of a :data:`REVENUE_CAP` restriction."""</span>
+
+    <span class="n">usd</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span><span class="n">StrictInt</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">)]</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_TerritoryExcludedParams</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""The parameters of a :data:`TERRITORY_EXCLUDED` restriction."""</span>
+
+    <span class="n">codes</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">_NonBlankStr</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="n">_KNOWN_RESTRICTION_PARAMS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">REVENUE_CAP</span><span class="p">:</span> <span class="n">_RevenueCapParams</span><span class="p">,</span>
+    <span class="n">TERRITORY_EXCLUDED</span><span class="p">:</span> <span class="n">_TerritoryExcludedParams</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="sd">"""The parameter model of each well-known :class:`Restriction` kind, validated</span>
+<span class="sd">on construction; a kind not listed here is recorded as given."""</span>
+
+
+<div class="viewcode-block" id="Restriction">
+<a class="viewcode-back" href="../../_autosummary/lacing.artifact.html#lacing.Restriction">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Restriction</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""One usage restriction that a licence code does not imply (lacing#106).</span>
+
+<span class="sd">    A ``kind``, the ``terms`` that impose it, and the kind's own parameters as</span>
+<span class="sd">    further fields. For example a CC BY sound edited with a model whose</span>
+<span class="sd">    licence caps revenue::</span>
+
+<span class="sd">        Rights(provider="freesound", license="CC-BY-4.0", restrictions=[</span>
+<span class="sd">            Restriction(kind=REVENUE_CAP, usd=1_000_000, terms="stability-community"),</span>
+<span class="sd">            Restriction(kind=TERRITORY_EXCLUDED, codes=["EU", "GB", "KR"]),</span>
+<span class="sd">        ])</span>
+
+<span class="sd">    ``kind`` is an open vocabulary, like ``Rights.license``: lacing records a</span>
+<span class="sd">    restriction and never classifies it. The well-known kinds</span>
+<span class="sd">    (:data:`REVENUE_CAP`, :data:`TERRITORY_EXCLUDED`) have their parameters</span>
+<span class="sd">    checked; any other kind is kept as given. **A consumer that does not know</span>
+<span class="sd">    a kind must treat the artifact as not cleared**, never skip the</span>
+<span class="sd">    restriction.</span>
+
+<span class="sd">    &gt;&gt;&gt; Restriction(kind=REVENUE_CAP, usd=1_000_000).usd</span>
+<span class="sd">    1000000</span>
+<span class="sd">    &gt;&gt;&gt; Restriction(kind=REVENUE_CAP, usd="lots")</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">    ...</span>
+<span class="sd">    pydantic_core._pydantic_core.ValidationError: 1 validation error for Restriction</span>
+<span class="sd">    ...</span>
+<span class="sd">    """</span>
+
+    <span class="n">model_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"frozen"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"extra"</span><span class="p">:</span> <span class="s2">"allow"</span><span class="p">}</span>
+
+    <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="o">...</span><span class="p">,</span>
+        <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"What is restricted, e.g. 'revenue_cap', 'territory_excluded'. "</span>
+            <span class="s2">"Open vocabulary: an unknown kind means not cleared."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">terms</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"The terms that impose it, e.g. 'stability-community'."</span>
+    <span class="p">)</span>
+
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"kind"</span><span class="p">,</span> <span class="s2">"terms"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_no_blank_text</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_refuse_blank</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_known_kind</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Restriction"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Validate a well-known kind's parameters and store them normalised</span>
+<span class="sd">        (``codes`` becomes a tuple), so a list-built and a tuple-built record</span>
+<span class="sd">        are equal, a record equals its JSON round-trip, and none mutates.</span>
+
+<span class="sd">        Parameters beyond the kind's model are kept unchecked (the params</span>
+<span class="sd">        models ignore them): a restriction is an open record, and a newer</span>
+<span class="sd">        writer may add a parameter an older reader does not know."""</span>
+        <span class="n">params_model</span> <span class="o">=</span> <span class="n">_KNOWN_RESTRICTION_PARAMS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kind</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">params_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">params_model</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__pydantic_extra__</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__pydantic_extra__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">model_dump</span><span class="p">())</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+
 <div class="viewcode-block" id="Rights">
 <a class="viewcode-back" href="../../_autosummary/lacing.artifact.html#lacing.Rights">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Rights</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
@@ -866,6 +977,13 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">      a third-party image carries no ``Rights`` of its own; its obligations</span>
 <span class="sd">      travel through ``provenance.was_derived_from`` and are rolled up by the</span>
 <span class="sd">      consumer. ``rights is None`` on a derivative is *not* a clearance.</span>
+
+<span class="sd">    - ``restrictions`` carries what a licence code cannot: a revenue cap, an</span>
+<span class="sd">      excluded territory (:class:`Restriction`). Consumers classify by</span>
+<span class="sd">      ``license`` and enforce every restriction on top.</span>
+
+<span class="sd">    ``model_copy(update=...)`` skips validation (pydantic's rule); build a new</span>
+<span class="sd">    ``Rights`` to change a field.</span>
 
 <span class="sd">    ``provider`` is required, so an empty ``Rights()`` cannot exist: an</span>
 <span class="sd">    artifact either has no record (we made it) or says where it came from.</span>
@@ -914,6 +1032,13 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"not stated. Strict: a string like 'yes' is refused, not coerced."</span>
         <span class="p">),</span>
     <span class="p">)</span>
+    <span class="n">restrictions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Restriction</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="p">(),</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"Usage restrictions on top of the licence (a revenue cap, excluded "</span>
+            <span class="s2">"territories), each a Restriction. Empty means none recorded."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
 
     <span class="nd">@field_validator</span><span class="p">(</span>
         <span class="s2">"provider"</span><span class="p">,</span>
@@ -928,11 +1053,18 @@ window.runMermaid = runMermaid;</script>
     <span class="p">)</span>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_no_blank_text</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="c1"># "" is neither "unknown" (None) nor a licence; refuse it rather than</span>
-        <span class="c1"># let a blank string stand in for a statement nobody made.</span>
-        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"must be None or non-blank text, not an empty string"</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">value</span></div>
+        <span class="k">return</span> <span class="n">_refuse_blank</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@model_serializer</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"wrap"</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_omit_empty_restrictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Leave ``restrictions`` out of the dump when there are none, so a</span>
+<span class="sd">        reader built before the field existed (``Rights`` is ``extra="forbid"``)</span>
+<span class="sd">        still reads every record without one, as ``Artifact`` does for</span>
+<span class="sd">        ``rights``. A missing key loads as ``()``."""</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">handler</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"restrictions"</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"restrictions"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div>
 
 
 

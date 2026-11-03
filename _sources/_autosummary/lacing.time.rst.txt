@@ -11,6 +11,7 @@ lacing.time
       DEFAULT_RATE
       RATIONAL_TIME_JSON_SCHEMA
       TIME_INTERVAL_JSON_SCHEMA
+      QuantizeMode
    
    .. rubric:: Classes
 
