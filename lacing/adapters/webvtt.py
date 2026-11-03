@@ -254,7 +254,7 @@ def dump(
         store: Source store. Only annotations from ``tier`` (default: all
             tiers) with a time interval (any reference kind) and readable
             text (:func:`lacing.adapters._common.display_text`: ``text``,
-            else ``title``, else ``name``) are emitted, sorted by start then
+            else ``title``) are emitted, sorted by start then
             end.
         target: Output path. If None, returns bytes (UTF-8).
         tier: Restrict export to this tier. None = export all annotations.

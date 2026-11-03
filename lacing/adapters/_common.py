@@ -8,11 +8,12 @@ What several adapters need, whatever the format, lives here once:
 - :func:`iter_with_media_intervals`: the same, restricted to ``MediaRef``
   references (ELAN EAF, JAMS, OpenTimelineIO, Label Studio);
 - :func:`display_text`: the readable text of an annotation body (``text``,
-  else ``title``, else ``name``), ``None`` for a metadata-only body; every
-  writer that puts an annotation's label or cue text in a file (SubRip,
-  WebVTT, LRC, TextGrid, ELAN, and the chapters title) uses it, so a chapter's
-  title is written and an episode's metadata is not written as an empty cue.
-  The podcast transcript does not: a segment is speech, so only ``text`` counts;
+  else ``title``), ``None`` for a metadata-only body. The cue writers (SubRip,
+  WebVTT, LRC) skip what has none, so a chapter's title becomes a cue and an
+  episode's metadata does not become an empty one; TextGrid and ELAN label
+  with it and still write an unlabelled annotation (an empty interval is
+  structure there); the chapters writer titles with it. The podcast
+  transcript does not use it: a segment is speech, so only ``text`` counts;
 - :func:`read_text`: a text ``source`` given as bytes, a path, or inline
   text, byte-order mark stripped (WebVTT, SubRip);
 - :func:`load_json`: a JSON ``source`` given as bytes, a path, or inline text
@@ -40,7 +41,7 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Callable, Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -54,26 +55,30 @@ _BOM = "\ufeff"
 _JSON_ENCODING = "utf-8"
 _JSON_INLINE_PREFIXES = ("{", "[")
 
-#: Body keys that hold an annotation's readable text, in preference order:
-#: a cue's or a word's ``text``, a chapter's ``title``, an entity's ``name``.
-DISPLAY_TEXT_KEYS: tuple[str, ...] = ("text", "title", "name")
+#: Body keys that hold an annotation's readable text, in preference order: a
+#: cue's or a word's ``text``, then a chapter's ``title``. Not ``name``: an
+#: OpenTimelineIO clip's ``name`` is a file name, not something to caption.
+DISPLAY_TEXT_KEYS: tuple[str, ...] = ("text", "title")
 
 
-def display_text(body: Any, *, keys: Iterable[str] = DISPLAY_TEXT_KEYS) -> str | None:
+def display_text(body: Any, *, keys: Sequence[str] = DISPLAY_TEXT_KEYS) -> str | None:
     """The readable text of an annotation ``body``: the value of the first of
-    ``keys`` it holds as a scalar (``None``, a mapping or a list is skipped),
-    as a string; ``None`` when it holds none, as a metadata-only body (a
-    podcast episode's fields, LRC ID tags) does, so writers skip it rather
-    than write an empty cue.
+    ``keys`` that holds a string or a number (never a bool), as a string;
+    ``None`` when none does, as for a metadata-only body (a podcast episode's
+    fields, LRC ID tags), so cue writers skip it rather than write an empty
+    cue.
 
-    A present but empty ``text`` is ``""``, not ``None``: an empty cue stays
-    a cue. Pass ``keys`` for another preference (the chapters writer puts
-    ``title`` first).
+    Under the first key, an empty string counts (an empty cue stays a cue, so
+    a file round-trips); under a later key, a blank string is passed over, so
+    an empty ``title`` never stands in for a missing ``text``. Pass ``keys``
+    for another preference (the chapters writer puts ``title`` first).
 
     >>> display_text({"text": "hi", "title": "T"})
     'hi'
-    >>> display_text({"title": None, "name": "Paris"})
-    'Paris'
+    >>> display_text({"text": None, "title": "T"})
+    'T'
+    >>> display_text({"text": ""}), display_text({"title": " "})
+    ('', None)
     >>> display_text({"version": "1.2.0", "fields": {"title": "Ep 7"}}) is None
     True
     >>> display_text({"text": "a", "title": "T"}, keys=("title", "text"))
@@ -81,10 +86,13 @@ def display_text(body: Any, *, keys: Iterable[str] = DISPLAY_TEXT_KEYS) -> str |
     """
     if not isinstance(body, Mapping):
         return None
-    for key in keys:
+    for position, key in enumerate(keys):
         value = body.get(key)
-        if value is not None and not isinstance(value, (Mapping, list)):
-            return str(value)
+        if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+            continue
+        text = str(value)
+        if position == 0 or text.strip():
+            return text
     return None
 
 

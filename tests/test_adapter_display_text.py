@@ -33,14 +33,21 @@ def chapters_store():
 @pytest.mark.parametrize(
     "body, expected",
     [
-        ({"text": "hi", "title": "T", "name": "N"}, "hi"),
-        ({"title": "T", "name": "N"}, "T"),
-        ({"text": None, "name": "N"}, "N"),
+        ({"text": "hi", "title": "T"}, "hi"),
+        ({"title": "T"}, "T"),
+        ({"text": None, "title": "T"}, "T"),
         ({"text": ""}, ""),  # an empty cue stays a cue
+        ({"text": "", "title": "T"}, ""),  # text present: it wins
+        ({"title": "", "text": None}, None),  # a blank later key is passed over
         ({"text": 5}, "5"),
+        ({"text": 1.5}, "1.5"),
+        ({"text": True}, None),
+        ({"text": ("a", "b")}, None),
+        ({"text": b"x"}, None),
+        ({"name": "A001_C003.mov", "kind": "clip"}, None),  # an OTIO clip
         ({"version": "1.2.0", "fields": {"title": "Ep"}}, None),
         ({"tags": [{"key": "ti", "value": "Song"}]}, None),
-        ({"name": {"first": "A"}}, None),
+        ({"title": {"first": "A"}}, None),
         ("not a mapping", None),
         (None, None),
     ],
@@ -50,9 +57,10 @@ def test_display_text(body, expected):
 
 
 def test_display_text_keys_set_the_preference():
-    body = {"text": "a", "title": "T"}
+    body = {"text": "a", "title": "T", "name": "N"}
     assert display_text(body, keys=("title", "text")) == "T"
-    assert display_text(body, keys=("name",)) is None
+    assert display_text(body, keys=("name",)) == "N"
+    assert display_text({"title": "", "text": "a"}, keys=("title", "text")) == ""
 
 
 def test_chapters_to_srt_writes_titles_and_skips_metadata(chapters_store):
@@ -82,6 +90,48 @@ def test_podcast_transcript_keeps_speech_only(chapters_store):
     assert doc["segments"] == []
 
 
-def test_webvtt_text_still_wins_and_round_trips():
-    vtt = "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nhello\n"
-    assert webvtt.dump(webvtt.load(vtt)).decode().strip().endswith("hello")
+def test_text_wins_over_title_in_a_cue():
+    from lacing.model import Annotation, MediaRef, Provenance
+    from lacing.store import MemoryStore
+    from lacing.time import RationalTime, TimeInterval
+
+    from uuid import uuid4
+
+    store = MemoryStore()
+    store.add(
+        Annotation(
+            id=uuid4(),
+            tier="t",
+            reference=MediaRef(
+                asset_id="a",
+                interval=TimeInterval(RationalTime(1, 1), RationalTime(2, 1)),
+            ),
+            body={"text": "spoken", "title": "a title"},
+            body_schema_uri="annot://schema/note/v1",
+            provenance=Provenance(
+                was_generated_by="user:t",
+                was_attributed_to="t",
+                generated_at_time=RationalTime(0, 1),
+            ),
+        )
+    )
+    for out in (srt.dump(store), webvtt.dump(store), lrc.dump(store)):
+        assert "spoken" in out.decode() and "a title" not in out.decode()
+
+
+def test_chapters_to_textgrid_labels_with_titles(chapters_store):
+    pytest.importorskip("praatio")
+    from lacing.adapters import textgrid
+
+    out = textgrid.dump(chapters_store, format="short_textgrid").decode()
+    for title in TITLES:
+        assert f'"{title}"' in out
+
+
+def test_chapters_to_eaf_labels_with_titles(chapters_store):
+    pytest.importorskip("pympi")
+    from lacing.adapters import eaf
+
+    out = eaf.dump(chapters_store).decode()
+    for title in TITLES:
+        assert f"<ANNOTATION_VALUE>{title}</ANNOTATION_VALUE>" in out

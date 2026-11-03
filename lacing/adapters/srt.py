@@ -266,7 +266,7 @@ def dump(
     Args:
         store: Source store. Every annotation with a time interval (any reference kind) and a
             readable text (:func:`lacing.adapters._common.display_text`:
-            ``text``, else ``title``, else ``name``) is emitted,
+            ``text``, else ``title``) is emitted,
             sorted by start then end, and numbered 1..N in that order.
         target: Output path. If None, returns bytes (UTF-8, no BOM, ``\\n``).
         tier: Restrict export to this tier. None = export all tiers.

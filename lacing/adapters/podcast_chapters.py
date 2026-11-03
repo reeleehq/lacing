@@ -110,7 +110,7 @@ from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import DISPLAY_TEXT_KEYS, display_text, iter_with_intervals
+from lacing.adapters._common import display_text, iter_with_intervals
 from lacing.adapters._podcast import (
     END_INFERRED_KEY,
     TIME_FIELDS,
@@ -133,7 +133,7 @@ GENERATED_BY = str(adapter_generator_id(ADAPTER_NAME, ADAPTER_VERSION))
 BODY_SCHEMA_URI = "annot://schema/podcast-chapter/v1"
 EPISODE_BODY_SCHEMA_URI = "annot://schema/podcast-chapters-episode/v1"
 # A chapter from another format is titled by its title first, then its text.
-_TITLE_KEYS = ("title", *(k for k in DISPLAY_TEXT_KEYS if k != "title"))
+_TITLE_KEYS = ("title", "text")
 DEFAULT_TIER_NAME = "chapters"
 DEFAULT_EPISODE_TIER_NAME = "episode"
 DEFAULT_ASSET_ID = "podcast-chapters:unspecified"
