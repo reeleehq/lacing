@@ -968,6 +968,19 @@ def test_interrupted_writes_lists_only_regular_spool_files(tmp_path):
     assert [p.name for p in store.interrupted_writes()] == [".blob-abc.part"]
 
 
+def test_interrupted_writes_raises_when_a_root_cannot_be_listed(tmp_path):
+    """Nothing known means nothing to delete: a root that exists but cannot be
+    listed raises rather than reporting no interrupted writes."""
+    import shutil
+
+    store = ArtifactStore.from_directory(tmp_path)
+    blobs = Path(store.blobs.rootdir)
+    shutil.rmtree(blobs, ignore_errors=True)
+    blobs.write_bytes(b"")  # the blob root is a file
+    with pytest.raises(OSError):
+        store.interrupted_writes()
+
+
 def test_interrupted_writes_is_empty_off_the_filesystem():
     assert ArtifactStore.in_memory().interrupted_writes() == []
     assert ArtifactStore(catalog={}).interrupted_writes() == []
