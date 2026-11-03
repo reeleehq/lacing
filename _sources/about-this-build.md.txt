@@ -5,7 +5,7 @@ orphan: true
 
 # About this build
 
-This documentation was built on **2026-11-03 12:32 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/acccad142564a9ce41532b1f23d5696dc1619127"><code>acccad1</code></a> on branch <code>main</code>, for **lacing 0.0.91** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-03 12:45 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/0ae38067ad6155d99d18a50c224507773b719300"><code>0ae3806</code></a> on branch <code>main</code>, for **lacing 0.0.93** (from <code>pyproject.toml</code>).
 
 :::{note}
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -15,7 +15,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 | | |
 |---|---|
-| Commit | <a href="https://github.com/reeleehq/lacing/commit/acccad142564a9ce41532b1f23d5696dc1619127"><code>acccad142564a9ce41532b1f23d5696dc1619127</code></a> |
+| Commit | <a href="https://github.com/reeleehq/lacing/commit/0ae38067ad6155d99d18a50c224507773b719300"><code>0ae38067ad6155d99d18a50c224507773b719300</code></a> |
 | Branch | <code>main</code> |
 | Tags at this commit | none |
 | Working tree | clean |
@@ -26,9 +26,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 | | |
 |---|---|
 | Repository | <code>reeleehq/lacing</code> |
-| Run | <a href="https://github.com/reeleehq/lacing/actions/runs/41634624301">41634624301</a> |
+| Run | <a href="https://github.com/reeleehq/lacing/actions/runs/41635594774">41635594774</a> |
 | Ref | <code>refs/heads/main</code> |
-| Event commit | <code>4276ba7b5d45072f1cd4204c127669423a738cd4</code> (in the history of the built commit) |
+| Event commit | <code>acccad142564a9ce41532b1f23d5696dc1619127</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -37,7 +37,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 | epythet | 0.2.22 |
 | Sphinx | 9.1.1 |
 | docutils | 0.22.4 |
-| Python | 3.12.15 |
+| Python | 3.12.16 |
 
 ## Configuration as resolved
 
@@ -53,13 +53,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.91/">0.0.91</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.93/">0.0.93</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout acccad142564a9ce41532b1f23d5696dc1619127
+git checkout 0ae38067ad6155d99d18a50c224507773b719300
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
