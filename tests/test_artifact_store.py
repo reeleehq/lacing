@@ -230,6 +230,67 @@ def test_from_directory_catalog_delete_func_is_the_catalogs_delete_policy(
     assert not path.exists()  # final, not moved to the OS trash
 
 
+# -- from_directory(create=False): nothing on disk until a write (lacing#155) --
+
+
+def _tree(root: Path) -> list[str]:
+    return (
+        sorted(str(p.relative_to(root)) for p in root.rglob("*"))
+        if root.exists()
+        else []
+    )
+
+
+def test_a_lazy_store_creates_nothing_and_reads_as_empty(tmp_path: Path):
+    root = tmp_path / "x"
+    store = ArtifactStore.from_directory(root, create=False)
+    missing = "0" * 64
+    assert list(store) == [] and len(store) == 0 and "rec" not in store
+    assert store.index() == {} and store.count_refs(missing) == 0
+    assert list(store.iter_blobs()) == [] and store.interrupted_writes() == []
+    assert not store.has_blob(missing) and store.blob_path(missing) is None
+    assert store.get_blob(missing) is None and store.blob_location(missing) is None
+    with pytest.raises(KeyError):
+        store["rec"]
+    assert not root.exists()  # not even the root, after every read
+
+
+def test_a_lazy_stores_first_save_lays_out_what_it_needs(tmp_path: Path):
+    root = tmp_path / "x"
+    store = ArtifactStore.from_directory(root, create=False)
+    art = _artifact()
+    content_hash = store.save(art.asset_id, art, data=b"png-bytes")
+    assert _tree(root) == [
+        "blobs",
+        f"blobs/{content_hash}",
+        "catalog",
+        f"catalog/{art.asset_id}.json",
+    ]
+    reopened = ArtifactStore.from_directory(root, create=False)
+    assert reopened[art.asset_id] == art
+    assert reopened.get_blob(content_hash) == b"png-bytes"
+    assert reopened.count_refs(content_hash) == 1
+
+
+@pytest.mark.parametrize(
+    "write, made",
+    [
+        (lambda s: s.save("rec", _artifact()), "catalog"),
+        (lambda s: s.put_blob(b"bytes"), "blobs"),
+        (lambda s: s.put_blob_stream([b"by", b"tes"]), "blobs"),
+    ],
+)
+def test_a_lazy_store_makes_only_the_folder_a_write_needs(tmp_path: Path, write, made):
+    root = tmp_path / "x"
+    write(ArtifactStore.from_directory(root, create=False))
+    assert [p.name for p in root.iterdir()] == [made]
+
+
+def test_from_directory_creates_both_folders_by_default(tmp_path: Path):
+    ArtifactStore.from_directory(tmp_path / "x")
+    assert _tree(tmp_path / "x") == ["blobs", "catalog"]
+
+
 # -- blob reads: containment (lacing#50) --------------------------------------
 #
 # ``from_directory(root)`` keeps blobs in ``root / "blobs"``, so an escaping

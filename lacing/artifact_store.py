@@ -66,7 +66,7 @@ from typing import Any, NamedTuple
 
 from pydantic import BaseModel, TypeAdapter
 
-from dol import Files, filt_iter, wrap_kvs
+from dol import Files, filt_iter, mk_dirs_if_missing, wrap_kvs
 from dol.atomic import atomic_write, interrupted_writes as dol_interrupted_writes
 
 from lacing.artifact import Artifact, hash_bytes
@@ -962,6 +962,7 @@ class ArtifactStore(MutableMapping):
         blob_delete_func: Callable[[str], Any] | None = None,
         catalog_delete_func: Callable[[str], Any] | None = None,
         on_write: WritePolicy | None = keep_rights,
+        create: bool = True,
     ) -> ArtifactStore:
         """An ArtifactStore persisted under ``root``.
 
@@ -980,7 +981,8 @@ class ArtifactStore(MutableMapping):
         :class:`_ContainedDirStore`.
 
         Args:
-            root: Directory to hold the store. Created if missing.
+            root: Directory to hold the store. Created if missing (see
+                ``create``).
             record_type: The pydantic model the catalog deserializes JSON into.
                 Defaults to :class:`~lacing.artifact.Artifact`; callers with
                 their own record schema pass their model here.
@@ -993,12 +995,24 @@ class ArtifactStore(MutableMapping):
                 a sensible default for records); pass ``os.remove`` for a
                 delete that is final.
             on_write: The write policy (see :class:`ArtifactStore`).
+            create: Lay out ``catalog/`` and ``blobs/`` now (the default).
+                ``False`` makes nothing until the first write, so a host that
+                opens stores over many roots leaves no empty folders behind
+                (lacing#155): a missing folder reads as empty, and each write
+                makes the folder it needs.
+
+        >>> import tempfile
+        >>> root = Path(tempfile.mkdtemp()) / "lazy"
+        >>> store = ArtifactStore.from_directory(root, create=False)
+        >>> root.exists(), list(store.catalog)
+        (False, [])
         """
         root = Path(root)
         catalog_dir = root / "catalog"
         blob_dir = root / "blobs"
-        catalog_dir.mkdir(parents=True, exist_ok=True)
-        blob_dir.mkdir(parents=True, exist_ok=True)
+        if create:
+            catalog_dir.mkdir(parents=True, exist_ok=True)
+            blob_dir.mkdir(parents=True, exist_ok=True)
 
         catalog = wrap_kvs(
             filt_iter(
@@ -1014,7 +1028,9 @@ class ArtifactStore(MutableMapping):
             data_of_obj=lambda record: record.model_dump_json(indent=2).encode("utf-8"),
             obj_of_data=lambda raw: record_type.model_validate_json(raw),
         )
-        blobs = Files(str(blob_dir), delete_func=blob_delete_func)
+        # dol's Files raises KeyError writing into a missing folder; the catalog
+        # (_ContainedDirStore) and the spooled writes make theirs already.
+        blobs = mk_dirs_if_missing(Files)(str(blob_dir), delete_func=blob_delete_func)
         return cls(catalog=catalog, blobs=blobs, on_write=on_write)
 
     def count_refs(self, content_hash: str) -> int:
