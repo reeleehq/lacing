@@ -404,6 +404,37 @@ class TimeInterval:
             RationalTime.from_seconds(end, rate=rate),
         )
 
+    @classmethod
+    def from_seconds_lossy(
+        cls,
+        start: float | Fraction | str | int,
+        end: float | Fraction | str | int,
+        *,
+        rate: int = DEFAULT_RATE,
+        mode: str = "round",
+    ) -> "TimeInterval":
+        """Build from seconds, quantizing each end to a tick at ``rate``.
+
+        The interval form of :meth:`RationalTime.from_seconds_lossy`, with
+        its exact rule (the float's own value as a ``Fraction``, then
+        ``mode``: ``"round"``, ties to even; ``"floor"``; ``"ceil"``), so
+        every caller holding computed float timings quantizes the same way
+        instead of each writing ``round(x * rate)``, which rounds the float
+        product and disagrees on inputs such as ``0.0005``. Both ends use
+        ``mode``, which keeps ``start <= end``. Use :meth:`from_seconds` when
+        a lossy conversion should be an error.
+
+        Examples:
+            >>> TimeInterval.from_seconds_lossy(3.48, 4.0, rate=1000)
+            TimeInterval(RationalTime(3480, 1000), RationalTime(4000, 1000))
+            >>> TimeInterval.from_seconds_lossy("0.1", "0.2", rate=3, mode="ceil").start.value
+            1
+        """
+        return cls(
+            RationalTime.from_seconds_lossy(start, rate=rate, mode=mode),
+            RationalTime.from_seconds_lossy(end, rate=rate, mode=mode),
+        )
+
     def shift(self, by: RationalTime) -> "TimeInterval":
         return type(self)(self._start + by, self._end + by)
 

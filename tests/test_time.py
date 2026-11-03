@@ -174,6 +174,32 @@ class TestRationalTime:
 
 
 class TestTimeInterval:
+    def test_from_seconds_lossy_quantizes_what_from_seconds_refuses(self):
+        with pytest.raises(LossyTimeConversionError):
+            TimeInterval.from_seconds(3.48, 4.0, rate=1000)
+        i = TimeInterval.from_seconds_lossy(3.48, 4.0, rate=1000)
+        assert (i.start, i.end) == (RationalTime(3480, 1000), RationalTime(4000, 1000))
+
+    @pytest.mark.parametrize("x, tick", [(0.0005, 1), (0.0025, 3), (0.0055, 5)])
+    def test_from_seconds_lossy_uses_the_exact_rule(self, x, tick):
+        """The float's own value decides, not the rounded float product
+        (``round(0.0005 * 1000) == 0``): lacing#145."""
+        i = TimeInterval.from_seconds_lossy(x, x, rate=1000)
+        assert i.start == RationalTime(tick, 1000) == i.end
+        assert i.start == RationalTime.from_seconds_lossy(x, rate=1000)
+
+    @pytest.mark.parametrize("mode", ["round", "floor", "ceil"])
+    def test_from_seconds_lossy_mode_applies_to_both_ends(self, mode):
+        i = TimeInterval.from_seconds_lossy("0.1", "0.5", rate=3, mode=mode)
+        assert i.start == RationalTime.from_seconds_lossy("0.1", rate=3, mode=mode)
+        assert i.end == RationalTime.from_seconds_lossy("0.5", rate=3, mode=mode)
+
+    def test_from_seconds_lossy_reversed_and_bad_mode(self):
+        with pytest.raises(ValueError):
+            TimeInterval.from_seconds_lossy(2.0, 1.0)
+        with pytest.raises(ValueError):
+            TimeInterval.from_seconds_lossy(0, 1, mode="nearest")
+
     def test_construction(self):
         i = TimeInterval(RationalTime(0), RationalTime(24000))
         assert i.start == RationalTime(0)
