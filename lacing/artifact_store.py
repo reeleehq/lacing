@@ -59,6 +59,7 @@ import os
 import re
 import stat
 from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
@@ -998,8 +999,11 @@ class ArtifactStore(MutableMapping):
             create: Lay out ``catalog/`` and ``blobs/`` now (the default).
                 ``False`` makes nothing until the first write, so a host that
                 opens stores over many roots leaves no empty folders behind
-                (lacing#155): a missing folder reads as empty, and each write
-                makes the folder it needs.
+                (lacing#155): a missing folder reads as empty, each write
+                makes the folder it needs, and a failed write removes it
+                again. ``store.blobs`` is then a ``dol.mk_dirs_if_missing``
+                store, so a raw nested key (``store.blobs["a/b"]``) makes
+                ``blobs/a/``; keys leaving ``blobs/`` are still refused.
 
         >>> import tempfile
         >>> root = Path(tempfile.mkdtemp()) / "lazy"
@@ -1028,9 +1032,10 @@ class ArtifactStore(MutableMapping):
             data_of_obj=lambda record: record.model_dump_json(indent=2).encode("utf-8"),
             obj_of_data=lambda raw: record_type.model_validate_json(raw),
         )
-        # dol's Files raises KeyError writing into a missing folder; the catalog
+        # A bare Files raises KeyError writing into a missing folder; the catalog
         # (_ContainedDirStore) and the spooled writes make theirs already.
-        blobs = mk_dirs_if_missing(Files)(str(blob_dir), delete_func=blob_delete_func)
+        files = Files if create else mk_dirs_if_missing(Files)
+        blobs = files(str(blob_dir), delete_func=blob_delete_func)
         return cls(catalog=catalog, blobs=blobs, on_write=on_write)
 
     def count_refs(self, content_hash: str) -> int:
@@ -1511,17 +1516,11 @@ class _ContainedDirStore(MutableMapping):
             raise self._refuse(key, "names something that is not a regular file")
         # dol's Files does not create parent directories; ``target`` is already
         # resolved inside rootdir, so creating its parents cannot escape.
-        created = _missing_parents(Path(target))
         try:
-            Path(target).parent.mkdir(parents=True, exist_ok=True)
-            # Old record or new one, never a truncated one (lacing#118).
-            atomic_write(target, value)
+            with _dir_made(Path(target).parent):
+                # Old record or new one, never a truncated one (lacing#118).
+                atomic_write(target, value)
         except OSError as error:
-            for directory in created:  # deepest first; only what this call made
-                try:
-                    directory.rmdir()
-                except OSError:
-                    continue  # never made (e.g. name too long), or not empty
             raise self._refuse(key, f"cannot be written ({error})") from error
 
     def __delitem__(self, key: str) -> None:
@@ -1553,14 +1552,27 @@ def _catalog_filename(artifact_id: str) -> str:
     return f"{artifact_id}.json"
 
 
-def _missing_parents(path: Path) -> list[Path]:
-    """The ancestors of ``path`` that do not exist yet, deepest first."""
-    missing = []
-    for parent in path.parents:
-        if parent.exists():
+@contextmanager
+def _dir_made(directory: Path) -> Iterator[None]:
+    """Make ``directory`` (and its missing ancestors) for the write in the
+    ``with`` body; if the body, or the making, raises, remove again the ones
+    this call made that are still empty, deepest first, so a failed write
+    leaves no stray folder behind (lacing#155)."""
+    created = []
+    for missing in (directory, *directory.parents):
+        if missing.exists():
             break
-        missing.append(parent)
-    return missing
+        created.append(missing)
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        yield
+    except BaseException:
+        for made in created:
+            try:
+                made.rmdir()
+            except OSError:
+                continue  # never made (e.g. name too long), or not empty
+        raise
 
 
 _SPOOL_PREFIX, _SPOOL_SUFFIX = ".blob-", ".part"
@@ -1588,22 +1600,22 @@ def _spool_chunks_to_dir(chunks: Iterable[bytes], rootdir: Path) -> str:
     """
     import tempfile
 
-    rootdir.mkdir(parents=True, exist_ok=True)
     hasher = hashlib.sha256()
-    fd, tmp_path = tempfile.mkstemp(
-        dir=rootdir, prefix=_SPOOL_PREFIX, suffix=_SPOOL_SUFFIX
-    )
-    try:
-        with os.fdopen(fd, "wb") as spool:
-            for chunk in chunks:
-                hasher.update(chunk)
-                spool.write(chunk)
-        content_hash = hasher.hexdigest()
-        os.replace(tmp_path, rootdir / content_hash)
-    except BaseException:
+    with _dir_made(rootdir):
+        fd, tmp_path = tempfile.mkstemp(
+            dir=rootdir, prefix=_SPOOL_PREFIX, suffix=_SPOOL_SUFFIX
+        )
         try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise
+            with os.fdopen(fd, "wb") as spool:
+                for chunk in chunks:
+                    hasher.update(chunk)
+                    spool.write(chunk)
+            content_hash = hasher.hexdigest()
+            os.replace(tmp_path, rootdir / content_hash)
+        except BaseException:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
     return content_hash

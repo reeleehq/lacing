@@ -286,6 +286,45 @@ def test_a_lazy_store_makes_only_the_folder_a_write_needs(tmp_path: Path, write,
     assert [p.name for p in root.iterdir()] == [made]
 
 
+def _failing_chunks():
+    yield b"part"
+    raise RuntimeError("source died mid-stream")
+
+
+@pytest.mark.parametrize(
+    "write",
+    [
+        lambda s: s.put_blob_stream(_failing_chunks()),
+        lambda s: s.put_blob_stream([b"a", "not bytes"]),
+        lambda s: s.save("../escapes", _artifact()),
+        lambda s: s.save("dir/", _artifact()),
+    ],
+)
+def test_a_lazy_stores_failed_write_leaves_nothing_behind(tmp_path: Path, write):
+    root = tmp_path / "x"
+    with pytest.raises(Exception):
+        write(ArtifactStore.from_directory(root, create=False))
+    assert not root.exists()
+
+
+def test_a_failed_write_keeps_the_folders_it_did_not_make(tmp_path: Path):
+    store = ArtifactStore.from_directory(tmp_path / "x")
+    with pytest.raises(RuntimeError):
+        store.put_blob_stream(_failing_chunks())
+    assert _tree(tmp_path / "x") == ["blobs", "catalog"]
+
+
+def test_a_lazy_store_reads_and_deletes_like_an_empty_one(tmp_path: Path):
+    root = tmp_path / "x"
+    store = ArtifactStore.from_directory(root, create=False)
+    missing = "0" * 64
+    assert store.get("rec") is None and store.pop("rec", None) is None
+    with pytest.raises(KeyError):
+        list(store.iter_blob(missing))
+    store.clear()
+    assert not root.exists()
+
+
 def test_from_directory_creates_both_folders_by_default(tmp_path: Path):
     ArtifactStore.from_directory(tmp_path / "x")
     assert _tree(tmp_path / "x") == ["blobs", "catalog"]
