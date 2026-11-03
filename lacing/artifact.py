@@ -121,6 +121,14 @@ def hash_file(path: Path | str, *, chunk_size: int = 1 << 20) -> str:
     return h.hexdigest()
 
 
+def _refuse_blank(value: str | None) -> str | None:
+    """``value`` unless it is blank text: ``""`` is neither "unknown" (``None``)
+    nor a statement, so a blank string may not stand in for one nobody made."""
+    if value is not None and not value.strip():
+        raise ValueError("must be None or non-blank text, not an empty string")
+    return value
+
+
 REVENUE_CAP = "revenue_cap"
 """A :class:`Restriction` kind: use is allowed only below an annual revenue,
 given as ``usd`` (a positive int), e.g. a model licence's USD 1,000,000 cap."""
@@ -199,9 +207,7 @@ class Restriction(BaseModel):
     @field_validator("kind", "terms")
     @classmethod
     def _no_blank_text(cls, value: str | None) -> str | None:
-        if value is not None and not value.strip():
-            raise ValueError("must be None or non-blank text, not an empty string")
-        return value
+        return _refuse_blank(value)
 
     @model_validator(mode="after")
     def _check_known_kind(self) -> "Restriction":
@@ -212,7 +218,7 @@ class Restriction(BaseModel):
         Parameters beyond the kind's model are kept unchecked (the params
         models ignore them): a restriction is an open record, and a newer
         writer may add a parameter an older reader does not know."""
-        params_model = _KNOWN_RESTRICTION_PARAMS.get(self.kind)
+        params_model = _KNOWN_RESTRICTION_PARAMS.get(self.kind.strip())
         if params_model is not None:
             params = params_model.model_validate(self.__pydantic_extra__)
             self.__pydantic_extra__.update(params.model_dump())
@@ -322,11 +328,7 @@ class Rights(BaseModel):
     )
     @classmethod
     def _no_blank_text(cls, value: str | None) -> str | None:
-        # "" is neither "unknown" (None) nor a licence; refuse it rather than
-        # let a blank string stand in for a statement nobody made.
-        if value is not None and not value.strip():
-            raise ValueError("must be None or non-blank text, not an empty string")
-        return value
+        return _refuse_blank(value)
 
     @model_serializer(mode="wrap")
     def _omit_empty_restrictions(self, handler):

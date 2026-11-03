@@ -667,3 +667,10 @@ class TestRightsRestrictions:
         r = Restriction(kind="no_ai_training", scope="all", terms="tos-v3")
         assert r.model_dump() == {"kind": "no_ai_training", "terms": "tos-v3", "scope": "all"}
         assert Rights(provider="p", restrictions=[r]).restrictions == (r,)
+
+
+def test_a_padded_well_known_kind_is_still_checked():
+    import pydantic
+
+    with pytest.raises(pydantic.ValidationError):
+        Restriction(kind=" revenue_cap ", usd="lots")
