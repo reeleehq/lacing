@@ -1,0 +1,12 @@
+lacing.bodies.lyric\_line
+=========================
+
+.. automodule:: lacing.bodies.lyric_line
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      LyricLineBodyV1
+   

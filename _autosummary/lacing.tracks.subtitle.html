@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=38a06c88"></script>
+    <script src="../_static/documentation_options.js?v=9cd8e891"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.90" />
+  <meta name="docsearch:version" content="0.0.91" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -342,10 +342,12 @@
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.bodies.html">lacing.bodies</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.character_voice.html">lacing.bodies.character_voice</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.continuity_violation.html">lacing.bodies.continuity_violation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.lyric_line.html">lacing.bodies.lyric_line</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.named_entity.html">lacing.bodies.named_entity</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.reference_lock.html">lacing.bodies.reference_lock</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.review.html">lacing.bodies.review</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.review_candidate.html">lacing.bodies.review_candidate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.song_section.html">lacing.bodies.song_section</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.word.html">lacing.bodies.word</a></li>
 </ul>
 </details></li>
@@ -466,11 +468,11 @@ convenience: <code class="docutils literal notranslate"><span class="pre">lines_
 </dl>
 </li>
 </ul>
-<p>Sections and lines are not validated unless the caller registers validators
-for them: <code class="docutils literal notranslate"><span class="pre">register_subtitle_schemas</span></code> registers permissive ones. Words use
-the built-in <code class="docutils literal notranslate"><span class="pre">word/v1</span></code>, so wherever bodies are validated (<code class="docutils literal notranslate"><span class="pre">validate_body</span></code>,
-the server) a word’s <code class="docutils literal notranslate"><span class="pre">extra=</span></code> keys must be fields of that schema; use
-<a class="reference internal" href="#lacing.tracks.subtitle.SubtitleBuilder.add" title="lacing.tracks.subtitle.SubtitleBuilder.add"><code class="xref py py-meth docutils literal notranslate"><span class="pre">SubtitleBuilder.add()</span></code></a> with your own URI for anything else.</p>
+<p>All three are built-in body schemas (<a class="reference internal" href="lacing.bodies.html#module-lacing.bodies" title="lacing.bodies"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.bodies</span></code></a>), registered on
+import. Sections and lines are permissive (a caller’s <code class="docutils literal notranslate"><span class="pre">extra=</span></code> keys are
+kept); <code class="docutils literal notranslate"><span class="pre">word/v1</span></code> is strict, so wherever bodies are validated
+(<code class="docutils literal notranslate"><span class="pre">validate_body</span></code>, the server) a word’s <code class="docutils literal notranslate"><span class="pre">extra=</span></code> keys must be fields of that
+schema: use <a class="reference internal" href="#lacing.tracks.subtitle.SubtitleBuilder.add" title="lacing.tracks.subtitle.SubtitleBuilder.add"><code class="xref py py-meth docutils literal notranslate"><span class="pre">SubtitleBuilder.add()</span></code></a> with your own URI for anything else.</p>
 <p>Quick start:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">MemoryStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tracks.subtitle</span><span class="w"> </span><span class="kn">import</span> <span class="n">SubtitleBuilder</span><span class="p">,</span> <span class="n">SubtitleTrack</span>
@@ -497,7 +499,7 @@ the server) a word’s <code class="docutils literal notranslate"><span class="p
 <td><p>an inline reference for callers building outside the builder.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.tracks.subtitle.SUBTITLE_BODY_MODELS" title="lacing.tracks.subtitle.SUBTITLE_BODY_MODELS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SUBTITLE_BODY_MODELS</span></code></a></p></td>
-<td><p>The validators <a class="reference internal" href="#lacing.tracks.subtitle.register_subtitle_schemas" title="lacing.tracks.subtitle.register_subtitle_schemas"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_subtitle_schemas()</span></code></a> registers.</p></td>
+<td><p>The section and line schemas, registered on import of <a class="reference internal" href="lacing.bodies.html#module-lacing.bodies" title="lacing.bodies"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.bodies</span></code></a> (lacing#144).</p></td>
 </tr>
 </tbody>
 </table>
@@ -506,7 +508,7 @@ the server) a word’s <code class="docutils literal notranslate"><span class="p
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.tracks.subtitle.register_subtitle_schemas" title="lacing.tracks.subtitle.register_subtitle_schemas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_subtitle_schemas</span></code></a>()</p></td>
-<td><p>Register permissive body validators for the section and line URIs.</p></td>
+<td><p>Deprecated no-op: the section, line and word schemas are built-in bodies, registered when this module (or <a class="reference internal" href="lacing.bodies.html#module-lacing.bodies" title="lacing.bodies"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.bodies</span></code></a>) is imported.</p></td>
 </tr>
 </tbody>
 </table>
@@ -527,8 +529,8 @@ the server) a word’s <code class="docutils literal notranslate"><span class="p
 <dt class="sig sig-object py" id="lacing.tracks.subtitle.BUILT_IN_BODY_SCHEMAS">
 <span class="sig-prename descclassname"><span class="pre">lacing.tracks.subtitle.</span></span><span class="sig-name descname"><span class="pre">BUILT_IN_BODY_SCHEMAS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'annot://schema/lyric-line/v1':</span> <span class="pre">{'line_index':</span> <span class="pre">0,</span> <span class="pre">'section':</span> <span class="pre">'verse_1',</span> <span class="pre">'text':</span> <span class="pre">'I</span> <span class="pre">came</span> <span class="pre">down</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">river'},</span> <span class="pre">'annot://schema/song-section/v1':</span> <span class="pre">{'energy':</span> <span class="pre">'medium',</span> <span class="pre">'label':</span> <span class="pre">'verse_1',</span> <span class="pre">'mood':</span> <span class="pre">'wistful',</span> <span class="pre">'title':</span> <span class="pre">'verse</span> <span class="pre">1'},</span> <span class="pre">'annot://schema/word/v1':</span> <span class="pre">{'confidence':</span> <span class="pre">0.94,</span> <span class="pre">'line_index':</span> <span class="pre">0,</span> <span class="pre">'text':</span> <span class="pre">'river'}}</span></span><a class="headerlink" href="#lacing.tracks.subtitle.BUILT_IN_BODY_SCHEMAS" title="Link to this definition">#</a></dt>
 <dd><p>an inline reference for
-callers building outside the builder. Each validates against its schema
-(<code class="docutils literal notranslate"><span class="pre">SUBTITLE_BODY_MODELS</span></code>, or the built-in <code class="docutils literal notranslate"><span class="pre">word/v1</span></code>).</p>
+callers building outside the builder. Each validates against its built-in
+schema.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><em>Mapping</em> of body URI → minimal example body</p>
@@ -538,9 +540,10 @@ callers building outside the builder. Each validates against its schema
 
 <dl class="py data">
 <dt class="sig sig-object py" id="lacing.tracks.subtitle.SUBTITLE_BODY_MODELS">
-<span class="sig-prename descclassname"><span class="pre">lacing.tracks.subtitle.</span></span><span class="sig-name descname"><span class="pre">SUBTITLE_BODY_MODELS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#type" title="(in Python v3.15)"><span class="pre">type</span></a><span class="p"><span class="pre">[</span></span><span class="pre">BaseModel</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'annot://schema/lyric-line/v1':</span> <span class="pre">&lt;class</span> <span class="pre">'lacing.tracks.subtitle._LineBody'&gt;,</span> <span class="pre">'annot://schema/song-section/v1':</span> <span class="pre">&lt;class</span> <span class="pre">'lacing.tracks.subtitle._SectionBody'&gt;}</span></span><a class="headerlink" href="#lacing.tracks.subtitle.SUBTITLE_BODY_MODELS" title="Link to this definition">#</a></dt>
-<dd><p>The validators <a class="reference internal" href="#lacing.tracks.subtitle.register_subtitle_schemas" title="lacing.tracks.subtitle.register_subtitle_schemas"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_subtitle_schemas()</span></code></a> registers. Words are absent:
-<code class="docutils literal notranslate"><span class="pre">WORD_SCHEMA_URI</span></code> is the built-in <a class="reference internal" href="lacing.bodies.word.html#module-lacing.bodies.word" title="lacing.bodies.word"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.bodies.word</span></code></a> schema.</p>
+<span class="sig-prename descclassname"><span class="pre">lacing.tracks.subtitle.</span></span><span class="sig-name descname"><span class="pre">SUBTITLE_BODY_MODELS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#type" title="(in Python v3.15)"><span class="pre">type</span></a><span class="p"><span class="pre">[</span></span><span class="pre">BaseModel</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'annot://schema/lyric-line/v1':</span> <span class="pre">&lt;class</span> <span class="pre">'lacing.bodies.lyric_line.LyricLineBodyV1'&gt;,</span> <span class="pre">'annot://schema/song-section/v1':</span> <span class="pre">&lt;class</span> <span class="pre">'lacing.bodies.song_section.SongSectionBodyV1'&gt;}</span></span><a class="headerlink" href="#lacing.tracks.subtitle.SUBTITLE_BODY_MODELS" title="Link to this definition">#</a></dt>
+<dd><p>The section and line schemas, registered on import of <a class="reference internal" href="lacing.bodies.html#module-lacing.bodies" title="lacing.bodies"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.bodies</span></code></a>
+(lacing#144). Words use the built-in <code class="docutils literal notranslate"><span class="pre">word/v1</span></code> schema. Kept for callers of
+the 0.0.8x API; <code class="docutils literal notranslate"><span class="pre">lacing.schema.get_body_schema(uri)</span></code> is the general lookup.</p>
 </dd></dl>
 
 <dl class="py class">
@@ -672,12 +675,8 @@ whose <code class="docutils literal notranslate"><span class="pre">MediaRef.asse
 <dl class="py function">
 <dt class="sig sig-object py" id="lacing.tracks.subtitle.register_subtitle_schemas">
 <span class="sig-prename descclassname"><span class="pre">lacing.tracks.subtitle.</span></span><span class="sig-name descname"><span class="pre">register_subtitle_schemas</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/tracks/subtitle.html#register_subtitle_schemas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.tracks.subtitle.register_subtitle_schemas" title="Link to this definition">#</a></dt>
-<dd><p>Register permissive body validators for the section and line URIs.</p>
-<p>Calling this is <em>optional</em>; the builder works fine without
-registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later. The models are module-level,
-so calling it again is a no-op. Words need nothing: they use the
-built-in <code class="docutils literal notranslate"><span class="pre">word/v1</span></code> schema, which this leaves alone (lacing#122).</p>
+<dd><p>Deprecated no-op: the section, line and word schemas are built-in bodies,
+registered when this module (or <a class="reference internal" href="lacing.bodies.html#module-lacing.bodies" title="lacing.bodies"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.bodies</span></code></a>) is imported.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>

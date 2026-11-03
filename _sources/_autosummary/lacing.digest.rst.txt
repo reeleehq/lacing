@@ -12,6 +12,7 @@ lacing.digest
       BODY_FIELDS
       VALUE_DIGEST_SCHEME
       VALUE_DIGEST_SCHEMES
+      MAX_MIXED_FILLS
       BODY_DIGEST_SCHEME
    
    .. rubric:: Functions

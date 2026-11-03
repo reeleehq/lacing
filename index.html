@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="_static/documentation_options.js?v=38a06c88"></script>
+    <script src="_static/documentation_options.js?v=9cd8e891"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.90" />
+  <meta name="docsearch:version" content="0.0.91" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -431,10 +431,9 @@ trio over one audio asset, with float-second times and the
 </div>
 <p>The facade reuses <code class="docutils literal notranslate"><span class="pre">at_tier</span></code> / <code class="docutils literal notranslate"><span class="pre">by_tier</span></code> under the hood; anything you
 can build with it could also be hand-built with the raw API. Body
-schema URIs are conventional (<code class="docutils literal notranslate"><span class="pre">annot://schema/song-section/v1</span></code>,
-<code class="docutils literal notranslate"><span class="pre">lyric-line/v1</span></code>, <code class="docutils literal notranslate"><span class="pre">word/v1</span></code>). Words use lacing’s built-in <code class="docutils literal notranslate"><span class="pre">word/v1</span></code>
-schema; call <code class="docutils literal notranslate"><span class="pre">register_subtitle_schemas()</span></code> once if you also want
-Pydantic validation of sections and lines.</p>
+schemas (<code class="docutils literal notranslate"><span class="pre">annot://schema/song-section/v1</span></code>, <code class="docutils literal notranslate"><span class="pre">lyric-line/v1</span></code>, <code class="docutils literal notranslate"><span class="pre">word/v1</span></code>)
+are lacing built-in bodies, registered on import: sections and lines
+keep any extra fields you pass, words use the strict <code class="docutils literal notranslate"><span class="pre">word/v1</span></code>.</p>
 </section>
 <section id="what-s-in-the-core">
 <h2>What’s in the core<a class="headerlink" href="#what-s-in-the-core" title="Link to this heading">#</a></h2>
@@ -812,7 +811,7 @@ cache at once.</p>
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-03 12:08 UTC from <a href="https://github.com/reeleehq/lacing/commit/2a4bf961b0ff9ba1b376760552399eae9a3e8ad9">2a4bf96</a> (main) · lacing 0.0.90 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-03 12:32 UTC from <a href="https://github.com/reeleehq/lacing/commit/acccad142564a9ce41532b1f23d5696dc1619127">acccad1</a> (main) · lacing 0.0.91 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               

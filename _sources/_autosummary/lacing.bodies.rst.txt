@@ -12,8 +12,10 @@ lacing.bodies
 
    character_voice
    continuity_violation
+   lyric_line
    named_entity
    reference_lock
    review
    review_candidate
+   song_section
    word

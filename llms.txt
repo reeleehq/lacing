@@ -28,10 +28,12 @@
 - [lacing.bodies](_autosummary/lacing.bodies.html.md): Built-in body schemas.
 - [lacing.bodies.character_voice](_autosummary/lacing.bodies.character_voice.html.md): Body schema for per-character voice profiles — the shared voice vocabulary.
 - [lacing.bodies.continuity_violation](_autosummary/lacing.bodies.continuity_violation.html.md): Body schema for continuity violations — generic, cross-media.
+- [lacing.bodies.lyric_line](_autosummary/lacing.bodies.lyric_line.html.md): Body schema for one line of lyrics or subtitles on a lines tier.
 - [lacing.bodies.named_entity](_autosummary/lacing.bodies.named_entity.html.md): Body schemas for named-entity (NER) annotations.
 - [lacing.bodies.reference_lock](_autosummary/lacing.bodies.reference_lock.html.md): Body schema for a &#42;locked reference&#42; — a first-class “this is canonical”.
 - [lacing.bodies.review](_autosummary/lacing.bodies.review.html.md): Body schema for review notes — the edit-loop’s communication channel.
 - [lacing.bodies.review_candidate](_autosummary/lacing.bodies.review_candidate.html.md): Body schema for review &#42;candidates&#42; — “this needs a human’s eyes”.
+- [lacing.bodies.song_section](_autosummary/lacing.bodies.song_section.html.md): Body schema for a section of a song (intro, verse, chorus) on a sections tier.
 - [lacing.bodies.word](_autosummary/lacing.bodies.word.html.md): Body schema for word-level annotations (e.g., transcription, forced alignment).
 - [lacing.cli](_autosummary/lacing.cli.html.md): Command-line interface for lacing.
 - [lacing.derived](_autosummary/lacing.derived.html.md): Which body fields are &#42;derived&#42; from another field of the same object.
@@ -60,7 +62,7 @@
 - [lacing.tracks.subtitle](_autosummary/lacing.tracks.subtitle.html.md): Subtitle / lyric / caption tracks — the (sections, lines, words) trio.
 - [lacing.worker](_autosummary/lacing.worker.html.md): Optional Arq integration — queue processors through Redis.
 - [For AI agents](ai-agents.html.md): &#96;lacing&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-03 12:08 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-03 12:32 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
 
 ## Optional
 

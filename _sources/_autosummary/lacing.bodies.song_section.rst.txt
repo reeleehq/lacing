@@ -1,0 +1,12 @@
+lacing.bodies.song\_section
+===========================
+
+.. automodule:: lacing.bodies.song_section
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      SongSectionBodyV1
+   

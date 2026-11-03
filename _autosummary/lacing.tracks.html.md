@@ -15,8 +15,8 @@ the common case ergonomic and consistent.
 
 ### Functions
 
-| [`register_subtitle_schemas`](#lacing.tracks.register_subtitle_schemas)()   | Register permissive body validators for the section and line URIs.   |
-|--------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| [`register_subtitle_schemas`](#lacing.tracks.register_subtitle_schemas)()   | Deprecated no-op: the section, line and word schemas are built-in bodies, registered when this module (or [`lacing.bodies`](lacing.bodies.html.md#module-lacing.bodies)) is imported.   |
+|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 ### Classes
 
@@ -116,13 +116,8 @@ Words that overlap `[start_s, end_s]`.
 
 ### lacing.tracks.register_subtitle_schemas()
 
-Register permissive body validators for the section and line URIs.
-
-Calling this is *optional*; the builder works fine without
-registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later. The models are module-level,
-so calling it again is a no-op. Words need nothing: they use the
-built-in `word/v1` schema, which this leaves alone (lacing#122).
+Deprecated no-op: the section, line and word schemas are built-in bodies,
+registered when this module (or [`lacing.bodies`](lacing.bodies.html.md#module-lacing.bodies)) is imported.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)

@@ -26,10 +26,12 @@
 - [lacing.bodies](lacing.bodies.html.md): Built-in body schemas.
 - [lacing.bodies.character_voice](lacing.bodies.character_voice.html.md): Body schema for per-character voice profiles — the shared voice vocabulary.
 - [lacing.bodies.continuity_violation](lacing.bodies.continuity_violation.html.md): Body schema for continuity violations — generic, cross-media.
+- [lacing.bodies.lyric_line](lacing.bodies.lyric_line.html.md): Body schema for one line of lyrics or subtitles on a lines tier.
 - [lacing.bodies.named_entity](lacing.bodies.named_entity.html.md): Body schemas for named-entity (NER) annotations.
 - [lacing.bodies.reference_lock](lacing.bodies.reference_lock.html.md): Body schema for a &#42;locked reference&#42; — a first-class “this is canonical”.
 - [lacing.bodies.review](lacing.bodies.review.html.md): Body schema for review notes — the edit-loop’s communication channel.
 - [lacing.bodies.review_candidate](lacing.bodies.review_candidate.html.md): Body schema for review &#42;candidates&#42; — “this needs a human’s eyes”.
+- [lacing.bodies.song_section](lacing.bodies.song_section.html.md): Body schema for a section of a song (intro, verse, chorus) on a sections tier.
 - [lacing.bodies.word](lacing.bodies.word.html.md): Body schema for word-level annotations (e.g., transcription, forced alignment).
 - [lacing.cli](lacing.cli.html.md): Command-line interface for lacing.
 - [lacing.derived](lacing.derived.html.md): Which body fields are &#42;derived&#42; from another field of the same object.

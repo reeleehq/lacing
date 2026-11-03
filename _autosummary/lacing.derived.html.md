@@ -61,6 +61,8 @@ Field names and aliases are both read as spellings of a field, as in
 | [`drop_paths`](#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`; return whether any was there to delete.                                                                                                                                                                                     |
 | [`fill_paths`](#lacing.derived.fill_paths)(value, fills) | Set, in place, each entry of the JSON-like `value` named by a path of `fills` to that path's value (keys that are absent stay absent); return whether any changed.                                                                                                                                   |
 | [`null_paths`](#lacing.derived.null_paths)(value, paths) | Set, in place, the entries of the JSON-like `value` named by `paths` to `None` (keys that are absent stay absent); return whether any changed.                                                                                                                                                       |
+| [`occurrences`](#lacing.derived.occurrences)(value, path) | The addresses (key and list-index steps) of every existing entry `path` names in the JSON-like `value`, in document order: the entries [`drop_paths()`](#lacing.derived.drop_paths) and [`fill_paths()`](#lacing.derived.fill_paths) would edit.                   |
+| [`same_json`](#lacing.derived.same_json)(a, b)          | Whether two values are equal as JSON (see `_json_key()`): `0` is not `False`; values that are not JSON (a `datetime`) compare by `==` instead of raising.                                                                                                                                            |
 
 ### Classes
 
@@ -152,6 +154,29 @@ whether any changed. Each entry gets its own deep copy of the value.
 
 Set, in place, the entries of the JSON-like `value` named by `paths` to
 `None` (keys that are absent stay absent); return whether any changed.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.derived.occurrences(value, path)
+
+The addresses (key and list-index steps) of every existing entry `path`
+names in the JSON-like `value`, in document order: the entries
+[`drop_paths()`](#lacing.derived.drop_paths) and [`fill_paths()`](#lacing.derived.fill_paths) would edit.
+
+```pycon
+>>> occurrences({"images": [{"id": "h"}, {}, {"id": None}]}, ("images", ANY_ITEM, "id"))
+[('images', 0, 'id'), ('images', 2, 'id')]
+```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)]
+
+### lacing.derived.same_json(a, b)
+
+Whether two values are equal as JSON (see `_json_key()`): `0` is
+not `False`; values that are not JSON (a `datetime`) compare by `==`
+instead of raising. Shared with [`lacing.digest`](lacing.digest.html.md#module-lacing.digest).
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)

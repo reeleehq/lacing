@@ -1654,13 +1654,14 @@ Bases: [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError)
 
 Raised when an annotation’s body_schema_uri has no registered model.
 
-### lacing.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
+### lacing.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
 
 Every digest [`value_digest_matches()`](#lacing.value_digest_matches) accepts for `annotation`.
 
 For a verifier that memoizes per annotation and scheme and checks many
 recorded digests against one set; `value_digest_matches` stays the lazy
-one-off check. `resolve_derived` is as in [`annotation_value_digest()`](#lacing.annotation_value_digest).
+one-off check. `resolve_derived` and `max_mixed_fills` are as in
+[`value_digest_matches()`](#lacing.value_digest_matches).
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -2435,7 +2436,7 @@ or [`UnknownBodySchemaError`](#lacing.UnknownBodySchemaError) if the URI isn’t
 * **Return type:**
   `BaseModel`
 
-### lacing.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
+### lacing.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
 
 Whether `recorded`, a value digest a trace stored under `scheme`, still
 describes `annotation`’s value.
@@ -2463,6 +2464,14 @@ pre-fill values. Dropping and filling touch nothing outside `D`, so either
 way the two bodies agree outside `D`, which is exactly what the `v2`
 digest already accepts. `resolve_derived` is as in
 [`annotation_value_digest()`](#lacing.annotation_value_digest).
+
+Derived fields filled one occurrence at a time (each image of a panel)
+leave bodies recorded in **mixed** states: one occurrence filled, another
+`null`, a third absent. Those are accepted too, each occurrence in any of
+its states (lacing#152), and for the same reason: every mix agrees with the
+current body outside `D`. They are tried last, and only while the number
+of combinations is at most `max_mixed_fills` (`MAX_MIXED_FILLS`);
+past it, a body recorded in a mixed state reads as changed.
 
 ```pycon
 >>> from uuid import uuid4

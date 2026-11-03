@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=38a06c88"></script>
+    <script src="../../_static/documentation_options.js?v=9cd8e891"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.90" />
+  <meta name="docsearch:version" content="0.0.91" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -760,7 +760,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">lru_cache</span>
@@ -780,6 +780,8 @@ window.runMermaid = runMermaid;</script>
     <span class="s2">"drop_paths"</span><span class="p">,</span>
     <span class="s2">"fill_paths"</span><span class="p">,</span>
     <span class="s2">"null_paths"</span><span class="p">,</span>
+    <span class="s2">"occurrences"</span><span class="p">,</span>
+    <span class="s2">"same_json"</span><span class="p">,</span>
 <span class="p">]</span>
 
 <span class="c1">#: One step of a path through a body: an object key, or :data:`ANY_ITEM`.</span>
@@ -833,15 +835,20 @@ window.runMermaid = runMermaid;</script>
         <span class="k">return</span> <span class="n">value</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_same</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Whether two values are equal as JSON (see :func:`_json_key`)."""</span>
-    <span class="k">return</span> <span class="n">a</span> <span class="ow">is</span> <span class="n">b</span> <span class="ow">or</span> <span class="n">_json_key</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="n">_json_key</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+<div class="viewcode-block" id="same_json">
+<a class="viewcode-back" href="../../_autosummary/lacing.derived.html#lacing.same_json">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">same_json</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether two values are equal as JSON (see :func:`_json_key`): ``0`` is</span>
+<span class="sd">    not ``False``; values that are not JSON (a ``datetime``) compare by ``==``</span>
+<span class="sd">    instead of raising. Shared with :mod:`lacing.digest`."""</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="ow">is</span> <span class="n">b</span> <span class="ow">or</span> <span class="n">_json_key</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="n">_json_key</span><span class="p">(</span><span class="n">b</span><span class="p">)</span></div>
+
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_note</span><span class="p">(</span><span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">DerivedPath</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Record ``path`` with ``default``; a disagreeing second default forgets it."""</span>
     <span class="n">known</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">known</span> <span class="ow">is</span> <span class="n">_NO_DEFAULT</span> <span class="ow">or</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">_NO_DEFAULT</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_same</span><span class="p">(</span><span class="n">known</span><span class="p">,</span> <span class="n">default</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">known</span> <span class="ow">is</span> <span class="n">_NO_DEFAULT</span> <span class="ow">or</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">_NO_DEFAULT</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">same_json</span><span class="p">(</span><span class="n">known</span><span class="p">,</span> <span class="n">default</span><span class="p">):</span>
         <span class="n">default</span> <span class="o">=</span> <span class="n">_NO_DEFAULT</span>
     <span class="n">out</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="o">=</span> <span class="n">default</span>
 
@@ -1017,6 +1024,42 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<div class="viewcode-block" id="occurrences">
+<a class="viewcode-back" href="../../_autosummary/lacing.derived.html#lacing.occurrences">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">occurrences</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">DerivedPath</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The addresses (key and list-index steps) of every existing entry ``path``</span>
+<span class="sd">    names in the JSON-like ``value``, in document order: the entries</span>
+<span class="sd">    :func:`drop_paths` and :func:`fill_paths` would edit.</span>
+
+<span class="sd">    &gt;&gt;&gt; occurrences({"images": [{"id": "h"}, {}, {"id": None}]}, ("images", ANY_ITEM, "id"))</span>
+<span class="sd">    [('images', 0, 'id'), ('images', 2, 'id')]</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">address</span> <span class="k">for</span> <span class="n">address</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">_entries</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">path</span><span class="p">)]</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_entries</span><span class="p">(</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">()</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""``(address, container, key)`` for every existing entry ``path`` names in</span>
+<span class="sd">    ``value``, in document order: the one walk behind :func:`occurrences` and</span>
+<span class="sd">    the edits. Lazy, so an edit made at one entry is seen by the walk after it</span>
+<span class="sd">    (only the final key of a container is ever edited, which no later entry of</span>
+<span class="sd">    the same path passes through)."""</span>
+    <span class="n">head</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">path</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="n">head</span> <span class="ow">is</span> <span class="n">ANY_ITEM</span> <span class="k">else</span> <span class="p">[</span><span class="n">head</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">rest</span><span class="p">:</span>
+                <span class="k">yield from</span> <span class="n">_entries</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">rest</span><span class="p">,</span> <span class="p">(</span><span class="o">*</span><span class="n">address</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="p">(</span><span class="o">*</span><span class="n">address</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">value</span><span class="p">,</span> <span class="n">key</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="n">head</span> <span class="ow">is</span> <span class="n">ANY_ITEM</span> <span class="ow">and</span> <span class="n">rest</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">yield from</span> <span class="n">_entries</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">rest</span><span class="p">,</span> <span class="p">(</span><span class="o">*</span><span class="n">address</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_delete</span><span class="p">(</span><span class="n">container</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">del</span> <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
     <span class="k">return</span> <span class="kc">True</span>
@@ -1058,20 +1101,9 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_edit</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">DerivedPath</span><span class="p">,</span> <span class="n">edit</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Apply ``edit(container, key)`` to every existing entry ``path`` names in</span>
 <span class="sd">    ``value``; return whether any call reported a change."""</span>
-    <span class="n">head</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">path</span>
     <span class="n">edited</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="n">targets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="n">head</span> <span class="ow">is</span> <span class="n">ANY_ITEM</span> <span class="k">else</span> <span class="p">[</span><span class="n">head</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
-                <span class="k">continue</span>
-            <span class="k">if</span> <span class="n">rest</span><span class="p">:</span>
-                <span class="n">edited</span> <span class="o">|=</span> <span class="n">_edit</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">rest</span><span class="p">),</span> <span class="n">edit</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">edited</span> <span class="o">|=</span> <span class="n">edit</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="n">head</span> <span class="ow">is</span> <span class="n">ANY_ITEM</span> <span class="ow">and</span> <span class="n">rest</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
-            <span class="n">edited</span> <span class="o">|=</span> <span class="n">_edit</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">rest</span><span class="p">),</span> <span class="n">edit</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">_entries</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="n">edited</span> <span class="o">|=</span> <span class="n">edit</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>  <span class="c1"># every entry, even after a change</span>
     <span class="k">return</span> <span class="n">edited</span>
 </pre></div>
 

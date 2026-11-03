@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=38a06c88"></script>
+    <script src="../_static/documentation_options.js?v=9cd8e891"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.90" />
+  <meta name="docsearch:version" content="0.0.91" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -342,10 +342,12 @@
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.bodies.html">lacing.bodies</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.character_voice.html">lacing.bodies.character_voice</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.continuity_violation.html">lacing.bodies.continuity_violation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.lyric_line.html">lacing.bodies.lyric_line</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.named_entity.html">lacing.bodies.named_entity</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.reference_lock.html">lacing.bodies.reference_lock</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.review.html">lacing.bodies.review</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.review_candidate.html">lacing.bodies.review_candidate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.song_section.html">lacing.bodies.song_section</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.word.html">lacing.bodies.word</a></li>
 </ul>
 </details></li>
@@ -519,6 +521,12 @@ Field names and aliases are both read as spellings of a field, as in
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.derived.null_paths" title="lacing.derived.null_paths"><code class="xref py py-obj docutils literal notranslate"><span class="pre">null_paths</span></code></a>(value, paths)</p></td>
 <td><p>Set, in place, the entries of the JSON-like <code class="docutils literal notranslate"><span class="pre">value</span></code> named by <code class="docutils literal notranslate"><span class="pre">paths</span></code> to <code class="docutils literal notranslate"><span class="pre">None</span></code> (keys that are absent stay absent); return whether any changed.</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.derived.occurrences" title="lacing.derived.occurrences"><code class="xref py py-obj docutils literal notranslate"><span class="pre">occurrences</span></code></a>(value, path)</p></td>
+<td><p>The addresses (key and list-index steps) of every existing entry <code class="docutils literal notranslate"><span class="pre">path</span></code> names in the JSON-like <code class="docutils literal notranslate"><span class="pre">value</span></code>, in document order: the entries <a class="reference internal" href="#lacing.derived.drop_paths" title="lacing.derived.drop_paths"><code class="xref py py-func docutils literal notranslate"><span class="pre">drop_paths()</span></code></a> and <a class="reference internal" href="#lacing.derived.fill_paths" title="lacing.derived.fill_paths"><code class="xref py py-func docutils literal notranslate"><span class="pre">fill_paths()</span></code></a> would edit.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.derived.same_json" title="lacing.derived.same_json"><code class="xref py py-obj docutils literal notranslate"><span class="pre">same_json</span></code></a>(a, b)</p></td>
+<td><p>Whether two values are equal as JSON (see <code class="xref py py-func docutils literal notranslate"><span class="pre">_json_key()</span></code>): <code class="docutils literal notranslate"><span class="pre">0</span></code> is not <code class="docutils literal notranslate"><span class="pre">False</span></code>; values that are not JSON (a <code class="docutils literal notranslate"><span class="pre">datetime</span></code>) compare by <code class="docutils literal notranslate"><span class="pre">==</span></code> instead of raising.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -652,6 +660,36 @@ whether any changed. Each entry gets its own deep copy of the value.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.derived.occurrences">
+<span class="sig-prename descclassname"><span class="pre">lacing.derived.</span></span><span class="sig-name descname"><span class="pre">occurrences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/derived.html#occurrences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.derived.occurrences" title="Link to this definition">#</a></dt>
+<dd><p>The addresses (key and list-index steps) of every existing entry <code class="docutils literal notranslate"><span class="pre">path</span></code>
+names in the JSON-like <code class="docutils literal notranslate"><span class="pre">value</span></code>, in document order: the entries
+<a class="reference internal" href="#lacing.derived.drop_paths" title="lacing.derived.drop_paths"><code class="xref py py-func docutils literal notranslate"><span class="pre">drop_paths()</span></code></a> and <a class="reference internal" href="#lacing.derived.fill_paths" title="lacing.derived.fill_paths"><code class="xref py py-func docutils literal notranslate"><span class="pre">fill_paths()</span></code></a> would edit.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">occurrences</span><span class="p">({</span><span class="s2">"images"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"id"</span><span class="p">:</span> <span class="s2">"h"</span><span class="p">},</span> <span class="p">{},</span> <span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}]},</span> <span class="p">(</span><span class="s2">"images"</span><span class="p">,</span> <span class="n">ANY_ITEM</span><span class="p">,</span> <span class="s2">"id"</span><span class="p">))</span>
+<span class="go">[('images', 0, 'id'), ('images', 2, 'id')]</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.derived.same_json">
+<span class="sig-prename descclassname"><span class="pre">lacing.derived.</span></span><span class="sig-name descname"><span class="pre">same_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/derived.html#same_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.derived.same_json" title="Link to this definition">#</a></dt>
+<dd><p>Whether two values are equal as JSON (see <code class="xref py py-func docutils literal notranslate"><span class="pre">_json_key()</span></code>): <code class="docutils literal notranslate"><span class="pre">0</span></code> is
+not <code class="docutils literal notranslate"><span class="pre">False</span></code>; values that are not JSON (a <code class="docutils literal notranslate"><span class="pre">datetime</span></code>) compare by <code class="docutils literal notranslate"><span class="pre">==</span></code>
+instead of raising. Shared with <a class="reference internal" href="lacing.digest.html#module-lacing.digest" title="lacing.digest"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.digest</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
@@ -710,6 +748,8 @@ whether any changed. Each entry gets its own deep copy of the value.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.derived.drop_paths"><code class="docutils literal notranslate"><span class="pre">drop_paths()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.derived.fill_paths"><code class="docutils literal notranslate"><span class="pre">fill_paths()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.derived.null_paths"><code class="docutils literal notranslate"><span class="pre">null_paths()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.derived.occurrences"><code class="docutils literal notranslate"><span class="pre">occurrences()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.derived.same_json"><code class="docutils literal notranslate"><span class="pre">same_json()</span></code></a></li>
 </ul>
   </nav></div>
 

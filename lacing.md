@@ -1,4 +1,4 @@
-> built 2026-11-03 12:08 UTC from 2a4bf96 (main) · lacing 0.0.90. Details: build_info.json
+> built 2026-11-03 12:32 UTC from acccad1 (main) · lacing 0.0.91. Details: build_info.json
 
 # index.html.md
 
@@ -102,10 +102,9 @@ track.sections_covering(20.0)  # sections containing this instant
 
 The facade reuses `at_tier` / `by_tier` under the hood; anything you
 can build with it could also be hand-built with the raw API. Body
-schema URIs are conventional (`annot://schema/song-section/v1`,
-`lyric-line/v1`, `word/v1`). Words use lacing’s built-in `word/v1`
-schema; call `register_subtitle_schemas()` once if you also want
-Pydantic validation of sections and lines.
+schemas (`annot://schema/song-section/v1`, `lyric-line/v1`, `word/v1`)
+are lacing built-in bodies, registered on import: sections and lines
+keep any extra fields you pass, words use the strict `word/v1`.
 
 ## What’s in the core
 
@@ -3260,11 +3259,39 @@ Importing this package registers every built-in body schema.
 | [`character_voice`](_autosummary/lacing.bodies.character_voice.html.md#module-lacing.bodies.character_voice)           | Body schema for per-character voice profiles — the shared voice vocabulary.     |
 |-----------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
 | [`continuity_violation`](_autosummary/lacing.bodies.continuity_violation.html.md#module-lacing.bodies.continuity_violation) | Body schema for continuity violations — generic, cross-media.                   |
+| [`lyric_line`](_autosummary/lacing.bodies.lyric_line.html.md#module-lacing.bodies.lyric_line)                     | Body schema for one line of lyrics or subtitles on a lines tier.                |
 | [`named_entity`](_autosummary/lacing.bodies.named_entity.html.md#module-lacing.bodies.named_entity)                 | Body schemas for named-entity (NER) annotations.                                |
 | [`reference_lock`](_autosummary/lacing.bodies.reference_lock.html.md#module-lacing.bodies.reference_lock)             | Body schema for a *locked reference* — a first-class “this is canonical”.       |
 | [`review`](_autosummary/lacing.bodies.review.html.md#module-lacing.bodies.review)                             | Body schema for review notes — the edit-loop's communication channel.           |
 | [`review_candidate`](_autosummary/lacing.bodies.review_candidate.html.md#module-lacing.bodies.review_candidate)         | Body schema for review *candidates* — "this needs a human's eyes".              |
+| [`song_section`](_autosummary/lacing.bodies.song_section.html.md#module-lacing.bodies.song_section)                 | Body schema for a section of a song (intro, verse, chorus) on a sections tier.  |
 | [`word`](_autosummary/lacing.bodies.word.html.md#module-lacing.bodies.word)                                 | Body schema for word-level annotations (e.g., transcription, forced alignment). |
+
+
+# _autosummary/lacing.bodies.lyric_line.html.md
+
+# lacing.bodies.lyric_line
+
+Body schema for one line of lyrics or subtitles on a lines tier.
+
+URI: `annot://schema/lyric-line/v1`. Written by
+[`lacing.tracks.subtitle.SubtitleBuilder`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.SubtitleBuilder) and the LRC adapter. Permissive:
+a caller’s own fields (`extra=`) are kept.
+
+### Classes
+
+| [`LyricLineBodyV1`](_autosummary/lacing.bodies.lyric_line.html.md#lacing.bodies.lyric_line.LyricLineBodyV1)(\*, text[, line_index, section])   | A line of text, with its position in the song.   |
+|-----------------------------------------------------------------------------------------------------|--------------------------------------------------|
+
+### *class* lacing.bodies.lyric_line.LyricLineBodyV1(, text, line_index=None, section=None, \*\*extra_data)
+
+Bases: `SchemaModel`
+
+A line of text, with its position in the song.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'allow', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
 
 # _autosummary/lacing.bodies.named_entity.html.md
@@ -3549,6 +3576,33 @@ Body of a review-candidate annotation.
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
 
+# _autosummary/lacing.bodies.song_section.html.md
+
+# lacing.bodies.song_section
+
+Body schema for a section of a song (intro, verse, chorus) on a sections tier.
+
+URI: `annot://schema/song-section/v1`. Written by
+[`lacing.tracks.subtitle.SubtitleBuilder`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.SubtitleBuilder). Permissive: a caller’s own
+descriptors (`extra=`) are kept, so a body this schema accepts today stays
+accepted.
+
+### Classes
+
+| [`SongSectionBodyV1`](_autosummary/lacing.bodies.song_section.html.md#lacing.bodies.song_section.SongSectionBodyV1)(\*, label[, title, energy, ...])   | A labelled section of a song, with optional descriptors.   |
+|-------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+
+### *class* lacing.bodies.song_section.SongSectionBodyV1(, label, title=None, energy=None, mood=None, \*\*extra_data)
+
+Bases: `SchemaModel`
+
+A labelled section of a song, with optional descriptors.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'allow', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+
 # _autosummary/lacing.bodies.word.html.md
 
 # lacing.bodies.word
@@ -3772,6 +3826,8 @@ Field names and aliases are both read as spellings of a field, as in
 | [`drop_paths`](_autosummary/lacing.derived.html.md#lacing.derived.drop_paths)(value, paths) | Delete, in place, the entries of the JSON-like `value` named by `paths`; return whether any was there to delete.                                                                                                                                                                                     |
 | [`fill_paths`](_autosummary/lacing.derived.html.md#lacing.derived.fill_paths)(value, fills) | Set, in place, each entry of the JSON-like `value` named by a path of `fills` to that path's value (keys that are absent stay absent); return whether any changed.                                                                                                                                   |
 | [`null_paths`](_autosummary/lacing.derived.html.md#lacing.derived.null_paths)(value, paths) | Set, in place, the entries of the JSON-like `value` named by `paths` to `None` (keys that are absent stay absent); return whether any changed.                                                                                                                                                       |
+| [`occurrences`](_autosummary/lacing.derived.html.md#lacing.derived.occurrences)(value, path) | The addresses (key and list-index steps) of every existing entry `path` names in the JSON-like `value`, in document order: the entries [`drop_paths()`](_autosummary/lacing.derived.html.md#lacing.derived.drop_paths) and [`fill_paths()`](_autosummary/lacing.derived.html.md#lacing.derived.fill_paths) would edit.                   |
+| [`same_json`](_autosummary/lacing.derived.html.md#lacing.derived.same_json)(a, b)          | Whether two values are equal as JSON (see `_json_key()`): `0` is not `False`; values that are not JSON (a `datetime`) compare by `==` instead of raising.                                                                                                                                            |
 
 ### Classes
 
@@ -3863,6 +3919,29 @@ whether any changed. Each entry gets its own deep copy of the value.
 
 Set, in place, the entries of the JSON-like `value` named by `paths` to
 `None` (keys that are absent stay absent); return whether any changed.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.derived.occurrences(value, path)
+
+The addresses (key and list-index steps) of every existing entry `path`
+names in the JSON-like `value`, in document order: the entries
+[`drop_paths()`](_autosummary/lacing.derived.html.md#lacing.derived.drop_paths) and [`fill_paths()`](_autosummary/lacing.derived.html.md#lacing.derived.fill_paths) would edit.
+
+```pycon
+>>> occurrences({"images": [{"id": "h"}, {}, {"id": None}]}, ("images", ANY_ITEM, "id"))
+[('images', 0, 'id'), ('images', 2, 'id')]
+```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)]
+
+### lacing.derived.same_json(a, b)
+
+Whether two values are equal as JSON (see `_json_key()`): `0` is
+not `False`; values that are not JSON (a `datetime`) compare by `==`
+instead of raising. Shared with [`lacing.digest`](_autosummary/lacing.digest.html.md#module-lacing.digest).
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
@@ -4033,12 +4112,13 @@ consumers.
 
 ### Module Attributes
 
-| [`VALUE_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                          |
-|-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| [`BODY_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_FIELDS)          | The narrower payload for [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).                     |
-| [`VALUE_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) by default. |
-| [`VALUE_DIGEST_SCHEMES`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEMES) | Every scheme [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) can compute, oldest first.      |
-| [`BODY_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_DIGEST_SCHEME)   | Domain-separation tag mixed into [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).             |
+| [`VALUE_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                                                                                                                                                                                                                                               |
+|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`BODY_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_FIELDS)          | The narrower payload for [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                          |
+| [`VALUE_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) by default.                                                                                                                                                                                                                      |
+| [`VALUE_DIGEST_SCHEMES`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEMES) | Every scheme [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) can compute, oldest first.                                                                                                                                                                                                                           |
+| [`MAX_MIXED_FILLS`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_FILLS)      | Default cap on the mixed-state bodies [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) tries (lacing#152): a body whose derived fields were filled one occurrence at a time was recorded with each occurrence in its own state (as now, absent, `null`, at its pre-fill value), and every combination is a candidate. |
+| [`BODY_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_DIGEST_SCHEME)   | Domain-separation tag mixed into [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                  |
 
 ### Functions
 
@@ -4067,6 +4147,18 @@ Note what this drops, which is more than timing: the **entire** `reference`
 (*which asset* / *which node* / *which annotation*, not just *when*), plus
 `tier` and `confidence`. Two annotations over different assets digest
 alike here.
+
+### lacing.digest.MAX_MIXED_FILLS *= 1024*
+
+Default cap on the mixed-state bodies [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) tries
+(lacing#152): a body whose derived fields were filled one occurrence at a time
+was recorded with each occurrence in its own state (as now, absent, `null`,
+at its pre-fill value), and every combination is a candidate. 1024 covers a
+field whose pre-fill value is `null` (three states per occurrence: as now,
+absent, `null`) on up to six occurrences (3\*\*6 = 729), such as the images of
+a panel whose `asset_id` defaults to `None`; or five occurrences of a field
+with a non-null default (four states, 4\*\*5). Past the cap only the uniform
+bodies are tried: a spurious miss, never a wrong hit.
 
 ### *exception* lacing.digest.NonStringBodyKeyError
 
@@ -4104,13 +4196,14 @@ the latest excludes derived fields.
 Annotation fields that constitute its *value*. See the module docstring for
 why each is in, and why `id` and `provenance` are out.
 
-### lacing.digest.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
+### lacing.digest.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
 
 Every digest [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) accepts for `annotation`.
 
 For a verifier that memoizes per annotation and scheme and checks many
 recorded digests against one set; `value_digest_matches` stays the lazy
-one-off check. `resolve_derived` is as in [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest).
+one-off check. `resolve_derived` and `max_mixed_fills` are as in
+[`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches).
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -4292,7 +4385,7 @@ Empty for an unregistered `uri`, as [`registered_derived_paths()`](_autosummary/
 * **Return type:**
   [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
-### lacing.digest.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
+### lacing.digest.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
 
 Whether `recorded`, a value digest a trace stored under `scheme`, still
 describes `annotation`’s value.
@@ -4320,6 +4413,14 @@ pre-fill values. Dropping and filling touch nothing outside `D`, so either
 way the two bodies agree outside `D`, which is exactly what the `v2`
 digest already accepts. `resolve_derived` is as in
 [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest).
+
+Derived fields filled one occurrence at a time (each image of a panel)
+leave bodies recorded in **mixed** states: one occurrence filled, another
+`null`, a third absent. Those are accepted too, each occurrence in any of
+its states (lacing#152), and for the same reason: every mix agrees with the
+current body outside `D`. They are tried last, and only while the number
+of combinations is at most `max_mixed_fills` ([`MAX_MIXED_FILLS`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_FILLS));
+past it, a body recorded in a mixed state reads as changed.
 
 ```pycon
 >>> from uuid import uuid4
@@ -6325,13 +6426,14 @@ Bases: [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError)
 
 Raised when an annotation’s body_schema_uri has no registered model.
 
-### lacing.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
+### lacing.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
 
 Every digest [`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value_digest_matches) accepts for `annotation`.
 
 For a verifier that memoizes per annotation and scheme and checks many
 recorded digests against one set; `value_digest_matches` stays the lazy
-one-off check. `resolve_derived` is as in [`annotation_value_digest()`](_autosummary/lacing.html.md#lacing.annotation_value_digest).
+one-off check. `resolve_derived` and `max_mixed_fills` are as in
+[`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value_digest_matches).
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -7106,7 +7208,7 @@ or [`UnknownBodySchemaError`](_autosummary/lacing.html.md#lacing.UnknownBodySche
 * **Return type:**
   `BaseModel`
 
-### lacing.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
+### lacing.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
 
 Whether `recorded`, a value digest a trace stored under `scheme`, still
 describes `annotation`’s value.
@@ -7134,6 +7236,14 @@ pre-fill values. Dropping and filling touch nothing outside `D`, so either
 way the two bodies agree outside `D`, which is exactly what the `v2`
 digest already accepts. `resolve_derived` is as in
 [`annotation_value_digest()`](_autosummary/lacing.html.md#lacing.annotation_value_digest).
+
+Derived fields filled one occurrence at a time (each image of a panel)
+leave bodies recorded in **mixed** states: one occurrence filled, another
+`null`, a third absent. Those are accepted too, each occurrence in any of
+its states (lacing#152), and for the same reason: every mix agrees with the
+current body outside `D`. They are tried last, and only while the number
+of combinations is at most `max_mixed_fills` (`MAX_MIXED_FILLS`);
+past it, a body recorded in a mixed state reads as changed.
 
 ```pycon
 >>> from uuid import uuid4
@@ -10151,8 +10261,8 @@ the common case ergonomic and consistent.
 
 ### Functions
 
-| [`register_subtitle_schemas`](_autosummary/lacing.tracks.html.md#lacing.tracks.register_subtitle_schemas)()   | Register permissive body validators for the section and line URIs.   |
-|--------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| [`register_subtitle_schemas`](_autosummary/lacing.tracks.html.md#lacing.tracks.register_subtitle_schemas)()   | Deprecated no-op: the section, line and word schemas are built-in bodies, registered when this module (or [`lacing.bodies`](_autosummary/lacing.bodies.html.md#module-lacing.bodies)) is imported.   |
+|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 ### Classes
 
@@ -10252,13 +10362,8 @@ Words that overlap `[start_s, end_s]`.
 
 ### lacing.tracks.register_subtitle_schemas()
 
-Register permissive body validators for the section and line URIs.
-
-Calling this is *optional*; the builder works fine without
-registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later. The models are module-level,
-so calling it again is a no-op. Words need nothing: they use the
-built-in `word/v1` schema, which this leaves alone (lacing#122).
+Deprecated no-op: the section, line and word schemas are built-in bodies,
+registered when this module (or [`lacing.bodies`](_autosummary/lacing.bodies.html.md#module-lacing.bodies)) is imported.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -10289,11 +10394,11 @@ Body schemas are conventional URIs:
 - `annot://schema/word/v1` — `{text, line_index?, confidence?}`, the
   : built-in strict [`lacing.bodies.word`](_autosummary/lacing.bodies.word.html.md#module-lacing.bodies.word) schema, registered on import.
 
-Sections and lines are not validated unless the caller registers validators
-for them: `register_subtitle_schemas` registers permissive ones. Words use
-the built-in `word/v1`, so wherever bodies are validated (`validate_body`,
-the server) a word’s `extra=` keys must be fields of that schema; use
-[`SubtitleBuilder.add()`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.SubtitleBuilder.add) with your own URI for anything else.
+All three are built-in body schemas ([`lacing.bodies`](_autosummary/lacing.bodies.html.md#module-lacing.bodies)), registered on
+import. Sections and lines are permissive (a caller’s `extra=` keys are
+kept); `word/v1` is strict, so wherever bodies are validated
+(`validate_body`, the server) a word’s `extra=` keys must be fields of that
+schema: use [`SubtitleBuilder.add()`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.SubtitleBuilder.add) with your own URI for anything else.
 
 Quick start:
 
@@ -10318,14 +10423,14 @@ section_at_42 = track.sections_covering(42.0)
 
 ### Module Attributes
 
-| [`BUILT_IN_BODY_SCHEMAS`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.BUILT_IN_BODY_SCHEMAS)   | an inline reference for callers building outside the builder.                                          |
-|--------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
-| [`SUBTITLE_BODY_MODELS`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.SUBTITLE_BODY_MODELS)    | The validators [`register_subtitle_schemas()`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.register_subtitle_schemas) registers. |
+| [`BUILT_IN_BODY_SCHEMAS`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.BUILT_IN_BODY_SCHEMAS)   | an inline reference for callers building outside the builder.                                                                                           |
+|--------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`SUBTITLE_BODY_MODELS`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.SUBTITLE_BODY_MODELS)    | The section and line schemas, registered on import of [`lacing.bodies`](_autosummary/lacing.bodies.html.md#module-lacing.bodies) (lacing#144). |
 
 ### Functions
 
-| [`register_subtitle_schemas`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.register_subtitle_schemas)()   | Register permissive body validators for the section and line URIs.   |
-|--------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| [`register_subtitle_schemas`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.register_subtitle_schemas)()   | Deprecated no-op: the section, line and word schemas are built-in bodies, registered when this module (or [`lacing.bodies`](_autosummary/lacing.bodies.html.md#module-lacing.bodies)) is imported.   |
+|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 ### Classes
 
@@ -10336,16 +10441,17 @@ section_at_42 = track.sections_covering(42.0)
 ### lacing.tracks.subtitle.BUILT_IN_BODY_SCHEMAS *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Any](https://docs.python.org/3/library/typing.html#typing.Any)]]* *= {'annot://schema/lyric-line/v1': {'line_index': 0, 'section': 'verse_1', 'text': 'I came down to the river'}, 'annot://schema/song-section/v1': {'energy': 'medium', 'label': 'verse_1', 'mood': 'wistful', 'title': 'verse 1'}, 'annot://schema/word/v1': {'confidence': 0.94, 'line_index': 0, 'text': 'river'}}*
 
 an inline reference for
-callers building outside the builder. Each validates against its schema
-(`SUBTITLE_BODY_MODELS`, or the built-in `word/v1`).
+callers building outside the builder. Each validates against its built-in
+schema.
 
 * **Type:**
   *Mapping* of body URI → minimal example body
 
-### lacing.tracks.subtitle.SUBTITLE_BODY_MODELS *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [type](https://docs.python.org/3/builtins/functions.html#type)[BaseModel]]* *= {'annot://schema/lyric-line/v1': <class 'lacing.tracks.subtitle._LineBody'>, 'annot://schema/song-section/v1': <class 'lacing.tracks.subtitle._SectionBody'>}*
+### lacing.tracks.subtitle.SUBTITLE_BODY_MODELS *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [type](https://docs.python.org/3/builtins/functions.html#type)[BaseModel]]* *= {'annot://schema/lyric-line/v1': <class 'lacing.bodies.lyric_line.LyricLineBodyV1'>, 'annot://schema/song-section/v1': <class 'lacing.bodies.song_section.SongSectionBodyV1'>}*
 
-The validators [`register_subtitle_schemas()`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.register_subtitle_schemas) registers. Words are absent:
-`WORD_SCHEMA_URI` is the built-in [`lacing.bodies.word`](_autosummary/lacing.bodies.word.html.md#module-lacing.bodies.word) schema.
+The section and line schemas, registered on import of [`lacing.bodies`](_autosummary/lacing.bodies.html.md#module-lacing.bodies)
+(lacing#144). Words use the built-in `word/v1` schema. Kept for callers of
+the 0.0.8x API; `lacing.schema.get_body_schema(uri)` is the general lookup.
 
 ### *class* lacing.tracks.subtitle.SubtitleBuilder(store, , asset_id, rate=1000, was_generated_by='processor:lacing.tracks.subtitle', was_attributed_to='lacing', ensure_tiers=True)
 
@@ -10439,13 +10545,8 @@ Words that overlap `[start_s, end_s]`.
 
 ### lacing.tracks.subtitle.register_subtitle_schemas()
 
-Register permissive body validators for the section and line URIs.
-
-Calling this is *optional*; the builder works fine without
-registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later. The models are module-level,
-so calling it again is a no-op. Words need nothing: they use the
-built-in `word/v1` schema, which this leaves alone (lacing#122).
+Deprecated no-op: the section, line and word schemas are built-in bodies,
+registered when this module (or [`lacing.bodies`](_autosummary/lacing.bodies.html.md#module-lacing.bodies)) is imported.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -10516,7 +10617,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-03 12:08 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/2a4bf961b0ff9ba1b376760552399eae9a3e8ad9"><code>2a4bf96</code></a> on branch <code>main</code>, for **lacing 0.0.90** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-03 12:32 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/acccad142564a9ce41532b1f23d5696dc1619127"><code>acccad1</code></a> on branch <code>main</code>, for **lacing 0.0.91** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10525,7 +10626,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/2a4bf961b0ff9ba1b376760552399eae9a3e8ad9"><code>2a4bf961b0ff9ba1b376760552399eae9a3e8ad9</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/acccad142564a9ce41532b1f23d5696dc1619127"><code>acccad142564a9ce41532b1f23d5696dc1619127</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -10536,9 +10637,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41631178734">41631178734</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41634624301">41634624301</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>b73f0ed19cdd054f38f7c0b5b09ca3d0d32aab5d</code> (in the history of the built commit) |
+| Event commit | <code>4276ba7b5d45072f1cd4204c127669423a738cd4</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10563,13 +10664,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.90/">0.0.90</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.91/">0.0.91</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 2a4bf961b0ff9ba1b376760552399eae9a3e8ad9
+git checkout acccad142564a9ce41532b1f23d5696dc1619127
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

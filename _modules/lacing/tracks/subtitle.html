@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=38a06c88"></script>
+    <script src="../../../_static/documentation_options.js?v=9cd8e891"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.90" />
+  <meta name="docsearch:version" content="0.0.91" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -728,11 +728,11 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">- ``annot://schema/word/v1`` — ``{text, line_index?, confidence?}``, the</span>
 <span class="sd">   built-in strict :mod:`lacing.bodies.word` schema, registered on import.</span>
 
-<span class="sd">Sections and lines are not validated unless the caller registers validators</span>
-<span class="sd">for them: ``register_subtitle_schemas`` registers permissive ones. Words use</span>
-<span class="sd">the built-in ``word/v1``, so wherever bodies are validated (``validate_body``,</span>
-<span class="sd">the server) a word's ``extra=`` keys must be fields of that schema; use</span>
-<span class="sd">:meth:`SubtitleBuilder.add` with your own URI for anything else.</span>
+<span class="sd">All three are built-in body schemas (:mod:`lacing.bodies`), registered on</span>
+<span class="sd">import. Sections and lines are permissive (a caller's ``extra=`` keys are</span>
+<span class="sd">kept); ``word/v1`` is strict, so wherever bodies are validated</span>
+<span class="sd">(``validate_body``, the server) a word's ``extra=`` keys must be fields of that</span>
+<span class="sd">schema: use :meth:`SubtitleBuilder.add` with your own URI for anything else.</span>
 
 <span class="sd">Quick start::</span>
 
@@ -756,11 +756,16 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">uuid4</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">lacing.bodies</span>  <span class="c1"># noqa: F401  registers the section, line and word schemas</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.bodies.lyric_line</span><span class="w"> </span><span class="kn">import</span> <span class="n">LyricLineBodyV1</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.bodies.song_section</span><span class="w"> </span><span class="kn">import</span> <span class="n">SongSectionBodyV1</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.allen</span><span class="w"> </span><span class="kn">import</span> <span class="n">AllenRelation</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">MediaRef</span><span class="p">,</span> <span class="n">Provenance</span>
@@ -780,8 +785,8 @@ window.runMermaid = runMermaid;</script>
 <span class="n">DEFAULT_RATE</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># ms-precision is plenty for sung-text alignment</span>
 
 <span class="c1">#: Mapping of body URI → minimal example body: an inline reference for</span>
-<span class="c1">#: callers building outside the builder. Each validates against its schema</span>
-<span class="c1">#: (``SUBTITLE_BODY_MODELS``, or the built-in ``word/v1``).</span>
+<span class="c1">#: callers building outside the builder. Each validates against its built-in</span>
+<span class="c1">#: schema.</span>
 <span class="n">BUILT_IN_BODY_SCHEMAS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">SECTION_SCHEMA_URI</span><span class="p">:</span> <span class="p">{</span>
         <span class="s2">"label"</span><span class="p">:</span> <span class="s2">"verse_1"</span><span class="p">,</span>
@@ -827,46 +832,26 @@ window.runMermaid = runMermaid;</script>
     <span class="n">end_s</span><span class="p">:</span> <span class="nb">float</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">_SectionBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s2">"allow"</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Permissive ``song-section/v1`` body: a label plus optional descriptors."""</span>
-
-    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">title</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">energy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">mood</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-
-
-<span class="k">class</span><span class="w"> </span><span class="nc">_LineBody</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="s2">"allow"</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Permissive ``lyric-line/v1`` body: the line's text plus its position."""</span>
-
-    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">line_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">section</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-
-
-<span class="c1">#: The validators :func:`register_subtitle_schemas` registers. Words are absent:</span>
-<span class="c1">#: ``WORD_SCHEMA_URI`` is the built-in :mod:`lacing.bodies.word` schema.</span>
+<span class="c1">#: The section and line schemas, registered on import of :mod:`lacing.bodies`</span>
+<span class="c1">#: (lacing#144). Words use the built-in ``word/v1`` schema. Kept for callers of</span>
+<span class="c1">#: the 0.0.8x API; ``lacing.schema.get_body_schema(uri)`` is the general lookup.</span>
 <span class="n">SUBTITLE_BODY_MODELS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="n">SECTION_SCHEMA_URI</span><span class="p">:</span> <span class="n">_SectionBody</span><span class="p">,</span>
-    <span class="n">LINE_SCHEMA_URI</span><span class="p">:</span> <span class="n">_LineBody</span><span class="p">,</span>
+    <span class="n">SECTION_SCHEMA_URI</span><span class="p">:</span> <span class="n">SongSectionBodyV1</span><span class="p">,</span>
+    <span class="n">LINE_SCHEMA_URI</span><span class="p">:</span> <span class="n">LyricLineBodyV1</span><span class="p">,</span>
 <span class="p">}</span>
 
 
 <div class="viewcode-block" id="register_subtitle_schemas">
 <a class="viewcode-back" href="../../../_autosummary/lacing.tracks.subtitle.html#lacing.tracks.register_subtitle_schemas">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">register_subtitle_schemas</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Register permissive body validators for the section and line URIs.</span>
-
-<span class="sd">    Calling this is *optional*; the builder works fine without</span>
-<span class="sd">    registered schemas. Use it when you want body-shape errors to</span>
-<span class="sd">    surface at write time rather than later. The models are module-level,</span>
-<span class="sd">    so calling it again is a no-op. Words need nothing: they use the</span>
-<span class="sd">    built-in ``word/v1`` schema, which this leaves alone (lacing#122).</span>
-<span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_body_schema</span>
-
-    <span class="k">for</span> <span class="n">uri</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">SUBTITLE_BODY_MODELS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">register_body_schema</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span></div>
+<span class="w">    </span><span class="sd">"""Deprecated no-op: the section, line and word schemas are built-in bodies,</span>
+<span class="sd">    registered when this module (or :mod:`lacing.bodies`) is imported."""</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+        <span class="s2">"register_subtitle_schemas() is a no-op: song-section/v1, lyric-line/v1 "</span>
+        <span class="s2">"and word/v1 are built-in body schemas, registered on import (lacing#144)."</span><span class="p">,</span>
+        <span class="ne">DeprecationWarning</span><span class="p">,</span>
+        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="p">)</span></div>
 
 
 

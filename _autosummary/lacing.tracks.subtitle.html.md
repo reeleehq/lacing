@@ -16,11 +16,11 @@ Body schemas are conventional URIs:
 - `annot://schema/word/v1` — `{text, line_index?, confidence?}`, the
   : built-in strict [`lacing.bodies.word`](lacing.bodies.word.html.md#module-lacing.bodies.word) schema, registered on import.
 
-Sections and lines are not validated unless the caller registers validators
-for them: `register_subtitle_schemas` registers permissive ones. Words use
-the built-in `word/v1`, so wherever bodies are validated (`validate_body`,
-the server) a word’s `extra=` keys must be fields of that schema; use
-[`SubtitleBuilder.add()`](#lacing.tracks.subtitle.SubtitleBuilder.add) with your own URI for anything else.
+All three are built-in body schemas ([`lacing.bodies`](lacing.bodies.html.md#module-lacing.bodies)), registered on
+import. Sections and lines are permissive (a caller’s `extra=` keys are
+kept); `word/v1` is strict, so wherever bodies are validated
+(`validate_body`, the server) a word’s `extra=` keys must be fields of that
+schema: use [`SubtitleBuilder.add()`](#lacing.tracks.subtitle.SubtitleBuilder.add) with your own URI for anything else.
 
 Quick start:
 
@@ -45,14 +45,14 @@ section_at_42 = track.sections_covering(42.0)
 
 ### Module Attributes
 
-| [`BUILT_IN_BODY_SCHEMAS`](#lacing.tracks.subtitle.BUILT_IN_BODY_SCHEMAS)   | an inline reference for callers building outside the builder.                                          |
-|--------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
-| [`SUBTITLE_BODY_MODELS`](#lacing.tracks.subtitle.SUBTITLE_BODY_MODELS)    | The validators [`register_subtitle_schemas()`](#lacing.tracks.subtitle.register_subtitle_schemas) registers. |
+| [`BUILT_IN_BODY_SCHEMAS`](#lacing.tracks.subtitle.BUILT_IN_BODY_SCHEMAS)   | an inline reference for callers building outside the builder.                                                                                           |
+|--------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`SUBTITLE_BODY_MODELS`](#lacing.tracks.subtitle.SUBTITLE_BODY_MODELS)    | The section and line schemas, registered on import of [`lacing.bodies`](lacing.bodies.html.md#module-lacing.bodies) (lacing#144). |
 
 ### Functions
 
-| [`register_subtitle_schemas`](#lacing.tracks.subtitle.register_subtitle_schemas)()   | Register permissive body validators for the section and line URIs.   |
-|--------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| [`register_subtitle_schemas`](#lacing.tracks.subtitle.register_subtitle_schemas)()   | Deprecated no-op: the section, line and word schemas are built-in bodies, registered when this module (or [`lacing.bodies`](lacing.bodies.html.md#module-lacing.bodies)) is imported.   |
+|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 ### Classes
 
@@ -63,16 +63,17 @@ section_at_42 = track.sections_covering(42.0)
 ### lacing.tracks.subtitle.BUILT_IN_BODY_SCHEMAS *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Any](https://docs.python.org/3/library/typing.html#typing.Any)]]* *= {'annot://schema/lyric-line/v1': {'line_index': 0, 'section': 'verse_1', 'text': 'I came down to the river'}, 'annot://schema/song-section/v1': {'energy': 'medium', 'label': 'verse_1', 'mood': 'wistful', 'title': 'verse 1'}, 'annot://schema/word/v1': {'confidence': 0.94, 'line_index': 0, 'text': 'river'}}*
 
 an inline reference for
-callers building outside the builder. Each validates against its schema
-(`SUBTITLE_BODY_MODELS`, or the built-in `word/v1`).
+callers building outside the builder. Each validates against its built-in
+schema.
 
 * **Type:**
   *Mapping* of body URI → minimal example body
 
-### lacing.tracks.subtitle.SUBTITLE_BODY_MODELS *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [type](https://docs.python.org/3/builtins/functions.html#type)[BaseModel]]* *= {'annot://schema/lyric-line/v1': <class 'lacing.tracks.subtitle._LineBody'>, 'annot://schema/song-section/v1': <class 'lacing.tracks.subtitle._SectionBody'>}*
+### lacing.tracks.subtitle.SUBTITLE_BODY_MODELS *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [type](https://docs.python.org/3/builtins/functions.html#type)[BaseModel]]* *= {'annot://schema/lyric-line/v1': <class 'lacing.bodies.lyric_line.LyricLineBodyV1'>, 'annot://schema/song-section/v1': <class 'lacing.bodies.song_section.SongSectionBodyV1'>}*
 
-The validators [`register_subtitle_schemas()`](#lacing.tracks.subtitle.register_subtitle_schemas) registers. Words are absent:
-`WORD_SCHEMA_URI` is the built-in [`lacing.bodies.word`](lacing.bodies.word.html.md#module-lacing.bodies.word) schema.
+The section and line schemas, registered on import of [`lacing.bodies`](lacing.bodies.html.md#module-lacing.bodies)
+(lacing#144). Words use the built-in `word/v1` schema. Kept for callers of
+the 0.0.8x API; `lacing.schema.get_body_schema(uri)` is the general lookup.
 
 ### *class* lacing.tracks.subtitle.SubtitleBuilder(store, , asset_id, rate=1000, was_generated_by='processor:lacing.tracks.subtitle', was_attributed_to='lacing', ensure_tiers=True)
 
@@ -166,13 +167,8 @@ Words that overlap `[start_s, end_s]`.
 
 ### lacing.tracks.subtitle.register_subtitle_schemas()
 
-Register permissive body validators for the section and line URIs.
-
-Calling this is *optional*; the builder works fine without
-registered schemas. Use it when you want body-shape errors to
-surface at write time rather than later. The models are module-level,
-so calling it again is a no-op. Words need nothing: they use the
-built-in `word/v1` schema, which this leaves alone (lacing#122).
+Deprecated no-op: the section, line and word schemas are built-in bodies,
+registered when this module (or [`lacing.bodies`](lacing.bodies.html.md#module-lacing.bodies)) is imported.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)

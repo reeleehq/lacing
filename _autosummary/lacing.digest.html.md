@@ -161,12 +161,13 @@ consumers.
 
 ### Module Attributes
 
-| [`VALUE_FIELDS`](#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                          |
-|-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| [`BODY_FIELDS`](#lacing.digest.BODY_FIELDS)          | The narrower payload for [`annotation_body_digest()`](#lacing.digest.annotation_body_digest).                     |
-| [`VALUE_DIGEST_SCHEME`](#lacing.digest.VALUE_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) by default. |
-| [`VALUE_DIGEST_SCHEMES`](#lacing.digest.VALUE_DIGEST_SCHEMES) | Every scheme [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) can compute, oldest first.      |
-| [`BODY_DIGEST_SCHEME`](#lacing.digest.BODY_DIGEST_SCHEME)   | Domain-separation tag mixed into [`annotation_body_digest()`](#lacing.digest.annotation_body_digest).             |
+| [`VALUE_FIELDS`](#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                                                                                                                                                                                                                                               |
+|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`BODY_FIELDS`](#lacing.digest.BODY_FIELDS)          | The narrower payload for [`annotation_body_digest()`](#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                          |
+| [`VALUE_DIGEST_SCHEME`](#lacing.digest.VALUE_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) by default.                                                                                                                                                                                                                      |
+| [`VALUE_DIGEST_SCHEMES`](#lacing.digest.VALUE_DIGEST_SCHEMES) | Every scheme [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) can compute, oldest first.                                                                                                                                                                                                                           |
+| [`MAX_MIXED_FILLS`](#lacing.digest.MAX_MIXED_FILLS)      | Default cap on the mixed-state bodies [`value_digest_matches()`](#lacing.digest.value_digest_matches) tries (lacing#152): a body whose derived fields were filled one occurrence at a time was recorded with each occurrence in its own state (as now, absent, `null`, at its pre-fill value), and every combination is a candidate. |
+| [`BODY_DIGEST_SCHEME`](#lacing.digest.BODY_DIGEST_SCHEME)   | Domain-separation tag mixed into [`annotation_body_digest()`](#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                  |
 
 ### Functions
 
@@ -195,6 +196,18 @@ Note what this drops, which is more than timing: the **entire** `reference`
 (*which asset* / *which node* / *which annotation*, not just *when*), plus
 `tier` and `confidence`. Two annotations over different assets digest
 alike here.
+
+### lacing.digest.MAX_MIXED_FILLS *= 1024*
+
+Default cap on the mixed-state bodies [`value_digest_matches()`](#lacing.digest.value_digest_matches) tries
+(lacing#152): a body whose derived fields were filled one occurrence at a time
+was recorded with each occurrence in its own state (as now, absent, `null`,
+at its pre-fill value), and every combination is a candidate. 1024 covers a
+field whose pre-fill value is `null` (three states per occurrence: as now,
+absent, `null`) on up to six occurrences (3\*\*6 = 729), such as the images of
+a panel whose `asset_id` defaults to `None`; or five occurrences of a field
+with a non-null default (four states, 4\*\*5). Past the cap only the uniform
+bodies are tried: a spurious miss, never a wrong hit.
 
 ### *exception* lacing.digest.NonStringBodyKeyError
 
@@ -232,13 +245,14 @@ the latest excludes derived fields.
 Annotation fields that constitute its *value*. See the module docstring for
 why each is in, and why `id` and `provenance` are out.
 
-### lacing.digest.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
+### lacing.digest.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
 
 Every digest [`value_digest_matches()`](#lacing.digest.value_digest_matches) accepts for `annotation`.
 
 For a verifier that memoizes per annotation and scheme and checks many
 recorded digests against one set; `value_digest_matches` stays the lazy
-one-off check. `resolve_derived` is as in [`annotation_value_digest()`](#lacing.digest.annotation_value_digest).
+one-off check. `resolve_derived` and `max_mixed_fills` are as in
+[`value_digest_matches()`](#lacing.digest.value_digest_matches).
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -420,7 +434,7 @@ Empty for an unregistered `uri`, as [`registered_derived_paths()`](#lacing.diges
 * **Return type:**
   [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
-### lacing.digest.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None)
+### lacing.digest.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
 
 Whether `recorded`, a value digest a trace stored under `scheme`, still
 describes `annotation`’s value.
@@ -448,6 +462,14 @@ pre-fill values. Dropping and filling touch nothing outside `D`, so either
 way the two bodies agree outside `D`, which is exactly what the `v2`
 digest already accepts. `resolve_derived` is as in
 [`annotation_value_digest()`](#lacing.digest.annotation_value_digest).
+
+Derived fields filled one occurrence at a time (each image of a panel)
+leave bodies recorded in **mixed** states: one occurrence filled, another
+`null`, a third absent. Those are accepted too, each occurrence in any of
+its states (lacing#152), and for the same reason: every mix agrees with the
+current body outside `D`. They are tried last, and only while the number
+of combinations is at most `max_mixed_fills` ([`MAX_MIXED_FILLS`](#lacing.digest.MAX_MIXED_FILLS));
+past it, a body recorded in a mixed state reads as changed.
 
 ```pycon
 >>> from uuid import uuid4

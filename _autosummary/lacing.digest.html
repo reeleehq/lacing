@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=38a06c88"></script>
+    <script src="../_static/documentation_options.js?v=9cd8e891"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.90" />
+  <meta name="docsearch:version" content="0.0.91" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -342,10 +342,12 @@
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.bodies.html">lacing.bodies</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.character_voice.html">lacing.bodies.character_voice</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.continuity_violation.html">lacing.bodies.continuity_violation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.lyric_line.html">lacing.bodies.lyric_line</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.named_entity.html">lacing.bodies.named_entity</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.reference_lock.html">lacing.bodies.reference_lock</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.review.html">lacing.bodies.review</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.review_candidate.html">lacing.bodies.review_candidate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.song_section.html">lacing.bodies.song_section</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.word.html">lacing.bodies.word</a></li>
 </ul>
 </details></li>
@@ -615,7 +617,10 @@ consumers.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.digest.VALUE_DIGEST_SCHEMES" title="lacing.digest.VALUE_DIGEST_SCHEMES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VALUE_DIGEST_SCHEMES</span></code></a></p></td>
 <td><p>Every scheme <a class="reference internal" href="#lacing.digest.annotation_value_digest" title="lacing.digest.annotation_value_digest"><code class="xref py py-func docutils literal notranslate"><span class="pre">annotation_value_digest()</span></code></a> can compute, oldest first.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.digest.BODY_DIGEST_SCHEME" title="lacing.digest.BODY_DIGEST_SCHEME"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BODY_DIGEST_SCHEME</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.digest.MAX_MIXED_FILLS" title="lacing.digest.MAX_MIXED_FILLS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MAX_MIXED_FILLS</span></code></a></p></td>
+<td><p>Default cap on the mixed-state bodies <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> tries (lacing#152): a body whose derived fields were filled one occurrence at a time was recorded with each occurrence in its own state (as now, absent, <code class="docutils literal notranslate"><span class="pre">null</span></code>, at its pre-fill value), and every combination is a candidate.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.digest.BODY_DIGEST_SCHEME" title="lacing.digest.BODY_DIGEST_SCHEME"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BODY_DIGEST_SCHEME</span></code></a></p></td>
 <td><p>Domain-separation tag mixed into <a class="reference internal" href="#lacing.digest.annotation_body_digest" title="lacing.digest.annotation_body_digest"><code class="xref py py-func docutils literal notranslate"><span class="pre">annotation_body_digest()</span></code></a>.</p></td>
 </tr>
 </tbody>
@@ -671,6 +676,20 @@ consumers.</p>
 alike here.</p>
 </dd></dl>
 
+<dl class="py data">
+<dt class="sig sig-object py" id="lacing.digest.MAX_MIXED_FILLS">
+<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">MAX_MIXED_FILLS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1024</span></span><a class="headerlink" href="#lacing.digest.MAX_MIXED_FILLS" title="Link to this definition">#</a></dt>
+<dd><p>Default cap on the mixed-state bodies <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> tries
+(lacing#152): a body whose derived fields were filled one occurrence at a time
+was recorded with each occurrence in its own state (as now, absent, <code class="docutils literal notranslate"><span class="pre">null</span></code>,
+at its pre-fill value), and every combination is a candidate. 1024 covers a
+field whose pre-fill value is <code class="docutils literal notranslate"><span class="pre">null</span></code> (three states per occurrence: as now,
+absent, <code class="docutils literal notranslate"><span class="pre">null</span></code>) on up to six occurrences (3**6 = 729), such as the images of
+a panel whose <code class="docutils literal notranslate"><span class="pre">asset_id</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>; or five occurrences of a field
+with a non-null default (four states, 4**5). Past the cap only the uniform
+bodies are tried: a spurious miss, never a wrong hit.</p>
+</dd></dl>
+
 <dl class="py exception">
 <dt class="sig sig-object py" id="lacing.digest.NonStringBodyKeyError">
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">NonStringBodyKeyError</span></span><a class="reference internal" href="../_modules/lacing/digest.html#NonStringBodyKeyError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.digest.NonStringBodyKeyError" title="Link to this definition">#</a></dt>
@@ -713,11 +732,12 @@ why each is in, and why <code class="docutils literal notranslate"><span class="
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lacing.digest.accepted_value_digests">
-<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">accepted_value_digests</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing/annotation-value-digest/v2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_derived</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/digest.html#accepted_value_digests"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.digest.accepted_value_digests" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">accepted_value_digests</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing/annotation-value-digest/v2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_derived</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mixed_fills</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/digest.html#accepted_value_digests"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.digest.accepted_value_digests" title="Link to this definition">#</a></dt>
 <dd><p>Every digest <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> accepts for <code class="docutils literal notranslate"><span class="pre">annotation</span></code>.</p>
 <p>For a verifier that memoizes per annotation and scheme and checks many
 recorded digests against one set; <code class="docutils literal notranslate"><span class="pre">value_digest_matches</span></code> stays the lazy
-one-off check. <code class="docutils literal notranslate"><span class="pre">resolve_derived</span></code> is as in <a class="reference internal" href="#lacing.digest.annotation_value_digest" title="lacing.digest.annotation_value_digest"><code class="xref py py-func docutils literal notranslate"><span class="pre">annotation_value_digest()</span></code></a>.</p>
+one-off check. <code class="docutils literal notranslate"><span class="pre">resolve_derived</span></code> and <code class="docutils literal notranslate"><span class="pre">max_mixed_fills</span></code> are as in
+<a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">frozenset</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
@@ -903,7 +923,7 @@ default <code class="docutils literal notranslate"><span class="pre">resolve_der
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lacing.digest.value_digest_matches">
-<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">value_digest_matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recorded</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing/annotation-value-digest/v2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_derived</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/digest.html#value_digest_matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.digest.value_digest_matches" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">value_digest_matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recorded</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing/annotation-value-digest/v2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_derived</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mixed_fills</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/digest.html#value_digest_matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.digest.value_digest_matches" title="Link to this definition">#</a></dt>
 <dd><p>Whether <code class="docutils literal notranslate"><span class="pre">recorded</span></code>, a value digest a trace stored under <code class="docutils literal notranslate"><span class="pre">scheme</span></code>, still
 describes <code class="docutils literal notranslate"><span class="pre">annotation</span></code>’s value.</p>
 <p>The check a freshness verifier makes, instead of comparing
@@ -928,6 +948,13 @@ pre-fill values. Dropping and filling touch nothing outside <code class="docutil
 way the two bodies agree outside <code class="docutils literal notranslate"><span class="pre">D</span></code>, which is exactly what the <code class="docutils literal notranslate"><span class="pre">v2</span></code>
 digest already accepts. <code class="docutils literal notranslate"><span class="pre">resolve_derived</span></code> is as in
 <a class="reference internal" href="#lacing.digest.annotation_value_digest" title="lacing.digest.annotation_value_digest"><code class="xref py py-func docutils literal notranslate"><span class="pre">annotation_value_digest()</span></code></a>.</p>
+<p>Derived fields filled one occurrence at a time (each image of a panel)
+leave bodies recorded in <strong>mixed</strong> states: one occurrence filled, another
+<code class="docutils literal notranslate"><span class="pre">null</span></code>, a third absent. Those are accepted too, each occurrence in any of
+its states (lacing#152), and for the same reason: every mix agrees with the
+current body outside <code class="docutils literal notranslate"><span class="pre">D</span></code>. They are tried last, and only while the number
+of combinations is at most <code class="docutils literal notranslate"><span class="pre">max_mixed_fills</span></code> (<a class="reference internal" href="#lacing.digest.MAX_MIXED_FILLS" title="lacing.digest.MAX_MIXED_FILLS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MAX_MIXED_FILLS</span></code></a>);
+past it, a body recorded in a mixed state reads as changed.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">MediaRef</span><span class="p">,</span> <span class="n">Provenance</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">TimeInterval</span>
@@ -1027,6 +1054,7 @@ and the derived field is filled:</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#verifying-a-recorded-digest-use-value-digest-matches">Verifying a recorded digest: use <code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.BODY_DIGEST_SCHEME"><code class="docutils literal notranslate"><span class="pre">BODY_DIGEST_SCHEME</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.BODY_FIELDS"><code class="docutils literal notranslate"><span class="pre">BODY_FIELDS</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.MAX_MIXED_FILLS"><code class="docutils literal notranslate"><span class="pre">MAX_MIXED_FILLS</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.NonStringBodyKeyError"><code class="docutils literal notranslate"><span class="pre">NonStringBodyKeyError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.VALUE_DIGEST_SCHEME"><code class="docutils literal notranslate"><span class="pre">VALUE_DIGEST_SCHEME</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.digest.VALUE_DIGEST_SCHEMES"><code class="docutils literal notranslate"><span class="pre">VALUE_DIGEST_SCHEMES</span></code></a></li>

@@ -21,6 +21,8 @@ lacing.derived
       drop_paths
       fill_paths
       null_paths
+      occurrences
+      same_json
    
    .. rubric:: Classes
 
