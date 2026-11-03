@@ -67,6 +67,7 @@ __all__ = [
     "fill_paths",
     "null_paths",
     "occurrences",
+    "same_json",
 ]
 
 #: One step of a path through a body: an object key, or :data:`ANY_ITEM`.

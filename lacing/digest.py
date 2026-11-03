@@ -597,13 +597,13 @@ def _value_digests(
         return
     from lacing.derived import fill_paths
 
+    # A pre-fill that is not JSON (a datetime) cannot be in a recorded body:
+    # try null for it instead.
     prefills = {
-        tuple(path): paths[path] if isinstance(paths, Mapping) else None
+        tuple(path): prefill if _is_json(prefill) else None
         for path in paths
+        for prefill in [paths[path] if isinstance(paths, Mapping) else None]
     }
-    for path, prefill in prefills.items():  # one that is not JSON (a datetime)
-        if not _is_json(prefill):  # cannot be in a recorded body: try null
-            prefills[path] = None
     dropped = _pop_entries(payload["body"], prefills)  # private dump: edit it
     if not is_v1:
         yield _digest(VALUE_DIGEST_SCHEME, payload)
@@ -631,11 +631,13 @@ def _is_json(value: Any) -> bool:
 def _pop_entries(body: dict, prefills: dict) -> list[tuple]:
     """Delete in place every entry of ``body`` a path of ``prefills`` names (as
     :func:`lacing.derived.drop_paths` does), and return each as
-    ``(container, key, value, prefill)``, in document order."""
+    ``(container, key, value, prefill)``, path by path, each in document order."""
     from lacing.derived import occurrences
 
     dropped = []
-    for path, prefill in prefills.items():
+    # Shortest paths first: when a custom resolver names both an entry and one
+    # inside it, the outer one is popped first, and the inner is then gone.
+    for path, prefill in sorted(prefills.items(), key=lambda item: len(item[0])):
         for *parents, key in occurrences(body, path):
             container = _get(body, parents)
             dropped.append((container, key, container.pop(key), prefill))
