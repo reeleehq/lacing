@@ -161,6 +161,7 @@ consumers.
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 from collections.abc import Callable, Collection, Iterator, Mapping
 from typing import TYPE_CHECKING, Any, Sequence
@@ -180,12 +181,14 @@ __all__ = [
     "VALUE_DIGEST_SCHEME",
     "VALUE_DIGEST_SCHEMES",
     "BODY_DIGEST_SCHEME",
+    "MAX_MIXED_FILLS",
     "registered_prefills",
     "registered_derived_paths",
 ]
 
 #: What ``resolve_derived`` returns for a ``body_schema_uri``: the derived paths,
-#: or a ``Mapping`` of each path to the value its field holds before the fill.
+#: or a ``Mapping`` of each path to the value its field holds before the fill
+#: (a pre-fill value that is not JSON is tried as ``None``).
 DerivedResolver = Callable[
     [str], Collection[Sequence[str | None]] | Mapping[Sequence[str | None], Any]
 ]
@@ -269,6 +272,17 @@ _V1_SCHEME = "lacing/annotation-value-digest/v1"
 VALUE_DIGEST_SCHEMES: tuple[str, ...] = (_V1_SCHEME, VALUE_DIGEST_SCHEME)
 """Every scheme :func:`annotation_value_digest` can compute, oldest first. Only
 the latest excludes derived fields."""
+
+MAX_MIXED_FILLS = 1024
+"""Default cap on the mixed-state bodies :func:`value_digest_matches` tries
+(lacing#152): a body whose derived fields were filled one occurrence at a time
+was recorded with each occurrence in its own state (as now, absent, ``null``,
+at its pre-fill value), and every combination is a candidate. 1024 covers a
+field whose pre-fill value is ``null`` (three states per occurrence: as now,
+absent, ``null``) on up to six occurrences (3**6 = 729), such as the images of
+a panel whose ``asset_id`` defaults to ``None``; or five occurrences of a field
+with a non-null default (four states, 4**5). Past the cap only the uniform
+bodies are tried: a spurious miss, never a wrong hit."""
 
 BODY_DIGEST_SCHEME = "lacing/annotation-body-digest/v1"
 """Domain-separation tag mixed into :func:`annotation_body_digest`."""
@@ -354,6 +368,7 @@ def value_digest_matches(
     *,
     scheme: str = VALUE_DIGEST_SCHEME,
     resolve_derived: DerivedResolver | None = None,
+    max_mixed_fills: int = MAX_MIXED_FILLS,
 ) -> bool:
     """Whether ``recorded``, a value digest a trace stored under ``scheme``, still
     describes ``annotation``'s value.
@@ -381,6 +396,14 @@ def value_digest_matches(
     way the two bodies agree outside ``D``, which is exactly what the ``v2``
     digest already accepts. ``resolve_derived`` is as in
     :func:`annotation_value_digest`.
+
+    Derived fields filled one occurrence at a time (each image of a panel)
+    leave bodies recorded in **mixed** states: one occurrence filled, another
+    ``null``, a third absent. Those are accepted too, each occurrence in any of
+    its states (lacing#152), and for the same reason: every mix agrees with the
+    current body outside ``D``. They are tried last, and only while the number
+    of combinations is at most ``max_mixed_fills`` (:data:`MAX_MIXED_FILLS`);
+    past it, a body recorded in a mixed state reads as changed.
 
     >>> from uuid import uuid4
     >>> from lacing import Annotation, MediaRef, Provenance
@@ -416,7 +439,9 @@ def value_digest_matches(
     ... )
     False
     """
-    return recorded in _value_digests(annotation, scheme, resolve_derived)
+    return recorded in _value_digests(
+        annotation, scheme, resolve_derived, max_mixed_fills=max_mixed_fills
+    )
 
 
 def accepted_value_digests(
@@ -424,14 +449,20 @@ def accepted_value_digests(
     *,
     scheme: str = VALUE_DIGEST_SCHEME,
     resolve_derived: DerivedResolver | None = None,
+    max_mixed_fills: int = MAX_MIXED_FILLS,
 ) -> frozenset[str]:
     """Every digest :func:`value_digest_matches` accepts for ``annotation``.
 
     For a verifier that memoizes per annotation and scheme and checks many
     recorded digests against one set; ``value_digest_matches`` stays the lazy
-    one-off check. ``resolve_derived`` is as in :func:`annotation_value_digest`.
+    one-off check. ``resolve_derived`` and ``max_mixed_fills`` are as in
+    :func:`value_digest_matches`.
     """
-    return frozenset(_value_digests(annotation, scheme, resolve_derived))
+    return frozenset(
+        _value_digests(
+            annotation, scheme, resolve_derived, max_mixed_fills=max_mixed_fills
+        )
+    )
 
 
 def annotation_body_digest(annotation: "Annotation") -> str:
@@ -542,6 +573,8 @@ def _value_digests(
     annotation: "Annotation",
     scheme: str,
     resolve_derived: DerivedResolver | None,
+    *,
+    max_mixed_fills: int = MAX_MIXED_FILLS,
 ) -> Iterator[str]:
     """The digest of ``annotation`` under ``scheme``, then (lazily) the digests a
     producer unaware of the derived paths would have recorded under the same tag
@@ -562,23 +595,130 @@ def _value_digests(
         if not is_v1:
             yield _digest(_V1_SCHEME, payload)
         return
-    from lacing.derived import drop_paths, fill_paths
+    from lacing.derived import fill_paths
 
+    # A pre-fill that is not JSON (a datetime) cannot be in a recorded body:
+    # try null for it instead.
     prefills = {
-        tuple(path): paths[path] if isinstance(paths, Mapping) else None
+        tuple(path): prefill if _is_json(prefill) else None
         for path in paths
+        for prefill in [paths[path] if isinstance(paths, Mapping) else None]
     }
-    dropped_any = drop_paths(payload["body"], set(prefills))  # private dump: edit it
+    dropped = _pop_entries(payload["body"], prefills)  # private dump: edit it
     if not is_v1:
         yield _digest(VALUE_DIGEST_SCHEME, payload)
         yield _digest(_V1_SCHEME, _payload(annotation, VALUE_FIELDS))  # unchanged
-    if not dropped_any:  # no derived field present: every fallback is the whole body
+    if not dropped:  # no derived field present: every fallback is the whole body
         return
     yield _digest(_V1_SCHEME, payload)  # derived fields absent when recorded
     for fills in _distinct_fills(prefills):  # derived fields stored as null, or
         filled = _payload(annotation, VALUE_FIELDS)  # at their default, then
         if fill_paths(filled["body"], fills):  # else it is the whole body again
             yield _digest(_V1_SCHEME, filled)
+    # last, each occurrence in its own state, editing the dropped dump in place
+    for mixed in _mixed_fills(payload, dropped, limit=max_mixed_fills):
+        yield _digest(_V1_SCHEME, mixed)
+
+
+def _is_json(value: Any) -> bool:
+    try:
+        json.dumps(value)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def _pop_entries(body: dict, prefills: dict) -> list[tuple]:
+    """Delete in place every entry of ``body`` a path of ``prefills`` names (as
+    :func:`lacing.derived.drop_paths` does), and return each as
+    ``(container, key, value, prefill)``, path by path, each in document order."""
+    from lacing.derived import occurrences
+
+    dropped = []
+    # Shortest paths first: when a custom resolver names both an entry and one
+    # inside it, the outer one is popped first, and the inner is then gone.
+    for path, prefill in sorted(prefills.items(), key=lambda item: len(item[0])):
+        for *parents, key in occurrences(body, path):
+            container = _get(body, parents)
+            dropped.append((container, key, container.pop(key), prefill))
+    return dropped
+
+
+_KEEP, _DROP = 0, 1
+"""A site's state is an index: as now, absent, then its written values."""
+
+
+def _mixed_fills(payload: dict, dropped: list, *, limit: int) -> Iterator[dict]:
+    """``payload``, whose derived entries ``dropped`` were removed, with each of
+    them in its own state: as now, absent, ``None``, or its path's pre-fill
+    value. Only the mixed combinations (the bodies of the uniform ones were
+    tried before), and none when there are more than ``limit`` combinations:
+    sites are added only while their product stays within it, so a large body
+    costs a few sites on a miss.
+
+    ``payload`` is edited in place from one combination to the next, only where
+    a site's state changes, so each yield is valid only until the next (the
+    caller digests it at once)."""
+    from lacing.derived import same_json
+
+    sites, combinations = [], 1
+    for container, key, value, prefill in dropped:
+        written = _written(value, prefill, same_json)
+        combinations *= 2 + len(written)
+        if combinations > limit:
+            return
+        sites.append((container, key, value, written, prefill))
+    if len(sites) < 2:  # one site: every combination is uniform
+        return
+
+    def uniform(fill_of: Callable[[Any], Any]) -> tuple[int, ...]:
+        """The combination a uniform fill leaves the sites in: each at its
+        written value equal to the fill, else as now (it already was)."""
+        return tuple(
+            next(
+                (2 + i for i, w in enumerate(written) if same_json(w, fill_of(p))),
+                _KEEP,
+            )
+            for _, _, _, written, p in sites
+        )
+
+    tried = {
+        (_KEEP,) * len(sites),
+        (_DROP,) * len(sites),
+        uniform(lambda prefill: None),
+        uniform(lambda prefill: prefill),
+    }
+    applied = [_DROP] * len(sites)  # as ``payload`` holds them now
+    for combo in itertools.product(*(range(2 + len(site[3])) for site in sites)):
+        if combo in tried:
+            continue
+        for i, ((container, key, value, written, _), state) in enumerate(
+            zip(sites, combo)
+        ):
+            if state != applied[i]:
+                if state == _DROP:
+                    del container[key]
+                else:
+                    container[key] = value if state == _KEEP else written[state - 2]
+                applied[i] = state
+        yield payload
+
+
+def _written(current: Any, prefill: Any, same: Callable[[Any, Any], bool]) -> list:
+    """The values one occurrence may have been recorded holding besides its
+    current one: ``None``, its pre-fill value; one equal to the current value or
+    to an earlier one is left out."""
+    written: list = []
+    for value in (None, prefill):
+        if not any(same(value, other) for other in (current, *written)):
+            written.append(value)
+    return written
+
+
+def _get(value: Any, address: Sequence) -> Any:
+    for step in address:
+        value = value[step]
+    return value
 
 
 def _distinct_fills(prefills: dict) -> list[dict]:

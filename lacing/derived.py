@@ -46,7 +46,7 @@ Field names and aliases are both read as spellings of a field, as in
 from __future__ import annotations
 
 import json
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import lru_cache
@@ -66,6 +66,8 @@ __all__ = [
     "drop_paths",
     "fill_paths",
     "null_paths",
+    "occurrences",
+    "same_json",
 ]
 
 #: One step of a path through a body: an object key, or :data:`ANY_ITEM`.
@@ -116,15 +118,17 @@ def _json_key(value: Any) -> Any:
         return value
 
 
-def _same(a: Any, b: Any) -> bool:
-    """Whether two values are equal as JSON (see :func:`_json_key`)."""
+def same_json(a: Any, b: Any) -> bool:
+    """Whether two values are equal as JSON (see :func:`_json_key`): ``0`` is
+    not ``False``; values that are not JSON (a ``datetime``) compare by ``==``
+    instead of raising. Shared with :mod:`lacing.digest`."""
     return a is b or _json_key(a) == _json_key(b)
 
 
 def _note(out: dict, path: DerivedPath, default: Any) -> None:
     """Record ``path`` with ``default``; a disagreeing second default forgets it."""
     known = out.get(path, default)
-    if known is _NO_DEFAULT or default is _NO_DEFAULT or not _same(known, default):
+    if known is _NO_DEFAULT or default is _NO_DEFAULT or not same_json(known, default):
         default = _NO_DEFAULT
     out[path] = default
 
@@ -282,6 +286,39 @@ def fill_paths(value: Any, fills: Mapping[DerivedPath, Any]) -> bool:
     return _edit_paths(value, ((path, _setter(fill)) for path, fill in fills.items()))
 
 
+def occurrences(value: Any, path: DerivedPath) -> list[tuple]:
+    """The addresses (key and list-index steps) of every existing entry ``path``
+    names in the JSON-like ``value``, in document order: the entries
+    :func:`drop_paths` and :func:`fill_paths` would edit.
+
+    >>> occurrences({"images": [{"id": "h"}, {}, {"id": None}]}, ("images", ANY_ITEM, "id"))
+    [('images', 0, 'id'), ('images', 2, 'id')]
+    """
+    return [address for address, _, _ in _entries(value, path)]
+
+
+def _entries(
+    value: Any, path: Any, address: tuple = ()
+) -> Iterator[tuple[tuple, dict, Any]]:
+    """``(address, container, key)`` for every existing entry ``path`` names in
+    ``value``, in document order: the one walk behind :func:`occurrences` and
+    the edits. Lazy, so an edit made at one entry is seen by the walk after it
+    (only the final key of a container is ever edited, which no later entry of
+    the same path passes through)."""
+    head, *rest = path
+    if isinstance(value, dict):
+        for key in list(value) if head is ANY_ITEM else [head]:
+            if key not in value:
+                continue
+            if rest:
+                yield from _entries(value[key], rest, (*address, key))
+            else:
+                yield (*address, key), value, key
+    elif isinstance(value, list) and head is ANY_ITEM and rest:
+        for index, item in enumerate(value):
+            yield from _entries(item, rest, (*address, index))
+
+
 def _delete(container: dict, key: Any) -> bool:
     del container[key]
     return True
@@ -323,18 +360,7 @@ def _edit_paths(
 def _edit(value: Any, path: DerivedPath, edit: Callable[[dict, Any], bool]) -> bool:
     """Apply ``edit(container, key)`` to every existing entry ``path`` names in
     ``value``; return whether any call reported a change."""
-    head, *rest = path
     edited = False
-    if isinstance(value, dict):
-        targets = list(value) if head is ANY_ITEM else [head]
-        for key in targets:
-            if key not in value:
-                continue
-            if rest:
-                edited |= _edit(value[key], tuple(rest), edit)
-            else:
-                edited |= edit(value, key)
-    elif isinstance(value, list) and head is ANY_ITEM and rest:
-        for item in value:
-            edited |= _edit(item, tuple(rest), edit)
+    for _, container, key in _entries(value, path):
+        edited |= edit(container, key)  # every entry, even after a change
     return edited
