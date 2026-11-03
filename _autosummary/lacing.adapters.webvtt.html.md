@@ -43,8 +43,10 @@ Write annotations as WebVTT.
 
 * **Parameters:**
   * **store** ([`IntervalAnnotationStore`](lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – Source store. Only annotations from `tier` (default: all
-    tiers) with a time interval (any reference kind) are emitted,
-    sorted by start then end.
+    tiers) with a time interval (any reference kind) and readable
+    text (`lacing.adapters._common.display_text()`: `text`,
+    else `title`) are emitted, sorted by start then
+    end.
   * **target** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Output path. If None, returns bytes (UTF-8).
   * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Restrict export to this tier. None = export all annotations.
 * **Return type:**

@@ -2236,7 +2236,7 @@ Names of every registered processor, sorted.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
-### lacing.render_artifact_exhibit(annotations, , out_dir, formats=('html', 'pdf', 'md'), title='Artifact exhibit', image_resolver=None)
+### lacing.render_artifact_exhibit(annotations, \*, out_dir, formats=('html', 'pdf', 'md'), title='Artifact exhibit', image_resolver=None, label=<function label_from_fields.<locals>.label>, edges=(ExhibitEdge(targets=<function \_derived_from_targets>, forward='derived from', backward='feeds into'), ))
 
 Render an annotation graph as a human-readable artifact exhibit.
 
@@ -2262,6 +2262,14 @@ the graph actually has images.
     Defaults to reading the reference’s own `path` field; a
     caller whose images live behind URLs passes a resolver that
     downloads / caches them (keeping this module media-agnostic).
+  * **label** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Any`](https://docs.python.org/3/library/typing.html#typing.Any)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – `annotation → card title` (`None` or blank: the card is
+    titled by its kind; long titles are cut). Defaults to the first
+    of `DEFAULT_LABEL_FIELDS` in the body; a graph whose text
+    lives elsewhere passes `label_from_fields("title", "text")` or
+    any function.
+  * **edges** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`ExhibitEdge`](lacing.exhibit.html.md#lacing.exhibit.ExhibitEdge)]) – which links to draw, as `ExhibitEdge` strategies, in
+    order. Defaults to provenance (`DERIVED_FROM`); add
+    `ANNOTATES` for `AnnotationRef` links, or define your own.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 * **Returns:**

@@ -1,4 +1,4 @@
-> built 2026-11-03 11:15 UTC from d07d109 (main) · lacing 0.0.85. Details: build_info.json
+> built 2026-11-03 11:23 UTC from 429fe56 (main) · lacing 0.0.86. Details: build_info.json
 
 # index.html.md
 
@@ -1582,7 +1582,8 @@ Write annotations as SubRip.
 
 * **Parameters:**
   * **store** ([`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – Source store. Every annotation with a time interval (any reference kind) and a
-    `text` body (an SRT or WebVTT cue, or any other) is emitted,
+    readable text (`lacing.adapters._common.display_text()`:
+    `text`, else `title`) is emitted,
     sorted by start then end, and numbered 1..N in that order.
   * **target** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Output path. If None, returns bytes (UTF-8, no BOM, `\n`).
   * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Restrict export to this tier. None = export all tiers.
@@ -1793,8 +1794,10 @@ Write annotations as WebVTT.
 
 * **Parameters:**
   * **store** ([`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – Source store. Only annotations from `tier` (default: all
-    tiers) with a time interval (any reference kind) are emitted,
-    sorted by start then end.
+    tiers) with a time interval (any reference kind) and readable
+    text (`lacing.adapters._common.display_text()`: `text`,
+    else `title`) are emitted, sorted by start then
+    end.
   * **target** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Output path. If None, returns bytes (UTF-8).
   * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Restrict export to this tier. None = export all annotations.
 * **Return type:**
@@ -4313,9 +4316,10 @@ Markdown stay small. The PDF is still self-contained — weasyprint
 resolves the relative paths (via `base_url`) and embeds the bytes.
 
 The annotation graph — annotations + `provenance.was_derived_from` +
-image references — *is* the “artifacts and links” model, so this runs on
-**any** lacing graph: a project, a test run’s artifacts, anything. The
-renderer is pure (graph → document) and has no knowledge of where the
+image references — *is* the “artifacts and links” model (`edges=`
+adds other links, such as `AnnotationRef` targets; `label=` sets card
+titles), so this runs on **any** lacing graph: a project, a test run’s
+artifacts, anything. The renderer is pure (graph → document) and has no knowledge of where the
 graph came from.
 
 HTML is the authored format; the PDF and Markdown derive from it so the
@@ -4335,12 +4339,84 @@ Images are resolved through an injected `image_resolver` callback
 (image-reference → local file path) so this module needs no knowledge
 of how media is stored or downloaded — the caller wires that in.
 
+### Module Attributes
+
+| [`DEFAULT_LABEL_FIELDS`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.DEFAULT_LABEL_FIELDS)   | The body fields [`default_label`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.default_label) tries, in order.                                                                            |
+|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`default_label`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.default_label)(ann)     | The default `label=`: the first of [`DEFAULT_LABEL_FIELDS`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.DEFAULT_LABEL_FIELDS) set.                                                              |
+| [`DERIVED_FROM`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.DERIVED_FROM)           | `provenance.was_derived_from` (the default `edges=`).                                                                                                                      |
+| [`ANNOTATES`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.ANNOTATES)              | the annotation an `AnnotationRef` points at (a note on a line, a referent annotating an entity), found as the reference's `target_id` (any reference that has one counts). |
+
 ### Functions
 
-| [`render_artifact_exhibit`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.render_artifact_exhibit)(annotations, \*, out_dir)   | Render an annotation graph as a human-readable artifact exhibit.   |
-|------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| [`default_label`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.default_label)(ann)                                | The default `label=`: the first of [`DEFAULT_LABEL_FIELDS`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.DEFAULT_LABEL_FIELDS) set.                                                                                              |
+|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`label_from_fields`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.label_from_fields)(\*fields)                       | A `label=` for [`render_artifact_exhibit()`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.render_artifact_exhibit): the first of the body `fields` holding a non-blank string, else `None` (the card is then labelled by its kind). |
+| [`render_artifact_exhibit`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.render_artifact_exhibit)(annotations, \*, out_dir) | Render an annotation graph as a human-readable artifact exhibit.                                                                                                                                           |
 
-### lacing.exhibit.render_artifact_exhibit(annotations, , out_dir, formats=('html', 'pdf', 'md'), title='Artifact exhibit', image_resolver=None)
+### Classes
+
+| [`ExhibitEdge`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.ExhibitEdge)(targets, forward, backward)   | One kind of link between exhibit cards (an `edges=` strategy).   |
+|--------------------------------------------------------------------------------------------|------------------------------------------------------------------|
+
+### lacing.exhibit.ANNOTATES *= ExhibitEdge(targets=<function \_annotation_ref_targets>, forward='annotates', backward='annotated by')*
+
+the annotation an `AnnotationRef` points at (a note on a line,
+a referent annotating an entity), found as the reference’s `target_id`
+(any reference that has one counts). `edges=(DERIVED_FROM, ANNOTATES)` shows
+both, each under its own name, without touching provenance.
+
+* **Type:**
+  [*Reference*](_autosummary/lacing.model.html.md#lacing.model.Reference)
+
+### lacing.exhibit.DEFAULT_LABEL_FIELDS *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ('caption', 'logline', 'description', 'name', 'panel_id', 'beat_id', 'label', 'kind')*
+
+The body fields [`default_label`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.default_label) tries, in order.
+
+### lacing.exhibit.DERIVED_FROM *= ExhibitEdge(targets=<function \_derived_from_targets>, forward='derived from', backward='feeds into')*
+
+`provenance.was_derived_from` (the default `edges=`).
+
+* **Type:**
+  [*Provenance*](_autosummary/lacing.html.md#lacing.Provenance)
+
+### *class* lacing.exhibit.ExhibitEdge(targets, forward, backward)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+One kind of link between exhibit cards (an `edges=` strategy).
+
+`targets(ann)` gives the ids `ann` links to. Its card lists them
+under `↑ <forward>`, and each target’s card lists `ann` under
+`↓ <backward>`. An id that is not among the exhibited annotations is
+shown as a short id, not a link.
+
+### lacing.exhibit.default_label(ann)
+
+The default `label=`: the first of [`DEFAULT_LABEL_FIELDS`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.DEFAULT_LABEL_FIELDS) set.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### lacing.exhibit.label_from_fields(\*fields)
+
+A `label=` for [`render_artifact_exhibit()`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.render_artifact_exhibit): the first of the body
+`fields` holding a non-blank string, else `None` (the card is then
+labelled by its kind).
+
+```pycon
+>>> from types import SimpleNamespace
+>>> label = label_from_fields("title", "text")
+>>> label(SimpleNamespace(body={"text": "a line", "title": " "}))
+'a line'
+>>> label(SimpleNamespace(body={})) is None
+True
+```
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Any`](https://docs.python.org/3/library/typing.html#typing.Any)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
+
+### lacing.exhibit.render_artifact_exhibit(annotations, \*, out_dir, formats=('html', 'pdf', 'md'), title='Artifact exhibit', image_resolver=None, label=<function label_from_fields.<locals>.label>, edges=(ExhibitEdge(targets=<function \_derived_from_targets>, forward='derived from', backward='feeds into'), ))
 
 Render an annotation graph as a human-readable artifact exhibit.
 
@@ -4366,6 +4442,14 @@ the graph actually has images.
     Defaults to reading the reference’s own `path` field; a
     caller whose images live behind URLs passes a resolver that
     downloads / caches them (keeping this module media-agnostic).
+  * **label** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Any`](https://docs.python.org/3/library/typing.html#typing.Any)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – `annotation → card title` (`None` or blank: the card is
+    titled by its kind; long titles are cut). Defaults to the first
+    of [`DEFAULT_LABEL_FIELDS`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.DEFAULT_LABEL_FIELDS) in the body; a graph whose text
+    lives elsewhere passes `label_from_fields("title", "text")` or
+    any function.
+  * **edges** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`ExhibitEdge`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.ExhibitEdge)]) – which links to draw, as [`ExhibitEdge`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.ExhibitEdge) strategies, in
+    order. Defaults to provenance ([`DERIVED_FROM`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.DERIVED_FROM)); add
+    [`ANNOTATES`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.ANNOTATES) for `AnnotationRef` links, or define your own.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 * **Returns:**
@@ -6759,7 +6843,7 @@ Names of every registered processor, sorted.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
-### lacing.render_artifact_exhibit(annotations, , out_dir, formats=('html', 'pdf', 'md'), title='Artifact exhibit', image_resolver=None)
+### lacing.render_artifact_exhibit(annotations, \*, out_dir, formats=('html', 'pdf', 'md'), title='Artifact exhibit', image_resolver=None, label=<function label_from_fields.<locals>.label>, edges=(ExhibitEdge(targets=<function \_derived_from_targets>, forward='derived from', backward='feeds into'), ))
 
 Render an annotation graph as a human-readable artifact exhibit.
 
@@ -6785,6 +6869,14 @@ the graph actually has images.
     Defaults to reading the reference’s own `path` field; a
     caller whose images live behind URLs passes a resolver that
     downloads / caches them (keeping this module media-agnostic).
+  * **label** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Any`](https://docs.python.org/3/library/typing.html#typing.Any)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – `annotation → card title` (`None` or blank: the card is
+    titled by its kind; long titles are cut). Defaults to the first
+    of `DEFAULT_LABEL_FIELDS` in the body; a graph whose text
+    lives elsewhere passes `label_from_fields("title", "text")` or
+    any function.
+  * **edges** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`ExhibitEdge`](_autosummary/lacing.exhibit.html.md#lacing.exhibit.ExhibitEdge)]) – which links to draw, as `ExhibitEdge` strategies, in
+    order. Defaults to provenance (`DERIVED_FROM`); add
+    `ANNOTATES` for `AnnotationRef` links, or define your own.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 * **Returns:**
@@ -10250,18 +10342,18 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-03 11:15 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/d07d1090cb3974a71dd7df6357ad12327840f7b1"><code>d07d109</code></a> on branch <code>main</code>, for **lacing 0.0.85** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-03 11:23 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/429fe56238a051bb73f621cb75a57b29e1e3405d"><code>429fe56</code></a> on branch <code>main</code>, for **lacing 0.0.86** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.0.85) is behind the latest release on PyPI (0.0.86): `pip install lacing` gives newer code than these docs describe.
+- The documented version (0.0.86) is behind the latest release on PyPI (0.0.87): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/d07d1090cb3974a71dd7df6357ad12327840f7b1"><code>d07d1090cb3974a71dd7df6357ad12327840f7b1</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/429fe56238a051bb73f621cb75a57b29e1e3405d"><code>429fe56238a051bb73f621cb75a57b29e1e3405d</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -10272,9 +10364,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41625590083">41625590083</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41626676438">41626676438</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>d07d1090cb3974a71dd7df6357ad12327840f7b1</code> (in the history of the built commit) |
+| Event commit | <code>dd881c4375b86251f910ce0f347c2b613fee524f</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10299,13 +10391,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.86/">0.0.86</a>, newer than the documented version (0.0.85).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.87/">0.0.87</a>, newer than the documented version (0.0.86).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout d07d1090cb3974a71dd7df6357ad12327840f7b1
+git checkout 429fe56238a051bb73f621cb75a57b29e1e3405d
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

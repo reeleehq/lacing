@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=04662272"></script>
+    <script src="../../../_static/documentation_options.js?v=339ea818"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.85" />
+  <meta name="docsearch:version" content="0.0.86" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -827,7 +827,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">adapter_generator_id</span><span class="p">,</span> <span class="n">register_adapter</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters._common</span><span class="w"> </span><span class="kn">import</span> <span class="n">iter_with_intervals</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters._common</span><span class="w"> </span><span class="kn">import</span> <span class="n">display_text</span><span class="p">,</span> <span class="n">iter_with_intervals</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters._podcast</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">END_INFERRED_KEY</span><span class="p">,</span>
     <span class="n">TIME_FIELDS</span><span class="p">,</span>
@@ -849,6 +849,8 @@ window.runMermaid = runMermaid;</script>
 <span class="n">GENERATED_BY</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">adapter_generator_id</span><span class="p">(</span><span class="n">ADAPTER_NAME</span><span class="p">,</span> <span class="n">ADAPTER_VERSION</span><span class="p">))</span>
 <span class="n">BODY_SCHEMA_URI</span> <span class="o">=</span> <span class="s2">"annot://schema/podcast-chapter/v1"</span>
 <span class="n">EPISODE_BODY_SCHEMA_URI</span> <span class="o">=</span> <span class="s2">"annot://schema/podcast-chapters-episode/v1"</span>
+<span class="c1"># A chapter from another format is titled by its title first, then its text.</span>
+<span class="n">_TITLE_KEYS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">)</span>
 <span class="n">DEFAULT_TIER_NAME</span> <span class="o">=</span> <span class="s2">"chapters"</span>
 <span class="n">DEFAULT_EPISODE_TIER_NAME</span> <span class="o">=</span> <span class="s2">"episode"</span>
 <span class="n">DEFAULT_ASSET_ID</span> <span class="o">=</span> <span class="s2">"podcast-chapters:unspecified"</span>
@@ -985,10 +987,8 @@ window.runMermaid = runMermaid;</script>
     <span class="n">body</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">body</span>
     <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">body_schema_uri</span> <span class="o">==</span> <span class="n">BODY_SCHEMA_URI</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_without_nulls</span><span class="p">(</span><span class="n">body</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">TIME_FIELDS</span><span class="p">}</span>
-    <span class="n">title</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"title"</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="n">title</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s2">"title"</span><span class="p">:</span> <span class="n">title</span><span class="p">}</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="n">display_text</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="n">_TITLE_KEYS</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">title</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{</span><span class="s2">"title"</span><span class="p">:</span> <span class="n">title</span><span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_chapter</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">inferred_end</span><span class="p">:</span> <span class="n">Fraction</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>

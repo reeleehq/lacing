@@ -4,9 +4,26 @@ lacing.exhibit
 .. automodule:: lacing.exhibit
 
    
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      DEFAULT_LABEL_FIELDS
+      default_label
+      DERIVED_FROM
+      ANNOTATES
+   
    .. rubric:: Functions
 
    .. autosummary::
    
+      default_label
+      label_from_fields
       render_artifact_exhibit
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ExhibitEdge
    

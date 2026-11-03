@@ -2,18 +2,18 @@
 
 # About this build
 
-This documentation was built on **2026-11-03 11:15 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/d07d1090cb3974a71dd7df6357ad12327840f7b1"><code>d07d109</code></a> on branch <code>main</code>, for **lacing 0.0.85** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-03 11:23 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/429fe56238a051bb73f621cb75a57b29e1e3405d"><code>429fe56</code></a> on branch <code>main</code>, for **lacing 0.0.86** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.0.85) is behind the latest release on PyPI (0.0.86): `pip install lacing` gives newer code than these docs describe.
+- The documented version (0.0.86) is behind the latest release on PyPI (0.0.87): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/d07d1090cb3974a71dd7df6357ad12327840f7b1"><code>d07d1090cb3974a71dd7df6357ad12327840f7b1</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/429fe56238a051bb73f621cb75a57b29e1e3405d"><code>429fe56238a051bb73f621cb75a57b29e1e3405d</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -24,9 +24,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41625590083">41625590083</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41626676438">41626676438</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>d07d1090cb3974a71dd7df6357ad12327840f7b1</code> (in the history of the built commit) |
+| Event commit | <code>dd881c4375b86251f910ce0f347c2b613fee524f</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -51,13 +51,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.86/">0.0.86</a>, newer than the documented version (0.0.85).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.87/">0.0.87</a>, newer than the documented version (0.0.86).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout d07d1090cb3974a71dd7df6357ad12327840f7b1
+git checkout 429fe56238a051bb73f621cb75a57b29e1e3405d
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

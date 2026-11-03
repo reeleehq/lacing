@@ -68,7 +68,8 @@ Write annotations as SubRip.
 
 * **Parameters:**
   * **store** ([`IntervalAnnotationStore`](lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – Source store. Every annotation with a time interval (any reference kind) and a
-    `text` body (an SRT or WebVTT cue, or any other) is emitted,
+    readable text (`lacing.adapters._common.display_text()`:
+    `text`, else `title`) is emitted,
     sorted by start then end, and numbered 1..N in that order.
   * **target** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Output path. If None, returns bytes (UTF-8, no BOM, `\n`).
   * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Restrict export to this tier. None = export all tiers.

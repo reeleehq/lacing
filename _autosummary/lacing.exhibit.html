@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=04662272"></script>
+    <script src="../_static/documentation_options.js?v=339ea818"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.85" />
+  <meta name="docsearch:version" content="0.0.86" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -456,9 +456,10 @@ the ones it feeds into.</p>
 Markdown stay small. The PDF is still self-contained — weasyprint
 resolves the relative paths (via <code class="docutils literal notranslate"><span class="pre">base_url</span></code>) and embeds the bytes.</p>
 <p>The annotation graph — annotations + <code class="docutils literal notranslate"><span class="pre">provenance.was_derived_from</span></code> +
-image references — <em>is</em> the “artifacts and links” model, so this runs on
-<strong>any</strong> lacing graph: a project, a test run’s artifacts, anything. The
-renderer is pure (graph → document) and has no knowledge of where the
+image references — <em>is</em> the “artifacts and links” model (<code class="docutils literal notranslate"><span class="pre">edges=</span></code>
+adds other links, such as <code class="docutils literal notranslate"><span class="pre">AnnotationRef</span></code> targets; <code class="docutils literal notranslate"><span class="pre">label=</span></code> sets card
+titles), so this runs on <strong>any</strong> lacing graph: a project, a test run’s
+artifacts, anything. The renderer is pure (graph → document) and has no knowledge of where the
 graph came from.</p>
 <p>HTML is the authored format; the PDF and Markdown derive from it so the
 three never drift:</p>
@@ -475,18 +476,127 @@ command, rather than silently dropping the format.</p>
 <p>Images are resolved through an injected <code class="docutils literal notranslate"><span class="pre">image_resolver</span></code> callback
 (image-reference → local file path) so this module needs no knowledge
 of how media is stored or downloaded — the caller wires that in.</p>
+<p class="rubric">Module Attributes</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.exhibit.DEFAULT_LABEL_FIELDS" title="lacing.exhibit.DEFAULT_LABEL_FIELDS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DEFAULT_LABEL_FIELDS</span></code></a></p></td>
+<td><p>The body fields <a class="reference internal" href="#lacing.exhibit.default_label" title="lacing.exhibit.default_label"><code class="xref py py-data docutils literal notranslate"><span class="pre">default_label</span></code></a> tries, in order.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.exhibit.default_label" title="lacing.exhibit.default_label"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_label</span></code></a>(ann)</p></td>
+<td><p>The default <code class="docutils literal notranslate"><span class="pre">label=</span></code>: the first of <a class="reference internal" href="#lacing.exhibit.DEFAULT_LABEL_FIELDS" title="lacing.exhibit.DEFAULT_LABEL_FIELDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">DEFAULT_LABEL_FIELDS</span></code></a> set.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.exhibit.DERIVED_FROM" title="lacing.exhibit.DERIVED_FROM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DERIVED_FROM</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">provenance.was_derived_from</span></code> (the default <code class="docutils literal notranslate"><span class="pre">edges=</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.exhibit.ANNOTATES" title="lacing.exhibit.ANNOTATES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ANNOTATES</span></code></a></p></td>
+<td><p>the annotation an <code class="docutils literal notranslate"><span class="pre">AnnotationRef</span></code> points at (a note on a line, a referent annotating an entity), found as the reference's <code class="docutils literal notranslate"><span class="pre">target_id</span></code> (any reference that has one counts).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 <p class="rubric">Functions</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.exhibit.default_label" title="lacing.exhibit.default_label"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_label</span></code></a>(ann)</p></td>
+<td><p>The default <code class="docutils literal notranslate"><span class="pre">label=</span></code>: the first of <a class="reference internal" href="#lacing.exhibit.DEFAULT_LABEL_FIELDS" title="lacing.exhibit.DEFAULT_LABEL_FIELDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">DEFAULT_LABEL_FIELDS</span></code></a> set.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.exhibit.label_from_fields" title="lacing.exhibit.label_from_fields"><code class="xref py py-obj docutils literal notranslate"><span class="pre">label_from_fields</span></code></a>(*fields)</p></td>
+<td><p>A <code class="docutils literal notranslate"><span class="pre">label=</span></code> for <a class="reference internal" href="#lacing.exhibit.render_artifact_exhibit" title="lacing.exhibit.render_artifact_exhibit"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_artifact_exhibit()</span></code></a>: the first of the body <code class="docutils literal notranslate"><span class="pre">fields</span></code> holding a non-blank string, else <code class="docutils literal notranslate"><span class="pre">None</span></code> (the card is then labelled by its kind).</p></td>
+</tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.exhibit.render_artifact_exhibit" title="lacing.exhibit.render_artifact_exhibit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_artifact_exhibit</span></code></a>(annotations, *, out_dir)</p></td>
 <td><p>Render an annotation graph as a human-readable artifact exhibit.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
+<p class="rubric">Classes</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.exhibit.ExhibitEdge" title="lacing.exhibit.ExhibitEdge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExhibitEdge</span></code></a>(targets, forward, backward)</p></td>
+<td><p>One kind of link between exhibit cards (an <code class="docutils literal notranslate"><span class="pre">edges=</span></code> strategy).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="lacing.exhibit.ANNOTATES">
+<span class="sig-prename descclassname"><span class="pre">lacing.exhibit.</span></span><span class="sig-name descname"><span class="pre">ANNOTATES</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">ExhibitEdge(targets=&lt;function</span> <span class="pre">_annotation_ref_targets&gt;,</span> <span class="pre">forward='annotates',</span> <span class="pre">backward='annotated</span> <span class="pre">by')</span></span><a class="headerlink" href="#lacing.exhibit.ANNOTATES" title="Link to this definition">#</a></dt>
+<dd><p>the annotation an <code class="docutils literal notranslate"><span class="pre">AnnotationRef</span></code> points at (a note on a line,
+a referent annotating an entity), found as the reference’s <code class="docutils literal notranslate"><span class="pre">target_id</span></code>
+(any reference that has one counts). <code class="docutils literal notranslate"><span class="pre">edges=(DERIVED_FROM,</span> <span class="pre">ANNOTATES)</span></code> shows
+both, each under its own name, without touching provenance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="lacing.model.html#lacing.model.Reference" title="lacing.model.Reference"><em>Reference</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="lacing.exhibit.DEFAULT_LABEL_FIELDS">
+<span class="sig-prename descclassname"><span class="pre">lacing.exhibit.</span></span><span class="sig-name descname"><span class="pre">DEFAULT_LABEL_FIELDS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('caption',</span> <span class="pre">'logline',</span> <span class="pre">'description',</span> <span class="pre">'name',</span> <span class="pre">'panel_id',</span> <span class="pre">'beat_id',</span> <span class="pre">'label',</span> <span class="pre">'kind')</span></span><a class="headerlink" href="#lacing.exhibit.DEFAULT_LABEL_FIELDS" title="Link to this definition">#</a></dt>
+<dd><p>The body fields <a class="reference internal" href="#lacing.exhibit.default_label" title="lacing.exhibit.default_label"><code class="xref py py-data docutils literal notranslate"><span class="pre">default_label</span></code></a> tries, in order.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="lacing.exhibit.DERIVED_FROM">
+<span class="sig-prename descclassname"><span class="pre">lacing.exhibit.</span></span><span class="sig-name descname"><span class="pre">DERIVED_FROM</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">ExhibitEdge(targets=&lt;function</span> <span class="pre">_derived_from_targets&gt;,</span> <span class="pre">forward='derived</span> <span class="pre">from',</span> <span class="pre">backward='feeds</span> <span class="pre">into')</span></span><a class="headerlink" href="#lacing.exhibit.DERIVED_FROM" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">provenance.was_derived_from</span></code> (the default <code class="docutils literal notranslate"><span class="pre">edges=</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="lacing.html#lacing.Provenance" title="lacing.Provenance"><em>Provenance</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lacing.exhibit.ExhibitEdge">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.exhibit.</span></span><span class="sig-name descname"><span class="pre">ExhibitEdge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forward</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backward</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/exhibit.html#ExhibitEdge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.exhibit.ExhibitEdge" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>One kind of link between exhibit cards (an <code class="docutils literal notranslate"><span class="pre">edges=</span></code> strategy).</p>
+<p><code class="docutils literal notranslate"><span class="pre">targets(ann)</span></code> gives the ids <code class="docutils literal notranslate"><span class="pre">ann</span></code> links to. Its card lists them
+under <code class="docutils literal notranslate"><span class="pre">↑</span> <span class="pre">&lt;forward&gt;</span></code>, and each target’s card lists <code class="docutils literal notranslate"><span class="pre">ann</span></code> under
+<code class="docutils literal notranslate"><span class="pre">↓</span> <span class="pre">&lt;backward&gt;</span></code>. An id that is not among the exhibited annotations is
+shown as a short id, not a link.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.exhibit.default_label">
+<span class="sig-prename descclassname"><span class="pre">lacing.exhibit.</span></span><span class="sig-name descname"><span class="pre">default_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ann</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lacing.exhibit.default_label" title="Link to this definition">#</a></dt>
+<dd><p>The default <code class="docutils literal notranslate"><span class="pre">label=</span></code>: the first of <a class="reference internal" href="#lacing.exhibit.DEFAULT_LABEL_FIELDS" title="lacing.exhibit.DEFAULT_LABEL_FIELDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">DEFAULT_LABEL_FIELDS</span></code></a> set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.exhibit.label_from_fields">
+<span class="sig-prename descclassname"><span class="pre">lacing.exhibit.</span></span><span class="sig-name descname"><span class="pre">label_from_fields</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">fields</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/exhibit.html#label_from_fields"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.exhibit.label_from_fields" title="Link to this definition">#</a></dt>
+<dd><p>A <code class="docutils literal notranslate"><span class="pre">label=</span></code> for <a class="reference internal" href="#lacing.exhibit.render_artifact_exhibit" title="lacing.exhibit.render_artifact_exhibit"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_artifact_exhibit()</span></code></a>: the first of the body
+<code class="docutils literal notranslate"><span class="pre">fields</span></code> holding a non-blank string, else <code class="docutils literal notranslate"><span class="pre">None</span></code> (the card is then
+labelled by its kind).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimpleNamespace</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">label</span> <span class="o">=</span> <span class="n">label_from_fields</span><span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">label</span><span class="p">(</span><span class="n">SimpleNamespace</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="p">{</span><span class="s2">"text"</span><span class="p">:</span> <span class="s2">"a line"</span><span class="p">,</span> <span class="s2">"title"</span><span class="p">:</span> <span class="s2">" "</span><span class="p">}))</span>
+<span class="go">'a line'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">label</span><span class="p">(</span><span class="n">SimpleNamespace</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="p">{}))</span> <span class="ow">is</span> <span class="kc">None</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="lacing.exhibit.render_artifact_exhibit">
-<span class="sig-prename descclassname"><span class="pre">lacing.exhibit.</span></span><span class="sig-name descname"><span class="pre">render_artifact_exhibit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formats</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('html',</span> <span class="pre">'pdf',</span> <span class="pre">'md')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Artifact</span> <span class="pre">exhibit'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_resolver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/exhibit.html#render_artifact_exhibit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.exhibit.render_artifact_exhibit" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lacing.exhibit.</span></span><span class="sig-name descname"><span class="pre">render_artifact_exhibit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formats</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('html'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'pdf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'md')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Artifact</span> <span class="pre">exhibit'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_resolver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">label_from_fields.&lt;locals&gt;.label&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(ExhibitEdge(targets=&lt;function</span> <span class="pre">_derived_from_targets&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'derived</span> <span class="pre">from'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'feeds</span> <span class="pre">into')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/exhibit.html#render_artifact_exhibit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.exhibit.render_artifact_exhibit" title="Link to this definition">#</a></dt>
 <dd><p>Render an annotation graph as a human-readable artifact exhibit.</p>
 <p>Lays every annotation out as a card — body, panel images, and
 in-document hyperlinks to the artifacts it derives from / feeds
@@ -510,6 +620,14 @@ is always built in memory (the others derive from it).</p></li>
 Defaults to reading the reference’s own <code class="docutils literal notranslate"><span class="pre">path</span></code> field; a
 caller whose images live behind URLs passes a resolver that
 downloads / caches them (keeping this module media-agnostic).</p></li>
+<li><p><strong>label</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – <code class="docutils literal notranslate"><span class="pre">annotation</span> <span class="pre">→</span> <span class="pre">card</span> <span class="pre">title</span></code> (<code class="docutils literal notranslate"><span class="pre">None</span></code> or blank: the card is
+titled by its kind; long titles are cut). Defaults to the first
+of <a class="reference internal" href="#lacing.exhibit.DEFAULT_LABEL_FIELDS" title="lacing.exhibit.DEFAULT_LABEL_FIELDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">DEFAULT_LABEL_FIELDS</span></code></a> in the body; a graph whose text
+lives elsewhere passes <code class="docutils literal notranslate"><span class="pre">label_from_fields(&quot;title&quot;,</span> <span class="pre">&quot;text&quot;)</span></code> or
+any function.</p></li>
+<li><p><strong>edges</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference internal" href="#lacing.exhibit.ExhibitEdge" title="lacing.exhibit.ExhibitEdge"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExhibitEdge</span></code></a>]</span>) – which links to draw, as <a class="reference internal" href="#lacing.exhibit.ExhibitEdge" title="lacing.exhibit.ExhibitEdge"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExhibitEdge</span></code></a> strategies, in
+order. Defaults to provenance (<a class="reference internal" href="#lacing.exhibit.DERIVED_FROM" title="lacing.exhibit.DERIVED_FROM"><code class="xref py py-data docutils literal notranslate"><span class="pre">DERIVED_FROM</span></code></a>); add
+<a class="reference internal" href="#lacing.exhibit.ANNOTATES" title="lacing.exhibit.ANNOTATES"><code class="xref py py-data docutils literal notranslate"><span class="pre">ANNOTATES</span></code></a> for <code class="docutils literal notranslate"><span class="pre">AnnotationRef</span></code> links, or define your own.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -575,6 +693,12 @@ downloads / caches them (keeping this module media-agnostic).</p></li>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.exhibit.ANNOTATES"><code class="docutils literal notranslate"><span class="pre">ANNOTATES</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.exhibit.DEFAULT_LABEL_FIELDS"><code class="docutils literal notranslate"><span class="pre">DEFAULT_LABEL_FIELDS</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.exhibit.DERIVED_FROM"><code class="docutils literal notranslate"><span class="pre">DERIVED_FROM</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.exhibit.ExhibitEdge"><code class="docutils literal notranslate"><span class="pre">ExhibitEdge</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.exhibit.default_label"><code class="docutils literal notranslate"><span class="pre">default_label()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.exhibit.label_from_fields"><code class="docutils literal notranslate"><span class="pre">label_from_fields()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.exhibit.render_artifact_exhibit"><code class="docutils literal notranslate"><span class="pre">render_artifact_exhibit()</span></code></a></li>
 </ul>
   </nav></div>

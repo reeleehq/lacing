@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=04662272"></script>
+    <script src="../_static/documentation_options.js?v=339ea818"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.85" />
+  <meta name="docsearch:version" content="0.0.86" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -497,8 +497,10 @@ are truncated to the millisecond (shared with SubRip, see
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>store</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.store.base.html#lacing.store.base.IntervalAnnotationStore" title="lacing.store.base.IntervalAnnotationStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code></a></span>) – Source store. Only annotations from <code class="docutils literal notranslate"><span class="pre">tier</span></code> (default: all
-tiers) with a time interval (any reference kind) are emitted,
-sorted by start then end.</p></li>
+tiers) with a time interval (any reference kind) and readable
+text (<code class="xref py py-func docutils literal notranslate"><span class="pre">lacing.adapters._common.display_text()</span></code>: <code class="docutils literal notranslate"><span class="pre">text</span></code>,
+else <code class="docutils literal notranslate"><span class="pre">title</span></code>) are emitted, sorted by start then
+end.</p></li>
 <li><p><strong>target</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathLike</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Output path. If None, returns bytes (UTF-8).</p></li>
 <li><p><strong>tier</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Restrict export to this tier. None = export all annotations.</p></li>
 </ul>
