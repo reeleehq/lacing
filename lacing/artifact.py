@@ -71,12 +71,15 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import (
     BaseModel,
     Field,
     StrictBool,
+    StrictInt,
+    StrictStr,
+    StringConstraints,
     field_validator,
     model_serializer,
     model_validator,
@@ -128,31 +131,27 @@ TERRITORY_EXCLUDED = "territory_excluded"
 as ``"EU"``, recorded verbatim)."""
 
 
-def _check_revenue_cap(params: dict) -> None:
-    usd = params.get("usd")
-    if isinstance(usd, bool) or not isinstance(usd, int) or usd <= 0:
-        raise ValueError(f"{REVENUE_CAP} needs usd, a positive int (got {usd!r})")
+_NonBlankStr = Annotated[StrictStr, StringConstraints(pattern=r"\S")]
 
 
-def _check_territory_excluded(params: dict) -> None:
-    codes = params.get("codes")
-    if (
-        not isinstance(codes, (list, tuple))
-        or not codes
-        or not all(isinstance(c, str) and c.strip() for c in codes)
-    ):
-        raise ValueError(
-            f"{TERRITORY_EXCLUDED} needs codes, a non-empty list of non-blank "
-            f"strings (got {codes!r})"
-        )
+class _RevenueCapParams(BaseModel):
+    """The parameters of a :data:`REVENUE_CAP` restriction."""
+
+    usd: Annotated[StrictInt, Field(gt=0)]
 
 
-_KNOWN_RESTRICTION_CHECKS = {
-    REVENUE_CAP: _check_revenue_cap,
-    TERRITORY_EXCLUDED: _check_territory_excluded,
+class _TerritoryExcludedParams(BaseModel):
+    """The parameters of a :data:`TERRITORY_EXCLUDED` restriction."""
+
+    codes: tuple[_NonBlankStr, ...] = Field(..., min_length=1)
+
+
+_KNOWN_RESTRICTION_PARAMS: dict[str, type[BaseModel]] = {
+    REVENUE_CAP: _RevenueCapParams,
+    TERRITORY_EXCLUDED: _TerritoryExcludedParams,
 }
-"""The parameters of each well-known :class:`Restriction` kind, checked on
-construction; a kind not listed here is recorded as given."""
+"""The parameter model of each well-known :class:`Restriction` kind, validated
+on construction; a kind not listed here is recorded as given."""
 
 
 class Restriction(BaseModel):
@@ -163,7 +162,7 @@ class Restriction(BaseModel):
     licence caps revenue::
 
         Rights(provider="freesound", license="CC-BY-4.0", restrictions=[
-            Restriction(kind=REVENUE_CAP, usd=1_000_000, terms="stability-ai-community"),
+            Restriction(kind=REVENUE_CAP, usd=1_000_000, terms="stability-community"),
             Restriction(kind=TERRITORY_EXCLUDED, codes=["EU", "GB", "KR"]),
         ])
 
@@ -194,7 +193,7 @@ class Restriction(BaseModel):
         ),
     )
     terms: str | None = Field(
-        None, description="The terms that impose it, e.g. 'stability-ai-community'."
+        None, description="The terms that impose it, e.g. 'stability-community'."
     )
 
     @field_validator("kind", "terms")
@@ -206,9 +205,17 @@ class Restriction(BaseModel):
 
     @model_validator(mode="after")
     def _check_known_kind(self) -> "Restriction":
-        check = _KNOWN_RESTRICTION_CHECKS.get(self.kind)
-        if check is not None:
-            check(self.model_extra or {})
+        """Validate a well-known kind's parameters and store them normalised
+        (``codes`` becomes a tuple), so a list-built and a tuple-built record
+        are equal, a record equals its JSON round-trip, and none mutates.
+
+        Parameters beyond the kind's model are kept unchecked (the params
+        models ignore them): a restriction is an open record, and a newer
+        writer may add a parameter an older reader does not know."""
+        params_model = _KNOWN_RESTRICTION_PARAMS.get(self.kind)
+        if params_model is not None:
+            params = params_model.model_validate(self.__pydantic_extra__)
+            self.__pydantic_extra__.update(params.model_dump())
         return self
 
 
@@ -243,6 +250,9 @@ class Rights(BaseModel):
     - ``restrictions`` carries what a licence code cannot: a revenue cap, an
       excluded territory (:class:`Restriction`). Consumers classify by
       ``license`` and enforce every restriction on top.
+
+    ``model_copy(update=...)`` skips validation (pydantic's rule); build a new
+    ``Rights`` to change a field.
 
     ``provider`` is required, so an empty ``Rights()`` cannot exist: an
     artifact either has no record (we made it) or says where it came from.

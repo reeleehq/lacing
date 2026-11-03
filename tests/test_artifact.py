@@ -554,16 +554,27 @@ class _CountingDict(dict):
 
 # --- Rights.restrictions (lacing#106) ------------------------------------------
 
+import pydantic  # noqa: E402
+
 from lacing import REVENUE_CAP, TERRITORY_EXCLUDED, Restriction  # noqa: E402
 
-# A Rights record serialised before ``restrictions`` existed (lacing 0.0.85).
-_PRE_RESTRICTIONS_RIGHTS = {k: v for k, v in _FULL_RIGHTS.items()}
+# A reader built before ``restrictions`` existed (lacing 0.0.85): ``Rights``
+# without the field, still ``extra="forbid"``.
+_PreRestrictionsRights = pydantic.create_model(
+    "_PreRestrictionsRights",
+    __config__=pydantic.ConfigDict(frozen=True, extra="forbid"),
+    **{
+        name: (field.annotation, field)
+        for name, field in Rights.model_fields.items()
+        if name != "restrictions"
+    },
+)
 
 _STABILITY = dict(
     provider="freesound",
     license="CC-BY-4.0",
     restrictions=[
-        {"kind": REVENUE_CAP, "usd": 1_000_000, "terms": "stability-ai-community"},
+        {"kind": REVENUE_CAP, "usd": 1_000_000, "terms": "stability-community"},
         {"kind": TERRITORY_EXCLUDED, "codes": ["EU", "GB", "KR"]},
     ],
 )
@@ -574,8 +585,8 @@ class TestRightsRestrictions:
         r = Rights(**_STABILITY)
         cap, territories = r.restrictions
         assert isinstance(cap, Restriction)
-        assert (cap.kind, cap.usd, cap.terms) == (REVENUE_CAP, 1_000_000, "stability-ai-community")
-        assert territories.codes == ["EU", "GB", "KR"] and territories.terms is None
+        assert (cap.kind, cap.usd, cap.terms) == (REVENUE_CAP, 1_000_000, "stability-community")
+        assert territories.codes == ("EU", "GB", "KR") and territories.terms is None
         assert r.license == "CC-BY-4.0"
 
     def test_restrictions_round_trip_through_the_catalog(self, tmp_path: Path):
@@ -596,9 +607,39 @@ class TestRightsRestrictions:
         record without restrictions; an old record loads with none."""
         dumped = Rights(**_FULL_RIGHTS).model_dump()
         assert "restrictions" not in dumped
-        assert "restrictions" not in json.loads(Rights(**_FULL_RIGHTS).model_dump_json())
-        assert Rights(**_PRE_RESTRICTIONS_RIGHTS).restrictions == ()
-        assert "restrictions" in Rights(**_STABILITY).model_dump()
+        old = _PreRestrictionsRights.model_validate_json(
+            Rights(**_FULL_RIGHTS).model_dump_json()
+        )
+        assert Rights.model_validate_json(old.model_dump_json()) == Rights(**_FULL_RIGHTS)
+        assert Rights.model_validate_json(old.model_dump_json()).restrictions == ()
+        with pytest.raises(pydantic.ValidationError):
+            _PreRestrictionsRights.model_validate_json(
+                Rights(**_STABILITY).model_dump_json()
+            )
+
+    def test_codes_are_normalised_to_a_tuple(self):
+        listed = Restriction(kind=TERRITORY_EXCLUDED, codes=["EU", "GB"])
+        tupled = Restriction(kind=TERRITORY_EXCLUDED, codes=("EU", "GB"))
+        assert listed == tupled
+        assert hash(Rights(provider="p", restrictions=[listed]))
+        with pytest.raises(AttributeError):
+            listed.codes.append("KR")
+
+    def test_restrictions_round_trip_through_json(self):
+        r = Rights(**_STABILITY)
+        assert Rights.model_validate_json(r.model_dump_json()) == r
+        for restriction in r.restrictions:
+            dumped = restriction.model_dump_json()
+            assert Restriction.model_validate_json(dumped) == restriction
+
+    def test_extra_params_of_a_known_kind_are_kept(self):
+        r = Restriction(kind=REVENUE_CAP, usd=5, currency_note="pre-tax")
+        assert r.model_dump() == {
+            "kind": REVENUE_CAP,
+            "terms": None,
+            "usd": 5,
+            "currency_note": "pre-tax",
+        }
 
     @pytest.mark.parametrize(
         "bad",
@@ -617,9 +658,9 @@ class TestRightsRestrictions:
         ],
     )
     def test_malformed_restrictions_are_refused(self, bad):
-        with pytest.raises(Exception):
+        with pytest.raises(pydantic.ValidationError):
             Restriction(**bad)
-        with pytest.raises(Exception):
+        with pytest.raises(pydantic.ValidationError):
             Rights(provider="p", restrictions=[bad])
 
     def test_an_unknown_kind_is_kept_as_given(self):
