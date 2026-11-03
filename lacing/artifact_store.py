@@ -68,6 +68,7 @@ from pydantic import BaseModel, TypeAdapter
 
 from dol import Files, filt_iter, wrap_kvs
 from dol.atomic import atomic_write
+from dol.atomic import interrupted_writes as dol_interrupted_writes
 
 from lacing.artifact import Artifact, hash_bytes
 from lacing.artifact_ref import ArtifactRef
@@ -882,11 +883,21 @@ class ArtifactStore(MutableMapping):
         """
         blob_root = getattr(self.blobs, "rootdir", None)
         catalog_root = getattr(self.catalog, "rootdir", None)
-        blob_temps = [] if blob_root is None else _spool_files(Path(blob_root))
-        catalog_temps = (
-            [] if catalog_root is None else _atomic_write_temps(Path(catalog_root))
+        # dol owns the listing rules (regular files only, never a symlink; a
+        # missing folder holds none; an unlistable one raises) and the name of
+        # atomic_write's temps (lacing#141). A record key may have folders, so
+        # the catalog is searched recursively; spool files sit beside the blobs.
+        blob_temps = (
+            []
+            if blob_root is None
+            else dol_interrupted_writes(blob_root, pattern=_SPOOL_NAME_PATTERN)
         )
-        return sorted(p.absolute() for p in {*blob_temps, *catalog_temps})
+        catalog_temps = (
+            []
+            if catalog_root is None
+            else dol_interrupted_writes(catalog_root, recursive=True)
+        )
+        return sorted({Path(p) for p in (*blob_temps, *catalog_temps)})
 
     def blob_location(self, content_hash: str) -> "str | Path | None":
         """Resolve the cheapest *servable* location for a blob — without
@@ -1545,44 +1556,11 @@ load-bearing: hidden entries are what keep spool files out of
 :meth:`ArtifactStore.iter_blobs` (and ``dol.Files``' listing)."""
 
 
-def _spool_files(rootdir: Path) -> list[Path]:
-    """The staging files directly in ``rootdir``: regular files only, never a
-    symlink (it could point outside the root) or a directory."""
-    try:
-        entries = list(os.scandir(rootdir))
-    except FileNotFoundError:
-        return []
-    return sorted(
-        Path(entry.path)
-        for entry in entries
-        if entry.name.startswith(_SPOOL_PREFIX)
-        and entry.name.endswith(_SPOOL_SUFFIX)
-        and entry.is_file(follow_symlinks=False)
-    )
-
-
-_ATOMIC_WRITE_TEMP = re.compile(r"\..+\.[0-9a-f]{8}\.tmp", re.DOTALL)
-"""The name ``dol.atomic_write`` gives its staging file (``.<name>.<hex8>.tmp``).
-TODO: import dol's own pattern and lister once dol exports them (i2mint/dol#174)."""
-
-
-def _atomic_write_temps(rootdir: Path) -> list[Path]:
-    """The ``dol.atomic_write`` staging files anywhere under ``rootdir`` (a
-    record key may have folders): regular files only, never following a
-    symlinked folder."""
-    if not rootdir.exists():
-        return []
-    os.scandir(rootdir).close()  # the root itself unlistable: raise, know nothing
-    # An unreadable sub-folder is skipped (os.walk's default): a temp is told by
-    # its name, so what is skipped is only not collected, never wrongly deleted.
-    return sorted(
-        Path(folder, name)
-        for folder, _, names in os.walk(rootdir)
-        for name in names
-        if _ATOMIC_WRITE_TEMP.fullmatch(name)
-        and not os.path.islink(os.path.join(folder, name))
-        and os.path.isfile(os.path.join(folder, name))
-    )
+_SPOOL_NAME_PATTERN = re.compile(
+    re.escape(_SPOOL_PREFIX) + ".+" + re.escape(_SPOOL_SUFFIX), re.DOTALL
+)
+"""The full name of a :func:`_spool_chunks_to_dir` staging file, for
+``dol.interrupted_writes``."""
 
 
 def _spool_chunks_to_dir(chunks: Iterable[bytes], rootdir: Path) -> str:
