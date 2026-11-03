@@ -2,7 +2,7 @@
 
 # About this build
 
-This documentation was built on **2026-11-03 12:01 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/2a4bf961b0ff9ba1b376760552399eae9a3e8ad9"><code>2a4bf96</code></a> on branch <code>main</code>, for **lacing 0.0.90** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-03 12:08 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/2a4bf961b0ff9ba1b376760552399eae9a3e8ad9"><code>2a4bf96</code></a> on branch <code>main</code>, for **lacing 0.0.90** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -22,9 +22,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41630981047">41630981047</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41631178734">41631178734</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>dfb9d1aeba39d206dcf912980c4b3562f4203eb3</code> (in the history of the built commit) |
+| Event commit | <code>b73f0ed19cdd054f38f7c0b5b09ca3d0d32aab5d</code> (in the history of the built commit) |
 
 ## Tools
 

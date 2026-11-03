@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "built_at": "2026-11-03T12:01:07Z",
+  "built_at": "2026-11-03T12:08:44Z",
   "package": {
     "name": "lacing",
     "version": "0.0.90",
@@ -21,12 +21,12 @@
   "ci": {
     "provider": "github",
     "repository": "reeleehq/lacing",
-    "sha": "dfb9d1aeba39d206dcf912980c4b3562f4203eb3",
+    "sha": "b73f0ed19cdd054f38f7c0b5b09ca3d0d32aab5d",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "41630981047",
-    "run_url": "https://github.com/reeleehq/lacing/actions/runs/41630981047",
+    "run_id": "41631178734",
+    "run_url": "https://github.com/reeleehq/lacing/actions/runs/41631178734",
     "server_url": "https://github.com"
   },
   "tools": {
