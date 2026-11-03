@@ -2,8 +2,7 @@
 
 URI: ``annot://schema/lyric-line/v1``. Written by
 :class:`lacing.tracks.subtitle.SubtitleBuilder` and the LRC adapter. Permissive:
-a caller's own fields (``extra=``) are kept, so a body this schema accepts today
-stays accepted.
+a caller's own fields (``extra=``) are kept.
 """
 
 from __future__ import annotations

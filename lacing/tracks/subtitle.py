@@ -44,7 +44,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional, Sequence
+from typing import Any, Iterable, Sequence
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel
@@ -71,8 +71,8 @@ WORD_SCHEMA_URI = "annot://schema/word/v1"
 DEFAULT_RATE = 1000  # ms-precision is plenty for sung-text alignment
 
 #: Mapping of body URI → minimal example body: an inline reference for
-#: callers building outside the builder. Each validates against its schema
-#: (``SUBTITLE_BODY_MODELS``, or the built-in ``word/v1``).
+#: callers building outside the builder. Each validates against its built-in
+#: schema.
 BUILT_IN_BODY_SCHEMAS: dict[str, dict[str, Any]] = {
     SECTION_SCHEMA_URI: {
         "label": "verse_1",
@@ -119,7 +119,8 @@ class _BuiltAnnotation:
 
 
 #: The section and line schemas, registered on import of :mod:`lacing.bodies`
-#: (lacing#144). Words use the built-in ``word/v1`` schema.
+#: (lacing#144). Words use the built-in ``word/v1`` schema. Kept for callers of
+#: the 0.0.8x API; ``lacing.schema.get_body_schema(uri)`` is the general lookup.
 SUBTITLE_BODY_MODELS: dict[str, type[BaseModel]] = {
     SECTION_SCHEMA_URI: SongSectionBodyV1,
     LINE_SCHEMA_URI: LyricLineBodyV1,
