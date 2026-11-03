@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=a01ea66b"></script>
+    <script src="../../_static/documentation_options.js?v=04662272"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.84" />
+  <meta name="docsearch:version" content="0.0.85" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -781,7 +781,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">TypeAdapter</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dol</span><span class="w"> </span><span class="kn">import</span> <span class="n">Files</span><span class="p">,</span> <span class="n">filt_iter</span><span class="p">,</span> <span class="n">wrap_kvs</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dol.atomic</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_write</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dol.atomic</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_write</span><span class="p">,</span> <span class="n">interrupted_writes</span> <span class="k">as</span> <span class="n">dol_interrupted_writes</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.artifact</span><span class="w"> </span><span class="kn">import</span> <span class="n">Artifact</span><span class="p">,</span> <span class="n">hash_bytes</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.artifact_ref</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArtifactRef</span>
@@ -1640,16 +1640,25 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            OSError: a folder exists but cannot be listed (not a directory, no</span>
-<span class="sd">                permission). Nothing is known, so a collector should delete</span>
-<span class="sd">                nothing.</span>
+<span class="sd">                permission, or any other listing error). Nothing is known, so</span>
+<span class="sd">                a collector should delete nothing.</span>
 <span class="sd">        """</span>
         <span class="n">blob_root</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">,</span> <span class="s2">"rootdir"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">catalog_root</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="p">,</span> <span class="s2">"rootdir"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="n">blob_temps</span> <span class="o">=</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">blob_root</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_spool_files</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">blob_root</span><span class="p">))</span>
-        <span class="n">catalog_temps</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="p">[]</span> <span class="k">if</span> <span class="n">catalog_root</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_atomic_write_temps</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">catalog_root</span><span class="p">))</span>
+        <span class="c1"># dol owns the listing rules and atomic_write's temp name (lacing#141).</span>
+        <span class="c1"># A record key may have folders, so the catalog is searched</span>
+        <span class="c1"># recursively; spool files sit beside the blobs.</span>
+        <span class="n">blob_temps</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">blob_root</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">dol_interrupted_writes</span><span class="p">(</span><span class="n">blob_root</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="n">_SPOOL_NAME_PATTERN</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">absolute</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">{</span><span class="o">*</span><span class="n">blob_temps</span><span class="p">,</span> <span class="o">*</span><span class="n">catalog_temps</span><span class="p">})</span></div>
+        <span class="n">catalog_temps</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">catalog_root</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">dol_interrupted_writes</span><span class="p">(</span><span class="n">catalog_root</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">Path</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="o">*</span><span class="n">blob_temps</span><span class="p">,</span> <span class="o">*</span><span class="n">catalog_temps</span><span class="p">)})</span></div>
 
 
 <div class="viewcode-block" id="ArtifactStore.blob_location">
@@ -2331,44 +2340,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">:meth:`ArtifactStore.iter_blobs` (and ``dol.Files``' listing)."""</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_spool_files</span><span class="p">(</span><span class="n">rootdir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""The staging files directly in ``rootdir``: regular files only, never a</span>
-<span class="sd">    symlink (it could point outside the root) or a directory."""</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">entries</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">rootdir</span><span class="p">))</span>
-    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">[]</span>
-    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
-        <span class="n">Path</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">entries</span>
-        <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">_SPOOL_PREFIX</span><span class="p">)</span>
-        <span class="ow">and</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">_SPOOL_SUFFIX</span><span class="p">)</span>
-        <span class="ow">and</span> <span class="n">entry</span><span class="o">.</span><span class="n">is_file</span><span class="p">(</span><span class="n">follow_symlinks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="p">)</span>
-
-
-<span class="n">_ATOMIC_WRITE_TEMP</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\..+\.[0-9a-f]</span><span class="si">{8}</span><span class="s2">\.tmp"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
-<span class="sd">"""The name ``dol.atomic_write`` gives its staging file (``.&lt;name&gt;.&lt;hex8&gt;.tmp``).</span>
-<span class="sd">TODO: import dol's own pattern and lister once dol exports them (i2mint/dol#174)."""</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_atomic_write_temps</span><span class="p">(</span><span class="n">rootdir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""The ``dol.atomic_write`` staging files anywhere under ``rootdir`` (a</span>
-<span class="sd">    record key may have folders): regular files only, never following a</span>
-<span class="sd">    symlinked folder."""</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">rootdir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-        <span class="k">return</span> <span class="p">[]</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">rootdir</span><span class="p">)</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>  <span class="c1"># the root itself unlistable: raise, know nothing</span>
-    <span class="c1"># An unreadable sub-folder is skipped (os.walk's default): a temp is told by</span>
-    <span class="c1"># its name, so what is skipped is only not collected, never wrongly deleted.</span>
-    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
-        <span class="n">Path</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">folder</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">rootdir</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span>
-        <span class="k">if</span> <span class="n">_ATOMIC_WRITE_TEMP</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">islink</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
-        <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
-    <span class="p">)</span>
+<span class="n">_SPOOL_NAME_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">_SPOOL_PREFIX</span><span class="p">)</span> <span class="o">+</span> <span class="s2">".+"</span> <span class="o">+</span> <span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">_SPOOL_SUFFIX</span><span class="p">),</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span>
+<span class="p">)</span>
+<span class="sd">"""The full name of a :func:`_spool_chunks_to_dir` staging file, for</span>
+<span class="sd">``dol.interrupted_writes``: ``mkstemp``'s random middle is never empty, so</span>
+<span class="sd">neither is ``.+``."""</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_spool_chunks_to_dir</span><span class="p">(</span><span class="n">chunks</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">bytes</span><span class="p">],</span> <span class="n">rootdir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>

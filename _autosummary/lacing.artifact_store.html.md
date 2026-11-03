@@ -470,8 +470,8 @@ not exist.
 
 * **Raises:**
   [**OSError**](https://docs.python.org/3/builtins/exceptions.html#OSError) – a folder exists but cannot be listed (not a directory, no
-      permission). Nothing is known, so a collector should delete
-      nothing.
+      permission, or any other listing error). Nothing is known, so
+      a collector should delete nothing.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 
