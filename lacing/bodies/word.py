@@ -21,6 +21,17 @@ class WordBodyV1(SchemaModel):
 
     text: str = Field(..., description="Surface form of the word.")
     speaker: str | None = Field(None, description="Optional speaker identifier.")
+    line_index: int | None = Field(
+        None,
+        ge=0,
+        description="Index of the line (lyric, subtitle cue) holding the word.",
+    )
+    confidence: float | None = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Recognizer or aligner confidence in [0, 1].",
+    )
 
 
 register_body_schema("annot://schema/word/v1", WordBodyV1)

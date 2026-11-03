@@ -19,6 +19,35 @@
       "default": null,
       "description": "Optional speaker identifier.",
       "title": "Speaker"
+    },
+    "line_index": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Index of the line (lyric, subtitle cue) holding the word.",
+      "title": "Line Index"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Recognizer or aligner confidence in [0, 1].",
+      "title": "Confidence"
     }
   },
   "required": [

@@ -61,3 +61,16 @@ def opened_sqlite_connections(monkeypatch) -> list[sqlite3.Connection]:
 
     monkeypatch.setattr(sqlite3, "connect", recording_connect)
     return opened
+
+
+@pytest.fixture
+def isolated_body_registry(monkeypatch):
+    """The body-schema registry and declared default versions, restored after
+    the test, so what a test registers does not leak into later ones
+    (lacing#122). Yields the test's working copy of the registry."""
+    from lacing import schema
+
+    registry = dict(schema._BODY_REGISTRY)
+    monkeypatch.setattr(schema, "_BODY_REGISTRY", registry)
+    monkeypatch.setattr(schema, "_DEFAULT_VERSIONS", dict(schema._DEFAULT_VERSIONS))
+    return registry
