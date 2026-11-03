@@ -7,9 +7,9 @@ time-based media (audio, video, speech, music) but generalizes to any 1-D
 interval domain.
 
 > **Status:** Phase 0–2 complete. Core data model, in-memory + SQLite +
-> Postgres stores, **eight round-trip adapters** (Praat TextGrid, WebVTT,
-> W3C Web Annotation, `.annot` SQLite, ELAN EAF, JAMS, Label Studio JSON,
-> OpenTimelineIO), body-schema registry + JSON Schema export + migrations,
+> Postgres stores, **eleven round-trip adapters** (Praat TextGrid, WebVTT,
+> SubRip, LRC, ASS/SSA, W3C Web Annotation, `.annot` SQLite, ELAN EAF, JAMS,
+> Label Studio JSON, OpenTimelineIO), body-schema registry + JSON Schema export + migrations,
 > inter-annotator agreement metrics, a `lacing` CLI, a **FastAPI HTTP
 > server** (REST CRUD + ETag + import/export + schemas + op-log +
 > `/state-at` time-travel), an **MCP server** (10 tools, agents as
@@ -122,6 +122,7 @@ lacing/
 │   ├── lrc.py             .lrc lyrics, plain and enhanced (word timing)
 │   ├── podcast_transcript.py  Podcasting 2.0 podcast:transcript JSON (.transcript.json)
 │   ├── podcast_chapters.py    Podcasting 2.0 podcast:chapters JSON (.chapters.json)
+│   ├── ass.py             .ass/.ssa subtitles: styles, override tags, \k karaoke
 │   ├── web_annotation.py  W3C Web Annotation Data Model (JSON-LD)
 │   ├── annot.py           .annot SQLite portable file format (lossless)
 │   ├── eaf.py             ELAN EAF (4 stereotypes verbatim)
