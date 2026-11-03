@@ -1557,21 +1557,28 @@ def _dir_made(directory: Path) -> Iterator[None]:
     """Make ``directory`` (and its missing ancestors) for the write in the
     ``with`` body; if the body, or the making, raises, remove again the ones
     this call made that are still empty, deepest first, so a failed write
-    leaves no stray folder behind (lacing#155)."""
-    created = []
-    for missing in (directory, *directory.parents):
-        if missing.exists():
+    leaves no stray folder behind (lacing#155). A folder another writer made
+    meanwhile is not this call's, and stays."""
+    missing = []
+    for level in (directory, *directory.parents):
+        if level.exists():
             break
-        created.append(missing)
+        missing.append(level)
+    created: list[Path] = []
     try:
-        directory.mkdir(parents=True, exist_ok=True)
+        for level in reversed(missing):  # top-down
+            try:
+                level.mkdir()
+            except FileExistsError:
+                continue  # made by another writer since the scan
+            created.append(level)
         yield
     except BaseException:
-        for made in created:
+        for made in reversed(created):
             try:
                 made.rmdir()
             except OSError:
-                continue  # never made (e.g. name too long), or not empty
+                continue  # no longer empty
         raise
 
 

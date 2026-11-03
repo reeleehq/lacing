@@ -308,10 +308,31 @@ def test_a_lazy_stores_failed_write_leaves_nothing_behind(tmp_path: Path, write)
 
 
 def test_a_failed_write_keeps_the_folders_it_did_not_make(tmp_path: Path):
-    store = ArtifactStore.from_directory(tmp_path / "x")
+    root = tmp_path / "x"
+    store = ArtifactStore.from_directory(root, create=False)
+    (root / "blobs").mkdir(parents=True)  # empty, but not the write's to remove
     with pytest.raises(RuntimeError):
         store.put_blob_stream(_failing_chunks())
-    assert _tree(tmp_path / "x") == ["blobs", "catalog"]
+    assert _tree(root) == ["blobs"]
+
+
+def test_a_failed_write_keeps_a_folder_another_writer_made(tmp_path, monkeypatch):
+    """The race the scan cannot see: a folder made between the scan and the
+    mkdir is someone else's, and survives this write's rollback."""
+    from lacing.artifact_store import _dir_made
+
+    target = tmp_path / "a" / "b"
+    real_mkdir = Path.mkdir
+
+    def racing_mkdir(self, *args, **kwargs):
+        if self == target.parent:
+            real_mkdir(self)  # the other writer gets there first
+        return real_mkdir(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "mkdir", racing_mkdir)
+    with pytest.raises(RuntimeError), _dir_made(target):
+        raise RuntimeError
+    assert target.parent.is_dir() and not target.exists()
 
 
 def test_a_lazy_store_reads_and_deletes_like_an_empty_one(tmp_path: Path):
