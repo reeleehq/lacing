@@ -660,8 +660,8 @@ def test_mixed_states_past_the_cap_read_as_changed(registered):
     recorded = annotation_value_digest(_ann(_images("h0", None)), scheme=V1)
     register_body_schema(URI, Body)
     filled = _ann(_images("h0", "h1"))
-    assert value_digest_matches(filled, recorded, max_mixed_fills=16)
-    assert not value_digest_matches(filled, recorded, max_mixed_fills=15)
+    assert value_digest_matches(filled, recorded)
+    assert not value_digest_matches(filled, recorded, max_mixed_fills=0)
     assert recorded not in accepted_value_digests(filled, max_mixed_fills=0)
 
 
@@ -686,28 +686,65 @@ def test_uniform_candidates_come_first_and_none_repeats(registered):
 
 
 def test_a_large_body_misses_cheaply(registered):
-    """Past the cap no site beyond the first few is even looked at: a miss on
-    a thousand occurrences tries the uniform bodies only."""
+    """``max_mixed_fills`` bounds what a miss costs, whatever the body's size:
+    a thousand occurrences try the uniform bodies plus that many mixed ones."""
     ann = _ann(_images(*(f"h{i}" for i in range(1000))))
-    assert not value_digest_matches(ann, "0" * 64)
-    assert len(accepted_value_digests(ann)) == 5  # v2, whole, absent, null, ""
+    assert not value_digest_matches(ann, "0" * 64, max_mixed_fills=8)
+    uniform = 5  # v2, whole, absent, null, ""
+    assert len(accepted_value_digests(ann, max_mixed_fills=0)) == uniform
+    assert len(accepted_value_digests(ann, max_mixed_fills=8)) == uniform + 8
+    ann = _ann(_images(*(f"h{i}" for i in range(20))))
+    assert len(accepted_value_digests(ann)) == uniform + MAX_MIXED_FILLS
 
 
 _NULL_PREFILL = {("images", None, "asset_id"): None}  # as artful's PanelImage
 
 
-def test_six_images_recorded_in_mixed_states_match_under_the_default_cap(registered):
-    """Three states per image (as now, absent, null): six images are 729
-    combinations, within MAX_MIXED_FILLS; a seventh is past it."""
+@pytest.mark.parametrize("n", [7, 9, 12])
+@pytest.mark.parametrize(
+    "unfilled",
+    [(None,), (_ABSENT,), (None, None), (_ABSENT, _ABSENT), (_ABSENT, None)],
+)
+@pytest.mark.parametrize("resolver", ["registered", "null-prefill"])
+def test_a_late_fill_on_many_images_matches_under_the_default_cap(
+    registered, n, unfilled, resolver
+):
+    """lacing#157: a trace recorded just before the last image or two were
+    filled (left null, absent, or one of each) matches once all are filled,
+    however many images the panel holds; it was past the 3**n cap at 7."""
+    resolve = {"registered": None, "null-prefill": lambda uri: _NULL_PREFILL}
+    filled = [f"h{i}" for i in range(n)]
+    recorded = _recorded_unaware(_images(*filled[: n - len(unfilled)], *unfilled))
+    ann = _ann(_images(*filled))
+    for scheme in VALUE_DIGEST_SCHEMES:
+        assert value_digest_matches(
+            ann, recorded, scheme=scheme, resolve_derived=resolve[resolver]
+        )
+
+
+def test_a_single_late_fill_is_among_the_first_mixed_bodies_tried(registered):
+    """Fewest occurrences moved first: one image still null at record time is
+    reached within the first ``n`` mixed bodies of each form."""
     resolve = lambda uri: _NULL_PREFILL
-    assert 3**6 <= MAX_MIXED_FILLS < 3**7
-    states = ("h0", None, _ABSENT, "h3", None, _ABSENT)
-    recorded = _recorded_unaware(_images(*states))
-    filled = _ann(_images(*(f"h{i}" for i in range(6))))
-    assert value_digest_matches(filled, recorded, resolve_derived=resolve)
-    recorded = _recorded_unaware(_images(*states, None))
-    filled = _ann(_images(*(f"h{i}" for i in range(7))))
-    assert not value_digest_matches(filled, recorded, resolve_derived=resolve)
+    n = 30
+    filled = [f"h{i}" for i in range(n)]
+    ann = _ann(_images(*filled))
+    for i in (0, n - 1):
+        recorded = _recorded_unaware(_images(*filled[:i], None, *filled[i + 1 :]))
+        assert value_digest_matches(
+            ann, recorded, resolve_derived=resolve, max_mixed_fills=2 * n
+        )
+    # and far-off states still match when the budget reaches them
+    recorded = _recorded_unaware(_images(*filled[:4], *[None] * 2, _ABSENT))
+    assert value_digest_matches(
+        _ann(_images(*filled[:7])), recorded, resolve_derived=resolve
+    )
+    six = ("h0", None, _ABSENT, "h3", None, _ABSENT)
+    assert value_digest_matches(
+        _ann(_images(*(f"h{i}" for i in range(6)))),
+        _recorded_unaware(_images(*six)),
+        resolve_derived=resolve,
+    )
 
 
 def test_a_prefill_that_is_not_json_is_tried_as_null(registered):

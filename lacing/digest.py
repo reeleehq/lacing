@@ -274,15 +274,17 @@ VALUE_DIGEST_SCHEMES: tuple[str, ...] = (_V1_SCHEME, VALUE_DIGEST_SCHEME)
 the latest excludes derived fields."""
 
 MAX_MIXED_FILLS = 1024
-"""Default cap on the mixed-state bodies :func:`value_digest_matches` tries
-(lacing#152): a body whose derived fields were filled one occurrence at a time
-was recorded with each occurrence in its own state (as now, absent, ``null``,
-at its pre-fill value), and every combination is a candidate. 1024 covers a
-field whose pre-fill value is ``null`` (three states per occurrence: as now,
-absent, ``null``) on up to six occurrences (3**6 = 729), such as the images of
-a panel whose ``asset_id`` defaults to ``None``; or five occurrences of a field
-with a non-null default (four states, 4**5). Past the cap only the uniform
-bodies are tried: a spurious miss, never a wrong hit."""
+"""Default budget of mixed-state bodies :func:`value_digest_matches` tries
+(lacing#152, lacing#157): a body whose derived fields were filled one
+occurrence at a time was recorded with each occurrence in its own state (as
+now, absent, ``null``, at its pre-fill value), and every combination is a
+candidate. There are ``3**n`` of them or more, so they are tried likeliest
+first, fewest occurrences off their current state first, and at most this many:
+with ``null`` pre-fills, a trace recorded before a panel's last fill is
+reached on up to 512 images, before its last two on up to 31, its last three
+on up to 13; and a miss costs at most this many digests. Past the budget a
+body recorded in a less likely state reads as changed: a spurious miss, never a
+wrong hit."""
 
 BODY_DIGEST_SCHEME = "lacing/annotation-body-digest/v1"
 """Domain-separation tag mixed into :func:`annotation_body_digest`."""
@@ -401,9 +403,9 @@ def value_digest_matches(
     leave bodies recorded in **mixed** states: one occurrence filled, another
     ``null``, a third absent. Those are accepted too, each occurrence in any of
     its states (lacing#152), and for the same reason: every mix agrees with the
-    current body outside ``D``. They are tried last, and only while the number
-    of combinations is at most ``max_mixed_fills`` (:data:`MAX_MIXED_FILLS`);
-    past it, a body recorded in a mixed state reads as changed.
+    current body outside ``D``. They are tried last, fewest occurrences moved
+    first, and at most ``max_mixed_fills`` of them (:data:`MAX_MIXED_FILLS`,
+    lacing#157); a body recorded in a state past that budget reads as changed.
 
     >>> from uuid import uuid4
     >>> from lacing import Annotation, MediaRef, Provenance
@@ -652,56 +654,90 @@ def _mixed_fills(payload: dict, dropped: list, *, limit: int) -> Iterator[dict]:
     """``payload``, whose derived entries ``dropped`` were removed, with each of
     them in its own state: as now, absent, ``None``, or its path's pre-fill
     value. Only the mixed combinations (the bodies of the uniform ones were
-    tried before), and none when there are more than ``limit`` combinations:
-    sites are added only while their product stays within it, so a large body
-    costs a few sites on a miss.
+    tried before), at most ``limit`` of them, the likeliest first (see
+    :func:`_by_distance`), so a large body costs ``limit`` digests on a miss,
+    never ``3**n``.
 
     ``payload`` is edited in place from one combination to the next, only where
     a site's state changes, so each yield is valid only until the next (the
     caller digests it at once)."""
     from lacing.derived import same_json
 
-    sites, combinations = [], 1
-    for container, key, value, prefill in dropped:
-        written = _written(value, prefill, same_json)
-        combinations *= 2 + len(written)
-        if combinations > limit:
-            return
-        sites.append((container, key, value, written, prefill))
-    if len(sites) < 2:  # one site: every combination is uniform
+    sites = [
+        (container, key, value, _written(value, prefill, same_json), prefill)
+        for container, key, value, prefill in dropped
+    ]
+    if len(sites) < 2 or limit < 1:  # one site: every combination is uniform
         return
 
-    def uniform(fill_of: Callable[[Any], Any]) -> tuple[int, ...]:
+    def uniform(fill_of: Callable[[Any], Any]) -> frozenset:
         """The combination a uniform fill leaves the sites in: each at its
         written value equal to the fill, else as now (it already was)."""
-        return tuple(
-            next(
-                (2 + i for i, w in enumerate(written) if same_json(w, fill_of(p))),
-                _KEEP,
-            )
-            for _, _, _, written, p in sites
+        return frozenset(
+            (i, 2 + w)
+            for i, (_, _, _, written, prefill) in enumerate(sites)
+            for w in [_index(written, fill_of(prefill), same_json)]
+            if w is not None
         )
 
     tried = {
-        (_KEEP,) * len(sites),
-        (_DROP,) * len(sites),
+        frozenset((i, _DROP) for i in range(len(sites))),
         uniform(lambda prefill: None),
         uniform(lambda prefill: prefill),
     }
-    applied = [_DROP] * len(sites)  # as ``payload`` holds them now
-    for combo in itertools.product(*(range(2 + len(site[3])) for site in sites)):
-        if combo in tried:
-            continue
-        for i, ((container, key, value, written, _), state) in enumerate(
-            zip(sites, combo)
-        ):
-            if state != applied[i]:
+    for container, key, value, _, _ in sites:  # start from the body as now
+        container[key] = value
+    forms = [
+        {"absent": _DROP} | {_form(w): 2 + i for i, w in enumerate(written)}
+        for _, _, _, written, _ in sites
+    ]
+    applied: dict[int, int] = {}  # the sites ``payload`` holds off "as now"
+    combos = (c for c in _by_distance(forms) if frozenset(c.items()) not in tried)
+    for combo in itertools.islice(combos, limit):
+        for i in applied.keys() - combo.keys():
+            container, key, value, _, _ = sites[i]
+            container[key] = value
+        for i, state in combo.items():
+            if applied.get(i) != state:
+                container, key, _, written, _ = sites[i]
                 if state == _DROP:
                     del container[key]
                 else:
-                    container[key] = value if state == _KEEP else written[state - 2]
-                applied[i] = state
+                    container[key] = written[state - 2]
+        applied = combo
         yield payload
+
+
+def _by_distance(forms: Sequence[Mapping[str, int]]) -> Iterator[dict[int, int]]:
+    """Every combination of the sites' states other than "all as now", each as
+    ``{site: state}`` for the sites it moves off "as now"; ``forms[i]`` maps
+    each form site ``i`` may have been recorded in (absent, null, pre-fill) to
+    its state.
+
+    Fewest sites moved first: a trace recorded just before the last fill or two
+    (the common case, lacing#157) is reached after ``n`` or ``n**2`` bodies, not
+    after ``3**n``. At each distance, the bodies whose moved sites share one
+    form (``k`` images still ``null``) come before those mixing forms (one
+    absent, one ``null``: images appended by different writers)."""
+    n = len(forms)
+    labels = list(dict.fromkeys(label for f in forms for label in f))
+    for distance in range(1, n + 1):
+        for label in labels:
+            eligible = [i for i, f in enumerate(forms) if label in f]
+            for moved in itertools.combinations(eligible, distance):
+                yield {i: forms[i][label] for i in moved}
+        for moved in itertools.combinations(range(n), distance):
+            for chosen in itertools.product(*(forms[i].items() for i in moved)):
+                if len({label for label, _ in chosen}) > 1:
+                    yield {i: state for i, (_, state) in zip(moved, chosen)}
+
+
+def _form(value: Any) -> str:
+    return "null" if value is None else "prefill"
+
+
+def _index(values: Sequence, target: Any, same: Callable[[Any, Any], bool]):
+    return next((i for i, v in enumerate(values) if same(v, target)), None)
 
 
 def _written(current: Any, prefill: Any, same: Callable[[Any, Any], bool]) -> list:
