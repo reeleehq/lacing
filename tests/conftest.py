@@ -67,7 +67,13 @@ def opened_sqlite_connections(monkeypatch) -> list[sqlite3.Connection]:
 def isolated_body_registry(monkeypatch):
     """The body-schema registry and declared default versions, restored after
     the test, so what a test registers does not leak into later ones
-    (lacing#122). Yields the test's working copy of the registry."""
+    (lacing#122). Yields the test's working copy of the registry.
+
+    The built-in bodies are imported first, so they are in the real registry:
+    imported for the first time inside the test, they would register only in
+    the copy, and a later ``import lacing.bodies.word`` (a no-op by then)
+    would leave ``word/v1`` unregistered for every test after it."""
+    import lacing.bodies  # noqa: F401  registers the built-in body schemas
     from lacing import schema
 
     registry = dict(schema._BODY_REGISTRY)
