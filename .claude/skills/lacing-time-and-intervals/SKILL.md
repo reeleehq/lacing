@@ -93,7 +93,7 @@ The actual implementation is in `lacing.time`:
 - `RationalTime.to_rate(new_rate)` raises `LossyTimeConversionError` on loss — never rounds silently.
 - `__add__` / `__sub__` operate on `Fraction` then quantize back at `self.rate`. They raise `LossyTimeConversionError` if the sum isn't exact at that rate. **This is stricter than you might expect** — adding `Fraction(1,3)` to a rate-2 `RationalTime` raises rather than rounding.
 
-Lossy conversion always raises, never rounds.
+Lossy conversion raises, never rounds silently. The one sanctioned way to round is explicit: `RationalTime.from_seconds_lossy(seconds, rate=..., mode=...)` and `TimeInterval.from_seconds_lossy(start, end, rate=..., mode=...)` (exact rule: the float's own value as a `Fraction`, then round half to even, floor or ceil). Never hand-roll `round(x * rate)`: it rounds the float product and disagrees on ties such as `0.0005`.
 
 ## Rule 4 — Allen's 13 relations are the public predicate API
 

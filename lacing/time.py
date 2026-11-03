@@ -14,7 +14,7 @@ import copy
 import math
 import time
 from fractions import Fraction
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
@@ -69,6 +69,11 @@ Pydantic validation still enforces it.
 
 class LossyTimeConversionError(ValueError):
     """Raised when a rate or seconds conversion would lose precision."""
+
+
+QuantizeMode = Literal["round", "floor", "ceil"]
+"""How ``from_seconds_lossy`` picks a tick: nearest (ties to even), or the one
+at or before, or at or after, the exact value."""
 
 
 class RationalTime:
@@ -137,7 +142,7 @@ class RationalTime:
         seconds: float | Fraction | str | int,
         *,
         rate: int = DEFAULT_RATE,
-        mode: str = "round",
+        mode: QuantizeMode = "round",
     ) -> "RationalTime":
         """Build from seconds, quantizing to the nearest sample at ``rate``.
 
@@ -167,6 +172,8 @@ class RationalTime:
         elif isinstance(seconds, (int, Fraction)):
             f = Fraction(seconds)
         elif isinstance(seconds, float):
+            if not math.isfinite(seconds):  # Fraction raises OverflowError for inf
+                raise ValueError(f"seconds must be finite, got {seconds!r}")
             f = Fraction(seconds)
         else:
             raise TypeError(
@@ -402,6 +409,39 @@ class TimeInterval:
         return cls(
             RationalTime.from_seconds(start, rate=rate),
             RationalTime.from_seconds(end, rate=rate),
+        )
+
+    @classmethod
+    def from_seconds_lossy(
+        cls,
+        start: float | Fraction | str | int,
+        end: float | Fraction | str | int,
+        *,
+        rate: int = DEFAULT_RATE,
+        mode: QuantizeMode = "round",
+    ) -> "TimeInterval":
+        """Build from seconds, quantizing each end to a tick at ``rate``.
+
+        The interval form of :meth:`RationalTime.from_seconds_lossy`, with
+        its exact rule (the float's own value as a ``Fraction``, then
+        ``mode``: ``"round"``, ties to even; ``"floor"``; ``"ceil"``), so
+        every caller holding computed float timings quantizes the same way
+        instead of each writing ``round(x * rate)``, which rounds the float
+        product and disagrees on inputs such as ``0.0005``. Both ends use
+        ``mode``, which keeps ``start <= end`` and puts the shared edge of two
+        adjacent windows on one tick; a window shorter than a tick can collapse
+        to a point. Use :meth:`from_seconds` when a lossy conversion should be
+        an error.
+
+        Examples:
+            >>> TimeInterval.from_seconds_lossy(3.48, 4.0, rate=1000)
+            TimeInterval(RationalTime(3480, 1000), RationalTime(4000, 1000))
+            >>> TimeInterval.from_seconds_lossy("0.1", "0.2", rate=3, mode="ceil").start.value
+            1
+        """
+        return cls(
+            RationalTime.from_seconds_lossy(start, rate=rate, mode=mode),
+            RationalTime.from_seconds_lossy(end, rate=rate, mode=mode),
         )
 
     def shift(self, by: RationalTime) -> "TimeInterval":

@@ -85,19 +85,22 @@ BUILT_IN_BODY_SCHEMAS: dict[str, dict[str, Any]] = {
 
 
 def _interval(start_s: float, end_s: float, rate: int) -> TimeInterval:
-    """Lossless float-seconds → ``TimeInterval`` at ``rate`` ticks/second.
+    """Float seconds → ``TimeInterval`` at ``rate`` ticks/second.
 
-    Rounds to integer ticks so a value like ``14.2`` at rate=1000 doesn't
-    trip the strict "lossy decimal" guard. Empty ranges are widened by
-    one tick — the store rejects zero-length intervals.
+    Rounds each end to the nearest tick with lacing's exact rule
+    (:meth:`RationalTime.from_seconds_lossy`, as
+    :meth:`TimeInterval.from_seconds_lossy` does), so a value like ``14.2``
+    at rate=1000 doesn't trip the strict "lossy decimal" guard. An empty or
+    reversed range is widened to one tick after its start: a section, line
+    or word must have a duration.
     """
     if not (rate > 0):
         raise ValueError(f"rate must be positive (got {rate})")
-    start_t = int(round(start_s * rate))
-    end_t = int(round(end_s * rate))
-    if end_t <= start_t:
-        end_t = start_t + 1
-    return TimeInterval(RationalTime(start_t, rate), RationalTime(end_t, rate))
+    start = RationalTime.from_seconds_lossy(start_s, rate=rate)
+    end = RationalTime.from_seconds_lossy(end_s, rate=rate)
+    if end.value <= start.value:
+        end = RationalTime(start.value + 1, rate)
+    return TimeInterval(start, end)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
