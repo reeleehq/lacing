@@ -66,6 +66,7 @@ __all__ = [
     "drop_paths",
     "fill_paths",
     "null_paths",
+    "occurrences",
 ]
 
 #: One step of a path through a body: an object key, or :data:`ANY_ITEM`.
@@ -280,6 +281,32 @@ def fill_paths(value: Any, fills: Mapping[DerivedPath, Any]) -> bool:
     ``fills`` to that path's value (keys that are absent stay absent); return
     whether any changed. Each entry gets its own deep copy of the value."""
     return _edit_paths(value, ((path, _setter(fill)) for path, fill in fills.items()))
+
+
+def occurrences(value: Any, path: DerivedPath) -> list[tuple]:
+    """The addresses (key and list-index steps) of every existing entry ``path``
+    names in the JSON-like ``value``, in document order: the entries
+    :func:`drop_paths` and :func:`fill_paths` would edit.
+
+    >>> occurrences({"images": [{"id": "h"}, {}, {"id": None}]}, ("images", ANY_ITEM, "id"))
+    [('images', 0, 'id'), ('images', 2, 'id')]
+    """
+    head, *rest = path
+    if isinstance(value, dict):
+        keys = list(value) if head is ANY_ITEM else [head]
+        return [
+            (key, *tail)
+            for key in keys
+            if key in value
+            for tail in (occurrences(value[key], tuple(rest)) if rest else [()])
+        ]
+    if isinstance(value, list) and head is ANY_ITEM and rest:
+        return [
+            (index, *tail)
+            for index, item in enumerate(value)
+            for tail in occurrences(item, tuple(rest))
+        ]
+    return []
 
 
 def _delete(container: dict, key: Any) -> bool:
