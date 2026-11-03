@@ -163,8 +163,6 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
-import math
-from copy import deepcopy
 from collections.abc import Callable, Collection, Iterator, Mapping
 from typing import TYPE_CHECKING, Any, Sequence
 
@@ -183,12 +181,14 @@ __all__ = [
     "VALUE_DIGEST_SCHEME",
     "VALUE_DIGEST_SCHEMES",
     "BODY_DIGEST_SCHEME",
+    "MAX_MIXED_FILLS",
     "registered_prefills",
     "registered_derived_paths",
 ]
 
 #: What ``resolve_derived`` returns for a ``body_schema_uri``: the derived paths,
-#: or a ``Mapping`` of each path to the value its field holds before the fill.
+#: or a ``Mapping`` of each path to the value its field holds before the fill
+#: (a pre-fill value that is not JSON is tried as ``None``).
 DerivedResolver = Callable[
     [str], Collection[Sequence[str | None]] | Mapping[Sequence[str | None], Any]
 ]
@@ -273,12 +273,16 @@ VALUE_DIGEST_SCHEMES: tuple[str, ...] = (_V1_SCHEME, VALUE_DIGEST_SCHEME)
 """Every scheme :func:`annotation_value_digest` can compute, oldest first. Only
 the latest excludes derived fields."""
 
-MAX_MIXED_FILLS = 256
+MAX_MIXED_FILLS = 1024
 """Default cap on the mixed-state bodies :func:`value_digest_matches` tries
 (lacing#152): a body whose derived fields were filled one occurrence at a time
-was recorded with each occurrence in its own state (filled, ``null``, absent,
-at its pre-fill value), and every combination is a candidate. Past the cap only
-the uniform ones are tried: a spurious miss, never a wrong hit."""
+was recorded with each occurrence in its own state (as now, absent, ``null``,
+at its pre-fill value), and every combination is a candidate. 1024 covers a
+field whose pre-fill value is ``null`` (three states per occurrence: as now,
+absent, ``null``) on up to six occurrences (3**6 = 729), such as the images of
+a panel whose ``asset_id`` defaults to ``None``; or five occurrences of a field
+with a non-null default (four states, 4**5). Past the cap only the uniform
+bodies are tried: a spurious miss, never a wrong hit."""
 
 BODY_DIGEST_SCHEME = "lacing/annotation-body-digest/v1"
 """Domain-separation tag mixed into :func:`annotation_body_digest`."""
@@ -591,93 +595,128 @@ def _value_digests(
         if not is_v1:
             yield _digest(_V1_SCHEME, payload)
         return
-    from lacing.derived import drop_paths, fill_paths
+    from lacing.derived import fill_paths
 
     prefills = {
         tuple(path): paths[path] if isinstance(paths, Mapping) else None
         for path in paths
     }
-    dropped_any = drop_paths(payload["body"], set(prefills))  # private dump: edit it
+    for path, prefill in prefills.items():  # one that is not JSON (a datetime)
+        if not _is_json(prefill):  # cannot be in a recorded body: try null
+            prefills[path] = None
+    dropped = _pop_entries(payload["body"], prefills)  # private dump: edit it
     if not is_v1:
         yield _digest(VALUE_DIGEST_SCHEME, payload)
         yield _digest(_V1_SCHEME, _payload(annotation, VALUE_FIELDS))  # unchanged
-    if not dropped_any:  # no derived field present: every fallback is the whole body
+    if not dropped:  # no derived field present: every fallback is the whole body
         return
     yield _digest(_V1_SCHEME, payload)  # derived fields absent when recorded
     for fills in _distinct_fills(prefills):  # derived fields stored as null, or
         filled = _payload(annotation, VALUE_FIELDS)  # at their default, then
         if fill_paths(filled["body"], fills):  # else it is the whole body again
             yield _digest(_V1_SCHEME, filled)
-    current = _payload(annotation, VALUE_FIELDS)  # each occurrence in its own state
-    for mixed in _mixed_fills(current, prefills, limit=max_mixed_fills):
+    # last, each occurrence in its own state, editing the dropped dump in place
+    for mixed in _mixed_fills(payload, dropped, limit=max_mixed_fills):
         yield _digest(_V1_SCHEME, mixed)
 
 
-_KEEP, _DROP = object(), object()
-"""Occurrence states besides a value written in: as it is now, and absent."""
+def _is_json(value: Any) -> bool:
+    try:
+        json.dumps(value)
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
-def _mixed_fills(payload: dict, prefills: dict, *, limit: int) -> Iterator[dict]:
-    """``payload`` with each present occurrence of a derived path in its own
-    state: as now, absent, ``None``, or its path's pre-fill value. Only the
-    mixed combinations (the uniform ones are tried before), and none when there
-    are more than ``limit`` combinations.
-
-    ``payload`` (a private dump) is edited in place from one combination to the
-    next, only where a site's state changes, so each yield is valid only until
-    the next (the caller digests it at once)."""
+def _pop_entries(body: dict, prefills: dict) -> list[tuple]:
+    """Delete in place every entry of ``body`` a path of ``prefills`` names (as
+    :func:`lacing.derived.drop_paths` does), and return each as
+    ``(container, key, value, prefill)``, in document order."""
     from lacing.derived import occurrences
 
-    body = payload["body"]
-    sites = []
+    dropped = []
     for path, prefill in prefills.items():
-        for address in occurrences(body, path):
-            *parents, key = address
-            container = _get(body, tuple(parents))
-            current = deepcopy(container[key])  # restored by value, not by identity
-            sites.append((container, key, current, _states(current, prefill)))
-    if len(sites) < 2 or math.prod(len(site[3]) for site in sites) > limit:
+        for *parents, key in occurrences(body, path):
+            container = _get(body, parents)
+            dropped.append((container, key, container.pop(key), prefill))
+    return dropped
+
+
+_KEEP, _DROP = 0, 1
+"""A site's state is an index: as now, absent, then its written values."""
+
+
+def _mixed_fills(payload: dict, dropped: list, *, limit: int) -> Iterator[dict]:
+    """``payload``, whose derived entries ``dropped`` were removed, with each of
+    them in its own state: as now, absent, ``None``, or its path's pre-fill
+    value. Only the mixed combinations (the bodies of the uniform ones were
+    tried before), and none when there are more than ``limit`` combinations:
+    sites are added only while their product stays within it, so a large body
+    costs a few sites on a miss.
+
+    ``payload`` is edited in place from one combination to the next, only where
+    a site's state changes, so each yield is valid only until the next (the
+    caller digests it at once)."""
+    from lacing.derived import same_json
+
+    sites, combinations = [], 1
+    for container, key, value, prefill in dropped:
+        written = _written(value, prefill, same_json)
+        combinations *= 2 + len(written)
+        if combinations > limit:
+            return
+        sites.append((container, key, value, written, prefill))
+    if len(sites) < 2:  # one site: every combination is uniform
         return
-    applied = [_KEEP] * len(sites)
-    for combo in itertools.product(*(site[3] for site in sites)):
-        if all(state is combo[0] for state in combo):
-            continue  # uniform: already tried
-        for i, ((container, key, original, _), state) in enumerate(zip(sites, combo)):
-            if state is not applied[i]:
-                _put(container, key, original if state is _KEEP else state)
+
+    def uniform(fill_of: Callable[[Any], Any]) -> tuple[int, ...]:
+        """The combination a uniform fill leaves the sites in: each at its
+        written value equal to the fill, else as now (it already was)."""
+        return tuple(
+            next(
+                (2 + i for i, w in enumerate(written) if same_json(w, fill_of(p))),
+                _KEEP,
+            )
+            for _, _, _, written, p in sites
+        )
+
+    tried = {
+        (_KEEP,) * len(sites),
+        (_DROP,) * len(sites),
+        uniform(lambda prefill: None),
+        uniform(lambda prefill: prefill),
+    }
+    applied = [_DROP] * len(sites)  # as ``payload`` holds them now
+    for combo in itertools.product(*(range(2 + len(site[3])) for site in sites)):
+        if combo in tried:
+            continue
+        for i, ((container, key, value, written, _), state) in enumerate(
+            zip(sites, combo)
+        ):
+            if state != applied[i]:
+                if state == _DROP:
+                    del container[key]
+                else:
+                    container[key] = value if state == _KEEP else written[state - 2]
                 applied[i] = state
         yield payload
 
 
-def _states(current: Any, prefill: Any) -> list[Any]:
-    """The states one occurrence may have been recorded in: as now, absent,
-    ``None``, its pre-fill value; a written state equal to the current value or
-    to an earlier state is left out."""
-    states: list[Any] = [_KEEP, _DROP]
-    for written in (None, prefill):
-        if not any(_same_json(written, s) for s in (current, *states[2:])):
-            states.append(written)
-    return states
+def _written(current: Any, prefill: Any, same: Callable[[Any, Any], bool]) -> list:
+    """The values one occurrence may have been recorded holding besides its
+    current one: ``None``, its pre-fill value; one equal to the current value or
+    to an earlier one is left out."""
+    written: list = []
+    for value in (None, prefill):
+        if not any(same(value, other) for other in (current, *written)):
+            written.append(value)
+    return written
 
 
-def _same_json(a: Any, b: Any) -> bool:
-    return json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
-
-
-def _get(value: Any, address: tuple) -> Any:
+def _get(value: Any, address: Sequence) -> Any:
     for step in address:
         value = value[step]
     return value
-
-
-def _put(container: dict, key: Any, state: Any) -> None:
-    """Delete ``key`` (``_DROP``) or set it to a copy of ``state``. Only final
-    dict keys are edited, so the containers held for other sites stay valid;
-    key order does not matter to a ``sort_keys`` digest."""
-    if state is _DROP:
-        container.pop(key, None)
-    else:
-        container[key] = deepcopy(state)
 
 
 def _distinct_fills(prefills: dict) -> list[dict]:

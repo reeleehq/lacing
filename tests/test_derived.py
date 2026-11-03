@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime
 from itertools import product
 from typing import Annotated, Literal
 from uuid import uuid4
@@ -25,7 +26,12 @@ from lacing import (
     value_digest_matches,
 )
 from lacing.derived import derived_defaults, drop_paths, fill_paths, null_paths
-from lacing.digest import VALUE_DIGEST_SCHEME, VALUE_DIGEST_SCHEMES
+from lacing.digest import (
+    MAX_MIXED_FILLS,
+    VALUE_DIGEST_SCHEME,
+    VALUE_DIGEST_SCHEMES,
+    _value_digests,
+)
 from lacing import schema as schema_module
 from lacing.schema import register_body_schema
 
@@ -539,13 +545,11 @@ def test_matching_is_sound_across_every_pair(registered):
             without_defaults = accepted_value_digests(
                 ann, scheme=scheme, resolve_derived=nulls_only
             )
-            for i, (digest, rs) in enumerate(recorded[scheme].items()):
+            for digest, rs in recorded[scheme].items():
+                # the set, not the lazy check: each miss of the lazy one tries
+                # every mixed-state body (lacing#152); their agreement and order
+                # are tested on their own below
                 matches = digest in accepted
-                # The lazy check agrees with the set: on every match, and on a
-                # fixed sample of misses (each miss tries every mixed-state
-                # body, lacing#152, which over every pair would take minutes).
-                if matches or i % 16 == c % 16:
-                    assert value_digest_matches(ann, digest, scheme=scheme) == matches
                 if matches:
                     for r in rs:
                         assert stripped[r] == stripped[c], (scheme, bodies[r], current)
@@ -591,8 +595,6 @@ def test_fill_paths_sets_each_present_entry_to_its_own_value():
 
 
 def test_null_and_fill_paths_accept_values_that_are_not_json():
-    from datetime import datetime
-
     body = {"maybe": datetime(2026, 1, 1), "images": [{"asset_id": {1, 2}}]}
     assert null_paths(body, {("maybe",), ("images", None, "asset_id")}) is True
     assert body == {"maybe": None, "images": [{"asset_id": None}]}
@@ -601,15 +603,24 @@ def test_null_and_fill_paths_accept_values_that_are_not_json():
 # --- bodies recorded in mixed fill states (lacing#152) ------------------------
 
 
-def _two_images(first, second):
-    """A two-image body; each image's ``asset_id`` is a value, None, or _ABSENT."""
+def _images(*states):
+    """A body of images; each image's ``asset_id`` is a value, None, or _ABSENT."""
     images = []
-    for i, state in enumerate((first, second)):
+    for i, state in enumerate(states):
         image = {"artifact_id": f"a{i}"}
         if state is not _ABSENT:
             image["asset_id"] = state
         images.append(image)
     return {"images": images}
+
+
+def _recorded_unaware(body):
+    """The v1 digest a producer that knew no derived path recorded for ``body``."""
+    schema_module._BODY_REGISTRY.pop(URI)
+    try:
+        return annotation_value_digest(_ann(body), scheme=V1)
+    finally:
+        register_body_schema(URI, Body)
 
 
 @pytest.mark.parametrize(
@@ -623,32 +634,88 @@ def test_a_body_recorded_in_mixed_fill_states_matches_after_the_fill(
     """Images filled one at a time: recorded with one filled and the other null
     or absent (or at its default), verified once both are filled."""
     schema_module._BODY_REGISTRY.pop(URI)  # recorded by a producer unaware of D
-    recorded = annotation_value_digest(_ann(_two_images(*recorded_states)), scheme=V1)
+    recorded = annotation_value_digest(_ann(_images(*recorded_states)), scheme=V1)
     register_body_schema(URI, Body)
-    filled = _ann(_two_images("h0", "h1"))
+    filled = _ann(_images("h0", "h1"))
     assert value_digest_matches(filled, recorded, scheme=scheme)
     assert recorded in accepted_value_digests(filled, scheme=scheme)
 
 
 def test_a_mixed_state_match_still_needs_the_rest_of_the_body_unchanged(registered):
     schema_module._BODY_REGISTRY.pop(URI)
-    recorded = annotation_value_digest(_ann(_two_images("h0", None)), scheme=V1)
+    recorded = annotation_value_digest(_ann(_images("h0", None)), scheme=V1)
     register_body_schema(URI, Body)
-    moved = _two_images("h0", "h1")
+    moved = _images("h0", "h1")
     moved["images"][1]["artifact_id"] = "other"  # a source changed
     assert not value_digest_matches(_ann(moved), recorded)
     # a filled occurrence whose value differs from today's is not vouched for
     assert not value_digest_matches(
-        _ann(_two_images("h0", "h1")),
-        annotation_value_digest(_ann(_two_images("x", None)), scheme=V1),
+        _ann(_images("h0", "h1")),
+        annotation_value_digest(_ann(_images("x", None)), scheme=V1),
     )
 
 
 def test_mixed_states_past_the_cap_read_as_changed(registered):
     schema_module._BODY_REGISTRY.pop(URI)
-    recorded = annotation_value_digest(_ann(_two_images("h0", None)), scheme=V1)
+    recorded = annotation_value_digest(_ann(_images("h0", None)), scheme=V1)
     register_body_schema(URI, Body)
-    filled = _ann(_two_images("h0", "h1"))
+    filled = _ann(_images("h0", "h1"))
     assert value_digest_matches(filled, recorded, max_mixed_fills=16)
     assert not value_digest_matches(filled, recorded, max_mixed_fills=15)
     assert recorded not in accepted_value_digests(filled, max_mixed_fills=0)
+
+
+def test_uniform_candidates_come_first_and_none_repeats(registered):
+    """A normal match costs what it did before lacing#152: the candidates the
+    uniform fallbacks produced (whole, absent, null, default) come first, in
+    that order, then only mixed ones, each digest once."""
+    ann = _ann(_images("h0", "h1"))
+    whole, absent, null, default = (
+        _recorded_unaware(_images(*states))
+        for states in [("h0", "h1"), (_ABSENT, _ABSENT), (None, None), ("", "")]
+    )
+    for scheme in VALUE_DIGEST_SCHEMES:
+        uniform = [whole, absent, null, default]
+        if scheme == VALUE_DIGEST_SCHEME:
+            uniform.insert(0, annotation_value_digest(ann, scheme=scheme))
+        digests = list(_value_digests(ann, scheme, None))
+        assert digests[: len(uniform)] == uniform
+        mixed = digests[len(uniform) :]
+        assert mixed and len(set(digests)) == len(digests)
+        assert _recorded_unaware(_images("h0", None)) in mixed
+
+
+def test_a_large_body_misses_cheaply(registered):
+    """Past the cap no site beyond the first few is even looked at: a miss on
+    a thousand occurrences tries the uniform bodies only."""
+    ann = _ann(_images(*(f"h{i}" for i in range(1000))))
+    assert not value_digest_matches(ann, "0" * 64)
+    assert len(accepted_value_digests(ann)) == 5  # v2, whole, absent, null, ""
+
+
+_NULL_PREFILL = {("images", None, "asset_id"): None}  # as artful's PanelImage
+
+
+def test_six_images_recorded_in_mixed_states_match_under_the_default_cap(registered):
+    """Three states per image (as now, absent, null): six images are 729
+    combinations, within MAX_MIXED_FILLS; a seventh is past it."""
+    resolve = lambda uri: _NULL_PREFILL
+    assert 3**6 <= MAX_MIXED_FILLS < 3**7
+    states = ("h0", None, _ABSENT, "h3", None, _ABSENT)
+    recorded = _recorded_unaware(_images(*states))
+    filled = _ann(_images(*(f"h{i}" for i in range(6))))
+    assert value_digest_matches(filled, recorded, resolve_derived=resolve)
+    recorded = _recorded_unaware(_images(*states, None))
+    filled = _ann(_images(*(f"h{i}" for i in range(7))))
+    assert not value_digest_matches(filled, recorded, resolve_derived=resolve)
+
+
+def test_a_prefill_that_is_not_json_is_tried_as_null(registered):
+    """A custom resolver may return a pre-fill value that is not JSON (as
+    fill_paths accepts): it cannot be in a recorded body, so null stands in."""
+    resolve = lambda uri: {("images", None, "asset_id"): datetime(2026, 1, 1)}
+    filled = _ann(_images("h0", "h1"))
+    for recorded_states in [("h0", None), (None, None), (_ABSENT, "h1")]:
+        recorded = _recorded_unaware(_images(*recorded_states))
+        assert value_digest_matches(filled, recorded, resolve_derived=resolve)
+        assert recorded in accepted_value_digests(filled, resolve_derived=resolve)
