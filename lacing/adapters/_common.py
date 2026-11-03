@@ -7,6 +7,13 @@ What several adapters need, whatever the format, lives here once:
   Annotation);
 - :func:`iter_with_media_intervals`: the same, restricted to ``MediaRef``
   references (ELAN EAF, JAMS, OpenTimelineIO, Label Studio);
+- :func:`display_text`: the readable text of an annotation body (``text``,
+  else ``title``), ``None`` for a metadata-only body. The cue writers (SubRip,
+  WebVTT, LRC) skip what has none, so a chapter's title becomes a cue and an
+  episode's metadata does not become an empty one; TextGrid and ELAN label
+  with it and still write an unlabelled annotation (an empty interval is
+  structure there); the chapters writer titles with it. The podcast
+  transcript does not use it: a segment is speech, so only ``text`` counts;
 - :func:`read_text`: a text ``source`` given as bytes, a path, or inline
   text, byte-order mark stripped (WebVTT, SubRip);
 - :func:`load_json`: a JSON ``source`` given as bytes, a path, or inline text
@@ -26,13 +33,15 @@ sweep test skips ``_``-prefixed modules and checks that they register none).
 []
 >>> load_json('{"a": 1}')
 {'a': 1}
+>>> display_text({"title": "Intro", "img": "a.jpg"})
+'Intro'
 """
 
 from __future__ import annotations
 
 import json
 import os
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +54,46 @@ _TEXT_ENCODING = "utf-8-sig"
 _BOM = "\ufeff"
 _JSON_ENCODING = "utf-8"
 _JSON_INLINE_PREFIXES = ("{", "[")
+
+#: Body keys that hold an annotation's readable text, in preference order: a
+#: cue's or a word's ``text``, then a chapter's ``title``. Not ``name``: an
+#: OpenTimelineIO clip's ``name`` is a file name, not something to caption.
+DISPLAY_TEXT_KEYS: tuple[str, ...] = ("text", "title")
+
+
+def display_text(body: Any, *, keys: Sequence[str] = DISPLAY_TEXT_KEYS) -> str | None:
+    """The readable text of an annotation ``body``: the value of the first of
+    ``keys`` that holds a string or a number (never a bool), as a string;
+    ``None`` when none does, as for a metadata-only body (a podcast episode's
+    fields, LRC ID tags), so cue writers skip it rather than write an empty
+    cue.
+
+    Under the first key, an empty string counts (an empty cue stays a cue, so
+    a file round-trips); under a later key, a blank string is passed over, so
+    an empty ``title`` never stands in for a missing ``text``. Pass ``keys``
+    for another preference (the chapters writer puts ``title`` first).
+
+    >>> display_text({"text": "hi", "title": "T"})
+    'hi'
+    >>> display_text({"text": None, "title": "T"})
+    'T'
+    >>> display_text({"text": ""}), display_text({"title": " "})
+    ('', None)
+    >>> display_text({"version": "1.2.0", "fields": {"title": "Ep 7"}}) is None
+    True
+    >>> display_text({"text": "a", "title": "T"}, keys=("title", "text"))
+    'T'
+    """
+    if not isinstance(body, Mapping):
+        return None
+    for position, key in enumerate(keys):
+        value = body.get(key)
+        if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+            continue
+        text = str(value)
+        if position == 0 or text.strip():
+            return text
+    return None
 
 
 def iter_with_intervals(store: IntervalAnnotationStore) -> Iterator[Annotation]:

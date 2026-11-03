@@ -63,7 +63,7 @@ from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import iter_with_intervals, read_text
+from lacing.adapters._common import display_text, iter_with_intervals, read_text
 from lacing.adapters._cues import (
     cue_payload,
     format_cue_time,
@@ -245,14 +245,13 @@ def load(
 
 
 def _cue_text(body: Any) -> str | None:
-    """The cue text of an annotation body, ``None`` if it has none.
+    """The cue text of an annotation body (its :func:`display_text`), ``None``
+    if it has none.
 
     Blank lines are dropped: in SubRip a blank line ends the cue.
     """
-    text = body.get("text") if isinstance(body, dict) else None
-    if text is None:
-        return None
-    return cue_payload(str(text))
+    text = display_text(body)
+    return None if text is None else cue_payload(text)
 
 
 def dump(
@@ -266,7 +265,8 @@ def dump(
 
     Args:
         store: Source store. Every annotation with a time interval (any reference kind) and a
-            ``text`` body (an SRT or WebVTT cue, or any other) is emitted,
+            readable text (:func:`lacing.adapters._common.display_text`:
+            ``text``, else ``title``) is emitted,
             sorted by start then end, and numbered 1..N in that order.
         target: Output path. If None, returns bytes (UTF-8, no BOM, ``\\n``).
         tier: Restrict export to this tier. None = export all tiers.

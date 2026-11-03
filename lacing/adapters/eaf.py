@@ -48,7 +48,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import iter_with_media_intervals
+from lacing.adapters._common import display_text, iter_with_media_intervals
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier, TierStereotype
@@ -327,12 +327,12 @@ def dump(
         assert iv is not None  # filtered upstream
         start_ms = _seconds_to_ms_int(iv.start)
         end_ms = _seconds_to_ms_int(iv.end)
-        text = a.body.get("text", "") if isinstance(a.body, dict) else ""
+        text = display_text(a.body) or ""
         if start_ms == end_ms:
             # ELAN doesn't support zero-length alignable annotations; widen
             # by 1 ms to make a valid interval. Document as a known lossy edge.
             end_ms = start_ms + 1
-        eaf.add_annotation(a.tier, start_ms, end_ms, str(text))
+        eaf.add_annotation(a.tier, start_ms, end_ms, text)
 
     if target is None:
         with tempfile.NamedTemporaryFile(suffix=".eaf", delete=False) as f:

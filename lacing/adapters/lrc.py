@@ -122,7 +122,7 @@ from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import iter_with_intervals, read_text
+from lacing.adapters._common import display_text, iter_with_intervals, read_text
 from lacing.adapters._cues import (
     MS_PER_MINUTE,
     MS_PER_SECOND,
@@ -515,11 +515,11 @@ def _format_clock(t: RationalTime, *, offset_ms: int, precision: str) -> str:
 
 
 def _line_text(body: Any) -> str | None:
-    """A body's text on one physical line; ``None`` if it has none."""
-    text = body.get("text") if isinstance(body, dict) else None
+    """A body's :func:`display_text` on one physical line; ``None`` if it has none."""
+    text = display_text(body)
     if text is None:
         return None
-    return " ".join(split_cue_lines(cue_payload(str(text))))
+    return " ".join(split_cue_lines(cue_payload(text)))
 
 
 @dataclass(frozen=True, slots=True)

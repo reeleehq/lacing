@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import iter_with_intervals
+from lacing.adapters._common import display_text, iter_with_intervals
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
@@ -302,10 +302,7 @@ def dump(
 
 
 def _label_of(ann: Annotation) -> str:
-    body = ann.body
-    if isinstance(body, dict) and "text" in body:
-        return str(body["text"])
-    return ""
+    return display_text(ann.body) or ""
 
 
 # ---------------------------------------------------------------------------
