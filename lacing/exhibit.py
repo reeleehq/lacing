@@ -11,10 +11,10 @@ Markdown stay small. The PDF is still self-contained — weasyprint
 resolves the relative paths (via ``base_url``) and embeds the bytes.
 
 The annotation graph — annotations + ``provenance.was_derived_from`` +
-image references — *is* the "artifacts and links" model (``edges=`` adds
-other links, such as ``AnnotationRef`` targets; ``label=`` sets card titles), so this runs on
-**any** lacing graph: a project, a test run's artifacts, anything. The
-renderer is pure (graph → document) and has no knowledge of where the
+image references — *is* the "artifacts and links" model (``edges=``
+adds other links, such as ``AnnotationRef`` targets; ``label=`` sets card
+titles), so this runs on **any** lacing graph: a project, a test run's
+artifacts, anything. The renderer is pure (graph → document) and has no knowledge of where the
 graph came from.
 
 HTML is the authored format; the PDF and Markdown derive from it so the
@@ -49,7 +49,6 @@ from typing import Any, Optional
 
 __all__ = [
     "ANNOTATES",
-    "DEFAULT_EDGES",
     "DEFAULT_LABEL_FIELDS",
     "DERIVED_FROM",
     "ExhibitEdge",
@@ -119,7 +118,8 @@ def _artifact_label(
 ) -> str:
     """A card's label: ``label(ann)`` on one line, cut to
     ``_LABEL_MAX_CHARS``; the kind when it gives nothing."""
-    text = " ".join((label(ann) or "").split())
+    raw = label(ann)
+    text = "" if raw is None else " ".join(str(raw).split())
     if not text:
         return _artifact_kind(ann)
     if len(text) <= _LABEL_MAX_CHARS:
@@ -166,10 +166,11 @@ ANNOTATES = ExhibitEdge(
     targets=_annotation_ref_targets, forward="annotates", backward="annotated by"
 )
 """Reference: the annotation an ``AnnotationRef`` points at (a note on a line,
-a referent annotating an entity). ``edges=(DERIVED_FROM, ANNOTATES)`` shows
+a referent annotating an entity), found as the reference's ``target_id``
+(any reference that has one counts). ``edges=(DERIVED_FROM, ANNOTATES)`` shows
 both, each under its own name, without touching provenance."""
 
-DEFAULT_EDGES: tuple[ExhibitEdge, ...] = (DERIVED_FROM,)
+_DEFAULT_EDGES: tuple[ExhibitEdge, ...] = (DERIVED_FROM,)
 
 
 def _image_src(
@@ -269,7 +270,7 @@ def _build_exhibit_html(
     image_resolver: Callable[[Mapping], Optional[str]],
     images_dir: Optional[Path] = None,
     label: Callable[[Any], Optional[str]] = default_label,
-    edges: Sequence[ExhibitEdge] = DEFAULT_EDGES,
+    edges: Iterable[ExhibitEdge] = _DEFAULT_EDGES,
 ) -> str:
     """Render the annotation graph as one HTML document — each artifact a
     card, each of ``edges`` as in-document hyperlinks.
@@ -277,6 +278,7 @@ def _build_exhibit_html(
     With ``images_dir`` set, panel images are written there as sibling
     files and referenced relatively; with it ``None`` they are inlined
     as ``data:`` URIs (a single self-contained file)."""
+    edges = tuple(edges)  # iterated twice: a generator would draw no links
     by_id = {str(a.id): a for a in annotations}
     # Per edge kind: the ids each annotation links to, and the reverse map.
     forward = [
@@ -386,7 +388,7 @@ def render_artifact_exhibit(
     title: str = "Artifact exhibit",
     image_resolver: Optional[Callable[[Mapping], Optional[str]]] = None,
     label: Callable[[Any], Optional[str]] = default_label,
-    edges: Sequence[ExhibitEdge] = DEFAULT_EDGES,
+    edges: Iterable[ExhibitEdge] = _DEFAULT_EDGES,
 ) -> list[Path]:
     """Render an annotation graph as a human-readable artifact exhibit.
 

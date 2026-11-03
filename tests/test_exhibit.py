@@ -209,7 +209,9 @@ def test_custom_edge_and_no_edges():
         forward="followed by",
         backward="follows",
     )
-    html = _build_exhibit_html([a, b], title="T", image_resolver=_resolver, edges=[follows])
+    html = _build_exhibit_html(
+        [a, b], title="T", image_resolver=_resolver, edges=[follows]
+    )
     assert "↑ followed by: " in html and "↓ follows: " in html
     bare = _build_exhibit_html([a, b], title="T", image_resolver=_resolver, edges=())
     assert 'class="links"' not in bare
@@ -219,10 +221,28 @@ def test_render_artifact_exhibit_passes_label_and_edges(tmp_path):
     from lacing.exhibit import label_from_fields
 
     written = render_artifact_exhibit(
-        [_ann("t-1", "line", {"text": "hello there"})],
+        [_ann("t-1", "line", {"text": "hello there"}),
+         _ann("t-2", "line", {"text": "x"}, derived_from=["t-1"])],
         out_dir=tmp_path,
         formats=("html",),
         label=label_from_fields("text"),
         edges=(),
     )
-    assert "hello there" in written[0].read_text()
+    html = written[0].read_text()
+    assert '<span class="label">hello there</span>' in html
+    assert 'class="links"' not in html
+
+
+def test_edges_given_as_a_generator_still_draw_links():
+    from lacing.exhibit import DERIVED_FROM
+
+    t = _ann("t-1", "treatment", {"logline": "x"})
+    b = _ann("b-1", "beat", {}, derived_from=["t-1"])
+    html = _build_exhibit_html(
+        [t, b], title="T", image_resolver=_resolver, edges=(e for e in [DERIVED_FROM])
+    )
+    assert "↑ derived from: " in html and "↓ feeds into: " in html
+
+
+def test_a_non_string_label_is_shown_as_text():
+    assert _artifact_label(_ann("x", "take", {}), lambda a: 42) == "42"
