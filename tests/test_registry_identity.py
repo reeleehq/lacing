@@ -25,23 +25,15 @@ URI = "annot://schema/identity-demo/v1"
 
 
 @pytest.fixture(autouse=True)
-def isolated_registries():
-    """Snapshot and restore the adapter, body schema, default and migration registries."""
-    import lacing.bodies  # noqa: F401  built-ins in the snapshot
-
-    registries = (
-        adapters._REGISTRY,
-        lacing_schema._BODY_REGISTRY,
-        lacing_schema._MIGRATION_REGISTRY,
-        lacing_schema._DEFAULT_VERSIONS,
-    )
-    snapshots = [dict(r) for r in registries]
+def isolated_registries(isolated_body_registry):
+    """The schema registries (conftest's ``isolated_body_registry``) and the
+    adapter registry, restored after each test."""
+    snapshot = dict(adapters._REGISTRY)
     try:
         yield
     finally:
-        for registry, snapshot in zip(registries, snapshots):
-            registry.clear()
-            registry.update(snapshot)
+        adapters._REGISTRY.clear()
+        adapters._REGISTRY.update(snapshot)
 
 
 @pytest.fixture
