@@ -1,0 +1,43 @@
+{
+  "additionalProperties": true,
+  "description": "A line of text, with its position in the song.",
+  "properties": {
+    "text": {
+      "description": "The line as sung or shown.",
+      "title": "Text",
+      "type": "string"
+    },
+    "line_index": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Index of the line in the song or file.",
+      "title": "Line Index"
+    },
+    "section": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Label of the song section the line belongs to.",
+      "title": "Section"
+    }
+  },
+  "required": [
+    "text"
+  ],
+  "title": "LyricLineBodyV1",
+  "type": "object"
+}

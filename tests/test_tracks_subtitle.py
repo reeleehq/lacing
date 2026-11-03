@@ -147,13 +147,9 @@ def test_zero_length_intervals_are_widened_by_one_tick():
     assert receipt.tier == SECTIONS_TIER
 
 
-def test_register_subtitle_schemas_leaves_builtin_word_schema_alone(
-    isolated_body_registry,
-):
-    """lacing#122: registering the subtitle validators must not replace the
-    strict built-in ``word/v1``, and a second call is a silent no-op."""
-    import warnings
-
+def test_subtitle_schemas_are_builtin_bodies():
+    """lacing#144: section and line schemas register on import, like word/v1;
+    register_subtitle_schemas is a deprecated no-op that changes nothing."""
     from lacing.bodies.word import WordBodyV1
     from lacing.schema import get_body_schema
     from lacing.tracks.subtitle import (
@@ -162,26 +158,22 @@ def test_register_subtitle_schemas_leaves_builtin_word_schema_alone(
         register_subtitle_schemas,
     )
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")  # a RegistryConflictWarning fails here
-        register_subtitle_schemas()
-        register_subtitle_schemas()
-
     assert WORD_SCHEMA_URI not in SUBTITLE_BODY_MODELS
     assert get_body_schema(WORD_SCHEMA_URI) is WordBodyV1
     for uri, model in SUBTITLE_BODY_MODELS.items():
         assert get_body_schema(uri) is model
+    with pytest.deprecated_call():
+        register_subtitle_schemas()
+    for uri, model in SUBTITLE_BODY_MODELS.items():
+        assert get_body_schema(uri) is model
 
 
-def test_builder_bodies_validate_against_registered_schemas(
-    store_with_song, isolated_body_registry
-):
+def test_builder_bodies_validate_against_the_builtin_schemas(store_with_song):
     """Every body the builder writes, words included, validates, and the
     built-in word schema still rejects unknown keys."""
     from lacing.schema import BodySchemaError, validate
-    from lacing.tracks.subtitle import WORD_SCHEMA_URI, register_subtitle_schemas
+    from lacing.tracks.subtitle import WORD_SCHEMA_URI
 
-    register_subtitle_schemas()
     anns = [a for t in (SECTIONS_TIER, LINES_TIER, WORDS_TIER)
             for a in store_with_song.by_tier(t)]
     assert any(a.body.get("confidence") is not None for a in anns)
@@ -189,6 +181,17 @@ def test_builder_bodies_validate_against_registered_schemas(
         validate(ann.body, ann.body_schema_uri)
     with pytest.raises(BodySchemaError):
         validate({"text": "river", "not_a_word_field": 1}, WORD_SCHEMA_URI)
+
+
+def test_section_and_line_bodies_keep_extra_fields():
+    from lacing.schema import BodySchemaError, validate
+
+    validate({"label": "verse_1", "tempo": 92}, "annot://schema/song-section/v1")
+    validate({"text": "a line", "singer": "A"}, "annot://schema/lyric-line/v1")
+    with pytest.raises(BodySchemaError):
+        validate({"text": "a line", "line_index": -1}, "annot://schema/lyric-line/v1")
+    with pytest.raises(BodySchemaError):
+        validate({"title": "no label"}, "annot://schema/song-section/v1")
 
 
 @pytest.mark.parametrize(
@@ -224,13 +227,9 @@ def test_word_v1_bounds(body):
         validate(body, "annot://schema/word/v1")
 
 
-def test_example_bodies_validate(isolated_body_registry):
+def test_example_bodies_validate():
     from lacing.schema import validate
-    from lacing.tracks.subtitle import register_subtitle_schemas
 
-    import lacing.bodies.word  # noqa: F401
-
-    register_subtitle_schemas()
     for uri, body in BUILT_IN_BODY_SCHEMAS.items():
         validate(body, uri)
 

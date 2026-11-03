@@ -14,11 +14,11 @@ Body schemas are conventional URIs:
 - ``annot://schema/word/v1`` — ``{text, line_index?, confidence?}``, the
    built-in strict :mod:`lacing.bodies.word` schema, registered on import.
 
-Sections and lines are not validated unless the caller registers validators
-for them: ``register_subtitle_schemas`` registers permissive ones. Words use
-the built-in ``word/v1``, so wherever bodies are validated (``validate_body``,
-the server) a word's ``extra=`` keys must be fields of that schema; use
-:meth:`SubtitleBuilder.add` with your own URI for anything else.
+All three are built-in body schemas (:mod:`lacing.bodies`), registered on
+import. Sections and lines are permissive (a caller's ``extra=`` keys are
+kept); ``word/v1`` is strict, so wherever bodies are validated
+(``validate_body``, the server) a word's ``extra=`` keys must be fields of that
+schema: use :meth:`SubtitleBuilder.add` with your own URI for anything else.
 
 Quick start::
 
@@ -42,11 +42,16 @@ Quick start::
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional, Sequence
+from typing import Any, Iterable, Sequence
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel
+
+import lacing.bodies  # noqa: F401  registers the section, line and word schemas
+from lacing.bodies.lyric_line import LyricLineBodyV1
+from lacing.bodies.song_section import SongSectionBodyV1
 
 from lacing.allen import AllenRelation
 from lacing.model import Annotation, MediaRef, Provenance
@@ -66,8 +71,8 @@ WORD_SCHEMA_URI = "annot://schema/word/v1"
 DEFAULT_RATE = 1000  # ms-precision is plenty for sung-text alignment
 
 #: Mapping of body URI → minimal example body: an inline reference for
-#: callers building outside the builder. Each validates against its schema
-#: (``SUBTITLE_BODY_MODELS``, or the built-in ``word/v1``).
+#: callers building outside the builder. Each validates against its built-in
+#: schema.
 BUILT_IN_BODY_SCHEMAS: dict[str, dict[str, Any]] = {
     SECTION_SCHEMA_URI: {
         "label": "verse_1",
@@ -113,44 +118,24 @@ class _BuiltAnnotation:
     end_s: float
 
 
-class _SectionBody(BaseModel, extra="allow"):
-    """Permissive ``song-section/v1`` body: a label plus optional descriptors."""
-
-    label: str
-    title: Optional[str] = None
-    energy: Optional[str] = None
-    mood: Optional[str] = None
-
-
-class _LineBody(BaseModel, extra="allow"):
-    """Permissive ``lyric-line/v1`` body: the line's text plus its position."""
-
-    text: str
-    line_index: Optional[int] = None
-    section: Optional[str] = None
-
-
-#: The validators :func:`register_subtitle_schemas` registers. Words are absent:
-#: ``WORD_SCHEMA_URI`` is the built-in :mod:`lacing.bodies.word` schema.
+#: The section and line schemas, registered on import of :mod:`lacing.bodies`
+#: (lacing#144). Words use the built-in ``word/v1`` schema. Kept for callers of
+#: the 0.0.8x API; ``lacing.schema.get_body_schema(uri)`` is the general lookup.
 SUBTITLE_BODY_MODELS: dict[str, type[BaseModel]] = {
-    SECTION_SCHEMA_URI: _SectionBody,
-    LINE_SCHEMA_URI: _LineBody,
+    SECTION_SCHEMA_URI: SongSectionBodyV1,
+    LINE_SCHEMA_URI: LyricLineBodyV1,
 }
 
 
 def register_subtitle_schemas() -> None:
-    """Register permissive body validators for the section and line URIs.
-
-    Calling this is *optional*; the builder works fine without
-    registered schemas. Use it when you want body-shape errors to
-    surface at write time rather than later. The models are module-level,
-    so calling it again is a no-op. Words need nothing: they use the
-    built-in ``word/v1`` schema, which this leaves alone (lacing#122).
-    """
-    from lacing.schema import register_body_schema
-
-    for uri, model in SUBTITLE_BODY_MODELS.items():
-        register_body_schema(uri, model)
+    """Deprecated no-op: the section, line and word schemas are built-in bodies,
+    registered when this module (or :mod:`lacing.bodies`) is imported."""
+    warnings.warn(
+        "register_subtitle_schemas() is a no-op: song-section/v1, lyric-line/v1 "
+        "and word/v1 are built-in body schemas, registered on import (lacing#144).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
 
 class SubtitleBuilder:

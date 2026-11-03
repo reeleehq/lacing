@@ -1,0 +1,55 @@
+{
+  "additionalProperties": true,
+  "description": "A labelled section of a song, with optional descriptors.",
+  "properties": {
+    "label": {
+      "description": "Section id, e.g. 'verse_1', 'chorus'.",
+      "title": "Label",
+      "type": "string"
+    },
+    "title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Display title, e.g. 'verse 1'.",
+      "title": "Title"
+    },
+    "energy": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Energy level, e.g. 'high'.",
+      "title": "Energy"
+    },
+    "mood": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Mood, e.g. 'wistful'.",
+      "title": "Mood"
+    }
+  },
+  "required": [
+    "label"
+  ],
+  "title": "SongSectionBodyV1",
+  "type": "object"
+}
