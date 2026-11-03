@@ -82,7 +82,10 @@ from lacing.generator_id import (
 from lacing.artifact import (
     Artifact,
     ArtifactKind,
+    REVENUE_CAP,
+    Restriction,
     Rights,
+    TERRITORY_EXCLUDED,
     hash_bytes,
     hash_file,
 )
@@ -152,6 +155,9 @@ __all__ = [
     "Artifact",
     "ArtifactKind",
     "Rights",
+    "Restriction",
+    "REVENUE_CAP",
+    "TERRITORY_EXCLUDED",
     "ArtifactStore",
     "keep_rights",
     "ResolvedArtifact",

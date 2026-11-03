@@ -550,3 +550,127 @@ class _CountingDict(dict):
     def __getitem__(self, key):
         self.reads += 1
         return super().__getitem__(key)
+
+
+# --- Rights.restrictions (lacing#106) ------------------------------------------
+
+import pydantic  # noqa: E402
+
+from lacing import REVENUE_CAP, TERRITORY_EXCLUDED, Restriction  # noqa: E402
+
+# A reader built before ``restrictions`` existed (lacing 0.0.85): ``Rights``
+# without the field, still ``extra="forbid"``.
+_PreRestrictionsRights = pydantic.create_model(
+    "_PreRestrictionsRights",
+    __config__=pydantic.ConfigDict(frozen=True, extra="forbid"),
+    **{
+        name: (field.annotation, field)
+        for name, field in Rights.model_fields.items()
+        if name != "restrictions"
+    },
+)
+
+_STABILITY = dict(
+    provider="freesound",
+    license="CC-BY-4.0",
+    restrictions=[
+        {"kind": REVENUE_CAP, "usd": 1_000_000, "terms": "stability-community"},
+        {"kind": TERRITORY_EXCLUDED, "codes": ["EU", "GB", "KR"]},
+    ],
+)
+
+
+class TestRightsRestrictions:
+    def test_a_licence_plus_restrictions_is_recorded(self):
+        r = Rights(**_STABILITY)
+        cap, territories = r.restrictions
+        assert isinstance(cap, Restriction)
+        assert (cap.kind, cap.usd, cap.terms) == (REVENUE_CAP, 1_000_000, "stability-community")
+        assert territories.codes == ("EU", "GB", "KR") and territories.terms is None
+        assert r.license == "CC-BY-4.0"
+
+    def test_restrictions_round_trip_through_the_catalog(self, tmp_path: Path):
+        from lacing import ArtifactStore
+
+        store = ArtifactStore.from_directory(tmp_path, record_type=Artifact)
+        a = Artifact.from_bytes(
+            b"x", kind="audio", was_generated_by="user:t", was_attributed_to="u",
+            rights=Rights(**_STABILITY),
+        )
+        store[a.asset_id] = a
+        reopened = ArtifactStore.from_directory(tmp_path, record_type=Artifact)
+        assert reopened[a.asset_id].rights == Rights(**_STABILITY)
+        hash(reopened[a.asset_id].rights)  # still hashable (frozen)
+
+    def test_no_restrictions_dumps_as_before(self):
+        """An old reader (``extra="forbid"``, no ``restrictions``) still reads a
+        record without restrictions; an old record loads with none."""
+        dumped = Rights(**_FULL_RIGHTS).model_dump()
+        assert "restrictions" not in dumped
+        old = _PreRestrictionsRights.model_validate_json(
+            Rights(**_FULL_RIGHTS).model_dump_json()
+        )
+        assert Rights.model_validate_json(old.model_dump_json()) == Rights(**_FULL_RIGHTS)
+        assert Rights.model_validate_json(old.model_dump_json()).restrictions == ()
+        with pytest.raises(pydantic.ValidationError):
+            _PreRestrictionsRights.model_validate_json(
+                Rights(**_STABILITY).model_dump_json()
+            )
+
+    def test_codes_are_normalised_to_a_tuple(self):
+        listed = Restriction(kind=TERRITORY_EXCLUDED, codes=["EU", "GB"])
+        tupled = Restriction(kind=TERRITORY_EXCLUDED, codes=("EU", "GB"))
+        assert listed == tupled
+        assert hash(Rights(provider="p", restrictions=[listed]))
+        with pytest.raises(AttributeError):
+            listed.codes.append("KR")
+
+    def test_restrictions_round_trip_through_json(self):
+        r = Rights(**_STABILITY)
+        assert Rights.model_validate_json(r.model_dump_json()) == r
+        for restriction in r.restrictions:
+            dumped = restriction.model_dump_json()
+            assert Restriction.model_validate_json(dumped) == restriction
+
+    def test_extra_params_of_a_known_kind_are_kept(self):
+        r = Restriction(kind=REVENUE_CAP, usd=5, currency_note="pre-tax")
+        assert r.model_dump() == {
+            "kind": REVENUE_CAP,
+            "terms": None,
+            "usd": 5,
+            "currency_note": "pre-tax",
+        }
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            {"kind": REVENUE_CAP},
+            {"kind": REVENUE_CAP, "usd": 0},
+            {"kind": REVENUE_CAP, "usd": True},
+            {"kind": REVENUE_CAP, "usd": "1000000"},
+            {"kind": TERRITORY_EXCLUDED},
+            {"kind": TERRITORY_EXCLUDED, "codes": []},
+            {"kind": TERRITORY_EXCLUDED, "codes": "EU"},
+            {"kind": TERRITORY_EXCLUDED, "codes": ["EU", " "]},
+            {"kind": ""},
+            {"kind": " "},
+            {"kind": "x", "terms": ""},
+        ],
+    )
+    def test_malformed_restrictions_are_refused(self, bad):
+        with pytest.raises(pydantic.ValidationError):
+            Restriction(**bad)
+        with pytest.raises(pydantic.ValidationError):
+            Rights(provider="p", restrictions=[bad])
+
+    def test_an_unknown_kind_is_kept_as_given(self):
+        r = Restriction(kind="no_ai_training", scope="all", terms="tos-v3")
+        assert r.model_dump() == {"kind": "no_ai_training", "terms": "tos-v3", "scope": "all"}
+        assert Rights(provider="p", restrictions=[r]).restrictions == (r,)
+
+
+def test_a_padded_well_known_kind_is_still_checked():
+    import pydantic
+
+    with pytest.raises(pydantic.ValidationError):
+        Restriction(kind=" revenue_cap ", usd="lots")

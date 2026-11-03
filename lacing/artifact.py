@@ -71,14 +71,18 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import (
     BaseModel,
     Field,
     StrictBool,
+    StrictInt,
+    StrictStr,
+    StringConstraints,
     field_validator,
     model_serializer,
+    model_validator,
 )
 
 from lacing.model import Provenance, ProvenanceRef
@@ -117,6 +121,110 @@ def hash_file(path: Path | str, *, chunk_size: int = 1 << 20) -> str:
     return h.hexdigest()
 
 
+def _refuse_blank(value: str | None) -> str | None:
+    """``value`` unless it is blank text: ``""`` is neither "unknown" (``None``)
+    nor a statement, so a blank string may not stand in for one nobody made."""
+    if value is not None and not value.strip():
+        raise ValueError("must be None or non-blank text, not an empty string")
+    return value
+
+
+REVENUE_CAP = "revenue_cap"
+"""A :class:`Restriction` kind: use is allowed only below an annual revenue,
+given as ``usd`` (a positive int), e.g. a model licence's USD 1,000,000 cap."""
+
+TERRITORY_EXCLUDED = "territory_excluded"
+"""A :class:`Restriction` kind: use is not allowed in the territories listed in
+``codes`` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such
+as ``"EU"``, recorded verbatim)."""
+
+
+_NonBlankStr = Annotated[StrictStr, StringConstraints(pattern=r"\S")]
+
+
+class _RevenueCapParams(BaseModel):
+    """The parameters of a :data:`REVENUE_CAP` restriction."""
+
+    usd: Annotated[StrictInt, Field(gt=0)]
+
+
+class _TerritoryExcludedParams(BaseModel):
+    """The parameters of a :data:`TERRITORY_EXCLUDED` restriction."""
+
+    codes: tuple[_NonBlankStr, ...] = Field(..., min_length=1)
+
+
+_KNOWN_RESTRICTION_PARAMS: dict[str, type[BaseModel]] = {
+    REVENUE_CAP: _RevenueCapParams,
+    TERRITORY_EXCLUDED: _TerritoryExcludedParams,
+}
+"""The parameter model of each well-known :class:`Restriction` kind, validated
+on construction; a kind not listed here is recorded as given."""
+
+
+class Restriction(BaseModel):
+    """One usage restriction that a licence code does not imply (lacing#106).
+
+    A ``kind``, the ``terms`` that impose it, and the kind's own parameters as
+    further fields. For example a CC BY sound edited with a model whose
+    licence caps revenue::
+
+        Rights(provider="freesound", license="CC-BY-4.0", restrictions=[
+            Restriction(kind=REVENUE_CAP, usd=1_000_000, terms="stability-community"),
+            Restriction(kind=TERRITORY_EXCLUDED, codes=["EU", "GB", "KR"]),
+        ])
+
+    ``kind`` is an open vocabulary, like ``Rights.license``: lacing records a
+    restriction and never classifies it. The well-known kinds
+    (:data:`REVENUE_CAP`, :data:`TERRITORY_EXCLUDED`) have their parameters
+    checked; any other kind is kept as given. **A consumer that does not know
+    a kind must treat the artifact as not cleared**, never skip the
+    restriction.
+
+    >>> Restriction(kind=REVENUE_CAP, usd=1_000_000).usd
+    1000000
+    >>> Restriction(kind=REVENUE_CAP, usd="lots")
+    Traceback (most recent call last):
+    ...
+    pydantic_core._pydantic_core.ValidationError: 1 validation error for Restriction
+    ...
+    """
+
+    model_config = {"frozen": True, "extra": "allow"}
+
+    kind: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "What is restricted, e.g. 'revenue_cap', 'territory_excluded'. "
+            "Open vocabulary: an unknown kind means not cleared."
+        ),
+    )
+    terms: str | None = Field(
+        None, description="The terms that impose it, e.g. 'stability-community'."
+    )
+
+    @field_validator("kind", "terms")
+    @classmethod
+    def _no_blank_text(cls, value: str | None) -> str | None:
+        return _refuse_blank(value)
+
+    @model_validator(mode="after")
+    def _check_known_kind(self) -> "Restriction":
+        """Validate a well-known kind's parameters and store them normalised
+        (``codes`` becomes a tuple), so a list-built and a tuple-built record
+        are equal, a record equals its JSON round-trip, and none mutates.
+
+        Parameters beyond the kind's model are kept unchecked (the params
+        models ignore them): a restriction is an open record, and a newer
+        writer may add a parameter an older reader does not know."""
+        params_model = _KNOWN_RESTRICTION_PARAMS.get(self.kind.strip())
+        if params_model is not None:
+            params = params_model.model_validate(self.__pydantic_extra__)
+            self.__pydantic_extra__.update(params.model_dump())
+        return self
+
+
 class Rights(BaseModel):
     """Who owns the bytes of an *acquired* artifact, and on what terms.
 
@@ -144,6 +252,13 @@ class Rights(BaseModel):
       a third-party image carries no ``Rights`` of its own; its obligations
       travel through ``provenance.was_derived_from`` and are rolled up by the
       consumer. ``rights is None`` on a derivative is *not* a clearance.
+
+    - ``restrictions`` carries what a licence code cannot: a revenue cap, an
+      excluded territory (:class:`Restriction`). Consumers classify by
+      ``license`` and enforce every restriction on top.
+
+    ``model_copy(update=...)`` skips validation (pydantic's rule); build a new
+    ``Rights`` to change a field.
 
     ``provider`` is required, so an empty ``Rights()`` cannot exist: an
     artifact either has no record (we made it) or says where it came from.
@@ -192,6 +307,13 @@ class Rights(BaseModel):
             "not stated. Strict: a string like 'yes' is refused, not coerced."
         ),
     )
+    restrictions: tuple[Restriction, ...] = Field(
+        (),
+        description=(
+            "Usage restrictions on top of the licence (a revenue cap, excluded "
+            "territories), each a Restriction. Empty means none recorded."
+        ),
+    )
 
     @field_validator(
         "provider",
@@ -206,11 +328,18 @@ class Rights(BaseModel):
     )
     @classmethod
     def _no_blank_text(cls, value: str | None) -> str | None:
-        # "" is neither "unknown" (None) nor a licence; refuse it rather than
-        # let a blank string stand in for a statement nobody made.
-        if value is not None and not value.strip():
-            raise ValueError("must be None or non-blank text, not an empty string")
-        return value
+        return _refuse_blank(value)
+
+    @model_serializer(mode="wrap")
+    def _omit_empty_restrictions(self, handler):
+        """Leave ``restrictions`` out of the dump when there are none, so a
+        reader built before the field existed (``Rights`` is ``extra="forbid"``)
+        still reads every record without one, as ``Artifact`` does for
+        ``rights``. A missing key loads as ``()``."""
+        data = handler(self)
+        if not data.get("restrictions", ...):
+            data.pop("restrictions", None)
+        return data
 
 
 class Artifact(BaseModel):
