@@ -1,6 +1,6 @@
 {
   "additionalProperties": false,
-  "description": "A single word annotation.\n\nThe ``text`` is the surface form as it appears in the source media.",
+  "description": "A single word annotation.\n\nThe ``text`` is the surface form as it appears in the source media.\n``line_index`` and ``confidence`` are what transcription, forced alignment\nand :class:`lacing.tracks.subtitle.SubtitleBuilder` record per word (both\nadded in lacing#122, additively: every older word body still validates).",
   "properties": {
     "text": {
       "description": "Surface form of the word.",
@@ -19,6 +19,32 @@
       "default": null,
       "description": "Optional speaker identifier.",
       "title": "Speaker"
+    },
+    "line_index": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Index of the line (lyric, subtitle cue) holding the word.",
+      "title": "Line Index"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Recognizer or aligner confidence, typically in [0, 1].",
+      "title": "Confidence"
     }
   },
   "required": [

@@ -147,10 +147,41 @@ def test_zero_length_intervals_are_widened_by_one_tick():
     assert receipt.tier == SECTIONS_TIER
 
 
-def test_register_subtitle_schemas_smoke():
-    """The optional schema registration should not raise."""
-    pytest.importorskip("pydantic")
-    from lacing.tracks.subtitle import register_subtitle_schemas
+def test_register_subtitle_schemas_leaves_builtin_word_schema_alone():
+    """lacing#122: registering the subtitle validators must not replace the
+    strict built-in ``word/v1``, and a second call is a silent no-op."""
+    import warnings
 
-    register_subtitle_schemas()  # idempotent
+    from lacing.bodies.word import WordBodyV1
+    from lacing.schema import get_body_schema
+    from lacing.tracks.subtitle import (
+        SUBTITLE_BODY_MODELS,
+        WORD_SCHEMA_URI,
+        register_subtitle_schemas,
+    )
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # a RegistryConflictWarning fails here
+        register_subtitle_schemas()
+        register_subtitle_schemas()
+
+    assert WORD_SCHEMA_URI not in SUBTITLE_BODY_MODELS
+    assert get_body_schema(WORD_SCHEMA_URI) is WordBodyV1
+    for uri, model in SUBTITLE_BODY_MODELS.items():
+        assert get_body_schema(uri) is model
+
+
+def test_builder_bodies_validate_against_registered_schemas(store_with_song):
+    """Every body the builder writes, words included, validates, and the
+    built-in word schema still rejects unknown keys."""
+    from lacing.schema import BodySchemaError, validate
+    from lacing.tracks.subtitle import WORD_SCHEMA_URI, register_subtitle_schemas
+
     register_subtitle_schemas()
+    anns = [a for t in (SECTIONS_TIER, LINES_TIER, WORDS_TIER)
+            for a in store_with_song.by_tier(t)]
+    assert any(a.body.get("confidence") is not None for a in anns)
+    for ann in anns:
+        validate(ann.body, ann.body_schema_uri)
+    with pytest.raises(BodySchemaError):
+        validate({"text": "river", "not_a_word_field": 1}, WORD_SCHEMA_URI)

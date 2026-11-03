@@ -11,13 +11,14 @@ Body schemas are conventional URIs:
 
 - ``annot://schema/song-section/v1`` — ``{label, title?, energy?, mood?}``
 - ``annot://schema/lyric-line/v1`` — ``{text, line_index?, section?}``
-- ``annot://schema/word/v1`` — ``{text, line_index?, confidence?}``
-   (matches the built-in :mod:`lacing.bodies.word` schema)
+- ``annot://schema/word/v1`` — ``{text, line_index?, confidence?}``, the
+   built-in strict :mod:`lacing.bodies.word` schema, registered on import.
 
-These are not enforced unless the caller has registered Pydantic
-validators for them; ``register_subtitle_schemas`` will register simple
-permissive validators if you want body validation. Otherwise the body
-is just a dict.
+Sections and lines are not validated unless the caller registers validators
+for them: ``register_subtitle_schemas`` registers permissive ones. Words use
+the built-in ``word/v1``, so wherever bodies are validated (``validate_body``,
+the server) a word's ``extra=`` keys must be fields of that schema; use
+:meth:`SubtitleBuilder.add` with your own URI for anything else.
 
 Quick start::
 
@@ -44,6 +45,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable, Optional, Sequence
 from uuid import UUID, uuid4
+
+from pydantic import BaseModel
 
 from lacing.allen import AllenRelation
 from lacing.model import Annotation, MediaRef, Provenance
@@ -107,39 +110,44 @@ class _BuiltAnnotation:
     end_s: float
 
 
+class _SectionBody(BaseModel, extra="allow"):
+    """Permissive ``song-section/v1`` body: a label plus optional descriptors."""
+
+    label: str
+    title: Optional[str] = None
+    energy: Optional[str] = None
+    mood: Optional[str] = None
+
+
+class _LineBody(BaseModel, extra="allow"):
+    """Permissive ``lyric-line/v1`` body: the line's text plus its position."""
+
+    text: str
+    line_index: Optional[int] = None
+    section: Optional[str] = None
+
+
+#: The validators :func:`register_subtitle_schemas` registers. Words are absent:
+#: ``WORD_SCHEMA_URI`` is the built-in :mod:`lacing.bodies.word` schema.
+SUBTITLE_BODY_MODELS: dict[str, type[BaseModel]] = {
+    SECTION_SCHEMA_URI: _SectionBody,
+    LINE_SCHEMA_URI: _LineBody,
+}
+
+
 def register_subtitle_schemas() -> None:
-    """Register permissive body validators for the subtitle URIs.
+    """Register permissive body validators for the section and line URIs.
 
     Calling this is *optional*; the builder works fine without
     registered schemas. Use it when you want body-shape errors to
-    surface at write time rather than later. It replaces whatever is
-    registered under those URIs, the built-in ``word/v1`` included.
+    surface at write time rather than later. The models are module-level,
+    so calling it again is a no-op. Words need nothing: they use the
+    built-in ``word/v1`` schema, which this leaves alone (lacing#122).
     """
-    from pydantic import BaseModel
     from lacing.schema import register_body_schema
 
-    class _Section(BaseModel, extra="allow"):
-        label: str
-        title: Optional[str] = None
-        energy: Optional[str] = None
-        mood: Optional[str] = None
-
-    class _Line(BaseModel, extra="allow"):
-        text: str
-        line_index: Optional[int] = None
-        section: Optional[str] = None
-
-    class _Word(BaseModel, extra="allow"):
-        text: str
-        line_index: Optional[int] = None
-        confidence: Optional[float] = None
-
-    # force: replacing is the point. These classes are new on every call, and
-    # WORD_SCHEMA_URI is also the strict built-in lacing.bodies.word schema,
-    # which this permissive one deliberately takes over (lacing#19).
-    register_body_schema(SECTION_SCHEMA_URI, _Section, force=True)
-    register_body_schema(LINE_SCHEMA_URI, _Line, force=True)
-    register_body_schema(WORD_SCHEMA_URI, _Word, force=True)
+    for uri, model in SUBTITLE_BODY_MODELS.items():
+        register_body_schema(uri, model)
 
 
 class SubtitleBuilder:
