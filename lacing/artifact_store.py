@@ -67,8 +67,7 @@ from typing import Any, NamedTuple
 from pydantic import BaseModel, TypeAdapter
 
 from dol import Files, filt_iter, wrap_kvs
-from dol.atomic import atomic_write
-from dol.atomic import interrupted_writes as dol_interrupted_writes
+from dol.atomic import atomic_write, interrupted_writes as dol_interrupted_writes
 
 from lacing.artifact import Artifact, hash_bytes
 from lacing.artifact_ref import ArtifactRef
@@ -878,15 +877,14 @@ class ArtifactStore(MutableMapping):
 
         Raises:
             OSError: a folder exists but cannot be listed (not a directory, no
-                permission). Nothing is known, so a collector should delete
-                nothing.
+                permission, or any other listing error). Nothing is known, so
+                a collector should delete nothing.
         """
         blob_root = getattr(self.blobs, "rootdir", None)
         catalog_root = getattr(self.catalog, "rootdir", None)
-        # dol owns the listing rules (regular files only, never a symlink; a
-        # missing folder holds none; an unlistable one raises) and the name of
-        # atomic_write's temps (lacing#141). A record key may have folders, so
-        # the catalog is searched recursively; spool files sit beside the blobs.
+        # dol owns the listing rules and atomic_write's temp name (lacing#141).
+        # A record key may have folders, so the catalog is searched
+        # recursively; spool files sit beside the blobs.
         blob_temps = (
             []
             if blob_root is None
@@ -1560,7 +1558,8 @@ _SPOOL_NAME_PATTERN = re.compile(
     re.escape(_SPOOL_PREFIX) + ".+" + re.escape(_SPOOL_SUFFIX), re.DOTALL
 )
 """The full name of a :func:`_spool_chunks_to_dir` staging file, for
-``dol.interrupted_writes``."""
+``dol.interrupted_writes``: ``mkstemp``'s random middle is never empty, so
+neither is ``.+``."""
 
 
 def _spool_chunks_to_dir(chunks: Iterable[bytes], rootdir: Path) -> str:
