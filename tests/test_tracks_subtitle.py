@@ -147,7 +147,9 @@ def test_zero_length_intervals_are_widened_by_one_tick():
     assert receipt.tier == SECTIONS_TIER
 
 
-def test_register_subtitle_schemas_leaves_builtin_word_schema_alone():
+def test_register_subtitle_schemas_leaves_builtin_word_schema_alone(
+    isolated_body_registry,
+):
     """lacing#122: registering the subtitle validators must not replace the
     strict built-in ``word/v1``, and a second call is a silent no-op."""
     import warnings
@@ -171,7 +173,9 @@ def test_register_subtitle_schemas_leaves_builtin_word_schema_alone():
         assert get_body_schema(uri) is model
 
 
-def test_builder_bodies_validate_against_registered_schemas(store_with_song):
+def test_builder_bodies_validate_against_registered_schemas(
+    store_with_song, isolated_body_registry
+):
     """Every body the builder writes, words included, validates, and the
     built-in word schema still rejects unknown keys."""
     from lacing.schema import BodySchemaError, validate
@@ -185,3 +189,57 @@ def test_builder_bodies_validate_against_registered_schemas(store_with_song):
         validate(ann.body, ann.body_schema_uri)
     with pytest.raises(BodySchemaError):
         validate({"text": "river", "not_a_word_field": 1}, WORD_SCHEMA_URI)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"text": "river"},
+        {"text": "river", "speaker": "A"},
+        {"text": "river", "line_index": 3, "confidence": 0.88},  # muvid.align
+        BUILT_IN_BODY_SCHEMAS["annot://schema/word/v1"],
+    ],
+)
+def test_word_v1_widening_is_additive(body):
+    """Older word bodies and the builder's both validate against ``word/v1``."""
+    import lacing.bodies.word  # noqa: F401  registers word/v1
+    from lacing.schema import validate
+
+    validate(body, "annot://schema/word/v1")
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"text": "x", "confidence": 1.5},
+        {"text": "x", "confidence": -0.1},
+        {"text": "x", "line_index": -1},
+    ],
+)
+def test_word_v1_bounds(body):
+    import lacing.bodies.word  # noqa: F401
+    from lacing.schema import BodySchemaError, validate
+
+    with pytest.raises(BodySchemaError):
+        validate(body, "annot://schema/word/v1")
+
+
+def test_example_bodies_validate(isolated_body_registry):
+    from lacing.schema import validate
+    from lacing.tracks.subtitle import register_subtitle_schemas
+
+    import lacing.bodies.word  # noqa: F401
+
+    register_subtitle_schemas()
+    for uri, body in BUILT_IN_BODY_SCHEMAS.items():
+        validate(body, uri)
+
+
+def test_word_confidence_is_also_on_the_envelope():
+    store = MemoryStore()
+    with SubtitleBuilder(store, asset_id="s") as b:
+        b.word("river", 1.0, 2.0, confidence=0.4)
+        b.word("sea", 2.0, 3.0)
+    by_text = {a.body["text"]: a for a in store.by_tier(WORDS_TIER)}
+    assert by_text["river"].confidence == 0.4 == by_text["river"].body["confidence"]
+    assert by_text["sea"].confidence is None

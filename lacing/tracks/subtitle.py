@@ -65,9 +65,9 @@ WORD_SCHEMA_URI = "annot://schema/word/v1"
 
 DEFAULT_RATE = 1000  # ms-precision is plenty for sung-text alignment
 
-#: Mapping of body URI → minimal example body. Used by
-#: :func:`register_subtitle_schemas` and as inline reference for
-#: callers building outside the builder.
+#: Mapping of body URI → minimal example body: an inline reference for
+#: callers building outside the builder. Each validates against its schema
+#: (``SUBTITLE_BODY_MODELS``, or the built-in ``word/v1``).
 BUILT_IN_BODY_SCHEMAS: dict[str, dict[str, Any]] = {
     SECTION_SCHEMA_URI: {
         "label": "verse_1",
@@ -270,15 +270,19 @@ class SubtitleBuilder:
         confidence: float | None = None,
         extra: dict[str, Any] | None = None,
     ) -> _BuiltAnnotation:
-        """Add one word."""
+        """Add one word. ``confidence`` goes in the body and on the envelope
+        (``Annotation.confidence``, which ``low_confidence_review`` reads)."""
         body: dict[str, Any] = {"text": text}
         if line_index is not None:
             body["line_index"] = line_index
         if confidence is not None:
-            body["confidence"] = float(confidence)
+            confidence = float(confidence)
+            body["confidence"] = confidence
         if extra:
             body.update(extra)
-        return self._add(WORDS_TIER, WORD_SCHEMA_URI, start_s, end_s, body)
+        return self._add(
+            WORDS_TIER, WORD_SCHEMA_URI, start_s, end_s, body, confidence=confidence
+        )
 
     # --- low-level escape hatch ------------------------------------------
 
@@ -332,6 +336,8 @@ class SubtitleBuilder:
         start_s: float,
         end_s: float,
         body: dict[str, Any],
+        *,
+        confidence: float | None = None,
     ) -> _BuiltAnnotation:
         ann_id = uuid4()
         self._store.add(
@@ -345,6 +351,7 @@ class SubtitleBuilder:
                 body=body,
                 body_schema_uri=schema_uri,
                 provenance=self._provenance,
+                confidence=confidence,
             )
         )
         return _BuiltAnnotation(id=ann_id, tier=tier, start_s=start_s, end_s=end_s)
