@@ -550,3 +550,79 @@ class _CountingDict(dict):
     def __getitem__(self, key):
         self.reads += 1
         return super().__getitem__(key)
+
+
+# --- Rights.restrictions (lacing#106) ------------------------------------------
+
+from lacing import REVENUE_CAP, TERRITORY_EXCLUDED, Restriction  # noqa: E402
+
+# A Rights record serialised before ``restrictions`` existed (lacing 0.0.85).
+_PRE_RESTRICTIONS_RIGHTS = {k: v for k, v in _FULL_RIGHTS.items()}
+
+_STABILITY = dict(
+    provider="freesound",
+    license="CC-BY-4.0",
+    restrictions=[
+        {"kind": REVENUE_CAP, "usd": 1_000_000, "terms": "stability-ai-community"},
+        {"kind": TERRITORY_EXCLUDED, "codes": ["EU", "GB", "KR"]},
+    ],
+)
+
+
+class TestRightsRestrictions:
+    def test_a_licence_plus_restrictions_is_recorded(self):
+        r = Rights(**_STABILITY)
+        cap, territories = r.restrictions
+        assert isinstance(cap, Restriction)
+        assert (cap.kind, cap.usd, cap.terms) == (REVENUE_CAP, 1_000_000, "stability-ai-community")
+        assert territories.codes == ["EU", "GB", "KR"] and territories.terms is None
+        assert r.license == "CC-BY-4.0"
+
+    def test_restrictions_round_trip_through_the_catalog(self, tmp_path: Path):
+        from lacing import ArtifactStore
+
+        store = ArtifactStore.from_directory(tmp_path, record_type=Artifact)
+        a = Artifact.from_bytes(
+            b"x", kind="audio", was_generated_by="user:t", was_attributed_to="u",
+            rights=Rights(**_STABILITY),
+        )
+        store[a.asset_id] = a
+        reopened = ArtifactStore.from_directory(tmp_path, record_type=Artifact)
+        assert reopened[a.asset_id].rights == Rights(**_STABILITY)
+        hash(reopened[a.asset_id].rights)  # still hashable (frozen)
+
+    def test_no_restrictions_dumps_as_before(self):
+        """An old reader (``extra="forbid"``, no ``restrictions``) still reads a
+        record without restrictions; an old record loads with none."""
+        dumped = Rights(**_FULL_RIGHTS).model_dump()
+        assert "restrictions" not in dumped
+        assert "restrictions" not in json.loads(Rights(**_FULL_RIGHTS).model_dump_json())
+        assert Rights(**_PRE_RESTRICTIONS_RIGHTS).restrictions == ()
+        assert "restrictions" in Rights(**_STABILITY).model_dump()
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            {"kind": REVENUE_CAP},
+            {"kind": REVENUE_CAP, "usd": 0},
+            {"kind": REVENUE_CAP, "usd": True},
+            {"kind": REVENUE_CAP, "usd": "1000000"},
+            {"kind": TERRITORY_EXCLUDED},
+            {"kind": TERRITORY_EXCLUDED, "codes": []},
+            {"kind": TERRITORY_EXCLUDED, "codes": "EU"},
+            {"kind": TERRITORY_EXCLUDED, "codes": ["EU", " "]},
+            {"kind": ""},
+            {"kind": " "},
+            {"kind": "x", "terms": ""},
+        ],
+    )
+    def test_malformed_restrictions_are_refused(self, bad):
+        with pytest.raises(Exception):
+            Restriction(**bad)
+        with pytest.raises(Exception):
+            Rights(provider="p", restrictions=[bad])
+
+    def test_an_unknown_kind_is_kept_as_given(self):
+        r = Restriction(kind="no_ai_training", scope="all", terms="tos-v3")
+        assert r.model_dump() == {"kind": "no_ai_training", "terms": "tos-v3", "scope": "all"}
+        assert Rights(provider="p", restrictions=[r]).restrictions == (r,)

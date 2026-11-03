@@ -79,6 +79,7 @@ from pydantic import (
     StrictBool,
     field_validator,
     model_serializer,
+    model_validator,
 )
 
 from lacing.model import Provenance, ProvenanceRef
@@ -117,6 +118,100 @@ def hash_file(path: Path | str, *, chunk_size: int = 1 << 20) -> str:
     return h.hexdigest()
 
 
+REVENUE_CAP = "revenue_cap"
+"""A :class:`Restriction` kind: use is allowed only below an annual revenue,
+given as ``usd`` (a positive int), e.g. a model licence's USD 1,000,000 cap."""
+
+TERRITORY_EXCLUDED = "territory_excluded"
+"""A :class:`Restriction` kind: use is not allowed in the territories listed in
+``codes`` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such
+as ``"EU"``, recorded verbatim)."""
+
+
+def _check_revenue_cap(params: dict) -> None:
+    usd = params.get("usd")
+    if isinstance(usd, bool) or not isinstance(usd, int) or usd <= 0:
+        raise ValueError(f"{REVENUE_CAP} needs usd, a positive int (got {usd!r})")
+
+
+def _check_territory_excluded(params: dict) -> None:
+    codes = params.get("codes")
+    if (
+        not isinstance(codes, (list, tuple))
+        or not codes
+        or not all(isinstance(c, str) and c.strip() for c in codes)
+    ):
+        raise ValueError(
+            f"{TERRITORY_EXCLUDED} needs codes, a non-empty list of non-blank "
+            f"strings (got {codes!r})"
+        )
+
+
+_KNOWN_RESTRICTION_CHECKS = {
+    REVENUE_CAP: _check_revenue_cap,
+    TERRITORY_EXCLUDED: _check_territory_excluded,
+}
+"""The parameters of each well-known :class:`Restriction` kind, checked on
+construction; a kind not listed here is recorded as given."""
+
+
+class Restriction(BaseModel):
+    """One usage restriction that a licence code does not imply (lacing#106).
+
+    A ``kind``, the ``terms`` that impose it, and the kind's own parameters as
+    further fields. For example a CC BY sound edited with a model whose
+    licence caps revenue::
+
+        Rights(provider="freesound", license="CC-BY-4.0", restrictions=[
+            Restriction(kind=REVENUE_CAP, usd=1_000_000, terms="stability-ai-community"),
+            Restriction(kind=TERRITORY_EXCLUDED, codes=["EU", "GB", "KR"]),
+        ])
+
+    ``kind`` is an open vocabulary, like ``Rights.license``: lacing records a
+    restriction and never classifies it. The well-known kinds
+    (:data:`REVENUE_CAP`, :data:`TERRITORY_EXCLUDED`) have their parameters
+    checked; any other kind is kept as given. **A consumer that does not know
+    a kind must treat the artifact as not cleared**, never skip the
+    restriction.
+
+    >>> Restriction(kind=REVENUE_CAP, usd=1_000_000).usd
+    1000000
+    >>> Restriction(kind=REVENUE_CAP, usd="lots")
+    Traceback (most recent call last):
+    ...
+    pydantic_core._pydantic_core.ValidationError: 1 validation error for Restriction
+    ...
+    """
+
+    model_config = {"frozen": True, "extra": "allow"}
+
+    kind: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "What is restricted, e.g. 'revenue_cap', 'territory_excluded'. "
+            "Open vocabulary: an unknown kind means not cleared."
+        ),
+    )
+    terms: str | None = Field(
+        None, description="The terms that impose it, e.g. 'stability-ai-community'."
+    )
+
+    @field_validator("kind", "terms")
+    @classmethod
+    def _no_blank_text(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("must be None or non-blank text, not an empty string")
+        return value
+
+    @model_validator(mode="after")
+    def _check_known_kind(self) -> "Restriction":
+        check = _KNOWN_RESTRICTION_CHECKS.get(self.kind)
+        if check is not None:
+            check(self.model_extra or {})
+        return self
+
+
 class Rights(BaseModel):
     """Who owns the bytes of an *acquired* artifact, and on what terms.
 
@@ -144,6 +239,10 @@ class Rights(BaseModel):
       a third-party image carries no ``Rights`` of its own; its obligations
       travel through ``provenance.was_derived_from`` and are rolled up by the
       consumer. ``rights is None`` on a derivative is *not* a clearance.
+
+    - ``restrictions`` carries what a licence code cannot: a revenue cap, an
+      excluded territory (:class:`Restriction`). Consumers classify by
+      ``license`` and enforce every restriction on top.
 
     ``provider`` is required, so an empty ``Rights()`` cannot exist: an
     artifact either has no record (we made it) or says where it came from.
@@ -192,6 +291,13 @@ class Rights(BaseModel):
             "not stated. Strict: a string like 'yes' is refused, not coerced."
         ),
     )
+    restrictions: tuple[Restriction, ...] = Field(
+        (),
+        description=(
+            "Usage restrictions on top of the licence (a revenue cap, excluded "
+            "territories), each a Restriction. Empty means none recorded."
+        ),
+    )
 
     @field_validator(
         "provider",
@@ -211,6 +317,17 @@ class Rights(BaseModel):
         if value is not None and not value.strip():
             raise ValueError("must be None or non-blank text, not an empty string")
         return value
+
+    @model_serializer(mode="wrap")
+    def _omit_empty_restrictions(self, handler):
+        """Leave ``restrictions`` out of the dump when there are none, so a
+        reader built before the field existed (``Rights`` is ``extra="forbid"``)
+        still reads every record without one, as ``Artifact`` does for
+        ``rights``. A missing key loads as ``()``."""
+        data = handler(self)
+        if not data.get("restrictions", ...):
+            data.pop("restrictions", None)
+        return data
 
 
 class Artifact(BaseModel):
