@@ -991,15 +991,27 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">the latest excludes derived fields."""</span>
 
 <span class="n">MAX_MIXED_FILLS</span> <span class="o">=</span> <span class="mi">1024</span>
-<span class="sd">"""Default cap on the mixed-state bodies :func:`value_digest_matches` tries</span>
-<span class="sd">(lacing#152): a body whose derived fields were filled one occurrence at a time</span>
-<span class="sd">was recorded with each occurrence in its own state (as now, absent, ``null``,</span>
-<span class="sd">at its pre-fill value), and every combination is a candidate. 1024 covers a</span>
-<span class="sd">field whose pre-fill value is ``null`` (three states per occurrence: as now,</span>
-<span class="sd">absent, ``null``) on up to six occurrences (3**6 = 729), such as the images of</span>
-<span class="sd">a panel whose ``asset_id`` defaults to ``None``; or five occurrences of a field</span>
-<span class="sd">with a non-null default (four states, 4**5). Past the cap only the uniform</span>
-<span class="sd">bodies are tried: a spurious miss, never a wrong hit."""</span>
+<span class="sd">"""Default budget of mixed-state bodies :func:`value_digest_matches` tries</span>
+<span class="sd">(lacing#152, lacing#157): a body whose derived fields were filled one</span>
+<span class="sd">occurrence at a time was recorded with each occurrence in its own state (as</span>
+<span class="sd">now, absent, ``null``, at its pre-fill value), and every combination is a</span>
+<span class="sd">candidate. There are ``3**n`` of them or more, so they are tried likeliest</span>
+<span class="sd">first (see :func:`value_digest_matches`), and at most this many.</span>
+
+<span class="sd">What it reaches, by enumeration, counting only the images filled now (those</span>
+<span class="sd">still ``null`` now are held as they are): with a ``null`` pre-fill (artful's</span>
+<span class="sd">``PanelImage``), a trace recorded before a panel's last fill on up to 1024</span>
+<span class="sd">images when that image was ``null`` then, 512 when absent; before its last two</span>
+<span class="sd">on up to 43 when both were ``null``, 22 when one was absent and one ``null``;</span>
+<span class="sd">before its last three, all ``null``, on up to 15. A non-null pre-fill adds a</span>
+<span class="sd">state per image: 512, 341, 31, 15 and 11. Past the budget, a body recorded in</span>
+<span class="sd">a less likely state reads as changed: a spurious miss, never a wrong hit. An</span>
+<span class="sd">occurrence ``null`` now but absent when recorded is moved only after every</span>
+<span class="sd">combination of the filled ones, so with seven or more filled images it is past</span>
+<span class="sd">the budget.</span>
+
+<span class="sd">Cost: a miss computes up to this many more digests, each over the whole body</span>
+<span class="sd">(about 0.45 s at 1,000 images)."""</span>
 
 <span class="n">BODY_DIGEST_SCHEME</span> <span class="o">=</span> <span class="s2">"lacing/annotation-body-digest/v1"</span>
 <span class="sd">"""Domain-separation tag mixed into :func:`annotation_body_digest`."""</span>
@@ -1123,9 +1135,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    leave bodies recorded in **mixed** states: one occurrence filled, another</span>
 <span class="sd">    ``null``, a third absent. Those are accepted too, each occurrence in any of</span>
 <span class="sd">    its states (lacing#152), and for the same reason: every mix agrees with the</span>
-<span class="sd">    current body outside ``D``. They are tried last, and only while the number</span>
-<span class="sd">    of combinations is at most ``max_mixed_fills`` (:data:`MAX_MIXED_FILLS`);</span>
-<span class="sd">    past it, a body recorded in a mixed state reads as changed.</span>
+<span class="sd">    current body outside ``D``. They are tried last, likeliest first</span>
+<span class="sd">    (lacing#157): moving only the occurrences filled now before moving those</span>
+<span class="sd">    still ``null`` or at their pre-fill, fewest occurrences moved first, each</span>
+<span class="sd">    at its pre-fill value before ``null`` before absent; and at most</span>
+<span class="sd">    ``max_mixed_fills`` of them (:data:`MAX_MIXED_FILLS`). A body recorded in a</span>
+<span class="sd">    state past that budget reads as changed.</span>
 
 <span class="sd">    &gt;&gt;&gt; from uuid import uuid4</span>
 <span class="sd">    &gt;&gt;&gt; from lacing import Annotation, MediaRef, Provenance</span>
@@ -1346,10 +1361,15 @@ window.runMermaid = runMermaid;</script>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">dropped</span><span class="p">:</span>  <span class="c1"># no derived field present: every fallback is the whole body</span>
         <span class="k">return</span>
     <span class="k">yield</span> <span class="n">_digest</span><span class="p">(</span><span class="n">_V1_SCHEME</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>  <span class="c1"># derived fields absent when recorded</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>  <span class="c1"># the null and pre-fill bodies coincide when every occurrence</span>
+    <span class="c1"># present is of a path whose pre-fill is null: yield that body's digest once</span>
     <span class="k">for</span> <span class="n">fills</span> <span class="ow">in</span> <span class="n">_distinct_fills</span><span class="p">(</span><span class="n">prefills</span><span class="p">):</span>  <span class="c1"># derived fields stored as null, or</span>
         <span class="n">filled</span> <span class="o">=</span> <span class="n">_payload</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="n">VALUE_FIELDS</span><span class="p">)</span>  <span class="c1"># at their default, then</span>
         <span class="k">if</span> <span class="n">fill_paths</span><span class="p">(</span><span class="n">filled</span><span class="p">[</span><span class="s2">"body"</span><span class="p">],</span> <span class="n">fills</span><span class="p">):</span>  <span class="c1"># else it is the whole body again</span>
-            <span class="k">yield</span> <span class="n">_digest</span><span class="p">(</span><span class="n">_V1_SCHEME</span><span class="p">,</span> <span class="n">filled</span><span class="p">)</span>
+            <span class="n">digest</span> <span class="o">=</span> <span class="n">_digest</span><span class="p">(</span><span class="n">_V1_SCHEME</span><span class="p">,</span> <span class="n">filled</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">digest</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">digest</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">digest</span>
     <span class="c1"># last, each occurrence in its own state, editing the dropped dump in place</span>
     <span class="k">for</span> <span class="n">mixed</span> <span class="ow">in</span> <span class="n">_mixed_fills</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">dropped</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">max_mixed_fills</span><span class="p">):</span>
         <span class="k">yield</span> <span class="n">_digest</span><span class="p">(</span><span class="n">_V1_SCHEME</span><span class="p">,</span> <span class="n">mixed</span><span class="p">)</span>
@@ -1379,75 +1399,133 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">dropped</span>
 
 
-<span class="n">_KEEP</span><span class="p">,</span> <span class="n">_DROP</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
-<span class="sd">"""A site's state is an index: as now, absent, then its written values."""</span>
+<span class="n">_ABSENT</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+<span class="sd">"""The state of an occurrence recorded without its key (every other state is</span>
+<span class="sd">the value it held)."""</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_mixed_fills</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">dropped</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""``payload``, whose derived entries ``dropped`` were removed, with each of</span>
 <span class="sd">    them in its own state: as now, absent, ``None``, or its path's pre-fill</span>
 <span class="sd">    value. Only the mixed combinations (the bodies of the uniform ones were</span>
-<span class="sd">    tried before), and none when there are more than ``limit`` combinations:</span>
-<span class="sd">    sites are added only while their product stays within it, so a large body</span>
-<span class="sd">    costs a few sites on a miss.</span>
+<span class="sd">    tried before), at most ``limit`` of them, the likeliest first, so a miss</span>
+<span class="sd">    costs ``limit`` digests, never ``3**n``.</span>
+
+<span class="sd">    Likeliest first (lacing#157): the occurrences filled now (not ``None``, not</span>
+<span class="sd">    at their pre-fill) are where a late fill happened, so the combinations that</span>
+<span class="sd">    move only those come first, each other occurrence held as now (still</span>
+<span class="sd">    ``null`` or at its pre-fill now, it most likely was then too); then those</span>
+<span class="sd">    that also move the others. Each in :func:`_by_distance` order.</span>
 
 <span class="sd">    ``payload`` is edited in place from one combination to the next, only where</span>
-<span class="sd">    a site's state changes, so each yield is valid only until the next (the</span>
-<span class="sd">    caller digests it at once)."""</span>
+<span class="sd">    an occurrence's state changes, so each yield is valid only until the next</span>
+<span class="sd">    (the caller digests it at once)."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.derived</span><span class="w"> </span><span class="kn">import</span> <span class="n">same_json</span>
 
-    <span class="n">sites</span><span class="p">,</span> <span class="n">combinations</span> <span class="o">=</span> <span class="p">[],</span> <span class="mi">1</span>
-    <span class="k">for</span> <span class="n">container</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">prefill</span> <span class="ow">in</span> <span class="n">dropped</span><span class="p">:</span>
-        <span class="n">written</span> <span class="o">=</span> <span class="n">_written</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">prefill</span><span class="p">,</span> <span class="n">same_json</span><span class="p">)</span>
-        <span class="n">combinations</span> <span class="o">*=</span> <span class="mi">2</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">written</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">combinations</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="n">sites</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">container</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">written</span><span class="p">,</span> <span class="n">prefill</span><span class="p">))</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># one site: every combination is uniform</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dropped</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">limit</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># one site: every combination is uniform</span>
         <span class="k">return</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="p">[</span><span class="n">_states</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">prefill</span><span class="p">,</span> <span class="n">same_json</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">prefill</span> <span class="ow">in</span> <span class="n">dropped</span><span class="p">]</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">uniform</span><span class="p">(</span><span class="n">fill_of</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""The combination a uniform fill leaves the sites in: each at its</span>
-<span class="sd">        written value equal to the fill, else as now (it already was)."""</span>
-        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
-            <span class="nb">next</span><span class="p">(</span>
-                <span class="p">(</span><span class="mi">2</span> <span class="o">+</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">written</span><span class="p">)</span> <span class="k">if</span> <span class="n">same_json</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">fill_of</span><span class="p">(</span><span class="n">p</span><span class="p">))),</span>
-                <span class="n">_KEEP</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">written</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">sites</span>
-        <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">uniform</span><span class="p">(</span><span class="n">fills</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""The combination a uniform fill leaves the sites in: each at the</span>
+<span class="sd">        state equal to its fill, else as now (it already held it)."""</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">i</span><span class="p">:</span> <span class="n">state</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">fill</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">fills</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span>
+            <span class="k">if</span> <span class="n">same_json</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">fill</span><span class="p">)</span>
+        <span class="p">}</span>
 
-    <span class="n">tried</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="p">(</span><span class="n">_KEEP</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">),</span>
-        <span class="p">(</span><span class="n">_DROP</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">),</span>
-        <span class="n">uniform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">prefill</span><span class="p">:</span> <span class="kc">None</span><span class="p">),</span>
-        <span class="n">uniform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">prefill</span><span class="p">:</span> <span class="n">prefill</span><span class="p">),</span>
-    <span class="p">}</span>
-    <span class="n">applied</span> <span class="o">=</span> <span class="p">[</span><span class="n">_DROP</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>  <span class="c1"># as ``payload`` holds them now</span>
-    <span class="k">for</span> <span class="n">combo</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">2</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">site</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span> <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">sites</span><span class="p">)):</span>
-        <span class="k">if</span> <span class="n">combo</span> <span class="ow">in</span> <span class="n">tried</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">((</span><span class="n">container</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">written</span><span class="p">,</span> <span class="n">_</span><span class="p">),</span> <span class="n">state</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
-            <span class="nb">zip</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">combo</span><span class="p">)</span>
-        <span class="p">):</span>
-            <span class="k">if</span> <span class="n">state</span> <span class="o">!=</span> <span class="n">applied</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
-                <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="n">_DROP</span><span class="p">:</span>
-                    <span class="k">del</span> <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span> <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="n">_KEEP</span> <span class="k">else</span> <span class="n">written</span><span class="p">[</span><span class="n">state</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span>
-                <span class="n">applied</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dropped</span><span class="p">)</span>
+    <span class="n">tried</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">uniform</span><span class="p">([</span><span class="n">_ABSENT</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span><span class="p">),</span>
+        <span class="n">uniform</span><span class="p">([</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span><span class="p">),</span>
+        <span class="n">uniform</span><span class="p">([</span><span class="n">prefill</span> <span class="k">for</span> <span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="n">prefill</span> <span class="ow">in</span> <span class="n">dropped</span><span class="p">]),</span>
+    <span class="p">]</span>
+    <span class="n">filled</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">i</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">prefill</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dropped</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">same_json</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">prefill</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">unfilled</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">filled</span><span class="p">)</span>
+    <span class="n">first</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">{</span><span class="n">filled</span><span class="p">[</span><span class="n">j</span><span class="p">]:</span> <span class="n">state</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">combo</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="k">for</span> <span class="n">combo</span> <span class="ow">in</span> <span class="n">_by_distance</span><span class="p">([</span><span class="n">options</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">filled</span><span class="p">],</span> <span class="n">same</span><span class="o">=</span><span class="n">same_json</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">then</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">combo</span>
+        <span class="k">for</span> <span class="n">combo</span> <span class="ow">in</span> <span class="n">_by_distance</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">same</span><span class="o">=</span><span class="n">same_json</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">unfilled</span><span class="o">.</span><span class="n">isdisjoint</span><span class="p">(</span><span class="n">combo</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">combos</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">then</span> <span class="k">if</span> <span class="n">unfilled</span> <span class="k">else</span> <span class="p">())</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">place</span><span class="p">(</span><span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">container</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">dropped</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="n">_ABSENT</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span>
+
+    <span class="k">for</span> <span class="n">container</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">dropped</span><span class="p">:</span>  <span class="c1"># start from the body as now</span>
+        <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="n">applied</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># the sites ``payload`` holds off "as now"</span>
+    <span class="k">for</span> <span class="n">combo</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">islice</span><span class="p">((</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">combos</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tried</span><span class="p">),</span> <span class="n">limit</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">applied</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="n">combo</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">place</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">dropped</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">combo</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">applied</span> <span class="ow">or</span> <span class="n">applied</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">state</span><span class="p">:</span>
+                <span class="n">place</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+        <span class="n">applied</span> <span class="o">=</span> <span class="n">combo</span>
         <span class="k">yield</span> <span class="n">payload</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_written</span><span class="p">(</span><span class="n">current</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">prefill</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">same</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""The values one occurrence may have been recorded holding besides its</span>
-<span class="sd">    current one: ``None``, its pre-fill value; one equal to the current value or</span>
-<span class="sd">    to an earlier one is left out."""</span>
-    <span class="n">written</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">prefill</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">same</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="k">for</span> <span class="n">other</span> <span class="ow">in</span> <span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="o">*</span><span class="n">written</span><span class="p">)):</span>
-            <span class="n">written</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">written</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_by_distance</span><span class="p">(</span>
+    <span class="n">options</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Sequence</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">same</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Every combination of the sites' states other than "all as now", each as</span>
+<span class="sd">    ``{site: state}`` for the sites it moves off "as now"; ``options[i]`` lists</span>
+<span class="sd">    the states site ``i`` may be moved to, likeliest first.</span>
+
+<span class="sd">    Fewest sites moved first: a trace recorded just before the last fill or two</span>
+<span class="sd">    (the common case, lacing#157) is reached after about ``n`` or ``n**2``</span>
+<span class="sd">    bodies, not ``3**n``. At each distance, the combinations whose moved sites</span>
+<span class="sd">    share one state (``same``) come before those mixing states (one absent, one</span>
+<span class="sd">    ``null``: images appended by different writers), the states taken in the</span>
+<span class="sd">    order the sites rank them.</span>
+
+<span class="sd">    &gt;&gt;&gt; list(_by_distance([["a", "b"], ["a"]], same=lambda x, y: x == y))</span>
+<span class="sd">    [{0: 'a'}, {1: 'a'}, {0: 'b'}, {0: 'a', 1: 'a'}, {0: 'b', 1: 'a'}]</span>
+<span class="sd">    """</span>
+    <span class="n">forms</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># every distinct state, in the order the sites rank them</span>
+    <span class="k">for</span> <span class="n">rank</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">options</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">states</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">rank</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">states</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">same</span><span class="p">(</span><span class="n">states</span><span class="p">[</span><span class="n">rank</span><span class="p">],</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">forms</span><span class="p">):</span>
+                <span class="n">forms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">states</span><span class="p">[</span><span class="n">rank</span><span class="p">])</span>
+    <span class="n">sharing</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">states</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">options</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">states</span> <span class="k">if</span> <span class="n">same</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">form</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">form</span> <span class="ow">in</span> <span class="n">forms</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">distance</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">options</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">eligible</span> <span class="ow">in</span> <span class="n">sharing</span><span class="p">:</span>
+            <span class="k">yield from</span> <span class="nb">map</span><span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">eligible</span><span class="p">,</span> <span class="n">distance</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">moved</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">options</span><span class="p">)),</span> <span class="n">distance</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">chosen</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">moved</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">same</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">chosen</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">chosen</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                    <span class="k">yield</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">moved</span><span class="p">,</span> <span class="n">chosen</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_states</span><span class="p">(</span><span class="n">current</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">prefill</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">same</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The states one occurrence may have been recorded in besides its current</span>
+<span class="sd">    value, likeliest first: its pre-fill value (what ``model_dump()`` writes for</span>
+<span class="sd">    a plain default), ``None``, absent; one equal to the current value or to an</span>
+<span class="sd">    earlier one is left out."""</span>
+    <span class="n">states</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="p">(</span><span class="n">prefill</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">_ABSENT</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">same</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="k">for</span> <span class="n">other</span> <span class="ow">in</span> <span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="o">*</span><span class="n">states</span><span class="p">)):</span>
+            <span class="n">states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">states</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>

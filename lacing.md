@@ -1,4 +1,4 @@
-> built 2026-11-04 03:51 UTC from 1fc1c2d (main) · lacing 0.0.94. Details: build_info.json
+> built 2026-11-04 04:13 UTC from 114dd38 (main) · lacing 0.0.94. Details: build_info.json
 
 # index.html.md
 
@@ -4129,13 +4129,13 @@ consumers.
 
 ### Module Attributes
 
-| [`VALUE_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                                                                                                                                                                                                                                               |
-|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`BODY_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_FIELDS)          | The narrower payload for [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                          |
-| [`VALUE_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) by default.                                                                                                                                                                                                                      |
-| [`VALUE_DIGEST_SCHEMES`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEMES) | Every scheme [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) can compute, oldest first.                                                                                                                                                                                                                           |
-| [`MAX_MIXED_FILLS`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_FILLS)      | Default cap on the mixed-state bodies [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) tries (lacing#152): a body whose derived fields were filled one occurrence at a time was recorded with each occurrence in its own state (as now, absent, `null`, at its pre-fill value), and every combination is a candidate. |
-| [`BODY_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_DIGEST_SCHEME)   | Domain-separation tag mixed into [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                  |
+| [`VALUE_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                                                                                                                                                                                                                                                          |
+|-----------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`BODY_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_FIELDS)          | The narrower payload for [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                                     |
+| [`VALUE_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) by default.                                                                                                                                                                                                                                 |
+| [`VALUE_DIGEST_SCHEMES`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEMES) | Every scheme [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) can compute, oldest first.                                                                                                                                                                                                                                      |
+| [`MAX_MIXED_FILLS`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_FILLS)      | Default budget of mixed-state bodies [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) tries (lacing#152, lacing#157): a body whose derived fields were filled one occurrence at a time was recorded with each occurrence in its own state (as now, absent, `null`, at its pre-fill value), and every combination is a candidate. |
+| [`BODY_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_DIGEST_SCHEME)   | Domain-separation tag mixed into [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                             |
 
 ### Functions
 
@@ -4167,15 +4167,27 @@ alike here.
 
 ### lacing.digest.MAX_MIXED_FILLS *= 1024*
 
-Default cap on the mixed-state bodies [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) tries
-(lacing#152): a body whose derived fields were filled one occurrence at a time
-was recorded with each occurrence in its own state (as now, absent, `null`,
-at its pre-fill value), and every combination is a candidate. 1024 covers a
-field whose pre-fill value is `null` (three states per occurrence: as now,
-absent, `null`) on up to six occurrences (3\*\*6 = 729), such as the images of
-a panel whose `asset_id` defaults to `None`; or five occurrences of a field
-with a non-null default (four states, 4\*\*5). Past the cap only the uniform
-bodies are tried: a spurious miss, never a wrong hit.
+Default budget of mixed-state bodies [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) tries
+(lacing#152, lacing#157): a body whose derived fields were filled one
+occurrence at a time was recorded with each occurrence in its own state (as
+now, absent, `null`, at its pre-fill value), and every combination is a
+candidate. There are `3**n` of them or more, so they are tried likeliest
+first (see [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches)), and at most this many.
+
+What it reaches, by enumeration, counting only the images filled now (those
+still `null` now are held as they are): with a `null` pre-fill (artful’s
+`PanelImage`), a trace recorded before a panel’s last fill on up to 1024
+images when that image was `null` then, 512 when absent; before its last two
+on up to 43 when both were `null`, 22 when one was absent and one `null`;
+before its last three, all `null`, on up to 15. A non-null pre-fill adds a
+state per image: 512, 341, 31, 15 and 11. Past the budget, a body recorded in
+a less likely state reads as changed: a spurious miss, never a wrong hit. An
+occurrence `null` now but absent when recorded is moved only after every
+combination of the filled ones, so with seven or more filled images it is past
+the budget.
+
+Cost: a miss computes up to this many more digests, each over the whole body
+(about 0.45 s at 1,000 images).
 
 ### *exception* lacing.digest.NonStringBodyKeyError
 
@@ -4435,9 +4447,12 @@ Derived fields filled one occurrence at a time (each image of a panel)
 leave bodies recorded in **mixed** states: one occurrence filled, another
 `null`, a third absent. Those are accepted too, each occurrence in any of
 its states (lacing#152), and for the same reason: every mix agrees with the
-current body outside `D`. They are tried last, and only while the number
-of combinations is at most `max_mixed_fills` ([`MAX_MIXED_FILLS`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_FILLS));
-past it, a body recorded in a mixed state reads as changed.
+current body outside `D`. They are tried last, likeliest first
+(lacing#157): moving only the occurrences filled now before moving those
+still `null` or at their pre-fill, fewest occurrences moved first, each
+at its pre-fill value before `null` before absent; and at most
+`max_mixed_fills` of them ([`MAX_MIXED_FILLS`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_FILLS)). A body recorded in a
+state past that budget reads as changed.
 
 ```pycon
 >>> from uuid import uuid4
@@ -7275,9 +7290,12 @@ Derived fields filled one occurrence at a time (each image of a panel)
 leave bodies recorded in **mixed** states: one occurrence filled, another
 `null`, a third absent. Those are accepted too, each occurrence in any of
 its states (lacing#152), and for the same reason: every mix agrees with the
-current body outside `D`. They are tried last, and only while the number
-of combinations is at most `max_mixed_fills` (`MAX_MIXED_FILLS`);
-past it, a body recorded in a mixed state reads as changed.
+current body outside `D`. They are tried last, likeliest first
+(lacing#157): moving only the occurrences filled now before moving those
+still `null` or at their pre-fill, fewest occurrences moved first, each
+at its pre-fill value before `null` before absent; and at most
+`max_mixed_fills` of them (`MAX_MIXED_FILLS`). A body recorded in a
+state past that budget reads as changed.
 
 ```pycon
 >>> from uuid import uuid4
@@ -10651,18 +10669,20 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-04 03:51 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/1fc1c2dc5f00f6da06e0ed4de6f1d6c378f00f72"><code>1fc1c2d</code></a> on branch <code>main</code>, for **lacing 0.0.94** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-04 04:13 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/114dd38dd2e8614f84167bcecf248f85f1256ef2"><code>114dd38</code></a> on branch <code>main</code>, for **lacing 0.0.94** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.94) is behind the latest release on PyPI (0.0.95): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/1fc1c2dc5f00f6da06e0ed4de6f1d6c378f00f72"><code>1fc1c2dc5f00f6da06e0ed4de6f1d6c378f00f72</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/114dd38dd2e8614f84167bcecf248f85f1256ef2"><code>114dd38dd2e8614f84167bcecf248f85f1256ef2</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
-| Tags at this commit | <code>0.0.94</code>                                                                                                                                    |
+| Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
 | Remote              | <code>https://github.com/reeleehq/lacing</code>                                                                                                        |
 
@@ -10671,9 +10691,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41769309197">41769309197</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41770969330">41770969330</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>f09adc76df1317c89b08cfd7b3dc99db627f83ff</code> (in the history of the built commit) |
+| Event commit | <code>114dd38dd2e8614f84167bcecf248f85f1256ef2</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10682,7 +10702,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 | epythet  | 0.2.22  |
 | Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
-| Python   | 3.12.15 |
+| Python   | 3.12.16 |
 
 ## Configuration as resolved
 
@@ -10698,13 +10718,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.94/">0.0.94</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.95/">0.0.95</a>, newer than the documented version (0.0.94).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 1fc1c2dc5f00f6da06e0ed4de6f1d6c378f00f72
+git checkout 114dd38dd2e8614f84167bcecf248f85f1256ef2
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

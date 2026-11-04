@@ -2486,9 +2486,12 @@ Derived fields filled one occurrence at a time (each image of a panel)
 leave bodies recorded in **mixed** states: one occurrence filled, another
 `null`, a third absent. Those are accepted too, each occurrence in any of
 its states (lacing#152), and for the same reason: every mix agrees with the
-current body outside `D`. They are tried last, and only while the number
-of combinations is at most `max_mixed_fills` (`MAX_MIXED_FILLS`);
-past it, a body recorded in a mixed state reads as changed.
+current body outside `D`. They are tried last, likeliest first
+(lacing#157): moving only the occurrences filled now before moving those
+still `null` or at their pre-fill, fewest occurrences moved first, each
+at its pre-fill value before `null` before absent; and at most
+`max_mixed_fills` of them (`MAX_MIXED_FILLS`). A body recorded in a
+state past that budget reads as changed.
 
 ```pycon
 >>> from uuid import uuid4

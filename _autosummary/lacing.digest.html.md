@@ -161,13 +161,13 @@ consumers.
 
 ### Module Attributes
 
-| [`VALUE_FIELDS`](#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                                                                                                                                                                                                                                               |
-|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`BODY_FIELDS`](#lacing.digest.BODY_FIELDS)          | The narrower payload for [`annotation_body_digest()`](#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                          |
-| [`VALUE_DIGEST_SCHEME`](#lacing.digest.VALUE_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) by default.                                                                                                                                                                                                                      |
-| [`VALUE_DIGEST_SCHEMES`](#lacing.digest.VALUE_DIGEST_SCHEMES) | Every scheme [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) can compute, oldest first.                                                                                                                                                                                                                           |
-| [`MAX_MIXED_FILLS`](#lacing.digest.MAX_MIXED_FILLS)      | Default cap on the mixed-state bodies [`value_digest_matches()`](#lacing.digest.value_digest_matches) tries (lacing#152): a body whose derived fields were filled one occurrence at a time was recorded with each occurrence in its own state (as now, absent, `null`, at its pre-fill value), and every combination is a candidate. |
-| [`BODY_DIGEST_SCHEME`](#lacing.digest.BODY_DIGEST_SCHEME)   | Domain-separation tag mixed into [`annotation_body_digest()`](#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                  |
+| [`VALUE_FIELDS`](#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                                                                                                                                                                                                                                                          |
+|-----------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`BODY_FIELDS`](#lacing.digest.BODY_FIELDS)          | The narrower payload for [`annotation_body_digest()`](#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                                     |
+| [`VALUE_DIGEST_SCHEME`](#lacing.digest.VALUE_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) by default.                                                                                                                                                                                                                                 |
+| [`VALUE_DIGEST_SCHEMES`](#lacing.digest.VALUE_DIGEST_SCHEMES) | Every scheme [`annotation_value_digest()`](#lacing.digest.annotation_value_digest) can compute, oldest first.                                                                                                                                                                                                                                      |
+| [`MAX_MIXED_FILLS`](#lacing.digest.MAX_MIXED_FILLS)      | Default budget of mixed-state bodies [`value_digest_matches()`](#lacing.digest.value_digest_matches) tries (lacing#152, lacing#157): a body whose derived fields were filled one occurrence at a time was recorded with each occurrence in its own state (as now, absent, `null`, at its pre-fill value), and every combination is a candidate. |
+| [`BODY_DIGEST_SCHEME`](#lacing.digest.BODY_DIGEST_SCHEME)   | Domain-separation tag mixed into [`annotation_body_digest()`](#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                             |
 
 ### Functions
 
@@ -199,15 +199,27 @@ alike here.
 
 ### lacing.digest.MAX_MIXED_FILLS *= 1024*
 
-Default cap on the mixed-state bodies [`value_digest_matches()`](#lacing.digest.value_digest_matches) tries
-(lacing#152): a body whose derived fields were filled one occurrence at a time
-was recorded with each occurrence in its own state (as now, absent, `null`,
-at its pre-fill value), and every combination is a candidate. 1024 covers a
-field whose pre-fill value is `null` (three states per occurrence: as now,
-absent, `null`) on up to six occurrences (3\*\*6 = 729), such as the images of
-a panel whose `asset_id` defaults to `None`; or five occurrences of a field
-with a non-null default (four states, 4\*\*5). Past the cap only the uniform
-bodies are tried: a spurious miss, never a wrong hit.
+Default budget of mixed-state bodies [`value_digest_matches()`](#lacing.digest.value_digest_matches) tries
+(lacing#152, lacing#157): a body whose derived fields were filled one
+occurrence at a time was recorded with each occurrence in its own state (as
+now, absent, `null`, at its pre-fill value), and every combination is a
+candidate. There are `3**n` of them or more, so they are tried likeliest
+first (see [`value_digest_matches()`](#lacing.digest.value_digest_matches)), and at most this many.
+
+What it reaches, by enumeration, counting only the images filled now (those
+still `null` now are held as they are): with a `null` pre-fill (artful’s
+`PanelImage`), a trace recorded before a panel’s last fill on up to 1024
+images when that image was `null` then, 512 when absent; before its last two
+on up to 43 when both were `null`, 22 when one was absent and one `null`;
+before its last three, all `null`, on up to 15. A non-null pre-fill adds a
+state per image: 512, 341, 31, 15 and 11. Past the budget, a body recorded in
+a less likely state reads as changed: a spurious miss, never a wrong hit. An
+occurrence `null` now but absent when recorded is moved only after every
+combination of the filled ones, so with seven or more filled images it is past
+the budget.
+
+Cost: a miss computes up to this many more digests, each over the whole body
+(about 0.45 s at 1,000 images).
 
 ### *exception* lacing.digest.NonStringBodyKeyError
 
@@ -467,9 +479,12 @@ Derived fields filled one occurrence at a time (each image of a panel)
 leave bodies recorded in **mixed** states: one occurrence filled, another
 `null`, a third absent. Those are accepted too, each occurrence in any of
 its states (lacing#152), and for the same reason: every mix agrees with the
-current body outside `D`. They are tried last, and only while the number
-of combinations is at most `max_mixed_fills` ([`MAX_MIXED_FILLS`](#lacing.digest.MAX_MIXED_FILLS));
-past it, a body recorded in a mixed state reads as changed.
+current body outside `D`. They are tried last, likeliest first
+(lacing#157): moving only the occurrences filled now before moving those
+still `null` or at their pre-fill, fewest occurrences moved first, each
+at its pre-fill value before `null` before absent; and at most
+`max_mixed_fills` of them ([`MAX_MIXED_FILLS`](#lacing.digest.MAX_MIXED_FILLS)). A body recorded in a
+state past that budget reads as changed.
 
 ```pycon
 >>> from uuid import uuid4

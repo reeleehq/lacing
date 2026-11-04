@@ -618,7 +618,7 @@ consumers.</p>
 <td><p>Every scheme <a class="reference internal" href="#lacing.digest.annotation_value_digest" title="lacing.digest.annotation_value_digest"><code class="xref py py-func docutils literal notranslate"><span class="pre">annotation_value_digest()</span></code></a> can compute, oldest first.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.digest.MAX_MIXED_FILLS" title="lacing.digest.MAX_MIXED_FILLS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MAX_MIXED_FILLS</span></code></a></p></td>
-<td><p>Default cap on the mixed-state bodies <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> tries (lacing#152): a body whose derived fields were filled one occurrence at a time was recorded with each occurrence in its own state (as now, absent, <code class="docutils literal notranslate"><span class="pre">null</span></code>, at its pre-fill value), and every combination is a candidate.</p></td>
+<td><p>Default budget of mixed-state bodies <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> tries (lacing#152, lacing#157): a body whose derived fields were filled one occurrence at a time was recorded with each occurrence in its own state (as now, absent, <code class="docutils literal notranslate"><span class="pre">null</span></code>, at its pre-fill value), and every combination is a candidate.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.digest.BODY_DIGEST_SCHEME" title="lacing.digest.BODY_DIGEST_SCHEME"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BODY_DIGEST_SCHEME</span></code></a></p></td>
 <td><p>Domain-separation tag mixed into <a class="reference internal" href="#lacing.digest.annotation_body_digest" title="lacing.digest.annotation_body_digest"><code class="xref py py-func docutils literal notranslate"><span class="pre">annotation_body_digest()</span></code></a>.</p></td>
@@ -679,15 +679,25 @@ alike here.</p>
 <dl class="py data">
 <dt class="sig sig-object py" id="lacing.digest.MAX_MIXED_FILLS">
 <span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">MAX_MIXED_FILLS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1024</span></span><a class="headerlink" href="#lacing.digest.MAX_MIXED_FILLS" title="Link to this definition">#</a></dt>
-<dd><p>Default cap on the mixed-state bodies <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> tries
-(lacing#152): a body whose derived fields were filled one occurrence at a time
-was recorded with each occurrence in its own state (as now, absent, <code class="docutils literal notranslate"><span class="pre">null</span></code>,
-at its pre-fill value), and every combination is a candidate. 1024 covers a
-field whose pre-fill value is <code class="docutils literal notranslate"><span class="pre">null</span></code> (three states per occurrence: as now,
-absent, <code class="docutils literal notranslate"><span class="pre">null</span></code>) on up to six occurrences (3**6 = 729), such as the images of
-a panel whose <code class="docutils literal notranslate"><span class="pre">asset_id</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>; or five occurrences of a field
-with a non-null default (four states, 4**5). Past the cap only the uniform
-bodies are tried: a spurious miss, never a wrong hit.</p>
+<dd><p>Default budget of mixed-state bodies <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> tries
+(lacing#152, lacing#157): a body whose derived fields were filled one
+occurrence at a time was recorded with each occurrence in its own state (as
+now, absent, <code class="docutils literal notranslate"><span class="pre">null</span></code>, at its pre-fill value), and every combination is a
+candidate. There are <code class="docutils literal notranslate"><span class="pre">3**n</span></code> of them or more, so they are tried likeliest
+first (see <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a>), and at most this many.</p>
+<p>What it reaches, by enumeration, counting only the images filled now (those
+still <code class="docutils literal notranslate"><span class="pre">null</span></code> now are held as they are): with a <code class="docutils literal notranslate"><span class="pre">null</span></code> pre-fill (artful’s
+<code class="docutils literal notranslate"><span class="pre">PanelImage</span></code>), a trace recorded before a panel’s last fill on up to 1024
+images when that image was <code class="docutils literal notranslate"><span class="pre">null</span></code> then, 512 when absent; before its last two
+on up to 43 when both were <code class="docutils literal notranslate"><span class="pre">null</span></code>, 22 when one was absent and one <code class="docutils literal notranslate"><span class="pre">null</span></code>;
+before its last three, all <code class="docutils literal notranslate"><span class="pre">null</span></code>, on up to 15. A non-null pre-fill adds a
+state per image: 512, 341, 31, 15 and 11. Past the budget, a body recorded in
+a less likely state reads as changed: a spurious miss, never a wrong hit. An
+occurrence <code class="docutils literal notranslate"><span class="pre">null</span></code> now but absent when recorded is moved only after every
+combination of the filled ones, so with seven or more filled images it is past
+the budget.</p>
+<p>Cost: a miss computes up to this many more digests, each over the whole body
+(about 0.45 s at 1,000 images).</p>
 </dd></dl>
 
 <dl class="py exception">
@@ -952,9 +962,12 @@ digest already accepts. <code class="docutils literal notranslate"><span class="
 leave bodies recorded in <strong>mixed</strong> states: one occurrence filled, another
 <code class="docutils literal notranslate"><span class="pre">null</span></code>, a third absent. Those are accepted too, each occurrence in any of
 its states (lacing#152), and for the same reason: every mix agrees with the
-current body outside <code class="docutils literal notranslate"><span class="pre">D</span></code>. They are tried last, and only while the number
-of combinations is at most <code class="docutils literal notranslate"><span class="pre">max_mixed_fills</span></code> (<a class="reference internal" href="#lacing.digest.MAX_MIXED_FILLS" title="lacing.digest.MAX_MIXED_FILLS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MAX_MIXED_FILLS</span></code></a>);
-past it, a body recorded in a mixed state reads as changed.</p>
+current body outside <code class="docutils literal notranslate"><span class="pre">D</span></code>. They are tried last, likeliest first
+(lacing#157): moving only the occurrences filled now before moving those
+still <code class="docutils literal notranslate"><span class="pre">null</span></code> or at their pre-fill, fewest occurrences moved first, each
+at its pre-fill value before <code class="docutils literal notranslate"><span class="pre">null</span></code> before absent; and at most
+<code class="docutils literal notranslate"><span class="pre">max_mixed_fills</span></code> of them (<a class="reference internal" href="#lacing.digest.MAX_MIXED_FILLS" title="lacing.digest.MAX_MIXED_FILLS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MAX_MIXED_FILLS</span></code></a>). A body recorded in a
+state past that budget reads as changed.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">MediaRef</span><span class="p">,</span> <span class="n">Provenance</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">TimeInterval</span>
