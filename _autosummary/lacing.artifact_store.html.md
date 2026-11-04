@@ -277,7 +277,7 @@ a smoke test. Vendor specifics live only in the two kwargs dicts.
 * **Return type:**
   [`ArtifactStore`](#lacing.artifact_store.ArtifactStore)
 
-#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None, catalog_delete_func=None, on_write=<function keep_rights>)
+#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None, catalog_delete_func=None, on_write=<function keep_rights>, create=True)
 
 An ArtifactStore persisted under `root`.
 
@@ -296,7 +296,8 @@ follows a symlinked directory out of `catalog/`. See
 `_ContainedDirStore`.
 
 * **Parameters:**
-  * **root** ([`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Directory to hold the store. Created if missing.
+  * **root** ([`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Directory to hold the store. Created if missing (see
+    `create`).
   * **record_type** ([`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]) – The pydantic model the catalog deserializes JSON into.
     Defaults to [`Artifact`](lacing.artifact.html.md#lacing.artifact.Artifact); callers with
     their own record schema pass their model here.
@@ -309,8 +310,24 @@ follows a symlinked directory out of `catalog/`. See
     a sensible default for records); pass `os.remove` for a
     delete that is final.
   * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The write policy (see [`ArtifactStore`](#lacing.artifact_store.ArtifactStore)).
+  * **create** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – Lay out `catalog/` and `blobs/` now (the default).
+    `False` makes nothing until the first write, so a host that
+    opens stores over many roots leaves no empty folders behind
+    (lacing#155): a missing folder reads as empty, each write
+    makes the folder it needs, and a failed write removes it
+    again. `store.blobs` is then a `dol.mk_dirs_if_missing`
+    store, so a raw nested key (`store.blobs["a/b"]`) makes
+    `blobs/a/`; keys leaving `blobs/` are still refused.
 * **Return type:**
   [`ArtifactStore`](#lacing.artifact_store.ArtifactStore)
+
+```pycon
+>>> import tempfile
+>>> root = Path(tempfile.mkdtemp()) / "lazy"
+>>> store = ArtifactStore.from_directory(root, create=False)
+>>> root.exists(), list(store.catalog)
+(False, [])
+```
 
 #### *classmethod* from_s3(bucket_name, \*, catalog=None, prefix=None, on_write=<function keep_rights>, \*\*s3_kwargs)
 

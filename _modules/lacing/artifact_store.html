@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=0f58e6e2"></script>
+    <script src="../../_static/documentation_options.js?v=c4d1762f"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.93" />
+  <meta name="docsearch:version" content="0.0.94" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -773,6 +773,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">stat</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
@@ -780,7 +781,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">TypeAdapter</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">dol</span><span class="w"> </span><span class="kn">import</span> <span class="n">Files</span><span class="p">,</span> <span class="n">filt_iter</span><span class="p">,</span> <span class="n">wrap_kvs</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dol</span><span class="w"> </span><span class="kn">import</span> <span class="n">Files</span><span class="p">,</span> <span class="n">filt_iter</span><span class="p">,</span> <span class="n">mk_dirs_if_missing</span><span class="p">,</span> <span class="n">wrap_kvs</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dol.atomic</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_write</span><span class="p">,</span> <span class="n">interrupted_writes</span> <span class="k">as</span> <span class="n">dol_interrupted_writes</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.artifact</span><span class="w"> </span><span class="kn">import</span> <span class="n">Artifact</span><span class="p">,</span> <span class="n">hash_bytes</span>
@@ -1734,6 +1735,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">blob_delete_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">catalog_delete_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">on_write</span><span class="p">:</span> <span class="n">WritePolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">keep_rights</span><span class="p">,</span>
+        <span class="n">create</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArtifactStore</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""An ArtifactStore persisted under ``root``.</span>
 
@@ -1752,7 +1754,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        :class:`_ContainedDirStore`.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            root: Directory to hold the store. Created if missing.</span>
+<span class="sd">            root: Directory to hold the store. Created if missing (see</span>
+<span class="sd">                ``create``).</span>
 <span class="sd">            record_type: The pydantic model the catalog deserializes JSON into.</span>
 <span class="sd">                Defaults to :class:`~lacing.artifact.Artifact`; callers with</span>
 <span class="sd">                their own record schema pass their model here.</span>
@@ -1765,12 +1768,27 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">                a sensible default for records); pass ``os.remove`` for a</span>
 <span class="sd">                delete that is final.</span>
 <span class="sd">            on_write: The write policy (see :class:`ArtifactStore`).</span>
+<span class="sd">            create: Lay out ``catalog/`` and ``blobs/`` now (the default).</span>
+<span class="sd">                ``False`` makes nothing until the first write, so a host that</span>
+<span class="sd">                opens stores over many roots leaves no empty folders behind</span>
+<span class="sd">                (lacing#155): a missing folder reads as empty, each write</span>
+<span class="sd">                makes the folder it needs, and a failed write removes it</span>
+<span class="sd">                again. ``store.blobs`` is then a ``dol.mk_dirs_if_missing``</span>
+<span class="sd">                store, so a raw nested key (``store.blobs["a/b"]``) makes</span>
+<span class="sd">                ``blobs/a/``; keys leaving ``blobs/`` are still refused.</span>
+
+<span class="sd">        &gt;&gt;&gt; import tempfile</span>
+<span class="sd">        &gt;&gt;&gt; root = Path(tempfile.mkdtemp()) / "lazy"</span>
+<span class="sd">        &gt;&gt;&gt; store = ArtifactStore.from_directory(root, create=False)</span>
+<span class="sd">        &gt;&gt;&gt; root.exists(), list(store.catalog)</span>
+<span class="sd">        (False, [])</span>
 <span class="sd">        """</span>
         <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
         <span class="n">catalog_dir</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="s2">"catalog"</span>
         <span class="n">blob_dir</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="s2">"blobs"</span>
-        <span class="n">catalog_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">blob_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">create</span><span class="p">:</span>
+            <span class="n">catalog_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">blob_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="n">catalog</span> <span class="o">=</span> <span class="n">wrap_kvs</span><span class="p">(</span>
             <span class="n">filt_iter</span><span class="p">(</span>
@@ -1786,7 +1804,10 @@ window.runMermaid = runMermaid;</script>
             <span class="n">data_of_obj</span><span class="o">=</span><span class="k">lambda</span> <span class="n">record</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">),</span>
             <span class="n">obj_of_data</span><span class="o">=</span><span class="k">lambda</span> <span class="n">raw</span><span class="p">:</span> <span class="n">record_type</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span><span class="n">raw</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="n">blobs</span> <span class="o">=</span> <span class="n">Files</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">blob_dir</span><span class="p">),</span> <span class="n">delete_func</span><span class="o">=</span><span class="n">blob_delete_func</span><span class="p">)</span>
+        <span class="c1"># A bare Files raises KeyError writing into a missing folder; the catalog</span>
+        <span class="c1"># (_ContainedDirStore) and the spooled writes make theirs already.</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="n">Files</span> <span class="k">if</span> <span class="n">create</span> <span class="k">else</span> <span class="n">mk_dirs_if_missing</span><span class="p">(</span><span class="n">Files</span><span class="p">)</span>
+        <span class="n">blobs</span> <span class="o">=</span> <span class="n">files</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">blob_dir</span><span class="p">),</span> <span class="n">delete_func</span><span class="o">=</span><span class="n">blob_delete_func</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span> <span class="n">blobs</span><span class="o">=</span><span class="n">blobs</span><span class="p">,</span> <span class="n">on_write</span><span class="o">=</span><span class="n">on_write</span><span class="p">)</span></div>
 
 
@@ -2281,17 +2302,11 @@ window.runMermaid = runMermaid;</script>
             <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">_refuse</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s2">"names something that is not a regular file"</span><span class="p">)</span>
         <span class="c1"># dol's Files does not create parent directories; ``target`` is already</span>
         <span class="c1"># resolved inside rootdir, so creating its parents cannot escape.</span>
-        <span class="n">created</span> <span class="o">=</span> <span class="n">_missing_parents</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">target</span><span class="p">))</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">Path</span><span class="p">(</span><span class="n">target</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="c1"># Old record or new one, never a truncated one (lacing#118).</span>
-            <span class="n">atomic_write</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">_dir_made</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">target</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="p">):</span>
+                <span class="c1"># Old record or new one, never a truncated one (lacing#118).</span>
+                <span class="n">atomic_write</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">created</span><span class="p">:</span>  <span class="c1"># deepest first; only what this call made</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">directory</span><span class="o">.</span><span class="n">rmdir</span><span class="p">()</span>
-                <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
-                    <span class="k">continue</span>  <span class="c1"># never made (e.g. name too long), or not empty</span>
             <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">_refuse</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"cannot be written (</span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -2323,14 +2338,34 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">artifact_id</span><span class="si">}</span><span class="s2">.json"</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_missing_parents</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""The ancestors of ``path`` that do not exist yet, deepest first."""</span>
+<span class="nd">@contextmanager</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_dir_made</span><span class="p">(</span><span class="n">directory</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Make ``directory`` (and its missing ancestors) for the write in the</span>
+<span class="sd">    ``with`` body; if the body, or the making, raises, remove again the ones</span>
+<span class="sd">    this call made that are still empty, deepest first, so a failed write</span>
+<span class="sd">    leaves no stray folder behind (lacing#155). A folder another writer made</span>
+<span class="sd">    meanwhile is not this call's, and stays."""</span>
     <span class="n">missing</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">parents</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">parent</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="o">*</span><span class="n">directory</span><span class="o">.</span><span class="n">parents</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">level</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
             <span class="k">break</span>
-        <span class="n">missing</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">missing</span>
+        <span class="n">missing</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+    <span class="n">created</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">missing</span><span class="p">):</span>  <span class="c1"># top-down</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">level</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">FileExistsError</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># made by another writer since the scan</span>
+            <span class="n">created</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+        <span class="k">yield</span>
+    <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">made</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">created</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">made</span><span class="o">.</span><span class="n">rmdir</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># no longer empty</span>
+        <span class="k">raise</span>
 
 
 <span class="n">_SPOOL_PREFIX</span><span class="p">,</span> <span class="n">_SPOOL_SUFFIX</span> <span class="o">=</span> <span class="s2">".blob-"</span><span class="p">,</span> <span class="s2">".part"</span>
@@ -2358,24 +2393,24 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
 
-    <span class="n">rootdir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
-    <span class="n">fd</span><span class="p">,</span> <span class="n">tmp_path</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">(</span>
-        <span class="nb">dir</span><span class="o">=</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">_SPOOL_PREFIX</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="n">_SPOOL_SUFFIX</span>
-    <span class="p">)</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">os</span><span class="o">.</span><span class="n">fdopen</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">spool</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">:</span>
-                <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
-                <span class="n">spool</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
-        <span class="n">content_hash</span> <span class="o">=</span> <span class="n">hasher</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">rootdir</span> <span class="o">/</span> <span class="n">content_hash</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">_dir_made</span><span class="p">(</span><span class="n">rootdir</span><span class="p">):</span>
+        <span class="n">fd</span><span class="p">,</span> <span class="n">tmp_path</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">(</span>
+            <span class="nb">dir</span><span class="o">=</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">_SPOOL_PREFIX</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="n">_SPOOL_SUFFIX</span>
+        <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
-            <span class="k">pass</span>
-        <span class="k">raise</span>
+            <span class="k">with</span> <span class="n">os</span><span class="o">.</span><span class="n">fdopen</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">spool</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">:</span>
+                    <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+                    <span class="n">spool</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+            <span class="n">content_hash</span> <span class="o">=</span> <span class="n">hasher</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">rootdir</span> <span class="o">/</span> <span class="n">content_hash</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">raise</span>
     <span class="k">return</span> <span class="n">content_hash</span>
 </pre></div>
 

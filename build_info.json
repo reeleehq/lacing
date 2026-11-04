@@ -1,39 +1,41 @@
 {
   "schema_version": 1,
-  "built_at": "2026-11-03T12:45:04Z",
+  "built_at": "2026-11-04T03:51:53Z",
   "package": {
     "name": "lacing",
-    "version": "0.0.93",
+    "version": "0.0.94",
     "display_name": "lacing",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "0ae38067ad6155d99d18a50c224507773b719300",
-    "short_commit": "0ae3806",
+    "commit": "1fc1c2dc5f00f6da06e0ed4de6f1d6c378f00f72",
+    "short_commit": "1fc1c2d",
     "branch": "main",
-    "tags": [],
+    "tags": [
+      "0.0.94"
+    ],
     "dirty": false,
     "remote_url": "https://github.com/reeleehq/lacing",
-    "commit_url": "https://github.com/reeleehq/lacing/commit/0ae38067ad6155d99d18a50c224507773b719300",
+    "commit_url": "https://github.com/reeleehq/lacing/commit/1fc1c2dc5f00f6da06e0ed4de6f1d6c378f00f72",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "reeleehq/lacing",
-    "sha": "acccad142564a9ce41532b1f23d5696dc1619127",
+    "sha": "f09adc76df1317c89b08cfd7b3dc99db627f83ff",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "41635594774",
-    "run_url": "https://github.com/reeleehq/lacing/actions/runs/41635594774",
+    "run_id": "41769309197",
+    "run_url": "https://github.com/reeleehq/lacing/actions/runs/41769309197",
     "server_url": "https://github.com"
   },
   "tools": {
     "epythet": "0.2.22",
     "sphinx": "9.1.1",
     "docutils": "0.22.4",
-    "python": "3.12.16"
+    "python": "3.12.15"
   },
   "config": {
     "theme": "auto",
@@ -60,11 +62,11 @@
   },
   "pypi": {
     "checked": true,
-    "latest": "0.0.93",
+    "latest": "0.0.94",
     "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout 0ae38067ad6155d99d18a50c224507773b719300\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout 1fc1c2dc5f00f6da06e0ed4de6f1d6c378f00f72\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,

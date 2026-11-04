@@ -1,4 +1,4 @@
-> built 2026-11-03 12:45 UTC from 0ae3806 (main) · lacing 0.0.93. Details: build_info.json
+> built 2026-11-04 03:51 UTC from 1fc1c2d (main) · lacing 0.0.94. Details: build_info.json
 
 # index.html.md
 
@@ -2628,7 +2628,7 @@ a smoke test. Vendor specifics live only in the two kwargs dicts.
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
 
-#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None, catalog_delete_func=None, on_write=<function keep_rights>)
+#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None, catalog_delete_func=None, on_write=<function keep_rights>, create=True)
 
 An ArtifactStore persisted under `root`.
 
@@ -2647,7 +2647,8 @@ follows a symlinked directory out of `catalog/`. See
 `_ContainedDirStore`.
 
 * **Parameters:**
-  * **root** ([`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Directory to hold the store. Created if missing.
+  * **root** ([`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Directory to hold the store. Created if missing (see
+    `create`).
   * **record_type** ([`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]) – The pydantic model the catalog deserializes JSON into.
     Defaults to [`Artifact`](_autosummary/lacing.artifact.html.md#lacing.artifact.Artifact); callers with
     their own record schema pass their model here.
@@ -2660,8 +2661,24 @@ follows a symlinked directory out of `catalog/`. See
     a sensible default for records); pass `os.remove` for a
     delete that is final.
   * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The write policy (see [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)).
+  * **create** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – Lay out `catalog/` and `blobs/` now (the default).
+    `False` makes nothing until the first write, so a host that
+    opens stores over many roots leaves no empty folders behind
+    (lacing#155): a missing folder reads as empty, each write
+    makes the folder it needs, and a failed write removes it
+    again. `store.blobs` is then a `dol.mk_dirs_if_missing`
+    store, so a raw nested key (`store.blobs["a/b"]`) makes
+    `blobs/a/`; keys leaving `blobs/` are still refused.
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
+
+```pycon
+>>> import tempfile
+>>> root = Path(tempfile.mkdtemp()) / "lazy"
+>>> store = ArtifactStore.from_directory(root, create=False)
+>>> root.exists(), list(store.catalog)
+(False, [])
+```
 
 #### *classmethod* from_s3(bucket_name, \*, catalog=None, prefix=None, on_write=<function keep_rights>, \*\*s3_kwargs)
 
@@ -5243,7 +5260,7 @@ a smoke test. Vendor specifics live only in the two kwargs dicts.
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
 
-#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None, catalog_delete_func=None, on_write=<function keep_rights>)
+#### *classmethod* from_directory(root, \*, record_type=<class 'lacing.artifact.Artifact'>, blob_delete_func=None, catalog_delete_func=None, on_write=<function keep_rights>, create=True)
 
 An ArtifactStore persisted under `root`.
 
@@ -5262,7 +5279,8 @@ follows a symlinked directory out of `catalog/`. See
 `_ContainedDirStore`.
 
 * **Parameters:**
-  * **root** ([`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Directory to hold the store. Created if missing.
+  * **root** ([`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Directory to hold the store. Created if missing (see
+    `create`).
   * **record_type** ([`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]) – The pydantic model the catalog deserializes JSON into.
     Defaults to [`Artifact`](_autosummary/lacing.artifact.html.md#lacing.artifact.Artifact); callers with
     their own record schema pass their model here.
@@ -5275,8 +5293,24 @@ follows a symlinked directory out of `catalog/`. See
     a sensible default for records); pass `os.remove` for a
     delete that is final.
   * **on_write** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`BaseModel`, [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], `BaseModel` | [`None`](https://docs.python.org/3/builtins/constants.html#None)]], `BaseModel`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – The write policy (see [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)).
+  * **create** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – Lay out `catalog/` and `blobs/` now (the default).
+    `False` makes nothing until the first write, so a host that
+    opens stores over many roots leaves no empty folders behind
+    (lacing#155): a missing folder reads as empty, each write
+    makes the folder it needs, and a failed write removes it
+    again. `store.blobs` is then a `dol.mk_dirs_if_missing`
+    store, so a raw nested key (`store.blobs["a/b"]`) makes
+    `blobs/a/`; keys leaving `blobs/` are still refused.
 * **Return type:**
   [`ArtifactStore`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore)
+
+```pycon
+>>> import tempfile
+>>> root = Path(tempfile.mkdtemp()) / "lazy"
+>>> store = ArtifactStore.from_directory(root, create=False)
+>>> root.exists(), list(store.catalog)
+(False, [])
+```
 
 #### *classmethod* from_s3(bucket_name, \*, catalog=None, prefix=None, on_write=<function keep_rights>, \*\*s3_kwargs)
 
@@ -10617,7 +10651,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-03 12:45 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/0ae38067ad6155d99d18a50c224507773b719300"><code>0ae3806</code></a> on branch <code>main</code>, for **lacing 0.0.93** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-04 03:51 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/1fc1c2dc5f00f6da06e0ed4de6f1d6c378f00f72"><code>1fc1c2d</code></a> on branch <code>main</code>, for **lacing 0.0.94** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10626,9 +10660,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/0ae38067ad6155d99d18a50c224507773b719300"><code>0ae38067ad6155d99d18a50c224507773b719300</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/1fc1c2dc5f00f6da06e0ed4de6f1d6c378f00f72"><code>1fc1c2dc5f00f6da06e0ed4de6f1d6c378f00f72</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
-| Tags at this commit | none                                                                                                                                                   |
+| Tags at this commit | <code>0.0.94</code>                                                                                                                                    |
 | Working tree        | clean                                                                                                                                                  |
 | Remote              | <code>https://github.com/reeleehq/lacing</code>                                                                                                        |
 
@@ -10637,9 +10671,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41635594774">41635594774</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41769309197">41769309197</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>acccad142564a9ce41532b1f23d5696dc1619127</code> (in the history of the built commit) |
+| Event commit | <code>f09adc76df1317c89b08cfd7b3dc99db627f83ff</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10648,7 +10682,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 | epythet  | 0.2.22  |
 | Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
-| Python   | 3.12.16 |
+| Python   | 3.12.15 |
 
 ## Configuration as resolved
 
@@ -10664,13 +10698,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.93/">0.0.93</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.94/">0.0.94</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 0ae38067ad6155d99d18a50c224507773b719300
+git checkout 1fc1c2dc5f00f6da06e0ed4de6f1d6c378f00f72
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
