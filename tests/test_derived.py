@@ -655,14 +655,25 @@ def test_a_mixed_state_match_still_needs_the_rest_of_the_body_unchanged(register
     )
 
 
-def test_mixed_states_past_the_cap_read_as_changed(registered):
-    schema_module._BODY_REGISTRY.pop(URI)
-    recorded = annotation_value_digest(_ann(_images("h0", None)), scheme=V1)
-    register_body_schema(URI, Body)
-    filled = _ann(_images("h0", "h1"))
-    assert value_digest_matches(filled, recorded, max_mixed_fills=16)
-    assert not value_digest_matches(filled, recorded, max_mixed_fills=15)
-    assert recorded not in accepted_value_digests(filled, max_mixed_fills=0)
+def _budget_needed(ann, recorded):
+    """The smallest ``max_mixed_fills`` under which ``recorded`` matches ``ann``:
+    its 1-based place among the mixed candidates (None if it is not one)."""
+    uniform = list(_value_digests(ann, V1, None, max_mixed_fills=0))
+    mixed = list(_value_digests(ann, V1, None))[len(uniform) :]
+    return mixed.index(recorded) + 1 if recorded in mixed else None
+
+
+def test_mixed_states_past_the_budget_read_as_changed(registered):
+    """A body recorded in a mixed state matches under a budget that reaches it,
+    and reads as changed one below."""
+    filled = _ann(_images("h0", "h1", "h2"))
+    recorded = _recorded_unaware(_images("h0", _ABSENT, None))
+    k = _budget_needed(filled, recorded)
+    assert k is not None and k > 1
+    assert value_digest_matches(filled, recorded, max_mixed_fills=k)
+    assert recorded in accepted_value_digests(filled, max_mixed_fills=k)
+    assert not value_digest_matches(filled, recorded, max_mixed_fills=k - 1)
+    assert recorded not in accepted_value_digests(filled, max_mixed_fills=k - 1)
 
 
 def test_uniform_candidates_come_first_and_none_repeats(registered):
@@ -685,29 +696,122 @@ def test_uniform_candidates_come_first_and_none_repeats(registered):
         assert _recorded_unaware(_images("h0", None)) in mixed
 
 
-def test_a_large_body_misses_cheaply(registered):
-    """Past the cap no site beyond the first few is even looked at: a miss on
-    a thousand occurrences tries the uniform bodies only."""
+def test_a_miss_computes_at_most_max_mixed_fills_more_digests(registered, monkeypatch):
+    """``max_mixed_fills`` bounds the digests a miss computes, whatever the
+    body's size: a thousand occurrences cost the uniform ones plus that many."""
+    from lacing import digest
+
+    computed = []
+    real = digest._digest
+    monkeypatch.setattr(
+        digest, "_digest", lambda *a: computed.append(1) or real(*a), raising=True
+    )
+
+    def cost(ann, **kw):
+        computed.clear()
+        assert not value_digest_matches(ann, "0" * 64, **kw)
+        return len(computed)
+
     ann = _ann(_images(*(f"h{i}" for i in range(1000))))
-    assert not value_digest_matches(ann, "0" * 64)
-    assert len(accepted_value_digests(ann)) == 5  # v2, whole, absent, null, ""
+    uniform = 5  # v2, whole, absent, null, ""
+    assert cost(ann, max_mixed_fills=0) == uniform
+    assert cost(ann, max_mixed_fills=8) == uniform + 8
+    assert cost(_ann(_images(*(f"h{i}" for i in range(20))))) == (
+        uniform + MAX_MIXED_FILLS
+    )
 
 
 _NULL_PREFILL = {("images", None, "asset_id"): None}  # as artful's PanelImage
 
 
-def test_six_images_recorded_in_mixed_states_match_under_the_default_cap(registered):
-    """Three states per image (as now, absent, null): six images are 729
-    combinations, within MAX_MIXED_FILLS; a seventh is past it."""
+@pytest.mark.parametrize("n", [7, 9, 12])
+@pytest.mark.parametrize(
+    "unfilled",
+    [(None,), (_ABSENT,), (None, None), (_ABSENT, _ABSENT), (_ABSENT, None)],
+)
+@pytest.mark.parametrize("resolver", ["registered", "null-prefill"])
+def test_a_late_fill_on_many_images_matches_under_the_default_cap(
+    registered, n, unfilled, resolver
+):
+    """lacing#157: a trace recorded just before the last image or two were
+    filled (left null, absent, or one of each) matches once all are filled,
+    however many images the panel holds; it was past the 3**n cap at 7."""
+    resolve = {"registered": None, "null-prefill": lambda uri: _NULL_PREFILL}
+    filled = [f"h{i}" for i in range(n)]
+    recorded = _recorded_unaware(_images(*filled[: n - len(unfilled)], *unfilled))
+    ann = _ann(_images(*filled))
+    for scheme in VALUE_DIGEST_SCHEMES:
+        assert value_digest_matches(
+            ann, recorded, scheme=scheme, resolve_derived=resolve[resolver]
+        )
+
+
+def test_a_single_late_fill_is_among_the_first_mixed_bodies_tried(registered):
+    """Fewest occurrences moved first, the pre-fill state (here null) first:
+    image ``i`` still null at record time is the ``i + 1``-th mixed body tried,
+    so it matches under that budget and reads as changed one below."""
     resolve = lambda uri: _NULL_PREFILL
-    assert 3**6 <= MAX_MIXED_FILLS < 3**7
-    states = ("h0", None, _ABSENT, "h3", None, _ABSENT)
-    recorded = _recorded_unaware(_images(*states))
-    filled = _ann(_images(*(f"h{i}" for i in range(6))))
-    assert value_digest_matches(filled, recorded, resolve_derived=resolve)
-    recorded = _recorded_unaware(_images(*states, None))
-    filled = _ann(_images(*(f"h{i}" for i in range(7))))
-    assert not value_digest_matches(filled, recorded, resolve_derived=resolve)
+    n = 30
+    filled = [f"h{i}" for i in range(n)]
+    ann = _ann(_images(*filled))
+    for i in (0, n - 1):
+        recorded = _recorded_unaware(_images(*filled[:i], None, *filled[i + 1 :]))
+        for budget, matches in [(i + 1, True), (i, False)]:
+            assert matches == value_digest_matches(
+                ann, recorded, resolve_derived=resolve, max_mixed_fills=budget
+            )
+    # and far-off states still match when the budget reaches them
+    recorded = _recorded_unaware(_images(*filled[:4], *[None] * 2, _ABSENT))
+    assert value_digest_matches(
+        _ann(_images(*filled[:7])), recorded, resolve_derived=resolve
+    )
+    six = ("h0", None, _ABSENT, "h3", None, _ABSENT)
+    assert value_digest_matches(
+        _ann(_images(*(f"h{i}" for i in range(6)))),
+        _recorded_unaware(_images(*six)),
+        resolve_derived=resolve,
+    )
+
+
+@pytest.mark.parametrize("late", [(None, None), (_ABSENT, None), (_ABSENT, _ABSENT)])
+@pytest.mark.parametrize("resolver", ["registered", "null-prefill"])
+def test_late_fills_among_many_null_images_match_under_the_default_budget(
+    registered, late, resolver
+):
+    """lacing#157: 60 images, 4 filled now and the rest still null, traced
+    before the last 2 fills: only the filled images are where a fill happened,
+    so they are moved first and the trace is reached at once."""
+    resolve = {"registered": None, "null-prefill": lambda uri: _NULL_PREFILL}
+    n, k = 60, 4
+    now = [f"h{i}" for i in range(k)] + [None] * (n - k)
+    recorded = _recorded_unaware(_images(*now[: k - 2], *late, *now[k:]))
+    ann = _ann(_images(*now))
+    for scheme in VALUE_DIGEST_SCHEMES:
+        assert value_digest_matches(
+            ann, recorded, scheme=scheme, resolve_derived=resolve[resolver]
+        )
+
+
+def test_images_still_at_a_non_null_prefill_are_held_as_unfilled(registered):
+    """The registered schema's pre-fill is "": images holding "" now are not
+    where a fill happened, so the late fills among many such images are
+    reached as fast as among null ones."""
+    n, k = 60, 4
+    now = [f"h{i}" for i in range(k)] + [""] * (n - k)
+    ann = _ann(_images(*now))
+    for late in [("", ""), (None, None), (_ABSENT, "")]:
+        recorded = _recorded_unaware(_images(*now[: k - 2], *late, *now[k:]))
+        assert value_digest_matches(ann, recorded)
+
+
+def test_uniform_digests_are_not_repeated(registered):
+    """When no occurrence of a path with a non-null pre-fill is present, the
+    null body and the pre-fill body are one body: its digest comes once."""
+    resolve = lambda uri: {("images", None, "asset_id"): "", ("maybe",): None}
+    ann = _ann({"images": [{"artifact_id": "a0"}], "maybe": ""})
+    for scheme in VALUE_DIGEST_SCHEMES:
+        digests = list(_value_digests(ann, scheme, resolve))
+        assert len(digests) == len(set(digests)) == 3 + (scheme != V1)
 
 
 def test_a_prefill_that_is_not_json_is_tried_as_null(registered):
