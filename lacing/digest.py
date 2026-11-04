@@ -163,7 +163,6 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
-import operator
 from collections.abc import Callable, Collection, Iterator, Mapping
 from typing import TYPE_CHECKING, Any, Sequence
 
@@ -289,7 +288,10 @@ images when that image was ``null`` then, 512 when absent; before its last two
 on up to 43 when both were ``null``, 22 when one was absent and one ``null``;
 before its last three, all ``null``, on up to 15. A non-null pre-fill adds a
 state per image: 512, 341, 31, 15 and 11. Past the budget, a body recorded in
-a less likely state reads as changed: a spurious miss, never a wrong hit.
+a less likely state reads as changed: a spurious miss, never a wrong hit. An
+occurrence ``null`` now but absent when recorded is moved only after every
+combination of the filled ones, so with seven or more filled images it is past
+the budget.
 
 Cost: a miss computes up to this many more digests, each over the whole body
 (about 0.45 s at 1,000 images)."""
@@ -745,7 +747,7 @@ def _mixed_fills(payload: dict, dropped: list, *, limit: int) -> Iterator[dict]:
 def _by_distance(
     options: Sequence[Sequence],
     *,
-    same: Callable[[Any, Any], bool] = operator.eq,
+    same: Callable[[Any, Any], bool],
 ) -> Iterator[dict[int, Any]]:
     """Every combination of the sites' states other than "all as now", each as
     ``{site: state}`` for the sites it moves off "as now"; ``options[i]`` lists
@@ -758,7 +760,7 @@ def _by_distance(
     ``null``: images appended by different writers), the states taken in the
     order the sites rank them.
 
-    >>> list(_by_distance([["a", "b"], ["a"]]))
+    >>> list(_by_distance([["a", "b"], ["a"]], same=lambda x, y: x == y))
     [{0: 'a'}, {1: 'a'}, {0: 'b'}, {0: 'a', 1: 'a'}, {0: 'b', 1: 'a'}]
     """
     forms: list = []  # every distinct state, in the order the sites rank them

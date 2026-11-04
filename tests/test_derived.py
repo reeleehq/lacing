@@ -792,6 +792,18 @@ def test_late_fills_among_many_null_images_match_under_the_default_budget(
         )
 
 
+def test_images_still_at_a_non_null_prefill_are_held_as_unfilled(registered):
+    """The registered schema's pre-fill is "": images holding "" now are not
+    where a fill happened, so the late fills among many such images are
+    reached as fast as among null ones."""
+    n, k = 60, 4
+    now = [f"h{i}" for i in range(k)] + [""] * (n - k)
+    ann = _ann(_images(*now))
+    for late in [("", ""), (None, None), (_ABSENT, "")]:
+        recorded = _recorded_unaware(_images(*now[: k - 2], *late, *now[k:]))
+        assert value_digest_matches(ann, recorded)
+
+
 def test_uniform_digests_are_not_repeated(registered):
     """When no occurrence of a path with a non-null pre-fill is present, the
     null body and the pre-fill body are one body: its digest comes once."""
