@@ -487,8 +487,20 @@ class ArtifactStore(MutableMapping):
 
         Raises:
             RuntimeError: ``data`` was given but no blob store is configured.
+            KeyError: the catalog refuses ``artifact_id``. A catalog that
+                exposes ``check_write(artifact_id, record)`` (a dry run of its
+                write: it raises what the write would, and writes nothing;
+                :meth:`from_directory`'s does) is asked first, so a refused
+                id or record leaves no blob (lacing#160). Catalogs without one
+                (dict, SQL, S3) refuse nothing a dry run could predict. A
+                write that fails for another reason (a read-only folder, a full
+                disk) still leaves the blob, which is content-addressed and so
+                harmless to keep.
         """
         record = self._admitted(artifact_id, record)  # a refusal leaves no blob
+        check_write = getattr(self.catalog, "check_write", None)
+        if callable(check_write):
+            check_write(artifact_id, record)  # nor does a refused catalog write
         content_hash: str | None = None
         if data is not None:
             if self.blobs is None:
@@ -1018,24 +1030,28 @@ class ArtifactStore(MutableMapping):
             catalog_dir.mkdir(parents=True, exist_ok=True)
             blob_dir.mkdir(parents=True, exist_ok=True)
 
+        contained = _ContainedDirStore(
+            Files(str(catalog_dir), delete_func=catalog_delete_func)
+        )
+
+        def check_write(artifact_id: str, record: BaseModel) -> None:
+            contained.writable_target(_catalog_filename(artifact_id))
+            _record_json(record)
+
         catalog = wrap_kvs(
-            filt_iter(
-                _ContainedDirStore(
-                    Files(str(catalog_dir), delete_func=catalog_delete_func)
-                ),
-                filt=lambda k: k.endswith(".json"),
-            ),
+            filt_iter(contained, filt=lambda k: k.endswith(".json")),
             id_of_key=_catalog_filename,
             key_of_id=lambda filename: (
                 filename[:-5] if filename.endswith(".json") else filename
             ),
-            data_of_obj=lambda record: record.model_dump_json(indent=2).encode("utf-8"),
+            data_of_obj=_record_json,
             obj_of_data=lambda raw: record_type.model_validate_json(raw),
         )
         # A bare Files raises KeyError writing into a missing folder; the catalog
         # (_ContainedDirStore) and the spooled writes make theirs already.
         files = Files if create else mk_dirs_if_missing(Files)
         blobs = files(str(blob_dir), delete_func=blob_delete_func)
+        catalog.check_write = check_write  # the probe ``save`` looks for
         return cls(catalog=catalog, blobs=blobs, on_write=on_write)
 
     def count_refs(self, content_hash: str) -> int:
@@ -1499,13 +1515,20 @@ class _ContainedDirStore(MutableMapping):
         with os.fdopen(opened[1], "rb") as file:
             return file.read()
 
-    def __setitem__(self, key: str, value: bytes) -> None:
+    def writable_target(self, key: str) -> str:
+        """The path a write of ``key`` would land on; ``KeyError`` if it would
+        be refused. Touches nothing: :meth:`__setitem__` is this, then the write."""
         contained = self._contained_key(key)
         if contained is None:
             raise self._refuse(key)
         target = _resolve_within(self.rootdir, contained)
         if target is None:
             raise self._refuse(key)
+        too_long = _name_too_long(contained, self.rootdir)
+        if too_long is not None:  # stat says "not found" below a missing folder
+            raise self._refuse(
+                key, f"has a name part too long to write ({too_long!r:.40})"
+            )
         try:
             is_regular = stat.S_ISREG(os.stat(target).st_mode)
         except FileNotFoundError:
@@ -1514,6 +1537,10 @@ class _ContainedDirStore(MutableMapping):
             raise self._refuse(key, f"cannot be written ({error})") from error
         if not is_regular:
             raise self._refuse(key, "names something that is not a regular file")
+        return target
+
+    def __setitem__(self, key: str, value: bytes) -> None:
+        target = self.writable_target(key)
         # dol's Files does not create parent directories; ``target`` is already
         # resolved inside rootdir, so creating its parents cannot escape.
         try:
@@ -1543,6 +1570,26 @@ class _ContainedDirStore(MutableMapping):
 
     def __len__(self) -> int:
         return sum(1 for _ in self)
+
+
+_FALLBACK_NAME_MAX = 255  # bytes: the common filesystem limit
+
+
+def _name_too_long(path: str, rootdir: str) -> str | None:
+    """The first part of ``path`` whose UTF-8 length exceeds the filesystem's
+    name limit under ``rootdir``, else None. A write below a missing folder
+    cannot be probed with ``stat`` (it says "not found", not "too long")."""
+    try:
+        limit = os.pathconf(rootdir, "PC_NAME_MAX")
+    except (AttributeError, ValueError, OSError):  # Windows, or no such folder
+        limit = _FALLBACK_NAME_MAX
+    parts = path.replace(os.sep, "/").split("/")
+    return next((p for p in parts if len(p.encode("utf-8")) > limit), None)
+
+
+def _record_json(record: BaseModel) -> bytes:
+    """A catalog record as the bytes :meth:`ArtifactStore.from_directory` files."""
+    return record.model_dump_json(indent=2).encode("utf-8")
 
 
 def _catalog_filename(artifact_id: str) -> str:
