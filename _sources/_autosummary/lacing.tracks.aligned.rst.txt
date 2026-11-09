@@ -1,0 +1,20 @@
+lacing.tracks.aligned
+=====================
+
+.. automodule:: lacing.tracks.aligned
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      LEVEL_TIERS
+      TEXT_TIER
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      from_aligned_track
+      to_aligned_track
+   

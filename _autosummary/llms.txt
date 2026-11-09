@@ -25,6 +25,7 @@
 - [lacing.artifact_ref](lacing.artifact_ref.html.md): One spelling for a reference to an artifact: &#96;artifact:&#91;&lt;store&gt;/&#93;&lt;key&gt;&#91;@&lt;sha256&gt;&#93;&#96;.
 - [lacing.artifact_store](lacing.artifact_store.html.md): Artifact store — a metadata catalog and a blob store behind one facade.
 - [lacing.bodies](lacing.bodies.html.md): Built-in body schemas.
+- [lacing.bodies.aligned_track](lacing.bodies.aligned_track.html.md): The aligned-track wire model and its store body (lacing#107).
 - [lacing.bodies.character_voice](lacing.bodies.character_voice.html.md): Body schema for per-character voice profiles — the shared voice vocabulary.
 - [lacing.bodies.continuity_violation](lacing.bodies.continuity_violation.html.md): Body schema for continuity violations — generic, cross-media.
 - [lacing.bodies.lyric_line](lacing.bodies.lyric_line.html.md): Body schema for one line of lyrics or subtitles on a lines tier.
@@ -60,6 +61,7 @@
 - [lacing.tier](lacing.tier.html.md): Tiers and the five ELAN stereotypes.
 - [lacing.time](lacing.time.html.md): Rational time and half-open intervals — the foundations.
 - [lacing.tracks](lacing.tracks.html.md): High-level “track-shaped” facades on top of &#96;lacing&#96;.
+- [lacing.tracks.aligned](lacing.tracks.aligned.html.md): Aligned tracks: one text, spans at every level, in a store and on the wire.
 - [lacing.tracks.subtitle](lacing.tracks.subtitle.html.md): Subtitle / lyric / caption tracks — the (sections, lines, words) trio.
 - [lacing.worker](lacing.worker.html.md): Optional Arq integration — queue processors through Redis.
 

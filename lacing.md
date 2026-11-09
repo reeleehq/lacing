@@ -1,4 +1,4 @@
-> built 2026-11-09 02:49 UTC from c115fc1 (main) · lacing 0.0.100. Details: build_info.json
+> built 2026-11-09 03:11 UTC from 9eacd39 (main) · lacing 0.0.101. Details: build_info.json
 
 # index.html.md
 
@@ -3454,6 +3454,119 @@ b'x'
 ```
 
 
+# _autosummary/lacing.bodies.aligned_track.html.md
+
+# lacing.bodies.aligned_track
+
+The aligned-track wire model and its store body (lacing#107).
+
+Timed text at every granularity — sections, lines, words, syllables, phones —
+as **one** document that a TypeScript player (or any non-Python consumer)
+reads through the exported JSON Schema (`lacing/schema/aligned-track/v1.json`,
+then Zod, under a version pin, the way lacing-ui consumes the other schemas).
+
+Three schemas, one set of span fields:
+
+- `annot://schema/aligned-track/v1` ([`AlignedTrackV1`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.AlignedTrackV1)): the \*\*wire
+  document\*\*. The text is stored once (`text`); each span points into it with
+  `chars` offsets instead of repeating it, says how its times were obtained
+  ([`SpanTime`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.SpanTime): `measured`, `interpolated` or `imported`, with
+  confidence and source), and names its `parent` span. Times are \*\*integer
+  milliseconds\*\*; `RationalTime` stays the persisted form
+  ([`lacing.tracks.aligned`](_autosummary/lacing.tracks.aligned.html.md#module-lacing.tracks.aligned) converts, exactly, both ways).
+- `annot://schema/aligned-span/v1` ([`AlignedSpanBodyV1`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.AlignedSpanBodyV1)): the body of
+  one span’s annotation in a store (the interval is the annotation’s), which
+  keeps the surface `text` beside the span fields so generic consumers
+  (`display_text`, the cue writers) read it, and the `chars` and
+  `parent_id` that make an export exact.
+- `annot://schema/aligned-text/v1` ([`AlignedTextBodyV1`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.AlignedTextBodyV1)): the track’s
+  text, stored once in a store as well, on one annotation spanning the asset.
+
+Levels run from coarse to fine ([`LEVELS`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.LEVELS)); a span’s parent is of a coarser
+level and comes earlier in `spans` (a pre-order listing: a parent, then
+what it holds, siblings by start). A child may stray a few milliseconds
+outside its parent in time (an aligner’s word against an imported line), so
+containment in time is not required; containment in `chars` is.
+
+The document is **open**: readers ignore fields they do not know (the models
+use `extra="ignore"`, so the exported schema does not forbid additional
+properties and a pinned Zod mirror stays lenient). `level` and `kind` are
+closed enums: a new value is a new major version (`v2`), not a field a v1
+reader would mis-handle. `chars` count Unicode code points, **not** JavaScript
+string indices: in TypeScript, index `Array.from(text)`.
+
+### Module Attributes
+
+| [`LEVELS`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.LEVELS)   | the order of the levels in a track.   |
+|-----------------------------------------------------------|---------------------------------------|
+
+### Classes
+
+| [`AlignedSpan`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.AlignedSpan)(\*, level[, chars, label, parent])    | One span of the wire document.                                          |
+|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [`AlignedSpanBodyV1`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.AlignedSpanBodyV1)(\*, level[, chars, label, ...]) | The body of one span's annotation (its interval is the annotation's).   |
+| [`AlignedTextBodyV1`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.AlignedTextBodyV1)(\*, text[, language])           | The text of a track, stored once, on one annotation spanning the asset. |
+| [`AlignedTrackV1`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.AlignedTrackV1)(\*, asset_id, text[, ...])         | An aligned text: the text once, and its spans at every level.           |
+| [`SpanTime`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.SpanTime)(\*, kind[, confidence, source])          | How a span's times were obtained.                                       |
+
+### *class* lacing.bodies.aligned_track.AlignedSpan(, level, chars=None, label=None, time, start_ms, end_ms, parent=None)
+
+Bases: `_SpanFields`, `SchemaModel`
+
+One span of the wire document.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'ignore', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* lacing.bodies.aligned_track.AlignedSpanBodyV1(, level, chars=None, label=None, time, text=None, parent_id=None)
+
+Bases: `_SpanFields`, `SchemaModel`
+
+The body of one span’s annotation (its interval is the annotation’s).
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* lacing.bodies.aligned_track.AlignedTextBodyV1(, text, language=None)
+
+Bases: `SchemaModel`
+
+The text of a track, stored once, on one annotation spanning the asset.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* lacing.bodies.aligned_track.AlignedTrackV1(\*, asset_id, text, language=None, spans=<factory>)
+
+Bases: `SchemaModel`
+
+An aligned text: the text once, and its spans at every level.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'ignore', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### lacing.bodies.aligned_track.LEVELS *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ('section', 'line', 'word', 'syllable', 'phone')*
+
+the order of the levels in a track.
+
+* **Type:**
+  Coarse to fine
+
+### *class* lacing.bodies.aligned_track.SpanTime(, kind, confidence=None, source=None)
+
+Bases: `SchemaModel`
+
+How a span’s times were obtained.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'ignore', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+
 # _autosummary/lacing.bodies.character_voice.html.md
 
 # lacing.bodies.character_voice
@@ -3579,8 +3692,9 @@ Importing this package registers every built-in body schema.
 
 ### Modules
 
-| [`character_voice`](_autosummary/lacing.bodies.character_voice.html.md#module-lacing.bodies.character_voice)           | Body schema for per-character voice profiles — the shared voice vocabulary.     |
+| [`aligned_track`](_autosummary/lacing.bodies.aligned_track.html.md#module-lacing.bodies.aligned_track)               | The aligned-track wire model and its store body (lacing#107).                   |
 |-----------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| [`character_voice`](_autosummary/lacing.bodies.character_voice.html.md#module-lacing.bodies.character_voice)           | Body schema for per-character voice profiles — the shared voice vocabulary.     |
 | [`continuity_violation`](_autosummary/lacing.bodies.continuity_violation.html.md#module-lacing.bodies.continuity_violation) | Body schema for continuity violations — generic, cross-media.                   |
 | [`lyric_line`](_autosummary/lacing.bodies.lyric_line.html.md#module-lacing.bodies.lyric_line)                     | Body schema for one line of lyrics or subtitles on a lines tier.                |
 | [`named_entity`](_autosummary/lacing.bodies.named_entity.html.md#module-lacing.bodies.named_entity)                 | Body schemas for named-entity (NER) annotations.                                |
@@ -10934,6 +11048,109 @@ Build from the wire form. See [`RationalTime.from_wire()`](_autosummary/lacing.t
   [`TimeInterval`](_autosummary/lacing.time.html.md#lacing.time.TimeInterval)
 
 
+# _autosummary/lacing.tracks.aligned.html.md
+
+# lacing.tracks.aligned
+
+Aligned tracks: one text, spans at every level, in a store and on the wire.
+
+The wire document is [`lacing.bodies.aligned_track.AlignedTrackV1`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.AlignedTrackV1)
+(integer milliseconds, the text stored once, a time-provenance on every span,
+exported as JSON Schema for the TypeScript side). A store holds the same spans
+as annotations (`RationalTime` intervals) on one tier per level, with the
+`annot://schema/aligned-span/v1` body. Two converters, exact both ways:
+
+- [`from_aligned_track()`](_autosummary/lacing.tracks.aligned.html.md#lacing.tracks.aligned.from_aligned_track): a wire document into a store;
+- [`to_aligned_track()`](_autosummary/lacing.tracks.aligned.html.md#lacing.tracks.aligned.to_aligned_track): a store into a wire document. It reads the spans
+  of the aligned-span body and also, as `imported` times, what
+  [`lacing.tracks.subtitle.SubtitleBuilder`](_autosummary/lacing.tracks.subtitle.html.md#lacing.tracks.subtitle.SubtitleBuilder) writes (sections, lines,
+  > words), so a store that exists today can be exported without a rewrite.
+
+```pycon
+>>> from lacing.bodies.aligned_track import AlignedSpan, AlignedTrackV1, SpanTime
+>>> track = AlignedTrackV1(
+...     asset_id="song.mp3",
+...     text="hello world",
+...     spans=[
+...         AlignedSpan(level="line", chars=(0, 11), start_ms=0, end_ms=1000,
+...                     time=SpanTime(kind="imported")),
+...         AlignedSpan(level="word", chars=(0, 5), start_ms=0, end_ms=400, parent=0,
+...                     time=SpanTime(kind="measured", confidence=0.9)),
+...         AlignedSpan(level="word", chars=(6, 11), start_ms=400, end_ms=1000, parent=0,
+...                     time=SpanTime(kind="interpolated")),
+...     ],
+... )
+>>> to_aligned_track(from_aligned_track(track), asset_id="song.mp3") == track
+True
+```
+
+A store keeps what the document says, so the round trip is exact: the text on
+one `aligned-text` annotation, and on each span’s body its `chars` and the
+`id` of its parent’s annotation. A store that never held a track (a
+`SubtitleBuilder` one) has neither, and an export works them out: the
+parent is the innermost enclosing span of a coarser level, and the text is the
+lines joined by newlines (else the words, or the syllables, joined by spaces),
+a finer span being located, in order, in its parent’s range (ignoring case).
+Spans come out in pre-order: a parent, then what it holds, siblings by start,
+then end, then level; the round trip is exact for a document in that order
+(the validator does not require it, so another order comes back reordered).
+A stored `parent_id` or `chars` an edit made inconsistent (a parent
+deleted, a span moved) is dropped on export, not an error.
+
+### Module Attributes
+
+| [`LEVEL_TIERS`](_autosummary/lacing.tracks.aligned.html.md#lacing.tracks.aligned.LEVEL_TIERS)   | The tier each level lives on in a store.                  |
+|----------------------------------------------------------------|-----------------------------------------------------------|
+| [`TEXT_TIER`](_autosummary/lacing.tracks.aligned.html.md#lacing.tracks.aligned.TEXT_TIER)     | The tier of the one annotation that holds a track's text. |
+
+### Functions
+
+| [`from_aligned_track`](_autosummary/lacing.tracks.aligned.html.md#lacing.tracks.aligned.from_aligned_track)(track[, store, rate, ...])   | The track as annotations in `store` (a new `MemoryStore` by default).   |
+|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [`to_aligned_track`](_autosummary/lacing.tracks.aligned.html.md#lacing.tracks.aligned.to_aligned_track)(store, \*, asset_id[, ...])    | The spans of `store` about `asset_id` as a wire document.               |
+
+### lacing.tracks.aligned.LEVEL_TIERS *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= {'line': 'lines', 'phone': 'phones', 'section': 'sections', 'syllable': 'syllables', 'word': 'words'}*
+
+The tier each level lives on in a store.
+
+### lacing.tracks.aligned.TEXT_TIER *= 'text'*
+
+The tier of the one annotation that holds a track’s text.
+
+### lacing.tracks.aligned.from_aligned_track(track, store=None, , rate=1000, attribution='anonymous', tiers={'line': 'lines', 'phone': 'phones', 'section': 'sections', 'syllable': 'syllables', 'word': 'words'}, text_tier='text')
+
+The track as annotations in `store` (a new `MemoryStore` by default).
+
+One tier per level present (`tiers` names them, each `INCLUDED_IN` the
+nearest coarser level present; a tier the store already has is kept), and
+one annotation on `text_tier` holding the text. Millisecond times become
+`RationalTime` at `rate`, which must hold a millisecond exactly (else
+`LossyTimeConversionError`). One track per asset: a store that already
+holds one for `track.asset_id` raises `ValueError`.
+
+* **Return type:**
+  [`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)
+
+### lacing.tracks.aligned.to_aligned_track(store, , asset_id, language=None, quantize=None)
+
+The spans of `store` about `asset_id` as a wire document.
+
+* **Parameters:**
+  * **store** ([`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – A store with aligned-span annotations (what
+    [`from_aligned_track()`](_autosummary/lacing.tracks.aligned.html.md#lacing.tracks.aligned.from_aligned_track) writes) and/or the sections, lines and
+    words of a `SubtitleBuilder` (read as `imported` times, with
+    the generator as source, since the builder does not say whether
+    they were measured).
+  * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The media whose annotations to export.
+  * **language** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – BCP 47 tag for the document; defaults to the stored text’s.
+  * **quantize** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'round'`, `'floor'`, `'ceil'`]]) – `None` (the default) raises `LossyTimeConversionError`
+    for a time that is not a whole millisecond; `"round"` (ties to
+    even, unlike JavaScript’s `Math.round`), `"floor"` or
+    `"ceil"` quantizes it.
+* **Return type:**
+  [`AlignedTrackV1`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.AlignedTrackV1)
+
+
 # _autosummary/lacing.tracks.html.md
 
 # lacing.tracks
@@ -10953,8 +11170,10 @@ the common case ergonomic and consistent.
 
 ### Functions
 
-| [`register_subtitle_schemas`](_autosummary/lacing.tracks.html.md#lacing.tracks.register_subtitle_schemas)()   | Deprecated no-op: the section, line and word schemas are built-in bodies, registered when this module (or [`lacing.bodies`](_autosummary/lacing.bodies.html.md#module-lacing.bodies)) is imported.   |
-|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`from_aligned_track`](_autosummary/lacing.tracks.html.md#lacing.tracks.from_aligned_track)(track[, store, rate, ...])   | The track as annotations in `store` (a new `MemoryStore` by default).                                                                                                                                       |
+|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`register_subtitle_schemas`](_autosummary/lacing.tracks.html.md#lacing.tracks.register_subtitle_schemas)()                     | Deprecated no-op: the section, line and word schemas are built-in bodies, registered when this module (or [`lacing.bodies`](_autosummary/lacing.bodies.html.md#module-lacing.bodies)) is imported. |
+| [`to_aligned_track`](_autosummary/lacing.tracks.html.md#lacing.tracks.to_aligned_track)(store, \*, asset_id[, ...])    | The spans of `store` about `asset_id` as a wire document.                                                                                                                                                   |
 
 ### Classes
 
@@ -11052,6 +11271,20 @@ Words that overlap `[start_s, end_s]`.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Annotation`](_autosummary/lacing.model.html.md#lacing.model.Annotation)]
 
+### lacing.tracks.from_aligned_track(track, store=None, , rate=1000, attribution='anonymous', tiers={'line': 'lines', 'phone': 'phones', 'section': 'sections', 'syllable': 'syllables', 'word': 'words'}, text_tier='text')
+
+The track as annotations in `store` (a new `MemoryStore` by default).
+
+One tier per level present (`tiers` names them, each `INCLUDED_IN` the
+nearest coarser level present; a tier the store already has is kept), and
+one annotation on `text_tier` holding the text. Millisecond times become
+`RationalTime` at `rate`, which must hold a millisecond exactly (else
+`LossyTimeConversionError`). One track per asset: a store that already
+holds one for `track.asset_id` raises `ValueError`.
+
+* **Return type:**
+  [`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)
+
 ### lacing.tracks.register_subtitle_schemas()
 
 Deprecated no-op: the section, line and word schemas are built-in bodies,
@@ -11060,10 +11293,30 @@ registered when this module (or [`lacing.bodies`](_autosummary/lacing.bodies.htm
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+### lacing.tracks.to_aligned_track(store, , asset_id, language=None, quantize=None)
+
+The spans of `store` about `asset_id` as a wire document.
+
+* **Parameters:**
+  * **store** ([`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – A store with aligned-span annotations (what
+    [`from_aligned_track()`](_autosummary/lacing.tracks.html.md#lacing.tracks.from_aligned_track) writes) and/or the sections, lines and
+    words of a `SubtitleBuilder` (read as `imported` times, with
+    the generator as source, since the builder does not say whether
+    they were measured).
+  * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The media whose annotations to export.
+  * **language** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – BCP 47 tag for the document; defaults to the stored text’s.
+  * **quantize** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'round'`, `'floor'`, `'ceil'`]]) – `None` (the default) raises `LossyTimeConversionError`
+    for a time that is not a whole millisecond; `"round"` (ties to
+    even, unlike JavaScript’s `Math.round`), `"floor"` or
+    `"ceil"` quantizes it.
+* **Return type:**
+  [`AlignedTrackV1`](_autosummary/lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.AlignedTrackV1)
+
 ### Modules
 
-| [`subtitle`](_autosummary/lacing.tracks.subtitle.html.md#module-lacing.tracks.subtitle)   | Subtitle / lyric / caption tracks — the (sections, lines, words) trio.   |
-|-------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| [`aligned`](_autosummary/lacing.tracks.aligned.html.md#module-lacing.tracks.aligned)   | Aligned tracks: one text, spans at every level, in a store and on the wire.   |
+|-----------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| [`subtitle`](_autosummary/lacing.tracks.subtitle.html.md#module-lacing.tracks.subtitle) | Subtitle / lyric / caption tracks — the (sections, lines, words) trio.        |
 
 
 # _autosummary/lacing.tracks.subtitle.html.md
@@ -11309,7 +11562,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-09 02:49 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/c115fc12c490460ef1e62c48524a662873a42ec9"><code>c115fc1</code></a> on branch <code>main</code>, for **lacing 0.0.100** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 03:11 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/9eacd392f81924af85e9d6f36cd53195ed443679"><code>9eacd39</code></a> on branch <code>main</code>, for **lacing 0.0.101** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11318,7 +11571,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/c115fc12c490460ef1e62c48524a662873a42ec9"><code>c115fc12c490460ef1e62c48524a662873a42ec9</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/9eacd392f81924af85e9d6f36cd53195ed443679"><code>9eacd392f81924af85e9d6f36cd53195ed443679</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -11329,9 +11582,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42552786261">42552786261</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42554790152">42554790152</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>c115fc12c490460ef1e62c48524a662873a42ec9</code> (in the history of the built commit) |
+| Event commit | <code>9eacd392f81924af85e9d6f36cd53195ed443679</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11356,13 +11609,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.100/">0.0.100</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.101/">0.0.101</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout c115fc12c490460ef1e62c48524a662873a42ec9
+git checkout 9eacd392f81924af85e9d6f36cd53195ed443679
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

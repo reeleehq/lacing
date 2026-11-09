@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=a02dbd69"></script>
+    <script src="../_static/documentation_options.js?v=04553970"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -53,12 +53,12 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="lacing.tracks.subtitle" href="lacing.tracks.subtitle.html" />
+    <link rel="next" title="lacing.tracks.aligned" href="lacing.tracks.aligned.html" />
     <link rel="prev" title="lacing.time" href="lacing.time.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.100" />
+  <meta name="docsearch:version" content="0.0.101" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -341,6 +341,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.artifact_ref.html">lacing.artifact_ref</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.artifact_store.html">lacing.artifact_store</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.bodies.html">lacing.bodies</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.aligned_track.html">lacing.bodies.aligned_track</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.character_voice.html">lacing.bodies.character_voice</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.continuity_violation.html">lacing.bodies.continuity_violation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.lyric_line.html">lacing.bodies.lyric_line</a></li>
@@ -380,6 +381,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.tier.html">lacing.tier</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.time.html">lacing.time</a></li>
 <li class="toctree-l2 current active has-children"><a aria-current="page" class="current reference internal" href="#">lacing.tracks</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="lacing.tracks.aligned.html">lacing.tracks.aligned</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.tracks.subtitle.html">lacing.tracks.subtitle</a></li>
 </ul>
 </details></li>
@@ -464,8 +466,14 @@ the common case ergonomic and consistent.</p>
 <p class="rubric">Functions</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.tracks.register_subtitle_schemas" title="lacing.tracks.register_subtitle_schemas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_subtitle_schemas</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.tracks.from_aligned_track" title="lacing.tracks.from_aligned_track"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_aligned_track</span></code></a>(track[, store, rate, ...])</p></td>
+<td><p>The track as annotations in <code class="docutils literal notranslate"><span class="pre">store</span></code> (a new <code class="docutils literal notranslate"><span class="pre">MemoryStore</span></code> by default).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.tracks.register_subtitle_schemas" title="lacing.tracks.register_subtitle_schemas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_subtitle_schemas</span></code></a>()</p></td>
 <td><p>Deprecated no-op: the section, line and word schemas are built-in bodies, registered when this module (or <a class="reference internal" href="lacing.bodies.html#module-lacing.bodies" title="lacing.bodies"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.bodies</span></code></a>) is imported.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.tracks.to_aligned_track" title="lacing.tracks.to_aligned_track"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_aligned_track</span></code></a>(store, *, asset_id[, ...])</p></td>
+<td><p>The spans of <code class="docutils literal notranslate"><span class="pre">store</span></code> about <code class="docutils literal notranslate"><span class="pre">asset_id</span></code> as a wire document.</p></td>
 </tr>
 </tbody>
 </table>
@@ -609,6 +617,23 @@ whose <code class="docutils literal notranslate"><span class="pre">MediaRef.asse
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lacing.tracks.from_aligned_track">
+<span class="sig-prename descclassname"><span class="pre">lacing.tracks.</span></span><span class="sig-name descname"><span class="pre">from_aligned_track</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">track</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'anonymous'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tiers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'line':</span> <span class="pre">'lines',</span> <span class="pre">'phone':</span> <span class="pre">'phones',</span> <span class="pre">'section':</span> <span class="pre">'sections',</span> <span class="pre">'syllable':</span> <span class="pre">'syllables',</span> <span class="pre">'word':</span> <span class="pre">'words'}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text_tier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'text'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/tracks/aligned.html#from_aligned_track"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.tracks.from_aligned_track" title="Link to this definition">#</a></dt>
+<dd><p>The track as annotations in <code class="docutils literal notranslate"><span class="pre">store</span></code> (a new <code class="docutils literal notranslate"><span class="pre">MemoryStore</span></code> by default).</p>
+<p>One tier per level present (<code class="docutils literal notranslate"><span class="pre">tiers</span></code> names them, each <code class="docutils literal notranslate"><span class="pre">INCLUDED_IN</span></code> the
+nearest coarser level present; a tier the store already has is kept), and
+one annotation on <code class="docutils literal notranslate"><span class="pre">text_tier</span></code> holding the text. Millisecond times become
+<code class="docutils literal notranslate"><span class="pre">RationalTime</span></code> at <code class="docutils literal notranslate"><span class="pre">rate</span></code>, which must hold a millisecond exactly (else
+<code class="docutils literal notranslate"><span class="pre">LossyTimeConversionError</span></code>). One track per asset: a store that already
+holds one for <code class="docutils literal notranslate"><span class="pre">track.asset_id</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.store.base.html#lacing.store.base.IntervalAnnotationStore" title="lacing.store.base.IntervalAnnotationStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lacing.tracks.register_subtitle_schemas">
 <span class="sig-prename descclassname"><span class="pre">lacing.tracks.</span></span><span class="sig-name descname"><span class="pre">register_subtitle_schemas</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/tracks/subtitle.html#register_subtitle_schemas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.tracks.register_subtitle_schemas" title="Link to this definition">#</a></dt>
 <dd><p>Deprecated no-op: the section, line and word schemas are built-in bodies,
@@ -620,10 +645,39 @@ registered when this module (or <a class="reference internal" href="lacing.bodie
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.tracks.to_aligned_track">
+<span class="sig-prename descclassname"><span class="pre">lacing.tracks.</span></span><span class="sig-name descname"><span class="pre">to_aligned_track</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">asset_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">language</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/tracks/aligned.html#to_aligned_track"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.tracks.to_aligned_track" title="Link to this definition">#</a></dt>
+<dd><p>The spans of <code class="docutils literal notranslate"><span class="pre">store</span></code> about <code class="docutils literal notranslate"><span class="pre">asset_id</span></code> as a wire document.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>store</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.store.base.html#lacing.store.base.IntervalAnnotationStore" title="lacing.store.base.IntervalAnnotationStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code></a></span>) – A store with aligned-span annotations (what
+<a class="reference internal" href="#lacing.tracks.from_aligned_track" title="lacing.tracks.from_aligned_track"><code class="xref py py-func docutils literal notranslate"><span class="pre">from_aligned_track()</span></code></a> writes) and/or the sections, lines and
+words of a <code class="docutils literal notranslate"><span class="pre">SubtitleBuilder</span></code> (read as <code class="docutils literal notranslate"><span class="pre">imported</span></code> times, with
+the generator as source, since the builder does not say whether
+they were measured).</p></li>
+<li><p><strong>asset_id</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The media whose annotations to export.</p></li>
+<li><p><strong>language</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – BCP 47 tag for the document; defaults to the stored text’s.</p></li>
+<li><p><strong>quantize</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'round'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'floor'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'ceil'</span></span></code></span>]]</span>) – <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default) raises <code class="docutils literal notranslate"><span class="pre">LossyTimeConversionError</span></code>
+for a time that is not a whole millisecond; <code class="docutils literal notranslate"><span class="pre">&quot;round&quot;</span></code> (ties to
+even, unlike JavaScript’s <code class="docutils literal notranslate"><span class="pre">Math.round</span></code>), <code class="docutils literal notranslate"><span class="pre">&quot;floor&quot;</span></code> or
+<code class="docutils literal notranslate"><span class="pre">&quot;ceil&quot;</span></code> quantizes it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.bodies.aligned_track.html#lacing.bodies.aligned_track.AlignedTrackV1" title="lacing.bodies.aligned_track.AlignedTrackV1"><code class="xref py py-class docutils literal notranslate"><span class="pre">AlignedTrackV1</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <p class="rubric">Modules</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.tracks.subtitle.html#module-lacing.tracks.subtitle" title="lacing.tracks.subtitle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">subtitle</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.tracks.aligned.html#module-lacing.tracks.aligned" title="lacing.tracks.aligned"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aligned</span></code></a></p></td>
+<td><p>Aligned tracks: one text, spans at every level, in a store and on the wire.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.tracks.subtitle.html#module-lacing.tracks.subtitle" title="lacing.tracks.subtitle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">subtitle</span></code></a></p></td>
 <td><p>Subtitle / lyric / caption tracks — the (sections, lines, words) trio.</p></td>
 </tr>
 </tbody>
@@ -651,11 +705,11 @@ registered when this module (or <a class="reference internal" href="lacing.bodie
       </div>
     </a>
     <a class="right-next"
-       href="lacing.tracks.subtitle.html"
+       href="lacing.tracks.aligned.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">lacing.tracks.subtitle</p>
+        <p class="prev-next-title">lacing.tracks.aligned</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -691,7 +745,9 @@ registered when this module (or <a class="reference internal" href="lacing.bodie
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.tracks.SubtitleTrack.words_in"><code class="docutils literal notranslate"><span class="pre">SubtitleTrack.words_in()</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.tracks.from_aligned_track"><code class="docutils literal notranslate"><span class="pre">from_aligned_track()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.tracks.register_subtitle_schemas"><code class="docutils literal notranslate"><span class="pre">register_subtitle_schemas()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.tracks.to_aligned_track"><code class="docutils literal notranslate"><span class="pre">to_aligned_track()</span></code></a></li>
 </ul>
   </nav></div>
 

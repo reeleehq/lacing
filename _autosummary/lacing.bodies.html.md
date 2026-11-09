@@ -13,8 +13,9 @@ Importing this package registers every built-in body schema.
 
 ### Modules
 
-| [`character_voice`](lacing.bodies.character_voice.html.md#module-lacing.bodies.character_voice)           | Body schema for per-character voice profiles — the shared voice vocabulary.     |
+| [`aligned_track`](lacing.bodies.aligned_track.html.md#module-lacing.bodies.aligned_track)               | The aligned-track wire model and its store body (lacing#107).                   |
 |-----------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| [`character_voice`](lacing.bodies.character_voice.html.md#module-lacing.bodies.character_voice)           | Body schema for per-character voice profiles — the shared voice vocabulary.     |
 | [`continuity_violation`](lacing.bodies.continuity_violation.html.md#module-lacing.bodies.continuity_violation) | Body schema for continuity violations — generic, cross-media.                   |
 | [`lyric_line`](lacing.bodies.lyric_line.html.md#module-lacing.bodies.lyric_line)                     | Body schema for one line of lyrics or subtitles on a lines tier.                |
 | [`named_entity`](lacing.bodies.named_entity.html.md#module-lacing.bodies.named_entity)                 | Body schemas for named-entity (NER) annotations.                                |

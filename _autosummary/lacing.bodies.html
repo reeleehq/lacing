@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=a02dbd69"></script>
+    <script src="../_static/documentation_options.js?v=04553970"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -53,12 +53,12 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="lacing.bodies.character_voice" href="lacing.bodies.character_voice.html" />
+    <link rel="next" title="lacing.bodies.aligned_track" href="lacing.bodies.aligned_track.html" />
     <link rel="prev" title="lacing.artifact_store" href="lacing.artifact_store.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.100" />
+  <meta name="docsearch:version" content="0.0.101" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -341,6 +341,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.artifact_ref.html">lacing.artifact_ref</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.artifact_store.html">lacing.artifact_store</a></li>
 <li class="toctree-l2 current active has-children"><a aria-current="page" class="current reference internal" href="#">lacing.bodies</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.aligned_track.html">lacing.bodies.aligned_track</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.character_voice.html">lacing.bodies.character_voice</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.continuity_violation.html">lacing.bodies.continuity_violation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.bodies.lyric_line.html">lacing.bodies.lyric_line</a></li>
@@ -380,6 +381,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.tier.html">lacing.tier</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.time.html">lacing.time</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.tracks.html">lacing.tracks</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="lacing.tracks.aligned.html">lacing.tracks.aligned</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lacing.tracks.subtitle.html">lacing.tracks.subtitle</a></li>
 </ul>
 </details></li>
@@ -461,31 +463,34 @@ own under their own names.</p>
 <p class="rubric">Modules</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.bodies.character_voice.html#module-lacing.bodies.character_voice" title="lacing.bodies.character_voice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">character_voice</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.bodies.aligned_track.html#module-lacing.bodies.aligned_track" title="lacing.bodies.aligned_track"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aligned_track</span></code></a></p></td>
+<td><p>The aligned-track wire model and its store body (lacing#107).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.bodies.character_voice.html#module-lacing.bodies.character_voice" title="lacing.bodies.character_voice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">character_voice</span></code></a></p></td>
 <td><p>Body schema for per-character voice profiles — the shared voice vocabulary.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.bodies.continuity_violation.html#module-lacing.bodies.continuity_violation" title="lacing.bodies.continuity_violation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">continuity_violation</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.bodies.continuity_violation.html#module-lacing.bodies.continuity_violation" title="lacing.bodies.continuity_violation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">continuity_violation</span></code></a></p></td>
 <td><p>Body schema for continuity violations — generic, cross-media.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.bodies.lyric_line.html#module-lacing.bodies.lyric_line" title="lacing.bodies.lyric_line"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lyric_line</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.bodies.lyric_line.html#module-lacing.bodies.lyric_line" title="lacing.bodies.lyric_line"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lyric_line</span></code></a></p></td>
 <td><p>Body schema for one line of lyrics or subtitles on a lines tier.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.bodies.named_entity.html#module-lacing.bodies.named_entity" title="lacing.bodies.named_entity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">named_entity</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.bodies.named_entity.html#module-lacing.bodies.named_entity" title="lacing.bodies.named_entity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">named_entity</span></code></a></p></td>
 <td><p>Body schemas for named-entity (NER) annotations.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.bodies.reference_lock.html#module-lacing.bodies.reference_lock" title="lacing.bodies.reference_lock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reference_lock</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.bodies.reference_lock.html#module-lacing.bodies.reference_lock" title="lacing.bodies.reference_lock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reference_lock</span></code></a></p></td>
 <td><p>Body schema for a <em>locked reference</em> — a first-class “this is canonical”.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.bodies.review.html#module-lacing.bodies.review" title="lacing.bodies.review"><code class="xref py py-obj docutils literal notranslate"><span class="pre">review</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.bodies.review.html#module-lacing.bodies.review" title="lacing.bodies.review"><code class="xref py py-obj docutils literal notranslate"><span class="pre">review</span></code></a></p></td>
 <td><p>Body schema for review notes — the edit-loop's communication channel.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.bodies.review_candidate.html#module-lacing.bodies.review_candidate" title="lacing.bodies.review_candidate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">review_candidate</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.bodies.review_candidate.html#module-lacing.bodies.review_candidate" title="lacing.bodies.review_candidate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">review_candidate</span></code></a></p></td>
 <td><p>Body schema for review <em>candidates</em> — &quot;this needs a human's eyes&quot;.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.bodies.song_section.html#module-lacing.bodies.song_section" title="lacing.bodies.song_section"><code class="xref py py-obj docutils literal notranslate"><span class="pre">song_section</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.bodies.song_section.html#module-lacing.bodies.song_section" title="lacing.bodies.song_section"><code class="xref py py-obj docutils literal notranslate"><span class="pre">song_section</span></code></a></p></td>
 <td><p>Body schema for a section of a song (intro, verse, chorus) on a sections tier.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.bodies.word.html#module-lacing.bodies.word" title="lacing.bodies.word"><code class="xref py py-obj docutils literal notranslate"><span class="pre">word</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.bodies.word.html#module-lacing.bodies.word" title="lacing.bodies.word"><code class="xref py py-obj docutils literal notranslate"><span class="pre">word</span></code></a></p></td>
 <td><p>Body schema for word-level annotations (e.g., transcription, forced alignment).</p></td>
 </tr>
 </tbody>
@@ -513,11 +518,11 @@ own under their own names.</p>
       </div>
     </a>
     <a class="right-next"
-       href="lacing.bodies.character_voice.html"
+       href="lacing.bodies.aligned_track.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">lacing.bodies.character_voice</p>
+        <p class="prev-next-title">lacing.bodies.aligned_track</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

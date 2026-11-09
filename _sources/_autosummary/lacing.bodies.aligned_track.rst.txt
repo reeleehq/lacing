@@ -1,0 +1,22 @@
+lacing.bodies.aligned\_track
+============================
+
+.. automodule:: lacing.bodies.aligned_track
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      LEVELS
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AlignedSpan
+      AlignedSpanBodyV1
+      AlignedTextBodyV1
+      AlignedTrackV1
+      SpanTime
+   

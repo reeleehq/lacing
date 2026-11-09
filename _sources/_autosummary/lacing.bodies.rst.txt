@@ -10,6 +10,7 @@ lacing.bodies
    :toctree:
    :recursive:
 
+   aligned_track
    character_voice
    continuity_violation
    lyric_line

@@ -15,8 +15,10 @@ the common case ergonomic and consistent.
 
 ### Functions
 
-| [`register_subtitle_schemas`](#lacing.tracks.register_subtitle_schemas)()   | Deprecated no-op: the section, line and word schemas are built-in bodies, registered when this module (or [`lacing.bodies`](lacing.bodies.html.md#module-lacing.bodies)) is imported.   |
-|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`from_aligned_track`](#lacing.tracks.from_aligned_track)(track[, store, rate, ...])   | The track as annotations in `store` (a new `MemoryStore` by default).                                                                                                                                       |
+|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`register_subtitle_schemas`](#lacing.tracks.register_subtitle_schemas)()                     | Deprecated no-op: the section, line and word schemas are built-in bodies, registered when this module (or [`lacing.bodies`](lacing.bodies.html.md#module-lacing.bodies)) is imported. |
+| [`to_aligned_track`](#lacing.tracks.to_aligned_track)(store, \*, asset_id[, ...])    | The spans of `store` about `asset_id` as a wire document.                                                                                                                                                   |
 
 ### Classes
 
@@ -114,6 +116,20 @@ Words that overlap `[start_s, end_s]`.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
 
+### lacing.tracks.from_aligned_track(track, store=None, , rate=1000, attribution='anonymous', tiers={'line': 'lines', 'phone': 'phones', 'section': 'sections', 'syllable': 'syllables', 'word': 'words'}, text_tier='text')
+
+The track as annotations in `store` (a new `MemoryStore` by default).
+
+One tier per level present (`tiers` names them, each `INCLUDED_IN` the
+nearest coarser level present; a tier the store already has is kept), and
+one annotation on `text_tier` holding the text. Millisecond times become
+`RationalTime` at `rate`, which must hold a millisecond exactly (else
+`LossyTimeConversionError`). One track per asset: a store that already
+holds one for `track.asset_id` raises `ValueError`.
+
+* **Return type:**
+  [`IntervalAnnotationStore`](lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)
+
 ### lacing.tracks.register_subtitle_schemas()
 
 Deprecated no-op: the section, line and word schemas are built-in bodies,
@@ -122,7 +138,27 @@ registered when this module (or [`lacing.bodies`](lacing.bodies.html.md#module-l
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+### lacing.tracks.to_aligned_track(store, , asset_id, language=None, quantize=None)
+
+The spans of `store` about `asset_id` as a wire document.
+
+* **Parameters:**
+  * **store** ([`IntervalAnnotationStore`](lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – A store with aligned-span annotations (what
+    [`from_aligned_track()`](#lacing.tracks.from_aligned_track) writes) and/or the sections, lines and
+    words of a `SubtitleBuilder` (read as `imported` times, with
+    the generator as source, since the builder does not say whether
+    they were measured).
+  * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The media whose annotations to export.
+  * **language** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – BCP 47 tag for the document; defaults to the stored text’s.
+  * **quantize** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'round'`, `'floor'`, `'ceil'`]]) – `None` (the default) raises `LossyTimeConversionError`
+    for a time that is not a whole millisecond; `"round"` (ties to
+    even, unlike JavaScript’s `Math.round`), `"floor"` or
+    `"ceil"` quantizes it.
+* **Return type:**
+  [`AlignedTrackV1`](lacing.bodies.aligned_track.html.md#lacing.bodies.aligned_track.AlignedTrackV1)
+
 ### Modules
 
-| [`subtitle`](lacing.tracks.subtitle.html.md#module-lacing.tracks.subtitle)   | Subtitle / lyric / caption tracks — the (sections, lines, words) trio.   |
-|-------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| [`aligned`](lacing.tracks.aligned.html.md#module-lacing.tracks.aligned)   | Aligned tracks: one text, spans at every level, in a store and on the wire.   |
+|-----------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| [`subtitle`](lacing.tracks.subtitle.html.md#module-lacing.tracks.subtitle) | Subtitle / lyric / caption tracks — the (sections, lines, words) trio.        |

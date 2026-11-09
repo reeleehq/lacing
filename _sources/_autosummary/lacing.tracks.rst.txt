@@ -8,7 +8,9 @@ lacing.tracks
 
    .. autosummary::
    
+      from_aligned_track
       register_subtitle_schemas
+      to_aligned_track
    
    .. rubric:: Classes
 
@@ -23,4 +25,5 @@ lacing.tracks
    :toctree:
    :recursive:
 
+   aligned
    subtitle
