@@ -373,3 +373,31 @@ def test_convert_passes_neither_tier_when_unnamed(tmp_path, monkeypatch):
     )
     cli.convert(str(_karaoke_lrc(tmp_path)), str(tmp_path / "y.vtt"))
     assert "tier" not in seen and "lines_tier" not in seen
+
+
+def test_convert_an_unknown_tier_is_an_error_listing_the_real_ones(tmp_path):
+    from lacing import cli
+
+    dst = tmp_path / "z.srt"
+    with pytest.raises(SystemExit, match="nope.*lines"):
+        cli.convert(str(_karaoke_lrc(tmp_path)), str(dst), tier="nope")
+    with pytest.raises(SystemExit, match="nope"):
+        cli.convert(str(_karaoke_lrc(tmp_path)), str(dst), lines_tier="nope")
+    assert not dst.exists()
+
+
+def test_the_tier_flags_are_parsed_from_the_command_line():
+    ns = cli.mk_parser().parse_args(
+        ["convert", "a.lrc", "b.srt", "--tier", "words", "--lines-tier", "L"]
+    )
+    assert (ns.tier, ns.lines_tier) == ("words", "L")
+
+
+def test_convert_tier_lines_works_for_lrc_and_ass_writers(tmp_path):
+    from lacing import cli
+
+    src = _karaoke_lrc(tmp_path)
+    for name in ("a.lrc", "a.ass"):
+        dst = tmp_path / name
+        cli.convert(str(src), str(dst), tier="lines")
+        assert "one" in dst.read_text(encoding="utf-8")

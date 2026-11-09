@@ -105,6 +105,20 @@ def _tier_kwargs(tier: "str | None", lines_tier: "str | None") -> dict:
     return {k: v for k, v in named.items() if v is not None}
 
 
+def _require_tiers(store, names) -> None:
+    """Stop with the tiers that exist when a named tier is not one of them: a
+    typo would otherwise write an empty file and report success."""
+    names = list(names)
+    if not names:
+        return
+    present = {t.name for t in store.tiers()} | {a.tier for a in store.all()}
+    missing = [n for n in names if n not in present]
+    if missing:
+        raise SystemExit(
+            f"No tier {missing[0]!r} in the source; it has: {sorted(present)}"
+        )
+
+
 def convert(
     src: str,
     dst: str,
@@ -123,9 +137,10 @@ def convert(
     with --src-format / --dst-format. A text file that is not UTF-8 (and has
     no byte-order mark) needs --encoding, e.g. cp1252. SubRip and WebVTT
     given no --tier write the ``lines`` tier when the store has one, else every
-    top-level tier; --tier writes only that tier (SubRip, WebVTT, LRC, ASS),
-    and --lines-tier names the lines tier when the source called it something
-    else (SubRip, WebVTT). Other formats ignore both.
+    top-level tier. --tier writes only that tier (SubRip, WebVTT, LRC, ASS and
+    the podcast formats; LRC and ASS need a tier of lines, not of words), and
+    --lines-tier names the lines tier when the source called it something else
+    (SubRip, WebVTT). A tier the source does not have is an error.
     """
     _ensure_adapters()
     from lacing.adapters import dump as adapter_dump
@@ -138,7 +153,9 @@ def convert(
         dst_format = _infer_format_from_extension(dst)
     if dst_format is None:
         raise SystemExit(f"Cannot infer output format from {dst!r}. Pass --dst-format.")
-    adapter_dump(store, dst, format=dst_format, **_tier_kwargs(tier, lines_tier))
+    named = _tier_kwargs(tier, lines_tier)
+    _require_tiers(store, named.values())
+    adapter_dump(store, dst, format=dst_format, **named)
     print(f"Wrote {dst!r} ({dst_format})")
 
 
