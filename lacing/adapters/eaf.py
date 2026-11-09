@@ -48,7 +48,11 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import display_text, iter_with_media_intervals
+from lacing.adapters._common import (
+    display_text,
+    import_provenance,
+    iter_with_media_intervals,
+)
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier, TierStereotype
@@ -187,11 +191,8 @@ def load(
                     reference=MediaRef(asset_id=resolved_asset, interval=interval),
                     body={"text": value},
                     body_schema_uri=BODY_SCHEMA_URI,
-                    provenance=Provenance(
-                        was_generated_by=GENERATED_BY,
-                        was_attributed_to=attribution,
-                        generated_at_time=now,
-                        activity="import",
+                    provenance=import_provenance(
+                        GENERATED_BY, attribution, generated_at=now
                     ),
                 )
             )

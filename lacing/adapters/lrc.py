@@ -121,7 +121,12 @@ from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import display_text, iter_with_intervals, read_text
+from lacing.adapters._common import (
+    display_text,
+    import_provenance,
+    iter_with_intervals,
+    read_text,
+)
 from lacing.adapters._cues import (
     MS_PER_MINUTE,
     MS_PER_SECOND,
@@ -454,11 +459,8 @@ def load(
     words = _read_words(lines, spans, offset)
 
     store = MemoryStore()
-    provenance = Provenance(
-        was_generated_by=GENERATED_BY,
-        was_attributed_to=attribution,
-        generated_at_time=RationalTime.now(rate),
-        activity="import",
+    provenance = import_provenance(
+        GENERATED_BY, attribution, generated_at=RationalTime.now(rate)
     )
 
     def add(tier_name: str, start: int, end: int, body: dict, uri: str) -> None:

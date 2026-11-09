@@ -59,7 +59,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import iter_with_media_intervals
+from lacing.adapters._common import import_provenance, iter_with_media_intervals
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
@@ -204,11 +204,8 @@ def load(
                     ),
                     body={"value": obs.value, "namespace": namespace},
                     body_schema_uri=BODY_SCHEMA_URI,
-                    provenance=Provenance(
-                        was_generated_by=GENERATED_BY,
-                        was_attributed_to=ann_attribution,
-                        generated_at_time=now,
-                        activity="import",
+                    provenance=import_provenance(
+                        GENERATED_BY, ann_attribution, generated_at=now
                     ),
                     confidence=confidence,
                 )

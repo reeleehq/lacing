@@ -97,7 +97,7 @@ from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import iter_with_intervals
+from lacing.adapters._common import import_provenance, iter_with_intervals
 from lacing.adapters._podcast import (
     END_INFERRED_KEY,
     TimedItem,
@@ -202,11 +202,8 @@ def load(
                 reference=MediaRef(asset_id=asset_id, interval=item.interval),
                 body=body,
                 body_schema_uri=BODY_SCHEMA_URI,
-                provenance=Provenance(
-                    was_generated_by=GENERATED_BY,
-                    was_attributed_to=attribution,
-                    generated_at_time=now,
-                    activity="import",
+                provenance=import_provenance(
+                    GENERATED_BY, attribution, generated_at=now
                 ),
             )
         )
