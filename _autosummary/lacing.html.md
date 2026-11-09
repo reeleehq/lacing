@@ -21,6 +21,10 @@ full story. `.claude/skills/` contains the rules.
 |------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [`parse_generator_id`](#lacing.parse_generator_id)(value)                           | Parse `value`, or return `None` when it is not of the generator-id shape.                                                                                                                                                                                                                                                                                                                                                               |
 | [`warn_if_malformed`](#lacing.warn_if_malformed)(value)                            | Emit a [`GeneratorIdWarning`](#lacing.GeneratorIdWarning), pointed at the caller outside lacing, when `value` is not of the generator-id shape; return `value`.                                                                                                                                                                                                                                                        |
+| [`restriction_breach`](#lacing.restriction_breach)(restriction[, use, checks])      | Why `use` breaks `restriction`, or `None` (an unstated use by default).                                                                                                                                                                                                                                                                                                                                                                 |
+| [`normalize_territory`](#lacing.normalize_territory)(territory)                      | `territory` as an ISO 3166-1 alpha-2 code (or `WORLDWIDE`), `None` when unstated.                                                                                                                                                                                                                                                                                                                                                       |
+| [`territory_excluded`](#lacing.territory_excluded)(excluded, territory, \*[, ...])  | Whether a use in `territory` falls in `excluded` (a region covers its members).                                                                                                                                                                                                                                                                                                                                                         |
+| [`unplaceable_codes`](#lacing.unplaceable_codes)(codes, \*[, regions])             | The recorded `codes` no use can be placed against, as recorded: one that is not an ISO code, an alias of one, or a region, and `WORLDWIDE` (everywhere).                                                                                                                                                                                                                                                                                |
 | [`keep_rights`](#lacing.keep_rights)(record, previous, \*[, content_hash])   | `record`, carrying forward the `rights` of the record it replaces when it states none for the same bytes (lacing#60; the choice is in lacing#94).                                                                                                                                                                                                                                                                                       |
 | [`resolve_in_mall`](#lacing.resolve_in_mall)(ref, mall, \*, default_store)       | What `ref` names in `mall` (store names -> [`ArtifactStore`](#lacing.ArtifactStore)).                                                                                                                                                                                                                                                                                                                             |
 | [`content_hash_of`](#lacing.content_hash_of)(record)                             | The content hash naming `record`'s bytes in the blob store, if it has one.                                                                                                                                                                                                                                                                                                                                                              |
@@ -78,6 +82,7 @@ full story. `.claude/skills/` contains the rules.
 | [`Artifact`](#lacing.Artifact)(\*, asset_id, kind[, path, url, ...])    | A content-addressed generated file with provenance.                                                                                                                                                                |
 | [`Rights`](#lacing.Rights)(\*, provider[, id, title, license, ...])   | Who owns the bytes of an *acquired* artifact, and on what terms.                                                                                                                                                   |
 | [`Restriction`](#lacing.Restriction)(\*, kind[, terms])                    | One usage restriction that a licence code does not imply (lacing#106).                                                                                                                                             |
+| [`Use`](#lacing.Use)(\*[, revenue_usd, territory])                 | One use of an asset, as the restrictions on it ask about it.                                                                                                                                                       |
 | [`ArtifactStore`](#lacing.ArtifactStore)(catalog[, blobs, on_write, ...])    | Facade over an artifact `catalog` and an optional `blobs` store.                                                                                                                                                   |
 | [`ResolvedArtifact`](#lacing.ResolvedArtifact)(key, record, content_hash, data) | What [`ArtifactStore.resolve()`](#lacing.ArtifactStore.resolve) found.                                                                                                                               |
 | [`ArtifactRef`](#lacing.ArtifactRef)(key[, store, pin])                    | A reference to an artifact: its `key`, the `store` that files it when known, and the content `pin` when it names one: the store's content hash, 64 hex digits of SHA-256 (an `Artifact.asset_id`), kept lowercase. |
@@ -1308,7 +1313,8 @@ True
 
 Build from seconds. Quantizes to `rate`; raises if lossy.
 
-`seconds` may be a `str` like `"1.001"` to avoid float ingestion.
+`seconds` may be a `str` like `"1.001"` to avoid float ingestion,
+or any real number (see [`from_seconds_lossy()`](#lacing.RationalTime.from_seconds_lossy)).
 
 * **Return type:**
   [`RationalTime`](lacing.time.html.md#lacing.time.RationalTime)
@@ -1325,6 +1331,11 @@ represented exactly — this method always succeeds by quantizing.
 - `"round"` — nearest sample, ties to even (default)
 - `"floor"` — largest sample <= `seconds`
 - `"ceil"`  — smallest sample >= `seconds`
+
+`seconds` is a `str` (parsed exactly), or any real number: a
+`Rational` (`int`, `Fraction`, `np.int64`) is taken exactly, any
+other `numbers.Real` (`float`, `np.float32`, `np.float64`) as
+the float’s own value. `bool` and non-finite values are refused.
 
 Use this when sample-level quantization is knowingly acceptable —
 the common case for user-supplied durations. Use [`from_seconds()`](#lacing.RationalTime.from_seconds)
@@ -1679,6 +1690,30 @@ Build from the wire form. See [`RationalTime.from_wire()`](#lacing.RationalTime.
 Bases: [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError)
 
 Raised when an annotation’s body_schema_uri has no registered model.
+
+### *class* lacing.Use(, revenue_usd=None, territory=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+One use of an asset, as the restrictions on it ask about it.
+
+`revenue_usd` is the user’s annual revenue in whole US dollars and
+`territory` where the use happens (an ISO 3166-1 alpha-2 code, an alias
+such as `"UK"`, or [`lacing.territory.WORLDWIDE`](lacing.territory.html.md#lacing.territory.WORLDWIDE)); `None` leaves
+either unstated, which fails closed against a restriction that asks.
+
+```pycon
+>>> Use(territory=" uk ", revenue_usd=5_000)
+Use(revenue_usd=5000, territory='GB')
+>>> Use()
+Use(revenue_usd=None, territory=None)
+```
+
+* **Raises:**
+  * [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – If `territory` is not one a gate can place (a name, an
+        alpha-3 code, a region such as `"EU"`), or `revenue_usd` is
+        negative.
+  * [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError) – If `revenue_usd` is not an `int` (a `bool` is not).
 
 ### lacing.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
 
@@ -2219,6 +2254,21 @@ could not happen while the target was always the highest version.
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
+### lacing.normalize_territory(territory)
+
+`territory` as an ISO 3166-1 alpha-2 code (or `WORLDWIDE`), `None` when unstated.
+
+```pycon
+>>> normalize_territory("world")
+'WORLD'
+```
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – If it is not a country code (a name, an alpha-3 code, a
+      region): a gate cannot judge a use it cannot place.
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### lacing.on_register(listener, , replay=True)
 
 Call `listener(uri, model)` whenever a body schema is registered.
@@ -2422,6 +2472,16 @@ store’s [`ArtifactStore.resolve()`](#lacing.ArtifactStore.resolve).
 b'x'
 ```
 
+### lacing.restriction_breach(restriction, use=Use(revenue_usd=None, territory=None), \*, checks={'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>})
+
+Why `use` breaks `restriction`, or `None` (an unstated use by default).
+
+The reason leads with the restriction’s `terms` when it names them. A kind
+with no entry in `checks` is never cleared (lacing#106’s consumer rule).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### *async* lacing.run_processor_async(name, , store, oplog, \*\*kwargs)
 
 Run a processor in the current event loop. For async callers.
@@ -2440,6 +2500,31 @@ active). Most callers from sync code want the former.
 * **Return type:**
   [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
 
+### lacing.territory_excluded(excluded, territory, , regions={'EU': frozenset({'AT', 'AX', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GF', 'GP', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MF', 'MQ', 'MT', 'NL', 'PL', 'PT', 'RE', 'RO', 'SE', 'SI', 'SK', 'YT'})})
+
+Whether a use in `territory` falls in `excluded` (a region covers its members).
+
+It fails closed on both sides. Whenever anything is excluded, an unstated
+territory (`None`), a worldwide one, and one that is not a country code
+all count as excluded. And a recorded code is read through its aliases: one
+that names no country, no key of `regions` and not `WORLDWIDE`
+(a typo such as `"Franc"`) excludes every use, since nobody can tell what
+it meant; a recorded `"WORLD"` excludes every use by definition.
+
+```pycon
+>>> territory_excluded({"KR"}, None), territory_excluded({"UK"}, "gb")
+(True, True)
+>>> territory_excluded({"KR"}, "Korea"), territory_excluded(set(), None)
+(True, False)
+>>> territory_excluded({"KR"}, "WORLD"), territory_excluded(set(), "WORLD")
+(True, False)
+>>> territory_excluded({"Franc"}, "US"), territory_excluded({"WORLD"}, "US")
+(True, True)
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 ### lacing.traced(tracer, span_name=None, , record_args=False)
 
 Decorator: wrap a function in a span on `tracer`.
@@ -2450,6 +2535,20 @@ Decorator: wrap a function in a span on `tracer`.
   * **record_args** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – If True, attach (str-coerced) positional + keyword
     args as span attributes `arg.<n>` / `kwarg.<name>`. Off
     by default — args may contain large or sensitive data.
+
+### lacing.unplaceable_codes(codes, , regions={'EU': frozenset({'AT', 'AX', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GF', 'GP', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MF', 'MQ', 'MT', 'NL', 'PL', 'PT', 'RE', 'RO', 'SE', 'SI', 'SK', 'YT'})})
+
+The recorded `codes` no use can be placed against, as recorded: one that
+is not an ISO code, an alias of one, or a region, and `WORLDWIDE`
+(everywhere). A restriction recording any of them excludes every use.
+
+```pycon
+>>> unplaceable_codes(["eu", "Franc", "uk", "WORLD"])
+['Franc', 'WORLD']
+```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### lacing.validate_body(body, uri)
 
@@ -2555,28 +2654,30 @@ The advisory check [`lacing.Provenance`](#lacing.Provenance) runs on `was_genera
 
 ### Modules
 
-| [`adapters`](lacing.adapters.html.md#module-lacing.adapters)             | I/O adapter registry.                                                               |
-|----------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| [`allen`](lacing.allen.html.md#module-lacing.allen)                   | Allen's 13 interval relations as pure predicates.                                   |
-| [`artifact`](lacing.artifact.html.md#module-lacing.artifact)             | Content-addressed artifact references.                                              |
-| [`artifact_ref`](lacing.artifact_ref.html.md#module-lacing.artifact_ref)     | One spelling for a reference to an artifact: `artifact:[<store>/]<key>[@<sha256>]`. |
-| [`artifact_store`](lacing.artifact_store.html.md#module-lacing.artifact_store) | Artifact store — a metadata catalog and a blob store behind one facade.             |
-| [`bodies`](lacing.bodies.html.md#module-lacing.bodies)                 | Built-in body schemas.                                                              |
-| [`cli`](lacing.cli.html.md#module-lacing.cli)                       | Command-line interface for lacing.                                                  |
-| [`derived`](lacing.derived.html.md#module-lacing.derived)               | Which body fields are *derived* from another field of the same object.              |
-| [`digest`](lacing.digest.html.md#module-lacing.digest)                 | Content digests over an annotation's *value* — the freshness primitive.             |
-| [`exhibit`](lacing.exhibit.html.md#module-lacing.exhibit)               | Artifact exhibit — render an annotation graph as a readable document.               |
-| [`generator_id`](lacing.generator_id.html.md#module-lacing.generator_id)     | The grammar of `Provenance.was_generated_by`, and an advisory check of it.          |
-| [`locations`](lacing.locations.html.md#module-lacing.locations)           | Which body fields hold locations (urls, file paths).                                |
-| [`model`](lacing.model.html.md#module-lacing.model)                   | Annotation envelope, references, and provenance.                                    |
-| [`oplog`](lacing.oplog.html.md#module-lacing.oplog)                   | Operation log for time-travel debug + audit.                                        |
-| [`otel`](lacing.otel.html.md#module-lacing.otel)                     | Optional OpenTelemetry instrumentation for the lacing server.                       |
-| [`processors`](lacing.processors.html.md#module-lacing.processors)         | Background processors — pluggable jobs that run against a store + op-log.           |
-| [`quality`](lacing.quality.html.md#module-lacing.quality)               | Inter-annotator agreement and boundary metrics.                                     |
-| [`registry`](lacing.registry.html.md#module-lacing.registry)             | The replacement rule shared by lacing's registries (lacing#19).                     |
-| [`schema`](lacing.schema.html.md#module-lacing.schema)                 | Body schema registry, JSON Schema export, and migrations.                           |
-| [`store`](lacing.store.html.md#module-lacing.store)                   | Interval-keyed annotation stores.                                                   |
-| [`tier`](lacing.tier.html.md#module-lacing.tier)                     | Tiers and the five ELAN stereotypes.                                                |
-| [`time`](lacing.time.html.md#module-lacing.time)                     | Rational time and half-open intervals — the foundations.                            |
-| [`tracks`](lacing.tracks.html.md#module-lacing.tracks)                 | High-level "track-shaped" facades on top of `lacing`.                               |
-| [`worker`](lacing.worker.html.md#module-lacing.worker)                 | Optional Arq integration — queue processors through Redis.                          |
+| [`adapters`](lacing.adapters.html.md#module-lacing.adapters)             | I/O adapter registry.                                                                                           |
+|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| [`allen`](lacing.allen.html.md#module-lacing.allen)                   | Allen's 13 interval relations as pure predicates.                                                               |
+| [`artifact`](lacing.artifact.html.md#module-lacing.artifact)             | Content-addressed artifact references.                                                                          |
+| [`artifact_ref`](lacing.artifact_ref.html.md#module-lacing.artifact_ref)     | One spelling for a reference to an artifact: `artifact:[<store>/]<key>[@<sha256>]`.                             |
+| [`artifact_store`](lacing.artifact_store.html.md#module-lacing.artifact_store) | Artifact store — a metadata catalog and a blob store behind one facade.                                         |
+| [`bodies`](lacing.bodies.html.md#module-lacing.bodies)                 | Built-in body schemas.                                                                                          |
+| [`cli`](lacing.cli.html.md#module-lacing.cli)                       | Command-line interface for lacing.                                                                              |
+| [`derived`](lacing.derived.html.md#module-lacing.derived)               | Which body fields are *derived* from another field of the same object.                                          |
+| [`digest`](lacing.digest.html.md#module-lacing.digest)                 | Content digests over an annotation's *value* — the freshness primitive.                                         |
+| [`exhibit`](lacing.exhibit.html.md#module-lacing.exhibit)               | Artifact exhibit — render an annotation graph as a readable document.                                           |
+| [`generator_id`](lacing.generator_id.html.md#module-lacing.generator_id)     | The grammar of `Provenance.was_generated_by`, and an advisory check of it.                                      |
+| [`locations`](lacing.locations.html.md#module-lacing.locations)           | Which body fields hold locations (urls, file paths).                                                            |
+| [`model`](lacing.model.html.md#module-lacing.model)                   | Annotation envelope, references, and provenance.                                                                |
+| [`oplog`](lacing.oplog.html.md#module-lacing.oplog)                   | Operation log for time-travel debug + audit.                                                                    |
+| [`otel`](lacing.otel.html.md#module-lacing.otel)                     | Optional OpenTelemetry instrumentation for the lacing server.                                                   |
+| [`processors`](lacing.processors.html.md#module-lacing.processors)         | Background processors — pluggable jobs that run against a store + op-log.                                       |
+| [`quality`](lacing.quality.html.md#module-lacing.quality)               | Inter-annotator agreement and boundary metrics.                                                                 |
+| [`registry`](lacing.registry.html.md#module-lacing.registry)             | The replacement rule shared by lacing's registries (lacing#19).                                                 |
+| [`restrictions`](lacing.restrictions.html.md#module-lacing.restrictions)     | What a [`lacing.Restriction`](#lacing.Restriction) means for one use (reeleehq/an#743). |
+| [`schema`](lacing.schema.html.md#module-lacing.schema)                 | Body schema registry, JSON Schema export, and migrations.                                                       |
+| [`store`](lacing.store.html.md#module-lacing.store)                   | Interval-keyed annotation stores.                                                                               |
+| [`territory`](lacing.territory.html.md#module-lacing.territory)           | Territories: the vocabulary a `territory_excluded` restriction is written in.                                   |
+| [`tier`](lacing.tier.html.md#module-lacing.tier)                     | Tiers and the five ELAN stereotypes.                                                                            |
+| [`time`](lacing.time.html.md#module-lacing.time)                     | Rational time and half-open intervals — the foundations.                                                        |
+| [`tracks`](lacing.tracks.html.md#module-lacing.tracks)                 | High-level "track-shaped" facades on top of `lacing`.                                                           |
+| [`worker`](lacing.worker.html.md#module-lacing.worker)                 | Optional Arq integration — queue processors through Redis.                                                      |

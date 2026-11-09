@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=5751785c"></script>
+    <script src="../_static/documentation_options.js?v=f329fc45"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.96" />
+  <meta name="docsearch:version" content="0.0.97" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -363,6 +363,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.processors.html">lacing.processors</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.quality.html">lacing.quality</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.registry.html">lacing.registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.restrictions.html">lacing.restrictions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.schema.html">lacing.schema</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.store.html">lacing.store</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.base.html">lacing.store.base</a></li>
@@ -374,6 +375,7 @@
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.sqlite.html">lacing.store.sqlite</a></li>
 </ul>
 </details></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.territory.html">lacing.territory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.tier.html">lacing.tier</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.time.html">lacing.time</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.tracks.html">lacing.tracks</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -466,6 +468,18 @@ full story. <code class="docutils literal notranslate"><span class="pre">.claude
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.warn_if_malformed" title="lacing.warn_if_malformed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">warn_if_malformed</span></code></a>(value)</p></td>
 <td><p>Emit a <a class="reference internal" href="#lacing.GeneratorIdWarning" title="lacing.GeneratorIdWarning"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeneratorIdWarning</span></code></a>, pointed at the caller outside lacing, when <code class="docutils literal notranslate"><span class="pre">value</span></code> is not of the generator-id shape; return <code class="docutils literal notranslate"><span class="pre">value</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.restriction_breach" title="lacing.restriction_breach"><code class="xref py py-obj docutils literal notranslate"><span class="pre">restriction_breach</span></code></a>(restriction[, use, checks])</p></td>
+<td><p>Why <code class="docutils literal notranslate"><span class="pre">use</span></code> breaks <code class="docutils literal notranslate"><span class="pre">restriction</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> (an unstated use by default).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.normalize_territory" title="lacing.normalize_territory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_territory</span></code></a>(territory)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">territory</span></code> as an ISO 3166-1 alpha-2 code (or <code class="xref py py-data docutils literal notranslate"><span class="pre">WORLDWIDE</span></code>), <code class="docutils literal notranslate"><span class="pre">None</span></code> when unstated.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.territory_excluded" title="lacing.territory_excluded"><code class="xref py py-obj docutils literal notranslate"><span class="pre">territory_excluded</span></code></a>(excluded, territory, *[, ...])</p></td>
+<td><p>Whether a use in <code class="docutils literal notranslate"><span class="pre">territory</span></code> falls in <code class="docutils literal notranslate"><span class="pre">excluded</span></code> (a region covers its members).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.unplaceable_codes" title="lacing.unplaceable_codes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unplaceable_codes</span></code></a>(codes, *[, regions])</p></td>
+<td><p>The recorded <code class="docutils literal notranslate"><span class="pre">codes</span></code> no use can be placed against, as recorded: one that is not an ISO code, an alias of one, or a region, and <code class="xref py py-data docutils literal notranslate"><span class="pre">WORLDWIDE</span></code> (everywhere).</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.keep_rights" title="lacing.keep_rights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">keep_rights</span></code></a>(record, previous, *[, content_hash])</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">record</span></code>, carrying forward the <code class="docutils literal notranslate"><span class="pre">rights</span></code> of the record it replaces when it states none for the same bytes (lacing#60; the choice is in lacing#94).</p></td>
@@ -632,46 +646,49 @@ full story. <code class="docutils literal notranslate"><span class="pre">.claude
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.Restriction" title="lacing.Restriction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Restriction</span></code></a>(*, kind[, terms])</p></td>
 <td><p>One usage restriction that a licence code does not imply (lacing#106).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.ArtifactStore" title="lacing.ArtifactStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArtifactStore</span></code></a>(catalog[, blobs, on_write, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.Use" title="lacing.Use"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Use</span></code></a>(*[, revenue_usd, territory])</p></td>
+<td><p>One use of an asset, as the restrictions on it ask about it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.ArtifactStore" title="lacing.ArtifactStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArtifactStore</span></code></a>(catalog[, blobs, on_write, ...])</p></td>
 <td><p>Facade over an artifact <code class="docutils literal notranslate"><span class="pre">catalog</span></code> and an optional <code class="docutils literal notranslate"><span class="pre">blobs</span></code> store.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.ResolvedArtifact" title="lacing.ResolvedArtifact"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ResolvedArtifact</span></code></a>(key, record, content_hash, data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.ResolvedArtifact" title="lacing.ResolvedArtifact"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ResolvedArtifact</span></code></a>(key, record, content_hash, data)</p></td>
 <td><p>What <a class="reference internal" href="#lacing.ArtifactStore.resolve" title="lacing.ArtifactStore.resolve"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ArtifactStore.resolve()</span></code></a> found.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.ArtifactRef" title="lacing.ArtifactRef"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArtifactRef</span></code></a>(key[, store, pin])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.ArtifactRef" title="lacing.ArtifactRef"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArtifactRef</span></code></a>(key[, store, pin])</p></td>
 <td><p>A reference to an artifact: its <code class="docutils literal notranslate"><span class="pre">key</span></code>, the <code class="docutils literal notranslate"><span class="pre">store</span></code> that files it when known, and the content <code class="docutils literal notranslate"><span class="pre">pin</span></code> when it names one: the store's content hash, 64 hex digits of SHA-256 (an <code class="docutils literal notranslate"><span class="pre">Artifact.asset_id</span></code>), kept lowercase.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.AllenRelation" title="lacing.AllenRelation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AllenRelation</span></code></a>(*values)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.AllenRelation" title="lacing.AllenRelation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AllenRelation</span></code></a>(*values)</p></td>
 <td><p>The thirteen Allen relations.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.IntervalAnnotationStore" title="lacing.IntervalAnnotationStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code></a>(*args, **kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.IntervalAnnotationStore" title="lacing.IntervalAnnotationStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Protocol for any interval-keyed annotation store.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.MemoryStore" title="lacing.MemoryStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MemoryStore</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.MemoryStore" title="lacing.MemoryStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MemoryStore</span></code></a>()</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code> implementation over <code class="docutils literal notranslate"><span class="pre">intervaltree</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.MappingStore" title="lacing.MappingStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MappingStore</span></code></a>(mapping, *[, codec, tiers_key])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.MappingStore" title="lacing.MappingStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MappingStore</span></code></a>(mapping, *[, codec, tiers_key])</p></td>
 <td><p>An <code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code> persisted to an injected <code class="docutils literal notranslate"><span class="pre">MutableMapping</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.SqliteStore" title="lacing.SqliteStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SqliteStore</span></code></a>(path, *[, check_same_thread, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.SqliteStore" title="lacing.SqliteStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SqliteStore</span></code></a>(path, *[, check_same_thread, ...])</p></td>
 <td><p>SQLite-backed <code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.OpLog" title="lacing.OpLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OpLog</span></code></a>(*args, **kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.OpLog" title="lacing.OpLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OpLog</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Append-only log of mutations.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.OpLogEntry" title="lacing.OpLogEntry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OpLogEntry</span></code></a>(clock, operation, target_id, payload)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.OpLogEntry" title="lacing.OpLogEntry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OpLogEntry</span></code></a>(clock, operation, target_id, payload)</p></td>
 <td><p>One row of the op-log.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.InMemoryOpLog" title="lacing.InMemoryOpLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InMemoryOpLog</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.InMemoryOpLog" title="lacing.InMemoryOpLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InMemoryOpLog</span></code></a>()</p></td>
 <td><p>Simple list-backed op-log.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.SqliteOpLog" title="lacing.SqliteOpLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SqliteOpLog</span></code></a>(path, *[, check_same_thread])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.SqliteOpLog" title="lacing.SqliteOpLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SqliteOpLog</span></code></a>(path, *[, check_same_thread])</p></td>
 <td><p>Op-log backed by a SQLite table.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.Location" title="lacing.Location"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Location</span></code></a>(kind)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.Location" title="lacing.Location"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Location</span></code></a>(kind)</p></td>
 <td><p>Field marker: this body field holds a location of <code class="docutils literal notranslate"><span class="pre">kind</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.Derived" title="lacing.Derived"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Derived</span></code></a>(source)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.Derived" title="lacing.Derived"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Derived</span></code></a>(source)</p></td>
 <td><p>Field marker: this body field is derivable from the sibling field <code class="docutils literal notranslate"><span class="pre">source</span></code>.</p></td>
 </tr>
 </tbody>
@@ -2169,7 +2186,8 @@ their rational value, so <code class="docutils literal notranslate"><span class=
 <dt class="sig sig-object py" id="lacing.RationalTime.from_seconds">
 <span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_seconds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/time.html#RationalTime.from_seconds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.RationalTime.from_seconds" title="Link to this definition">#</a></dt>
 <dd><p>Build from seconds. Quantizes to <code class="docutils literal notranslate"><span class="pre">rate</span></code>; raises if lossy.</p>
-<p><code class="docutils literal notranslate"><span class="pre">seconds</span></code> may be a <code class="docutils literal notranslate"><span class="pre">str</span></code> like <code class="docutils literal notranslate"><span class="pre">&quot;1.001&quot;</span></code> to avoid float ingestion.</p>
+<p><code class="docutils literal notranslate"><span class="pre">seconds</span></code> may be a <code class="docutils literal notranslate"><span class="pre">str</span></code> like <code class="docutils literal notranslate"><span class="pre">&quot;1.001&quot;</span></code> to avoid float ingestion,
+or any real number (see <a class="reference internal" href="#lacing.RationalTime.from_seconds_lossy" title="lacing.RationalTime.from_seconds_lossy"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_seconds_lossy()</span></code></a>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.time.html#lacing.time.RationalTime" title="lacing.time.RationalTime"><code class="xref py py-class docutils literal notranslate"><span class="pre">RationalTime</span></code></a></span></p>
@@ -2190,6 +2208,10 @@ represented exactly — this method always succeeds by quantizing.
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;floor&quot;</span></code> — largest sample &lt;= <code class="docutils literal notranslate"><span class="pre">seconds</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;ceil&quot;</span></code>  — smallest sample &gt;= <code class="docutils literal notranslate"><span class="pre">seconds</span></code></p></li>
 </ul>
+<p><code class="docutils literal notranslate"><span class="pre">seconds</span></code> is a <code class="docutils literal notranslate"><span class="pre">str</span></code> (parsed exactly), or any real number: a
+<code class="docutils literal notranslate"><span class="pre">Rational</span></code> (<code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">Fraction</span></code>, <code class="docutils literal notranslate"><span class="pre">np.int64</span></code>) is taken exactly, any
+other <code class="docutils literal notranslate"><span class="pre">numbers.Real</span></code> (<code class="docutils literal notranslate"><span class="pre">float</span></code>, <code class="docutils literal notranslate"><span class="pre">np.float32</span></code>, <code class="docutils literal notranslate"><span class="pre">np.float64</span></code>) as
+the float’s own value. <code class="docutils literal notranslate"><span class="pre">bool</span></code> and non-finite values are refused.</p>
 <p>Use this when sample-level quantization is knowingly acceptable —
 the common case for user-supplied durations. Use <a class="reference internal" href="#lacing.RationalTime.from_seconds" title="lacing.RationalTime.from_seconds"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_seconds()</span></code></a>
 when exactness matters and a lossy conversion should be an error.</p>
@@ -2613,6 +2635,33 @@ an error.</p>
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">UnknownBodySchemaError</span></span><a class="reference internal" href="../_modules/lacing/schema.html#UnknownBodySchemaError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.UnknownBodySchemaError" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#KeyError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyError</span></code></a></p>
 <p>Raised when an annotation’s body_schema_uri has no registered model.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lacing.Use">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">Use</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">revenue_usd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">territory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/restrictions.html#Use"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.Use" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>One use of an asset, as the restrictions on it ask about it.</p>
+<p><code class="docutils literal notranslate"><span class="pre">revenue_usd</span></code> is the user’s annual revenue in whole US dollars and
+<code class="docutils literal notranslate"><span class="pre">territory</span></code> where the use happens (an ISO 3166-1 alpha-2 code, an alias
+such as <code class="docutils literal notranslate"><span class="pre">&quot;UK&quot;</span></code>, or <a class="reference internal" href="lacing.territory.html#lacing.territory.WORLDWIDE" title="lacing.territory.WORLDWIDE"><code class="xref py py-data docutils literal notranslate"><span class="pre">lacing.territory.WORLDWIDE</span></code></a>); <code class="docutils literal notranslate"><span class="pre">None</span></code> leaves
+either unstated, which fails closed against a restriction that asks.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Use</span><span class="p">(</span><span class="n">territory</span><span class="o">=</span><span class="s2">" uk "</span><span class="p">,</span> <span class="n">revenue_usd</span><span class="o">=</span><span class="mi">5_000</span><span class="p">)</span>
+<span class="go">Use(revenue_usd=5000, territory='GB')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Use</span><span class="p">()</span>
+<span class="go">Use(revenue_usd=None, territory=None)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">territory</span></code> is not one a gate can place (a name, an
+    alpha-3 code, a region such as <code class="docutils literal notranslate"><span class="pre">&quot;EU&quot;</span></code>), or <code class="docutils literal notranslate"><span class="pre">revenue_usd</span></code> is
+    negative.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#TypeError" title="(in Python v3.15)"><strong>TypeError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">revenue_usd</span></code> is not an <code class="docutils literal notranslate"><span class="pre">int</span></code> (a <code class="docutils literal notranslate"><span class="pre">bool</span></code> is not).</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -3245,6 +3294,25 @@ could not happen while the target was always the highest version.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lacing.normalize_territory">
+<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">normalize_territory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">territory</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/territory.html#normalize_territory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.normalize_territory" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">territory</span></code> as an ISO 3166-1 alpha-2 code (or <code class="xref py py-data docutils literal notranslate"><span class="pre">WORLDWIDE</span></code>), <code class="docutils literal notranslate"><span class="pre">None</span></code> when unstated.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">normalize_territory</span><span class="p">(</span><span class="s2">"world"</span><span class="p">)</span>
+<span class="go">'WORLD'</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If it is not a country code (a name, an alpha-3 code, a
+    region): a gate cannot judge a use it cannot place.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lacing.on_register">
 <span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">on_register</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">listener</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">replay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/schema.html#on_register"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.on_register" title="Link to this definition">#</a></dt>
 <dd><p>Call <code class="docutils literal notranslate"><span class="pre">listener(uri,</span> <span class="pre">model)</span></code> whenever a body schema is registered.</p>
@@ -3488,6 +3556,19 @@ store’s <a class="reference internal" href="#lacing.ArtifactStore.resolve" tit
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lacing.restriction_breach">
+<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">restriction_breach</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restriction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Use(revenue_usd=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">territory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'revenue_cap':</span> <span class="pre">&lt;function</span> <span class="pre">_revenue_cap&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'territory_excluded'</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">&lt;function</span> <span class="pre">_territory_excluded&gt;}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/restrictions.html#restriction_breach"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.restriction_breach" title="Link to this definition">#</a></dt>
+<dd><p>Why <code class="docutils literal notranslate"><span class="pre">use</span></code> breaks <code class="docutils literal notranslate"><span class="pre">restriction</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> (an unstated use by default).</p>
+<p>The reason leads with the restriction’s <code class="docutils literal notranslate"><span class="pre">terms</span></code> when it names them. A kind
+with no entry in <code class="docutils literal notranslate"><span class="pre">checks</span></code> is never cleared (lacing#106’s consumer rule).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lacing.run_processor_async">
 <span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">run_processor_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oplog</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lacing.run_processor_async" title="Link to this definition">#</a></dt>
 <dd><p>Run a processor in the current event loop. For async callers.</p>
@@ -3513,6 +3594,33 @@ active). Most callers from sync code want the former.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lacing.territory_excluded">
+<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">territory_excluded</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">excluded</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">territory</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">regions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'EU':</span> <span class="pre">frozenset({'AT',</span> <span class="pre">'AX',</span> <span class="pre">'BE',</span> <span class="pre">'BG',</span> <span class="pre">'CY',</span> <span class="pre">'CZ',</span> <span class="pre">'DE',</span> <span class="pre">'DK',</span> <span class="pre">'EE',</span> <span class="pre">'ES',</span> <span class="pre">'FI',</span> <span class="pre">'FR',</span> <span class="pre">'GF',</span> <span class="pre">'GP',</span> <span class="pre">'GR',</span> <span class="pre">'HR',</span> <span class="pre">'HU',</span> <span class="pre">'IE',</span> <span class="pre">'IT',</span> <span class="pre">'LT',</span> <span class="pre">'LU',</span> <span class="pre">'LV',</span> <span class="pre">'MF',</span> <span class="pre">'MQ',</span> <span class="pre">'MT',</span> <span class="pre">'NL',</span> <span class="pre">'PL',</span> <span class="pre">'PT',</span> <span class="pre">'RE',</span> <span class="pre">'RO',</span> <span class="pre">'SE',</span> <span class="pre">'SI',</span> <span class="pre">'SK',</span> <span class="pre">'YT'})}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/territory.html#territory_excluded"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.territory_excluded" title="Link to this definition">#</a></dt>
+<dd><p>Whether a use in <code class="docutils literal notranslate"><span class="pre">territory</span></code> falls in <code class="docutils literal notranslate"><span class="pre">excluded</span></code> (a region covers its members).</p>
+<p>It fails closed on both sides. Whenever anything is excluded, an unstated
+territory (<code class="docutils literal notranslate"><span class="pre">None</span></code>), a worldwide one, and one that is not a country code
+all count as excluded. And a recorded code is read through its aliases: one
+that names no country, no key of <code class="docutils literal notranslate"><span class="pre">regions</span></code> and not <code class="xref py py-data docutils literal notranslate"><span class="pre">WORLDWIDE</span></code>
+(a typo such as <code class="docutils literal notranslate"><span class="pre">&quot;Franc&quot;</span></code>) excludes every use, since nobody can tell what
+it meant; a recorded <code class="docutils literal notranslate"><span class="pre">&quot;WORLD&quot;</span></code> excludes every use by definition.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">territory_excluded</span><span class="p">({</span><span class="s2">"KR"</span><span class="p">},</span> <span class="kc">None</span><span class="p">),</span> <span class="n">territory_excluded</span><span class="p">({</span><span class="s2">"UK"</span><span class="p">},</span> <span class="s2">"gb"</span><span class="p">)</span>
+<span class="go">(True, True)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">territory_excluded</span><span class="p">({</span><span class="s2">"KR"</span><span class="p">},</span> <span class="s2">"Korea"</span><span class="p">),</span> <span class="n">territory_excluded</span><span class="p">(</span><span class="nb">set</span><span class="p">(),</span> <span class="kc">None</span><span class="p">)</span>
+<span class="go">(True, False)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">territory_excluded</span><span class="p">({</span><span class="s2">"KR"</span><span class="p">},</span> <span class="s2">"WORLD"</span><span class="p">),</span> <span class="n">territory_excluded</span><span class="p">(</span><span class="nb">set</span><span class="p">(),</span> <span class="s2">"WORLD"</span><span class="p">)</span>
+<span class="go">(True, False)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">territory_excluded</span><span class="p">({</span><span class="s2">"Franc"</span><span class="p">},</span> <span class="s2">"US"</span><span class="p">),</span> <span class="n">territory_excluded</span><span class="p">({</span><span class="s2">"WORLD"</span><span class="p">},</span> <span class="s2">"US"</span><span class="p">)</span>
+<span class="go">(True, True)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lacing.traced">
 <span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">traced</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">span_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/otel.html#traced"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.traced" title="Link to this definition">#</a></dt>
 <dd><p>Decorator: wrap a function in a span on <code class="docutils literal notranslate"><span class="pre">tracer</span></code>.</p>
@@ -3525,6 +3633,23 @@ active). Most callers from sync code want the former.</p>
 args as span attributes <code class="docutils literal notranslate"><span class="pre">arg.&lt;n&gt;</span></code> / <code class="docutils literal notranslate"><span class="pre">kwarg.&lt;name&gt;</span></code>. Off
 by default — args may contain large or sensitive data.</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.unplaceable_codes">
+<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">unplaceable_codes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">codes</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">regions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'EU':</span> <span class="pre">frozenset({'AT',</span> <span class="pre">'AX',</span> <span class="pre">'BE',</span> <span class="pre">'BG',</span> <span class="pre">'CY',</span> <span class="pre">'CZ',</span> <span class="pre">'DE',</span> <span class="pre">'DK',</span> <span class="pre">'EE',</span> <span class="pre">'ES',</span> <span class="pre">'FI',</span> <span class="pre">'FR',</span> <span class="pre">'GF',</span> <span class="pre">'GP',</span> <span class="pre">'GR',</span> <span class="pre">'HR',</span> <span class="pre">'HU',</span> <span class="pre">'IE',</span> <span class="pre">'IT',</span> <span class="pre">'LT',</span> <span class="pre">'LU',</span> <span class="pre">'LV',</span> <span class="pre">'MF',</span> <span class="pre">'MQ',</span> <span class="pre">'MT',</span> <span class="pre">'NL',</span> <span class="pre">'PL',</span> <span class="pre">'PT',</span> <span class="pre">'RE',</span> <span class="pre">'RO',</span> <span class="pre">'SE',</span> <span class="pre">'SI',</span> <span class="pre">'SK',</span> <span class="pre">'YT'})}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/territory.html#unplaceable_codes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.unplaceable_codes" title="Link to this definition">#</a></dt>
+<dd><p>The recorded <code class="docutils literal notranslate"><span class="pre">codes</span></code> no use can be placed against, as recorded: one that
+is not an ISO code, an alias of one, or a region, and <code class="xref py py-data docutils literal notranslate"><span class="pre">WORLDWIDE</span></code>
+(everywhere). A restriction recording any of them excludes every use.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">unplaceable_codes</span><span class="p">([</span><span class="s2">"eu"</span><span class="p">,</span> <span class="s2">"Franc"</span><span class="p">,</span> <span class="s2">"uk"</span><span class="p">,</span> <span class="s2">"WORLD"</span><span class="p">])</span>
+<span class="go">['Franc', 'WORLD']</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -3692,11 +3817,17 @@ when <code class="docutils literal notranslate"><span class="pre">value</span></
 <tr class="row-even"><td><p><a class="reference internal" href="lacing.registry.html#module-lacing.registry" title="lacing.registry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">registry</span></code></a></p></td>
 <td><p>The replacement rule shared by lacing's registries (lacing#19).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.schema.html#module-lacing.schema" title="lacing.schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">schema</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.restrictions.html#module-lacing.restrictions" title="lacing.restrictions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">restrictions</span></code></a></p></td>
+<td><p>What a <a class="reference internal" href="#lacing.Restriction" title="lacing.Restriction"><code class="xref py py-class docutils literal notranslate"><span class="pre">lacing.Restriction</span></code></a> means for one use (reeleehq/an#743).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.schema.html#module-lacing.schema" title="lacing.schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">schema</span></code></a></p></td>
 <td><p>Body schema registry, JSON Schema export, and migrations.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.store.html#module-lacing.store" title="lacing.store"><code class="xref py py-obj docutils literal notranslate"><span class="pre">store</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.store.html#module-lacing.store" title="lacing.store"><code class="xref py py-obj docutils literal notranslate"><span class="pre">store</span></code></a></p></td>
 <td><p>Interval-keyed annotation stores.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.territory.html#module-lacing.territory" title="lacing.territory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">territory</span></code></a></p></td>
+<td><p>Territories: the vocabulary a <code class="docutils literal notranslate"><span class="pre">territory_excluded</span></code> restriction is written in.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="lacing.tier.html#module-lacing.tier" title="lacing.tier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tier</span></code></a></p></td>
 <td><p>Tiers and the five ELAN stereotypes.</p></td>
@@ -3930,6 +4061,7 @@ when <code class="docutils literal notranslate"><span class="pre">value</span></
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.UnknownBodySchemaError"><code class="docutils literal notranslate"><span class="pre">UnknownBodySchemaError</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.Use"><code class="docutils literal notranslate"><span class="pre">Use</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.accepted_value_digests"><code class="docutils literal notranslate"><span class="pre">accepted_value_digests()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.annotation_body_digest"><code class="docutils literal notranslate"><span class="pre">annotation_body_digest()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.annotation_value_digest"><code class="docutils literal notranslate"><span class="pre">annotation_value_digest()</span></code></a></li>
@@ -3956,6 +4088,7 @@ when <code class="docutils literal notranslate"><span class="pre">value</span></
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.migrate"><code class="docutils literal notranslate"><span class="pre">migrate()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.migrate_annot_file"><code class="docutils literal notranslate"><span class="pre">migrate_annot_file()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.migrate_to_default"><code class="docutils literal notranslate"><span class="pre">migrate_to_default()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.normalize_territory"><code class="docutils literal notranslate"><span class="pre">normalize_territory()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.on_register"><code class="docutils literal notranslate"><span class="pre">on_register()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.parse_generator_id"><code class="docutils literal notranslate"><span class="pre">parse_generator_id()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.register_body_schema"><code class="docutils literal notranslate"><span class="pre">register_body_schema()</span></code></a></li>
@@ -3967,9 +4100,12 @@ when <code class="docutils literal notranslate"><span class="pre">value</span></
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.render_artifact_exhibit"><code class="docutils literal notranslate"><span class="pre">render_artifact_exhibit()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.replay_oplog"><code class="docutils literal notranslate"><span class="pre">replay_oplog()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.resolve_in_mall"><code class="docutils literal notranslate"><span class="pre">resolve_in_mall()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.restriction_breach"><code class="docutils literal notranslate"><span class="pre">restriction_breach()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.run_processor_async"><code class="docutils literal notranslate"><span class="pre">run_processor_async()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.run_processor_sync"><code class="docutils literal notranslate"><span class="pre">run_processor_sync()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.territory_excluded"><code class="docutils literal notranslate"><span class="pre">territory_excluded()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.traced"><code class="docutils literal notranslate"><span class="pre">traced()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.unplaceable_codes"><code class="docutils literal notranslate"><span class="pre">unplaceable_codes()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.validate_body"><code class="docutils literal notranslate"><span class="pre">validate_body()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.value_digest_matches"><code class="docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.warn_if_malformed"><code class="docutils literal notranslate"><span class="pre">warn_if_malformed()</span></code></a></li>

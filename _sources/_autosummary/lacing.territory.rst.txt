@@ -1,0 +1,24 @@
+lacing.territory
+================
+
+.. automodule:: lacing.territory
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      ISO_COUNTRY_CODES
+      TERRITORY_ALIASES
+      WORLDWIDE
+      EU_MEMBER_STATES
+      REGIONS
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      normalize_territory
+      territory_excluded
+      unplaceable_codes
+   

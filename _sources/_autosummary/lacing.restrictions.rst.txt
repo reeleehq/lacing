@@ -1,0 +1,25 @@
+lacing.restrictions
+===================
+
+.. automodule:: lacing.restrictions
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      RestrictionCheck
+      RESTRICTION_CHECKS
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      restriction_breach
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Use
+   

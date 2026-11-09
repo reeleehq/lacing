@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=5751785c"></script>
+    <script src="../_static/documentation_options.js?v=f329fc45"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.96" />
+  <meta name="docsearch:version" content="0.0.97" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -363,6 +363,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.processors.html">lacing.processors</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.quality.html">lacing.quality</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.registry.html">lacing.registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.restrictions.html">lacing.restrictions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.schema.html">lacing.schema</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.store.html">lacing.store</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.base.html">lacing.store.base</a></li>
@@ -374,6 +375,7 @@
 <li class="toctree-l3"><a class="reference internal" href="lacing.store.sqlite.html">lacing.store.sqlite</a></li>
 </ul>
 </details></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.territory.html">lacing.territory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.tier.html">lacing.tier</a></li>
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">lacing.time</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="lacing.tracks.html">lacing.tracks</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -547,7 +549,8 @@ their rational value, so <code class="docutils literal notranslate"><span class=
 <dt class="sig sig-object py" id="lacing.time.RationalTime.from_seconds">
 <span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_seconds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/time.html#RationalTime.from_seconds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.time.RationalTime.from_seconds" title="Link to this definition">#</a></dt>
 <dd><p>Build from seconds. Quantizes to <code class="docutils literal notranslate"><span class="pre">rate</span></code>; raises if lossy.</p>
-<p><code class="docutils literal notranslate"><span class="pre">seconds</span></code> may be a <code class="docutils literal notranslate"><span class="pre">str</span></code> like <code class="docutils literal notranslate"><span class="pre">&quot;1.001&quot;</span></code> to avoid float ingestion.</p>
+<p><code class="docutils literal notranslate"><span class="pre">seconds</span></code> may be a <code class="docutils literal notranslate"><span class="pre">str</span></code> like <code class="docutils literal notranslate"><span class="pre">&quot;1.001&quot;</span></code> to avoid float ingestion,
+or any real number (see <a class="reference internal" href="#lacing.time.RationalTime.from_seconds_lossy" title="lacing.time.RationalTime.from_seconds_lossy"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_seconds_lossy()</span></code></a>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#lacing.time.RationalTime" title="lacing.time.RationalTime"><code class="xref py py-class docutils literal notranslate"><span class="pre">RationalTime</span></code></a></span></p>
@@ -568,6 +571,10 @@ represented exactly — this method always succeeds by quantizing.
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;floor&quot;</span></code> — largest sample &lt;= <code class="docutils literal notranslate"><span class="pre">seconds</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;ceil&quot;</span></code>  — smallest sample &gt;= <code class="docutils literal notranslate"><span class="pre">seconds</span></code></p></li>
 </ul>
+<p><code class="docutils literal notranslate"><span class="pre">seconds</span></code> is a <code class="docutils literal notranslate"><span class="pre">str</span></code> (parsed exactly), or any real number: a
+<code class="docutils literal notranslate"><span class="pre">Rational</span></code> (<code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">Fraction</span></code>, <code class="docutils literal notranslate"><span class="pre">np.int64</span></code>) is taken exactly, any
+other <code class="docutils literal notranslate"><span class="pre">numbers.Real</span></code> (<code class="docutils literal notranslate"><span class="pre">float</span></code>, <code class="docutils literal notranslate"><span class="pre">np.float32</span></code>, <code class="docutils literal notranslate"><span class="pre">np.float64</span></code>) as
+the float’s own value. <code class="docutils literal notranslate"><span class="pre">bool</span></code> and non-finite values are refused.</p>
 <p>Use this when sample-level quantization is knowingly acceptable —
 the common case for user-supplied durations. Use <a class="reference internal" href="#lacing.time.RationalTime.from_seconds" title="lacing.time.RationalTime.from_seconds"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_seconds()</span></code></a>
 when exactness matters and a lossy conversion should be an error.</p>

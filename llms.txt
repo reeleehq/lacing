@@ -47,6 +47,7 @@
 - [lacing.processors](_autosummary/lacing.processors.html.md): Background processors — pluggable jobs that run against a store + op-log.
 - [lacing.quality](_autosummary/lacing.quality.html.md): Inter-annotator agreement and boundary metrics.
 - [lacing.registry](_autosummary/lacing.registry.html.md): The replacement rule shared by lacing’s registries (lacing#19).
+- [lacing.restrictions](_autosummary/lacing.restrictions.html.md): What a &#96;lacing.Restriction&#96; means for one use (reeleehq/an#743).
 - [lacing.schema](_autosummary/lacing.schema.html.md): Body schema registry, JSON Schema export, and migrations.
 - [lacing.store](_autosummary/lacing.store.html.md): Interval-keyed annotation stores.
 - [lacing.store.base](_autosummary/lacing.store.base.html.md): &#96;IntervalAnnotationStore&#96; — the headline Pythonic API.
@@ -56,13 +57,14 @@
 - [lacing.store.migrations](_autosummary/lacing.store.migrations.html.md): Store-level schema migrations — the on-disk counterpart of the body ladder.
 - [lacing.store.postgres](_autosummary/lacing.store.postgres.html.md): PostgreSQL-backed annotation store using &#96;int8range&#96; + GiST.
 - [lacing.store.sqlite](_autosummary/lacing.store.sqlite.html.md): SQLite-backed annotation store and the &#96;.annot&#96; portable file format.
+- [lacing.territory](_autosummary/lacing.territory.html.md): Territories: the vocabulary a &#96;territory_excluded&#96; restriction is written in.
 - [lacing.tier](_autosummary/lacing.tier.html.md): Tiers and the five ELAN stereotypes.
 - [lacing.time](_autosummary/lacing.time.html.md): Rational time and half-open intervals — the foundations.
 - [lacing.tracks](_autosummary/lacing.tracks.html.md): High-level “track-shaped” facades on top of &#96;lacing&#96;.
 - [lacing.tracks.subtitle](_autosummary/lacing.tracks.subtitle.html.md): Subtitle / lyric / caption tracks — the (sections, lines, words) trio.
 - [lacing.worker](_autosummary/lacing.worker.html.md): Optional Arq integration — queue processors through Redis.
 - [For AI agents](ai-agents.html.md): &#96;lacing&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-09 02:02 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-09 02:10 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
 
 ## Optional
 

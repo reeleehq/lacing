@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=5751785c"></script>
+    <script src="../../_static/documentation_options.js?v=f329fc45"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.96" />
+  <meta name="docsearch:version" content="0.0.97" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -726,6 +726,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numbers</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fractions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fraction</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
@@ -793,6 +794,32 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">at or before, or at or after, the exact value."""</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_seconds_as_fraction</span><span class="p">(</span><span class="n">seconds</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Fraction</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``seconds`` as the exact ``Fraction`` it denotes (see</span>
+<span class="sd">    :meth:`RationalTime.from_seconds_lossy` for what is accepted).</span>
+
+<span class="sd">    &gt;&gt;&gt; _seconds_as_fraction("0.25"), _seconds_as_fraction(3), _seconds_as_fraction(0.5)</span>
+<span class="sd">    (Fraction(1, 4), Fraction(3, 1), Fraction(1, 2))</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Fraction</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"seconds must be str or a real number (int, float, Fraction, numpy "</span>
+            <span class="sa">f</span><span class="s2">"scalar); got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="c1"># int() each part: a numpy integer would wrap around in ``f * rate``.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Rational</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Fraction</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">seconds</span><span class="o">.</span><span class="n">numerator</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">seconds</span><span class="o">.</span><span class="n">denominator</span><span class="p">))</span>
+    <span class="c1"># float, np.floating (longdouble included), Decimal: the value's own ratio</span>
+    <span class="n">as_ratio</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="s2">"as_integer_ratio"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ratio</span> <span class="o">=</span> <span class="n">as_ratio</span><span class="p">()</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">as_ratio</span><span class="p">)</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span><span class="o">.</span><span class="n">as_integer_ratio</span><span class="p">()</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">OverflowError</span><span class="p">):</span>  <span class="c1"># nan, inf</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"seconds must be finite, got </span><span class="si">{</span><span class="n">seconds</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+    <span class="k">return</span> <span class="n">Fraction</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">ratio</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">ratio</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+
 <div class="viewcode-block" id="RationalTime">
 <a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.RationalTime">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RationalTime</span><span class="p">:</span>
@@ -832,24 +859,14 @@ window.runMermaid = runMermaid;</script>
 <a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.RationalTime.from_seconds">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_seconds</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span> <span class="n">seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Fraction</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_RATE</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">seconds</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_RATE</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"RationalTime"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Build from seconds. Quantizes to ``rate``; raises if lossy.</span>
 
-<span class="sd">        ``seconds`` may be a ``str`` like ``"1.001"`` to avoid float ingestion.</span>
+<span class="sd">        ``seconds`` may be a ``str`` like ``"1.001"`` to avoid float ingestion,</span>
+<span class="sd">        or any real number (see :meth:`from_seconds_lossy`).</span>
 <span class="sd">        """</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">f</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="n">Fraction</span><span class="p">):</span>
-            <span class="n">f</span> <span class="o">=</span> <span class="n">seconds</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
-            <span class="n">f</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
-            <span class="n">f</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"seconds must be str, int, float, or Fraction; got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
-            <span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">_seconds_as_fraction</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
         <span class="n">scaled</span> <span class="o">=</span> <span class="n">f</span> <span class="o">*</span> <span class="n">rate</span>
         <span class="k">if</span> <span class="n">scaled</span><span class="o">.</span><span class="n">denominator</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">LossyTimeConversionError</span><span class="p">(</span>
@@ -863,7 +880,7 @@ window.runMermaid = runMermaid;</script>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_seconds_lossy</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Fraction</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">seconds</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_RATE</span><span class="p">,</span>
         <span class="n">mode</span><span class="p">:</span> <span class="n">QuantizeMode</span> <span class="o">=</span> <span class="s2">"round"</span><span class="p">,</span>
@@ -879,6 +896,11 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        - ``"floor"`` — largest sample &lt;= ``seconds``</span>
 <span class="sd">        - ``"ceil"``  — smallest sample &gt;= ``seconds``</span>
 
+<span class="sd">        ``seconds`` is a ``str`` (parsed exactly), or any real number: a</span>
+<span class="sd">        ``Rational`` (``int``, ``Fraction``, ``np.int64``) is taken exactly, any</span>
+<span class="sd">        other ``numbers.Real`` (``float``, ``np.float32``, ``np.float64``) as</span>
+<span class="sd">        the float's own value. ``bool`` and non-finite values are refused.</span>
+
 <span class="sd">        Use this when sample-level quantization is knowingly acceptable —</span>
 <span class="sd">        the common case for user-supplied durations. Use :meth:`from_seconds`</span>
 <span class="sd">        when exactness matters and a lossy conversion should be an error.</span>
@@ -889,21 +911,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            &gt;&gt;&gt; RationalTime.from_seconds_lossy("0.1", rate=3, mode="ceil").value</span>
 <span class="sd">            1</span>
 <span class="sd">        """</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">f</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"seconds must be str, int, float, or Fraction; got bool"</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">Fraction</span><span class="p">)):</span>
-            <span class="n">f</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">seconds</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">seconds</span><span class="p">):</span>  <span class="c1"># Fraction raises OverflowError for inf</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"seconds must be finite, got </span><span class="si">{</span><span class="n">seconds</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-            <span class="n">f</span> <span class="o">=</span> <span class="n">Fraction</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"seconds must be str, int, float, or Fraction; "</span>
-                <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
-            <span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">_seconds_as_fraction</span><span class="p">(</span><span class="n">seconds</span><span class="p">)</span>
         <span class="n">scaled</span> <span class="o">=</span> <span class="n">f</span> <span class="o">*</span> <span class="n">rate</span>
         <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"round"</span><span class="p">:</span>
             <span class="n">quantized</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">scaled</span><span class="p">)</span>
@@ -1159,8 +1167,8 @@ window.runMermaid = runMermaid;</script>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_seconds_lossy</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">start</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Fraction</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">end</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Fraction</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">start</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">,</span>
+        <span class="n">end</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_RATE</span><span class="p">,</span>
         <span class="n">mode</span><span class="p">:</span> <span class="n">QuantizeMode</span> <span class="o">=</span> <span class="s2">"round"</span><span class="p">,</span>

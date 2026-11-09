@@ -77,7 +77,8 @@ True
 
 Build from seconds. Quantizes to `rate`; raises if lossy.
 
-`seconds` may be a `str` like `"1.001"` to avoid float ingestion.
+`seconds` may be a `str` like `"1.001"` to avoid float ingestion,
+or any real number (see [`from_seconds_lossy()`](#lacing.time.RationalTime.from_seconds_lossy)).
 
 * **Return type:**
   [`RationalTime`](#lacing.time.RationalTime)
@@ -94,6 +95,11 @@ represented exactly — this method always succeeds by quantizing.
 - `"round"` — nearest sample, ties to even (default)
 - `"floor"` — largest sample <= `seconds`
 - `"ceil"`  — smallest sample >= `seconds`
+
+`seconds` is a `str` (parsed exactly), or any real number: a
+`Rational` (`int`, `Fraction`, `np.int64`) is taken exactly, any
+other `numbers.Real` (`float`, `np.float32`, `np.float64`) as
+the float’s own value. `bool` and non-finite values are refused.
 
 Use this when sample-level quantization is knowingly acceptable —
 the common case for user-supplied durations. Use [`from_seconds()`](#lacing.time.RationalTime.from_seconds)

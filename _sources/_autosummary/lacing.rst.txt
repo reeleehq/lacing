@@ -11,6 +11,10 @@
       generator_id_findings
       parse_generator_id
       warn_if_malformed
+      restriction_breach
+      normalize_territory
+      territory_excluded
+      unplaceable_codes
       keep_rights
       resolve_in_mall
       content_hash_of
@@ -69,6 +73,7 @@
       Artifact
       Rights
       Restriction
+      Use
       ArtifactStore
       ResolvedArtifact
       ArtifactRef
@@ -124,9 +129,11 @@
    processors
    quality
    registry
+   restrictions
    schema
    server
    store
+   territory
    tier
    time
    tracks

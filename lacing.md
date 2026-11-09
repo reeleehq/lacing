@@ -1,4 +1,4 @@
-> built 2026-11-09 02:02 UTC from 4a3cec0 (main) · lacing 0.0.96. Details: build_info.json
+> built 2026-11-09 02:10 UTC from 4e67f6d (main) · lacing 0.0.97. Details: build_info.json
 
 # index.html.md
 
@@ -4844,6 +4844,10 @@ full story. `.claude/skills/` contains the rules.
 |------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [`parse_generator_id`](_autosummary/lacing.html.md#lacing.parse_generator_id)(value)                           | Parse `value`, or return `None` when it is not of the generator-id shape.                                                                                                                                                                                                                                                                                                                                                               |
 | [`warn_if_malformed`](_autosummary/lacing.html.md#lacing.warn_if_malformed)(value)                            | Emit a [`GeneratorIdWarning`](_autosummary/lacing.html.md#lacing.GeneratorIdWarning), pointed at the caller outside lacing, when `value` is not of the generator-id shape; return `value`.                                                                                                                                                                                                                                                        |
+| [`restriction_breach`](_autosummary/lacing.html.md#lacing.restriction_breach)(restriction[, use, checks])      | Why `use` breaks `restriction`, or `None` (an unstated use by default).                                                                                                                                                                                                                                                                                                                                                                 |
+| [`normalize_territory`](_autosummary/lacing.html.md#lacing.normalize_territory)(territory)                      | `territory` as an ISO 3166-1 alpha-2 code (or `WORLDWIDE`), `None` when unstated.                                                                                                                                                                                                                                                                                                                                                       |
+| [`territory_excluded`](_autosummary/lacing.html.md#lacing.territory_excluded)(excluded, territory, \*[, ...])  | Whether a use in `territory` falls in `excluded` (a region covers its members).                                                                                                                                                                                                                                                                                                                                                         |
+| [`unplaceable_codes`](_autosummary/lacing.html.md#lacing.unplaceable_codes)(codes, \*[, regions])             | The recorded `codes` no use can be placed against, as recorded: one that is not an ISO code, an alias of one, or a region, and `WORLDWIDE` (everywhere).                                                                                                                                                                                                                                                                                |
 | [`keep_rights`](_autosummary/lacing.html.md#lacing.keep_rights)(record, previous, \*[, content_hash])   | `record`, carrying forward the `rights` of the record it replaces when it states none for the same bytes (lacing#60; the choice is in lacing#94).                                                                                                                                                                                                                                                                                       |
 | [`resolve_in_mall`](_autosummary/lacing.html.md#lacing.resolve_in_mall)(ref, mall, \*, default_store)       | What `ref` names in `mall` (store names -> [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)).                                                                                                                                                                                                                                                                                                                             |
 | [`content_hash_of`](_autosummary/lacing.html.md#lacing.content_hash_of)(record)                             | The content hash naming `record`'s bytes in the blob store, if it has one.                                                                                                                                                                                                                                                                                                                                                              |
@@ -4901,6 +4905,7 @@ full story. `.claude/skills/` contains the rules.
 | [`Artifact`](_autosummary/lacing.html.md#lacing.Artifact)(\*, asset_id, kind[, path, url, ...])    | A content-addressed generated file with provenance.                                                                                                                                                                |
 | [`Rights`](_autosummary/lacing.html.md#lacing.Rights)(\*, provider[, id, title, license, ...])   | Who owns the bytes of an *acquired* artifact, and on what terms.                                                                                                                                                   |
 | [`Restriction`](_autosummary/lacing.html.md#lacing.Restriction)(\*, kind[, terms])                    | One usage restriction that a licence code does not imply (lacing#106).                                                                                                                                             |
+| [`Use`](_autosummary/lacing.html.md#lacing.Use)(\*[, revenue_usd, territory])                 | One use of an asset, as the restrictions on it ask about it.                                                                                                                                                       |
 | [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)(catalog[, blobs, on_write, ...])    | Facade over an artifact `catalog` and an optional `blobs` store.                                                                                                                                                   |
 | [`ResolvedArtifact`](_autosummary/lacing.html.md#lacing.ResolvedArtifact)(key, record, content_hash, data) | What [`ArtifactStore.resolve()`](_autosummary/lacing.html.md#lacing.ArtifactStore.resolve) found.                                                                                                                               |
 | [`ArtifactRef`](_autosummary/lacing.html.md#lacing.ArtifactRef)(key[, store, pin])                    | A reference to an artifact: its `key`, the `store` that files it when known, and the content `pin` when it names one: the store's content hash, 64 hex digits of SHA-256 (an `Artifact.asset_id`), kept lowercase. |
@@ -6131,7 +6136,8 @@ True
 
 Build from seconds. Quantizes to `rate`; raises if lossy.
 
-`seconds` may be a `str` like `"1.001"` to avoid float ingestion.
+`seconds` may be a `str` like `"1.001"` to avoid float ingestion,
+or any real number (see [`from_seconds_lossy()`](_autosummary/lacing.html.md#lacing.RationalTime.from_seconds_lossy)).
 
 * **Return type:**
   [`RationalTime`](_autosummary/lacing.time.html.md#lacing.time.RationalTime)
@@ -6148,6 +6154,11 @@ represented exactly — this method always succeeds by quantizing.
 - `"round"` — nearest sample, ties to even (default)
 - `"floor"` — largest sample <= `seconds`
 - `"ceil"`  — smallest sample >= `seconds`
+
+`seconds` is a `str` (parsed exactly), or any real number: a
+`Rational` (`int`, `Fraction`, `np.int64`) is taken exactly, any
+other `numbers.Real` (`float`, `np.float32`, `np.float64`) as
+the float’s own value. `bool` and non-finite values are refused.
 
 Use this when sample-level quantization is knowingly acceptable —
 the common case for user-supplied durations. Use [`from_seconds()`](_autosummary/lacing.html.md#lacing.RationalTime.from_seconds)
@@ -6502,6 +6513,30 @@ Build from the wire form. See [`RationalTime.from_wire()`](_autosummary/lacing.h
 Bases: [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError)
 
 Raised when an annotation’s body_schema_uri has no registered model.
+
+### *class* lacing.Use(, revenue_usd=None, territory=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+One use of an asset, as the restrictions on it ask about it.
+
+`revenue_usd` is the user’s annual revenue in whole US dollars and
+`territory` where the use happens (an ISO 3166-1 alpha-2 code, an alias
+such as `"UK"`, or [`lacing.territory.WORLDWIDE`](_autosummary/lacing.territory.html.md#lacing.territory.WORLDWIDE)); `None` leaves
+either unstated, which fails closed against a restriction that asks.
+
+```pycon
+>>> Use(territory=" uk ", revenue_usd=5_000)
+Use(revenue_usd=5000, territory='GB')
+>>> Use()
+Use(revenue_usd=None, territory=None)
+```
+
+* **Raises:**
+  * [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – If `territory` is not one a gate can place (a name, an
+        alpha-3 code, a region such as `"EU"`), or `revenue_usd` is
+        negative.
+  * [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError) – If `revenue_usd` is not an `int` (a `bool` is not).
 
 ### lacing.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
 
@@ -7042,6 +7077,21 @@ could not happen while the target was always the highest version.
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
+### lacing.normalize_territory(territory)
+
+`territory` as an ISO 3166-1 alpha-2 code (or `WORLDWIDE`), `None` when unstated.
+
+```pycon
+>>> normalize_territory("world")
+'WORLD'
+```
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – If it is not a country code (a name, an alpha-3 code, a
+      region): a gate cannot judge a use it cannot place.
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### lacing.on_register(listener, , replay=True)
 
 Call `listener(uri, model)` whenever a body schema is registered.
@@ -7245,6 +7295,16 @@ store’s [`ArtifactStore.resolve()`](_autosummary/lacing.html.md#lacing.Artifac
 b'x'
 ```
 
+### lacing.restriction_breach(restriction, use=Use(revenue_usd=None, territory=None), \*, checks={'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>})
+
+Why `use` breaks `restriction`, or `None` (an unstated use by default).
+
+The reason leads with the restriction’s `terms` when it names them. A kind
+with no entry in `checks` is never cleared (lacing#106’s consumer rule).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### *async* lacing.run_processor_async(name, , store, oplog, \*\*kwargs)
 
 Run a processor in the current event loop. For async callers.
@@ -7263,6 +7323,31 @@ active). Most callers from sync code want the former.
 * **Return type:**
   [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
 
+### lacing.territory_excluded(excluded, territory, , regions={'EU': frozenset({'AT', 'AX', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GF', 'GP', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MF', 'MQ', 'MT', 'NL', 'PL', 'PT', 'RE', 'RO', 'SE', 'SI', 'SK', 'YT'})})
+
+Whether a use in `territory` falls in `excluded` (a region covers its members).
+
+It fails closed on both sides. Whenever anything is excluded, an unstated
+territory (`None`), a worldwide one, and one that is not a country code
+all count as excluded. And a recorded code is read through its aliases: one
+that names no country, no key of `regions` and not `WORLDWIDE`
+(a typo such as `"Franc"`) excludes every use, since nobody can tell what
+it meant; a recorded `"WORLD"` excludes every use by definition.
+
+```pycon
+>>> territory_excluded({"KR"}, None), territory_excluded({"UK"}, "gb")
+(True, True)
+>>> territory_excluded({"KR"}, "Korea"), territory_excluded(set(), None)
+(True, False)
+>>> territory_excluded({"KR"}, "WORLD"), territory_excluded(set(), "WORLD")
+(True, False)
+>>> territory_excluded({"Franc"}, "US"), territory_excluded({"WORLD"}, "US")
+(True, True)
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 ### lacing.traced(tracer, span_name=None, , record_args=False)
 
 Decorator: wrap a function in a span on `tracer`.
@@ -7273,6 +7358,20 @@ Decorator: wrap a function in a span on `tracer`.
   * **record_args** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – If True, attach (str-coerced) positional + keyword
     args as span attributes `arg.<n>` / `kwarg.<name>`. Off
     by default — args may contain large or sensitive data.
+
+### lacing.unplaceable_codes(codes, , regions={'EU': frozenset({'AT', 'AX', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GF', 'GP', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MF', 'MQ', 'MT', 'NL', 'PL', 'PT', 'RE', 'RO', 'SE', 'SI', 'SK', 'YT'})})
+
+The recorded `codes` no use can be placed against, as recorded: one that
+is not an ISO code, an alias of one, or a region, and `WORLDWIDE`
+(everywhere). A restriction recording any of them excludes every use.
+
+```pycon
+>>> unplaceable_codes(["eu", "Franc", "uk", "WORLD"])
+['Franc', 'WORLD']
+```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### lacing.validate_body(body, uri)
 
@@ -7378,31 +7477,33 @@ The advisory check [`lacing.Provenance`](_autosummary/lacing.html.md#lacing.Prov
 
 ### Modules
 
-| [`adapters`](_autosummary/lacing.adapters.html.md#module-lacing.adapters)             | I/O adapter registry.                                                               |
-|----------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| [`allen`](_autosummary/lacing.allen.html.md#module-lacing.allen)                   | Allen's 13 interval relations as pure predicates.                                   |
-| [`artifact`](_autosummary/lacing.artifact.html.md#module-lacing.artifact)             | Content-addressed artifact references.                                              |
-| [`artifact_ref`](_autosummary/lacing.artifact_ref.html.md#module-lacing.artifact_ref)     | One spelling for a reference to an artifact: `artifact:[<store>/]<key>[@<sha256>]`. |
-| [`artifact_store`](_autosummary/lacing.artifact_store.html.md#module-lacing.artifact_store) | Artifact store — a metadata catalog and a blob store behind one facade.             |
-| [`bodies`](_autosummary/lacing.bodies.html.md#module-lacing.bodies)                 | Built-in body schemas.                                                              |
-| [`cli`](_autosummary/lacing.cli.html.md#module-lacing.cli)                       | Command-line interface for lacing.                                                  |
-| [`derived`](_autosummary/lacing.derived.html.md#module-lacing.derived)               | Which body fields are *derived* from another field of the same object.              |
-| [`digest`](_autosummary/lacing.digest.html.md#module-lacing.digest)                 | Content digests over an annotation's *value* — the freshness primitive.             |
-| [`exhibit`](_autosummary/lacing.exhibit.html.md#module-lacing.exhibit)               | Artifact exhibit — render an annotation graph as a readable document.               |
-| [`generator_id`](_autosummary/lacing.generator_id.html.md#module-lacing.generator_id)     | The grammar of `Provenance.was_generated_by`, and an advisory check of it.          |
-| [`locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)           | Which body fields hold locations (urls, file paths).                                |
-| [`model`](_autosummary/lacing.model.html.md#module-lacing.model)                   | Annotation envelope, references, and provenance.                                    |
-| [`oplog`](_autosummary/lacing.oplog.html.md#module-lacing.oplog)                   | Operation log for time-travel debug + audit.                                        |
-| [`otel`](_autosummary/lacing.otel.html.md#module-lacing.otel)                     | Optional OpenTelemetry instrumentation for the lacing server.                       |
-| [`processors`](_autosummary/lacing.processors.html.md#module-lacing.processors)         | Background processors — pluggable jobs that run against a store + op-log.           |
-| [`quality`](_autosummary/lacing.quality.html.md#module-lacing.quality)               | Inter-annotator agreement and boundary metrics.                                     |
-| [`registry`](_autosummary/lacing.registry.html.md#module-lacing.registry)             | The replacement rule shared by lacing's registries (lacing#19).                     |
-| [`schema`](_autosummary/lacing.schema.html.md#module-lacing.schema)                 | Body schema registry, JSON Schema export, and migrations.                           |
-| [`store`](_autosummary/lacing.store.html.md#module-lacing.store)                   | Interval-keyed annotation stores.                                                   |
-| [`tier`](_autosummary/lacing.tier.html.md#module-lacing.tier)                     | Tiers and the five ELAN stereotypes.                                                |
-| [`time`](_autosummary/lacing.time.html.md#module-lacing.time)                     | Rational time and half-open intervals — the foundations.                            |
-| [`tracks`](_autosummary/lacing.tracks.html.md#module-lacing.tracks)                 | High-level "track-shaped" facades on top of `lacing`.                               |
-| [`worker`](_autosummary/lacing.worker.html.md#module-lacing.worker)                 | Optional Arq integration — queue processors through Redis.                          |
+| [`adapters`](_autosummary/lacing.adapters.html.md#module-lacing.adapters)             | I/O adapter registry.                                                                                           |
+|----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| [`allen`](_autosummary/lacing.allen.html.md#module-lacing.allen)                   | Allen's 13 interval relations as pure predicates.                                                               |
+| [`artifact`](_autosummary/lacing.artifact.html.md#module-lacing.artifact)             | Content-addressed artifact references.                                                                          |
+| [`artifact_ref`](_autosummary/lacing.artifact_ref.html.md#module-lacing.artifact_ref)     | One spelling for a reference to an artifact: `artifact:[<store>/]<key>[@<sha256>]`.                             |
+| [`artifact_store`](_autosummary/lacing.artifact_store.html.md#module-lacing.artifact_store) | Artifact store — a metadata catalog and a blob store behind one facade.                                         |
+| [`bodies`](_autosummary/lacing.bodies.html.md#module-lacing.bodies)                 | Built-in body schemas.                                                                                          |
+| [`cli`](_autosummary/lacing.cli.html.md#module-lacing.cli)                       | Command-line interface for lacing.                                                                              |
+| [`derived`](_autosummary/lacing.derived.html.md#module-lacing.derived)               | Which body fields are *derived* from another field of the same object.                                          |
+| [`digest`](_autosummary/lacing.digest.html.md#module-lacing.digest)                 | Content digests over an annotation's *value* — the freshness primitive.                                         |
+| [`exhibit`](_autosummary/lacing.exhibit.html.md#module-lacing.exhibit)               | Artifact exhibit — render an annotation graph as a readable document.                                           |
+| [`generator_id`](_autosummary/lacing.generator_id.html.md#module-lacing.generator_id)     | The grammar of `Provenance.was_generated_by`, and an advisory check of it.                                      |
+| [`locations`](_autosummary/lacing.locations.html.md#module-lacing.locations)           | Which body fields hold locations (urls, file paths).                                                            |
+| [`model`](_autosummary/lacing.model.html.md#module-lacing.model)                   | Annotation envelope, references, and provenance.                                                                |
+| [`oplog`](_autosummary/lacing.oplog.html.md#module-lacing.oplog)                   | Operation log for time-travel debug + audit.                                                                    |
+| [`otel`](_autosummary/lacing.otel.html.md#module-lacing.otel)                     | Optional OpenTelemetry instrumentation for the lacing server.                                                   |
+| [`processors`](_autosummary/lacing.processors.html.md#module-lacing.processors)         | Background processors — pluggable jobs that run against a store + op-log.                                       |
+| [`quality`](_autosummary/lacing.quality.html.md#module-lacing.quality)               | Inter-annotator agreement and boundary metrics.                                                                 |
+| [`registry`](_autosummary/lacing.registry.html.md#module-lacing.registry)             | The replacement rule shared by lacing's registries (lacing#19).                                                 |
+| [`restrictions`](_autosummary/lacing.restrictions.html.md#module-lacing.restrictions)     | What a [`lacing.Restriction`](_autosummary/lacing.html.md#lacing.Restriction) means for one use (reeleehq/an#743). |
+| [`schema`](_autosummary/lacing.schema.html.md#module-lacing.schema)                 | Body schema registry, JSON Schema export, and migrations.                                                       |
+| [`store`](_autosummary/lacing.store.html.md#module-lacing.store)                   | Interval-keyed annotation stores.                                                                               |
+| [`territory`](_autosummary/lacing.territory.html.md#module-lacing.territory)           | Territories: the vocabulary a `territory_excluded` restriction is written in.                                   |
+| [`tier`](_autosummary/lacing.tier.html.md#module-lacing.tier)                     | Tiers and the five ELAN stereotypes.                                                                            |
+| [`time`](_autosummary/lacing.time.html.md#module-lacing.time)                     | Rational time and half-open intervals — the foundations.                                                        |
+| [`tracks`](_autosummary/lacing.tracks.html.md#module-lacing.tracks)                 | High-level "track-shaped" facades on top of `lacing`.                                                           |
+| [`worker`](_autosummary/lacing.worker.html.md#module-lacing.worker)                 | Optional Arq integration — queue processors through Redis.                                                      |
 
 
 # _autosummary/lacing.locations.html.md
@@ -8220,6 +8321,104 @@ next lacing release. Warn first, raise later.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+
+# _autosummary/lacing.restrictions.html.md
+
+# lacing.restrictions
+
+What a [`lacing.Restriction`](_autosummary/lacing.html.md#lacing.Restriction) means for one use (reeleehq/an#743).
+
+lacing records a restriction and never classifies the licence it sits on top
+of; this module answers the one question every consumer otherwise answers on
+its own: *does this use break it?* [`restriction_breach()`](_autosummary/lacing.restrictions.html.md#lacing.restrictions.restriction_breach) returns why, or
+`None`. Each well-known kind has a check in [`RESTRICTION_CHECKS`](_autosummary/lacing.restrictions.html.md#lacing.restrictions.RESTRICTION_CHECKS); a kind
+with no check is not cleared, as [`lacing.Restriction`](_autosummary/lacing.html.md#lacing.Restriction) documents.
+
+A use is a [`Use`](_autosummary/lacing.restrictions.html.md#lacing.restrictions.Use): its annual revenue (`revenue_usd`) and its
+territory (`territory`, normalised by
+[`lacing.territory.normalize_territory()`](_autosummary/lacing.territory.html.md#lacing.territory.normalize_territory) when the `Use` is made, so a
+territory nobody can place is refused there, once). An unstated one fails
+closed against any restriction that asks about it.
+
+```pycon
+>>> from lacing import Restriction
+>>> cap = Restriction(kind="revenue_cap", usd=1_000_000, terms="stability-community")
+>>> restriction_breach(cap, Use(revenue_usd=20_000)) is None
+True
+>>> restriction_breach(cap, Use(revenue_usd=2_000_000))
+'stability-community: allowed only below $1,000,000 of revenue (the use: $2,000,000)'
+>>> eu = Restriction(kind="territory_excluded", codes=["EU", "GB"])
+>>> restriction_breach(eu, Use(territory="US")) is None, restriction_breach(eu, Use(territory="fr"))
+(True, 'not allowed in EU, GB (the use: FR)')
+>>> restriction_breach(Restriction(kind="no_broadcast"))
+"an unknown restriction 'no_broadcast': not cleared"
+```
+
+### Module Attributes
+
+| [`RestrictionCheck`](_autosummary/lacing.restrictions.html.md#lacing.restrictions.RestrictionCheck)   | `(restriction, use)` -> why the use breaks it, or `None`.   |
+|---------------------------------------------------------------------|-------------------------------------------------------------|
+| [`RESTRICTION_CHECKS`](_autosummary/lacing.restrictions.html.md#lacing.restrictions.RESTRICTION_CHECKS) | The check of each well-known kind.                          |
+
+### Functions
+
+| [`restriction_breach`](_autosummary/lacing.restrictions.html.md#lacing.restrictions.restriction_breach)(restriction[, use, checks])   | Why `use` breaks `restriction`, or `None` (an unstated use by default).   |
+|---------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+
+### Classes
+
+| [`Use`](_autosummary/lacing.restrictions.html.md#lacing.restrictions.Use)(\*[, revenue_usd, territory])   | One use of an asset, as the restrictions on it ask about it.   |
+|--------------------------------------------------------------------------------------|----------------------------------------------------------------|
+
+### lacing.restrictions.RESTRICTION_CHECKS *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Callable](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[Restriction](_autosummary/lacing.artifact.html.md#lacing.artifact.Restriction), [Use](_autosummary/lacing.restrictions.html.md#lacing.restrictions.Use)], [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)]]* *= {'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>}*
+
+The check of each well-known kind. A consumer that knows another kind passes
+its own map (`checks=`); a kind missing from the map is not cleared.
+
+### lacing.restrictions.RestrictionCheck
+
+`(restriction, use)` -> why the use breaks it, or
+`None`. The restriction’s parameters are already validated.
+
+* **Type:**
+  A kind’s check
+
+alias of [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Restriction`](_autosummary/lacing.artifact.html.md#lacing.artifact.Restriction), [`Use`](_autosummary/lacing.restrictions.html.md#lacing.restrictions.Use)], str | None]
+
+### *class* lacing.restrictions.Use(, revenue_usd=None, territory=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+One use of an asset, as the restrictions on it ask about it.
+
+`revenue_usd` is the user’s annual revenue in whole US dollars and
+`territory` where the use happens (an ISO 3166-1 alpha-2 code, an alias
+such as `"UK"`, or [`lacing.territory.WORLDWIDE`](_autosummary/lacing.territory.html.md#lacing.territory.WORLDWIDE)); `None` leaves
+either unstated, which fails closed against a restriction that asks.
+
+```pycon
+>>> Use(territory=" uk ", revenue_usd=5_000)
+Use(revenue_usd=5000, territory='GB')
+>>> Use()
+Use(revenue_usd=None, territory=None)
+```
+
+* **Raises:**
+  * [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – If `territory` is not one a gate can place (a name, an
+        alpha-3 code, a region such as `"EU"`), or `revenue_usd` is
+        negative.
+  * [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError) – If `revenue_usd` is not an `int` (a `bool` is not).
+
+### lacing.restrictions.restriction_breach(restriction, use=Use(revenue_usd=None, territory=None), \*, checks={'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>})
+
+Why `use` breaks `restriction`, or `None` (an unstated use by default).
+
+The reason leads with the restriction’s `terms` when it names them. A kind
+with no entry in `checks` is never cleared (lacing#106’s consumer rule).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 
 # _autosummary/lacing.schema.html.md
@@ -10027,6 +10226,125 @@ Persist an in-memory store to a new `.annot` file.
 Load a `.annot` file fully into a `MemoryStore`.
 
 
+# _autosummary/lacing.territory.html.md
+
+# lacing.territory
+
+Territories: the vocabulary a `territory_excluded` restriction is written in.
+
+A [`lacing.Restriction`](_autosummary/lacing.html.md#lacing.Restriction) of kind `lacing.TERRITORY_EXCLUDED` records
+its `codes` verbatim (ISO 3166-1 alpha-2 country codes, or a region code such
+as `"EU"`). Reading one against a use needs the code set, the spellings that
+name a country by another code, and what a region covers. They live here, beside
+the kind, so every consumer (foley’s licence gate, an’s credits) reads codes the
+same way instead of keeping its own copy (reeleehq/an#743).
+
+```pycon
+>>> normalize_territory(" uk "), normalize_territory("EL"), normalize_territory("")
+('GB', 'GR', None)
+>>> territory_excluded({"EU", "GB"}, "fr"), territory_excluded({"EU"}, "US")
+(True, False)
+```
+
+### Module Attributes
+
+| [`ISO_COUNTRY_CODES`](_autosummary/lacing.territory.html.md#lacing.territory.ISO_COUNTRY_CODES)   | The ISO 3166-1 alpha-2 country codes (the 249 officially assigned).                                                                                                                                 |
+|----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`TERRITORY_ALIASES`](_autosummary/lacing.territory.html.md#lacing.territory.TERRITORY_ALIASES)   | the UK's common one and the EU's code for Greece.                                                                                                                                                   |
+| [`WORLDWIDE`](_autosummary/lacing.territory.html.md#lacing.territory.WORLDWIDE)           | The territory of a use everywhere (online publishing reaches every country): it falls in any exclusion.                                                                                             |
+| [`EU_MEMBER_STATES`](_autosummary/lacing.territory.html.md#lacing.territory.EU_MEMBER_STATES)    | The EU's member states, with the EU territories that carry their own codes: France's outermost regions (Réunion, French Guiana, Guadeloupe, Martinique, Mayotte, Saint-Martin) and Finland's Åland. |
+| [`REGIONS`](_autosummary/lacing.territory.html.md#lacing.territory.REGIONS)             | Region codes an exclusion may name, and the country codes each covers.                                                                                                                              |
+
+### Functions
+
+| [`normalize_territory`](_autosummary/lacing.territory.html.md#lacing.territory.normalize_territory)(territory)                     | `territory` as an ISO 3166-1 alpha-2 code (or [`WORLDWIDE`](_autosummary/lacing.territory.html.md#lacing.territory.WORLDWIDE)), `None` when unstated.                                                                        |
+|-----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`territory_excluded`](_autosummary/lacing.territory.html.md#lacing.territory.territory_excluded)(excluded, territory, \*[, ...]) | Whether a use in `territory` falls in `excluded` (a region covers its members).                                                                                                                         |
+| [`unplaceable_codes`](_autosummary/lacing.territory.html.md#lacing.territory.unplaceable_codes)(codes, \*[, regions])            | The recorded `codes` no use can be placed against, as recorded: one that is not an ISO code, an alias of one, or a region, and [`WORLDWIDE`](_autosummary/lacing.territory.html.md#lacing.territory.WORLDWIDE) (everywhere). |
+
+### lacing.territory.EU_MEMBER_STATES *: [frozenset](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= frozenset({'AT', 'AX', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GF', 'GP', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MF', 'MQ', 'MT', 'NL', 'PL', 'PT', 'RE', 'RO', 'SE', 'SI', 'SK', 'YT'})*
+
+The EU’s member states, with the EU territories that carry their own codes:
+France’s outermost regions (Réunion, French Guiana, Guadeloupe, Martinique,
+Mayotte, Saint-Martin) and Finland’s Åland. (The Canaries, Azores, Madeira,
+Ceuta and Melilla have none.)
+
+### lacing.territory.ISO_COUNTRY_CODES *: [frozenset](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= frozenset({'AD', 'AE', 'AF', 'AG', 'AI', 'AL', 'AM', 'AO', 'AQ', 'AR', 'AS', 'AT', 'AU', 'AW', 'AX', 'AZ', 'BA', 'BB', 'BD', 'BE', 'BF', 'BG', 'BH', 'BI', 'BJ', 'BL', 'BM', 'BN', 'BO', 'BQ', 'BR', 'BS', 'BT', 'BV', 'BW', 'BY', 'BZ', 'CA', 'CC', 'CD', 'CF', 'CG', 'CH', 'CI', 'CK', 'CL', 'CM', 'CN', 'CO', 'CR', 'CU', 'CV', 'CW', 'CX', 'CY', 'CZ', 'DE', 'DJ', 'DK', 'DM', 'DO', 'DZ', 'EC', 'EE', 'EG', 'EH', 'ER', 'ES', 'ET', 'FI', 'FJ', 'FK', 'FM', 'FO', 'FR', 'GA', 'GB', 'GD', 'GE', 'GF', 'GG', 'GH', 'GI', 'GL', 'GM', 'GN', 'GP', 'GQ', 'GR', 'GS', 'GT', 'GU', 'GW', 'GY', 'HK', 'HM', 'HN', 'HR', 'HT', 'HU', 'ID', 'IE', 'IL', 'IM', 'IN', 'IO', 'IQ', 'IR', 'IS', 'IT', 'JE', 'JM', 'JO', 'JP', 'KE', 'KG', 'KH', 'KI', 'KM', 'KN', 'KP', 'KR', 'KW', 'KY', 'KZ', 'LA', 'LB', 'LC', 'LI', 'LK', 'LR', 'LS', 'LT', 'LU', 'LV', 'LY', 'MA', 'MC', 'MD', 'ME', 'MF', 'MG', 'MH', 'MK', 'ML', 'MM', 'MN', 'MO', 'MP', 'MQ', 'MR', 'MS', 'MT', 'MU', 'MV', 'MW', 'MX', 'MY', 'MZ', 'NA', 'NC', 'NE', 'NF', 'NG', 'NI', 'NL', 'NO', 'NP', 'NR', 'NU', 'NZ', 'OM', 'PA', 'PE', 'PF', 'PG', 'PH', 'PK', 'PL', 'PM', 'PN', 'PR', 'PS', 'PT', 'PW', 'PY', 'QA', 'RE', 'RO', 'RS', 'RU', 'RW', 'SA', 'SB', 'SC', 'SD', 'SE', 'SG', 'SH', 'SI', 'SJ', 'SK', 'SL', 'SM', 'SN', 'SO', 'SR', 'SS', 'ST', 'SV', 'SX', 'SY', 'SZ', 'TC', 'TD', 'TF', 'TG', 'TH', 'TJ', 'TK', 'TL', 'TM', 'TN', 'TO', 'TR', 'TT', 'TV', 'TW', 'TZ', 'UA', 'UG', 'UM', 'US', 'UY', 'UZ', 'VA', 'VC', 'VE', 'VG', 'VI', 'VN', 'VU', 'WF', 'WS', 'YE', 'YT', 'ZA', 'ZM', 'ZW'})*
+
+The ISO 3166-1 alpha-2 country codes (the 249 officially assigned).
+
+### lacing.territory.REGIONS *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [frozenset](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[str](https://docs.python.org/3/builtins/stdtypes.html#str)]]* *= {'EU': frozenset({'AT', 'AX', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GF', 'GP', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MF', 'MQ', 'MT', 'NL', 'PL', 'PT', 'RE', 'RO', 'SE', 'SI', 'SK', 'YT'})}*
+
+Region codes an exclusion may name, and the country codes each covers.
+
+### lacing.territory.TERRITORY_ALIASES *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= {'EL': 'GR', 'UK': 'GB'}*
+
+the UK’s common one and the
+EU’s code for Greece.
+
+* **Type:**
+  Spellings that name a country by another code
+
+### lacing.territory.WORLDWIDE *= 'WORLD'*
+
+The territory of a use everywhere (online publishing reaches every country):
+it falls in any exclusion.
+
+### lacing.territory.normalize_territory(territory)
+
+`territory` as an ISO 3166-1 alpha-2 code (or [`WORLDWIDE`](_autosummary/lacing.territory.html.md#lacing.territory.WORLDWIDE)), `None` when unstated.
+
+```pycon
+>>> normalize_territory("world")
+'WORLD'
+```
+
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – If it is not a country code (a name, an alpha-3 code, a
+      region): a gate cannot judge a use it cannot place.
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### lacing.territory.territory_excluded(excluded, territory, , regions={'EU': frozenset({'AT', 'AX', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GF', 'GP', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MF', 'MQ', 'MT', 'NL', 'PL', 'PT', 'RE', 'RO', 'SE', 'SI', 'SK', 'YT'})})
+
+Whether a use in `territory` falls in `excluded` (a region covers its members).
+
+It fails closed on both sides. Whenever anything is excluded, an unstated
+territory (`None`), a worldwide one, and one that is not a country code
+all count as excluded. And a recorded code is read through its aliases: one
+that names no country, no key of `regions` and not [`WORLDWIDE`](_autosummary/lacing.territory.html.md#lacing.territory.WORLDWIDE)
+(a typo such as `"Franc"`) excludes every use, since nobody can tell what
+it meant; a recorded `"WORLD"` excludes every use by definition.
+
+```pycon
+>>> territory_excluded({"KR"}, None), territory_excluded({"UK"}, "gb")
+(True, True)
+>>> territory_excluded({"KR"}, "Korea"), territory_excluded(set(), None)
+(True, False)
+>>> territory_excluded({"KR"}, "WORLD"), territory_excluded(set(), "WORLD")
+(True, False)
+>>> territory_excluded({"Franc"}, "US"), territory_excluded({"WORLD"}, "US")
+(True, True)
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.territory.unplaceable_codes(codes, , regions={'EU': frozenset({'AT', 'AX', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GF', 'GP', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MF', 'MQ', 'MT', 'NL', 'PL', 'PT', 'RE', 'RO', 'SE', 'SI', 'SK', 'YT'})})
+
+The recorded `codes` no use can be placed against, as recorded: one that
+is not an ISO code, an alias of one, or a region, and [`WORLDWIDE`](_autosummary/lacing.territory.html.md#lacing.territory.WORLDWIDE)
+(everywhere). A restriction recording any of them excludes every use.
+
+```pycon
+>>> unplaceable_codes(["eu", "Franc", "uk", "WORLD"])
+['Franc', 'WORLD']
+```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+
 # _autosummary/lacing.tier.html.md
 
 # lacing.tier
@@ -10181,7 +10499,8 @@ True
 
 Build from seconds. Quantizes to `rate`; raises if lossy.
 
-`seconds` may be a `str` like `"1.001"` to avoid float ingestion.
+`seconds` may be a `str` like `"1.001"` to avoid float ingestion,
+or any real number (see [`from_seconds_lossy()`](_autosummary/lacing.time.html.md#lacing.time.RationalTime.from_seconds_lossy)).
 
 * **Return type:**
   [`RationalTime`](_autosummary/lacing.time.html.md#lacing.time.RationalTime)
@@ -10198,6 +10517,11 @@ represented exactly — this method always succeeds by quantizing.
 - `"round"` — nearest sample, ties to even (default)
 - `"floor"` — largest sample <= `seconds`
 - `"ceil"`  — smallest sample >= `seconds`
+
+`seconds` is a `str` (parsed exactly), or any real number: a
+`Rational` (`int`, `Fraction`, `np.int64`) is taken exactly, any
+other `numbers.Real` (`float`, `np.float32`, `np.float64`) as
+the float’s own value. `bool` and non-finite values are refused.
 
 Use this when sample-level quantization is knowingly acceptable —
 the common case for user-supplied durations. Use [`from_seconds()`](_autosummary/lacing.time.html.md#lacing.time.RationalTime.from_seconds)
@@ -10697,7 +11021,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-09 02:02 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/4a3cec05b29a83caba8f2a3ed836ba4c4286f0bb"><code>4a3cec0</code></a> on branch <code>main</code>, for **lacing 0.0.96** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 02:10 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/4e67f6daf7bbd2d335403c04a8a99d50acf5fc30"><code>4e67f6d</code></a> on branch <code>main</code>, for **lacing 0.0.97** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10706,7 +11030,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/4a3cec05b29a83caba8f2a3ed836ba4c4286f0bb"><code>4a3cec05b29a83caba8f2a3ed836ba4c4286f0bb</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/4e67f6daf7bbd2d335403c04a8a99d50acf5fc30"><code>4e67f6daf7bbd2d335403c04a8a99d50acf5fc30</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -10717,9 +11041,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42548487906">42548487906</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42549203216">42549203216</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>4a3cec05b29a83caba8f2a3ed836ba4c4286f0bb</code> (in the history of the built commit) |
+| Event commit | <code>1cc129f0914ae183eb2ea2e773aac2627e946cee</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10744,13 +11068,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.96/">0.0.96</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.97/">0.0.97</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 4a3cec05b29a83caba8f2a3ed836ba4c4286f0bb
+git checkout 4e67f6daf7bbd2d335403c04a8a99d50acf5fc30
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

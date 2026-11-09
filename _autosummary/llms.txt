@@ -45,6 +45,7 @@
 - [lacing.processors](lacing.processors.html.md): Background processors — pluggable jobs that run against a store + op-log.
 - [lacing.quality](lacing.quality.html.md): Inter-annotator agreement and boundary metrics.
 - [lacing.registry](lacing.registry.html.md): The replacement rule shared by lacing’s registries (lacing#19).
+- [lacing.restrictions](lacing.restrictions.html.md): What a &#96;lacing.Restriction&#96; means for one use (reeleehq/an#743).
 - [lacing.schema](lacing.schema.html.md): Body schema registry, JSON Schema export, and migrations.
 - [lacing.store](lacing.store.html.md): Interval-keyed annotation stores.
 - [lacing.store.base](lacing.store.base.html.md): &#96;IntervalAnnotationStore&#96; — the headline Pythonic API.
@@ -54,6 +55,7 @@
 - [lacing.store.migrations](lacing.store.migrations.html.md): Store-level schema migrations — the on-disk counterpart of the body ladder.
 - [lacing.store.postgres](lacing.store.postgres.html.md): PostgreSQL-backed annotation store using &#96;int8range&#96; + GiST.
 - [lacing.store.sqlite](lacing.store.sqlite.html.md): SQLite-backed annotation store and the &#96;.annot&#96; portable file format.
+- [lacing.territory](lacing.territory.html.md): Territories: the vocabulary a &#96;territory_excluded&#96; restriction is written in.
 - [lacing.tier](lacing.tier.html.md): Tiers and the five ELAN stereotypes.
 - [lacing.time](lacing.time.html.md): Rational time and half-open intervals — the foundations.
 - [lacing.tracks](lacing.tracks.html.md): High-level “track-shaped” facades on top of &#96;lacing&#96;.
