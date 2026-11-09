@@ -39,6 +39,7 @@ sweep test skips ``_``-prefixed modules and checks that they register none).
 
 from __future__ import annotations
 
+import codecs
 import json
 import os
 from collections.abc import Callable, Iterator, Mapping, Sequence
@@ -50,7 +51,6 @@ from lacing.store import IntervalAnnotationStore
 
 
 # ``utf-8-sig`` decodes UTF-8 and also strips a leading byte-order mark.
-_TEXT_ENCODING = "utf-8-sig"
 _BOM = "\ufeff"
 _JSON_ENCODING = "utf-8"
 _JSON_INLINE_PREFIXES = ("{", "[")
@@ -125,29 +125,87 @@ def iter_with_media_intervals(store: IntervalAnnotationStore) -> Iterator[Annota
             yield a
 
 
+# (BOM, codec) pairs, longest BOM first (a UTF-32 LE BOM starts with UTF-16 LE's).
+_BOM_CODECS: tuple[tuple[bytes, str], ...] = (
+    (codecs.BOM_UTF32_LE, "utf-32"),
+    (codecs.BOM_UTF32_BE, "utf-32"),
+    (codecs.BOM_UTF8, "utf-8-sig"),
+    (codecs.BOM_UTF16_LE, "utf-16"),
+    (codecs.BOM_UTF16_BE, "utf-16"),
+)
+
+
+def decode_text(data: bytes, *, encoding: str | None = None) -> str:
+    """``data`` as text, with no leading byte-order mark.
+
+    ``encoding=None`` sniffs a BOM (UTF-8, UTF-16 LE/BE, UTF-32 LE/BE) and
+    otherwise reads UTF-8. A named ``encoding`` is used as given (a UTF-8 BOM
+    is still dropped). A failure is a ``UnicodeDecodeError`` that names the
+    ``encoding=`` keyword.
+
+    >>> decode_text("é".encode("utf-16"))
+    'é'
+    >>> decode_text("é".encode("cp1252"), encoding="cp1252")
+    'é'
+    >>> try:
+    ...     decode_text("é".encode("cp1252"))
+    ... except UnicodeDecodeError as error:
+    ...     "pass encoding=" in str(error)
+    True
+    """
+    codec = encoding
+    if codec is None:
+        codec = next(
+            (name for bom, name in _BOM_CODECS if data.startswith(bom)), "utf-8-sig"
+        )
+    elif codecs.lookup(codec).name == "utf-8":
+        codec = "utf-8-sig"
+    try:
+        return data.decode(codec)
+    except UnicodeDecodeError as error:
+        hint = (
+            "wrong encoding= for this text"
+            if encoding is not None
+            else "not UTF-8: pass encoding=, e.g. encoding='cp1252' or 'utf-16'"
+        )
+        raise UnicodeDecodeError(
+            error.encoding,
+            error.object,
+            error.start,
+            error.end,
+            f"{error.reason} ({hint})",
+        ) from None
+
+
 def read_text(
-    source: str | bytes | os.PathLike, *, looks_inline: Callable[[str], bool]
+    source: str | bytes | os.PathLike,
+    *,
+    looks_inline: Callable[[str], bool],
+    encoding: str | None = None,
 ) -> str:
-    """The text of ``source``: bytes (UTF-8), a path, or inline content.
+    """The text of ``source``: bytes, a path, or inline content.
 
     A ``str`` is inline content when ``looks_inline(source)`` says so;
     otherwise it is read as a path if one exists there, and is taken as
     inline content if not (the format's parser then reports what is wrong).
-    Bytes, files and inline text alike lose a leading byte-order mark.
+    Bytes and files are decoded by :func:`decode_text` (``encoding`` named, or
+    a BOM sniffed, else UTF-8); ``encoding`` does not apply to a ``str``,
+    which is already text. Bytes, files and inline text alike lose a leading
+    byte-order mark.
 
     >>> read_text(b"\\xef\\xbb\\xbfWEBVTT", looks_inline=lambda s: True)
     'WEBVTT'
     """
     if isinstance(source, (bytes, bytearray)):
-        return bytes(source).decode(_TEXT_ENCODING)
+        return decode_text(bytes(source), encoding=encoding)
     if not isinstance(source, str) and isinstance(source, os.PathLike):
-        return Path(os.fspath(source)).read_text(encoding=_TEXT_ENCODING)
+        return decode_text(Path(os.fspath(source)).read_bytes(), encoding=encoding)
     s = str(source).removeprefix(_BOM)
     if looks_inline(s):
         return s
     p = Path(s)
     if p.is_file():  # not exists(): "" or a folder is not a text file
-        return p.read_text(encoding=_TEXT_ENCODING)
+        return decode_text(p.read_bytes(), encoding=encoding)
     return s
 
 
