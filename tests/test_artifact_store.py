@@ -1211,8 +1211,19 @@ def test_an_unserialisable_record_leaves_no_blob(tmp_path: Path, create):
     assert _tree(root) == before
 
 
-def test_a_store_without_check_write_is_unchanged():
+@pytest.mark.parametrize("create", [True, False])
+@pytest.mark.parametrize("bad_id", ["z" * 300, "ok/" + "z" * 300])
+def test_a_name_too_long_for_the_filesystem_leaves_no_blob(tmp_path, create, bad_id):
+    root = tmp_path / "x"
+    store = ArtifactStore.from_directory(root, create=create)
+    before = _tree(root)
+    with pytest.raises(KeyError):
+        store.save(bad_id, _artifact(), data=b"png-bytes")
+    assert _tree(root) == before
+
+
+def test_a_catalog_without_check_write_saves_as_before():
     store = ArtifactStore.in_memory()
     art = _artifact()
-    assert store.check_write is None
+    assert not hasattr(store.catalog, "check_write")
     assert store.save(art.asset_id, art, data=b"png-bytes") == hash_bytes(b"png-bytes")

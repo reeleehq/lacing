@@ -434,13 +434,6 @@ class ArtifactStore(MutableMapping):
             all use it. Defaults to :func:`content_hash_of`; :meth:`from_sql`
             sets it from its ``content_hash_of`` argument, so the store and
             its ``content_hash`` column agree.
-        check_write: Keyword-only. ``check_write(artifact_id, record)``, a dry
-            run of the catalog write: it raises what the write would raise
-            (``KeyError`` for an id the catalog refuses, ``AttributeError`` or
-            ``TypeError`` for a record it cannot serialise) and writes
-            nothing. :meth:`save` calls it before the blob, so a refused save
-            leaves no orphan blob (lacing#160). ``None`` (the default) skips
-            the check; :meth:`from_directory` sets it.
 
     Construct one with :meth:`in_memory` or :meth:`from_directory` rather than
     wiring the backing stores by hand, unless you are injecting a custom
@@ -452,9 +445,6 @@ class ArtifactStore(MutableMapping):
     on_write: WritePolicy | None = field(default=keep_rights, kw_only=True)
     content_hash_of: Callable[[Any], str | None] = field(
         default=_default_content_hash_of, kw_only=True
-    )
-    check_write: Callable[[str, BaseModel], None] | None = field(
-        default=None, kw_only=True
     )
 
     # -- catalog: the MutableMapping surface (artifact_id -> record) --------
@@ -497,12 +487,20 @@ class ArtifactStore(MutableMapping):
 
         Raises:
             RuntimeError: ``data`` was given but no blob store is configured.
-            KeyError: the catalog refuses ``artifact_id`` (when the store has a
-                ``check_write``, nothing was written, not even the blob).
+            KeyError: the catalog refuses ``artifact_id``. A catalog that
+                exposes ``check_write(artifact_id, record)`` (a dry run of its
+                write: it raises what the write would, and writes nothing;
+                :meth:`from_directory`'s does) is asked first, so a refused
+                id or record leaves no blob (lacing#160). Catalogs without one
+                (dict, SQL, S3) refuse nothing a dry run could predict. A
+                write that fails for another reason (a read-only folder, a full
+                disk) still leaves the blob, which is content-addressed and so
+                harmless to keep.
         """
         record = self._admitted(artifact_id, record)  # a refusal leaves no blob
-        if self.check_write is not None:
-            self.check_write(artifact_id, record)  # nor does a refused catalog write
+        check_write = getattr(self.catalog, "check_write", None)
+        if callable(check_write):
+            check_write(artifact_id, record)  # nor does a refused catalog write
         content_hash: str | None = None
         if data is not None:
             if self.blobs is None:
@@ -1053,9 +1051,8 @@ class ArtifactStore(MutableMapping):
         # (_ContainedDirStore) and the spooled writes make theirs already.
         files = Files if create else mk_dirs_if_missing(Files)
         blobs = files(str(blob_dir), delete_func=blob_delete_func)
-        return cls(
-            catalog=catalog, blobs=blobs, on_write=on_write, check_write=check_write
-        )
+        catalog.check_write = check_write  # the probe ``save`` looks for
+        return cls(catalog=catalog, blobs=blobs, on_write=on_write)
 
     def count_refs(self, content_hash: str) -> int:
         """How many catalog records point at ``content_hash`` (a blob).
@@ -1527,6 +1524,11 @@ class _ContainedDirStore(MutableMapping):
         target = _resolve_within(self.rootdir, contained)
         if target is None:
             raise self._refuse(key)
+        too_long = _name_too_long(contained, self.rootdir)
+        if too_long is not None:  # stat says "not found" below a missing folder
+            raise self._refuse(
+                key, f"has a name part too long to write ({too_long!r:.40})"
+            )
         try:
             is_regular = stat.S_ISREG(os.stat(target).st_mode)
         except FileNotFoundError:
@@ -1568,6 +1570,21 @@ class _ContainedDirStore(MutableMapping):
 
     def __len__(self) -> int:
         return sum(1 for _ in self)
+
+
+_FALLBACK_NAME_MAX = 255  # bytes: the common filesystem limit
+
+
+def _name_too_long(path: str, rootdir: str) -> str | None:
+    """The first part of ``path`` whose UTF-8 length exceeds the filesystem's
+    name limit under ``rootdir``, else None. A write below a missing folder
+    cannot be probed with ``stat`` (it says "not found", not "too long")."""
+    try:
+        limit = os.pathconf(rootdir, "PC_NAME_MAX")
+    except (AttributeError, ValueError, OSError):  # Windows, or no such folder
+        limit = _FALLBACK_NAME_MAX
+    parts = path.replace(os.sep, "/").split("/")
+    return next((p for p in parts if len(p.encode("utf-8")) > limit), None)
 
 
 def _record_json(record: BaseModel) -> bytes:
