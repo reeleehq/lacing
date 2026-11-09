@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import copy
 import math
+import numbers
 import time
 from fractions import Fraction
 from typing import Any, Literal
@@ -74,6 +75,28 @@ class LossyTimeConversionError(ValueError):
 QuantizeMode = Literal["round", "floor", "ceil"]
 """How ``from_seconds_lossy`` picks a tick: nearest (ties to even), or the one
 at or before, or at or after, the exact value."""
+
+
+def _seconds_as_fraction(seconds: object) -> Fraction:
+    """``seconds`` as the exact ``Fraction`` it denotes (see
+    :meth:`RationalTime.from_seconds_lossy` for what is accepted).
+
+    >>> _seconds_as_fraction("0.25"), _seconds_as_fraction(3), _seconds_as_fraction(0.5)
+    (Fraction(1, 4), Fraction(3, 1), Fraction(1, 2))
+    """
+    if isinstance(seconds, str):
+        return Fraction(seconds)
+    if isinstance(seconds, bool) or not isinstance(seconds, numbers.Real):
+        raise TypeError(
+            f"seconds must be str or a real number (int, float, Fraction, numpy "
+            f"scalar); got {type(seconds).__name__}"
+        )
+    if isinstance(seconds, numbers.Rational):
+        return Fraction(seconds.numerator, seconds.denominator)
+    as_float = float(seconds)
+    if not math.isfinite(as_float):  # Fraction raises OverflowError for inf
+        raise ValueError(f"seconds must be finite, got {seconds!r}")
+    return Fraction(as_float)
 
 
 class RationalTime:
@@ -139,7 +162,7 @@ class RationalTime:
     @classmethod
     def from_seconds_lossy(
         cls,
-        seconds: float | Fraction | str | int,
+        seconds: float | Fraction | str | int | numbers.Real,
         *,
         rate: int = DEFAULT_RATE,
         mode: QuantizeMode = "round",
@@ -155,6 +178,11 @@ class RationalTime:
         - ``"floor"`` — largest sample <= ``seconds``
         - ``"ceil"``  — smallest sample >= ``seconds``
 
+        ``seconds`` is a ``str`` (parsed exactly), or any real number: a
+        ``Rational`` (``int``, ``Fraction``, ``np.int64``) is taken exactly, any
+        other ``numbers.Real`` (``float``, ``np.float32``, ``np.float64``) as
+        the float's own value. ``bool`` and non-finite values are refused.
+
         Use this when sample-level quantization is knowingly acceptable —
         the common case for user-supplied durations. Use :meth:`from_seconds`
         when exactness matters and a lossy conversion should be an error.
@@ -165,21 +193,7 @@ class RationalTime:
             >>> RationalTime.from_seconds_lossy("0.1", rate=3, mode="ceil").value
             1
         """
-        if isinstance(seconds, str):
-            f = Fraction(seconds)
-        elif isinstance(seconds, bool):
-            raise TypeError("seconds must be str, int, float, or Fraction; got bool")
-        elif isinstance(seconds, (int, Fraction)):
-            f = Fraction(seconds)
-        elif isinstance(seconds, float):
-            if not math.isfinite(seconds):  # Fraction raises OverflowError for inf
-                raise ValueError(f"seconds must be finite, got {seconds!r}")
-            f = Fraction(seconds)
-        else:
-            raise TypeError(
-                f"seconds must be str, int, float, or Fraction; "
-                f"got {type(seconds).__name__}"
-            )
+        f = _seconds_as_fraction(seconds)
         scaled = f * rate
         if mode == "round":
             quantized = round(scaled)
@@ -414,8 +428,8 @@ class TimeInterval:
     @classmethod
     def from_seconds_lossy(
         cls,
-        start: float | Fraction | str | int,
-        end: float | Fraction | str | int,
+        start: float | Fraction | str | int | numbers.Real,
+        end: float | Fraction | str | int | numbers.Real,
         *,
         rate: int = DEFAULT_RATE,
         mode: QuantizeMode = "round",
