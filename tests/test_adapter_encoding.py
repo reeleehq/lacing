@@ -70,4 +70,35 @@ def test_a_utf32_le_bom_is_not_mistaken_for_utf16():
 
 
 def test_inline_text_ignores_encoding():
-    assert _texts(srt.load(SRT, encoding="cp1252"))[0].startswith("café")
+    assert _texts(srt.load(SRT, encoding="ascii"))[0].startswith("café")
+
+
+@pytest.mark.parametrize("codec", ["utf-16-le", "utf-16-be", "utf-32-le"])
+def test_a_named_codec_drops_the_bom_it_does_not_sniff(codec):
+    bom = {"utf-16-le": codecs.BOM_UTF16_LE, "utf-16-be": codecs.BOM_UTF16_BE}.get(
+        codec, codecs.BOM_UTF32_LE
+    )
+    assert decode_text(bom + "hi".encode(codec), encoding=codec) == "hi"
+    assert srt.load(bom + SRT.encode(codec), encoding=codec).all()
+
+
+def test_a_bad_sniffed_bom_says_so():
+    with pytest.raises(UnicodeDecodeError, match="BOM but does not decode"):
+        decode_text(codecs.BOM_UTF16_LE + b"\x00\xd8")  # a lone surrogate
+
+
+def test_the_keyword_is_forwarded_by_the_registry(tmp_path):
+    from lacing.adapters import load
+
+    path = tmp_path / "f.srt"
+    path.write_bytes(SRT.replace("—", "-").encode("cp1252"))
+    assert load(path, format="srt", encoding="cp1252").all()
+
+
+def test_cli_encoding_option(tmp_path):
+    from lacing import cli
+
+    src, dst = tmp_path / "f.srt", tmp_path / "f.vtt"
+    src.write_bytes(SRT.replace("—", "-").encode("cp1252"))
+    cli.convert(str(src), str(dst), encoding="cp1252")
+    assert "café" in dst.read_text(encoding="utf-8")

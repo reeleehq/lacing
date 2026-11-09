@@ -50,7 +50,6 @@ from lacing.model import Annotation, MediaRef
 from lacing.store import IntervalAnnotationStore
 
 
-# ``utf-8-sig`` decodes UTF-8 and also strips a leading byte-order mark.
 _BOM = "\ufeff"
 _JSON_ENCODING = "utf-8"
 _JSON_INLINE_PREFIXES = ("{", "[")
@@ -153,28 +152,23 @@ def decode_text(data: bytes, *, encoding: str | None = None) -> str:
     ...     "pass encoding=" in str(error)
     True
     """
-    codec = encoding
-    if codec is None:
-        codec = next(
-            (name for bom, name in _BOM_CODECS if data.startswith(bom)), "utf-8-sig"
+    sniffed = None
+    if encoding is None:
+        sniffed = next(
+            (name for bom, name in _BOM_CODECS if data.startswith(bom)), None
         )
-    elif codecs.lookup(codec).name == "utf-8":
-        codec = "utf-8-sig"
+    codec = encoding or sniffed or "utf-8"
     try:
-        return data.decode(codec)
+        return data.decode(codec).removeprefix(_BOM)
     except UnicodeDecodeError as error:
-        hint = (
-            "wrong encoding= for this text"
-            if encoding is not None
-            else "not UTF-8: pass encoding=, e.g. encoding='cp1252' or 'utf-16'"
-        )
-        raise UnicodeDecodeError(
-            error.encoding,
-            error.object,
-            error.start,
-            error.end,
-            f"{error.reason} ({hint})",
-        ) from None
+        if sniffed is not None:
+            hint = f"it starts with a {sniffed} BOM but does not decode as {sniffed}"
+        elif encoding is not None:
+            hint = "wrong encoding= for this text"
+        else:
+            hint = "not UTF-8: pass encoding=, e.g. encoding='cp1252' or 'utf-16'"
+        error.reason += f" ({hint})"
+        raise
 
 
 def read_text(

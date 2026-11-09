@@ -93,6 +93,11 @@ def _ensure_adapters() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _encoding_kwargs(encoding: "str | None") -> dict:
+    """``encoding=`` for the text adapters, only when the user named one."""
+    return {} if encoding is None else {"encoding": encoding}
+
+
 def convert(
     src: str,
     dst: str,
@@ -100,18 +105,22 @@ def convert(
     src_format: "str | None" = None,
     dst_format: "str | None" = None,
     rate: int = 24000,
+    encoding: "str | None" = None,
 ) -> None:
     """Convert between annotation file formats.
 
     SRC is a path to a recognized file (or ``-`` for stdin bytes — not yet).
     DST is the output path. Formats are inferred from extensions; override
-    with --src-format / --dst-format.
+    with --src-format / --dst-format. A text file that is not UTF-8 (and has
+    no byte-order mark) needs --encoding, e.g. cp1252.
     """
     _ensure_adapters()
     from lacing.adapters import dump as adapter_dump
     from lacing.adapters import load as adapter_load
 
-    store = adapter_load(src, format=src_format, rate=rate)
+    store = adapter_load(
+        src, format=src_format, rate=rate, **_encoding_kwargs(encoding)
+    )
     if dst_format is None:
         dst_format = _infer_format_from_extension(dst)
     if dst_format is None:
@@ -141,6 +150,7 @@ def query(
     relation: str = "intersects",
     src_format: "str | None" = None,
     rate: int = 24000,
+    encoding: "str | None" = None,
     limit: int = 100,
 ) -> None:
     """Print annotations from PATH matching a tier and/or time-interval query.
@@ -153,7 +163,9 @@ def query(
     from lacing.adapters import load as adapter_load
     from lacing.time import RationalTime, TimeInterval
 
-    store = adapter_load(path, format=src_format, rate=rate)
+    store = adapter_load(
+        path, format=src_format, rate=rate, **_encoding_kwargs(encoding)
+    )
 
     iter_anns: Iterable
     if start is not None or end is not None:
@@ -220,6 +232,7 @@ def validate(
     *,
     src_format: "str | None" = None,
     rate: int = 24000,
+    encoding: "str | None" = None,
 ) -> None:
     """Round-trip PATH through load + dump and report a summary.
 
@@ -229,7 +242,9 @@ def validate(
     _ensure_adapters()
     from lacing.adapters import load as adapter_load
 
-    store = adapter_load(path, format=src_format, rate=rate)
+    store = adapter_load(
+        path, format=src_format, rate=rate, **_encoding_kwargs(encoding)
+    )
     iter_all = getattr(store, "all", None)
     anns = list(iter_all()) if callable(iter_all) else list(_iter_all(store))
     tiers_iter = getattr(store, "tiers", None)
