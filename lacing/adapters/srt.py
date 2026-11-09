@@ -133,11 +133,6 @@ def _format_timestamp(t: RationalTime) -> str:
     return format_cue_time(t, separator=DECIMAL_SEPARATOR, format_name="SubRip")
 
 
-def _looks_like_inline_srt(s: str) -> bool:
-    """A ``str`` holding SubRip content rather than a path to it."""
-    return TIMING_ARROW in s or "\n" in s or "\r" in s
-
-
 def _is_blank(line: str) -> bool:
     return line.strip() == ""
 
@@ -207,8 +202,8 @@ def load(
 
     Args:
         source: Bytes (see ``encoding``), a path, or inline text. A
-            ``str`` containing a newline or ``-->`` is inline text; any other
-            ``str`` is read as a path when one exists there.
+            ``str`` naming an existing file is read from it; any other
+            ``str`` is inline text.
         rate: Rate of every ``RationalTime`` produced; must hold a millisecond.
         asset_id: The ``MediaRef.asset_id`` the cues annotate.
         attribution: ``Provenance.was_attributed_to`` of every cue.
@@ -220,7 +215,7 @@ def load(
     Raises:
         ValueError: On a malformed cue, naming the line number.
     """
-    text = read_text(source, looks_inline=_looks_like_inline_srt, encoding=encoding)
+    text = read_text(source, encoding=encoding)
     cues = list(_iter_cues(text, rate))  # parse fully before building anything
 
     store = MemoryStore()

@@ -151,7 +151,7 @@ def load(
     (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8 (``"cp1252"`` for a
     file without a BOM).
     """
-    text = read_text(source, looks_inline=_looks_like_inline_vtt, encoding=encoding)
+    text = read_text(source, encoding=encoding)
 
     store = MemoryStore()
     store.add_tier(Tier(tier))
@@ -180,13 +180,6 @@ def load(
         )
 
     return store
-
-
-def _looks_like_inline_vtt(s: Any) -> bool:
-    if not isinstance(s, str):
-        return False
-    head = s.lstrip()[:6].upper()
-    return head.startswith("WEBVTT")
 
 
 def _iter_cues(text: str, rate: int):

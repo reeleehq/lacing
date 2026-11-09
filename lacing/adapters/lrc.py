@@ -332,11 +332,6 @@ def _parse(text: str) -> _Parsed:
 # ---------------------------------------------------------------------------
 
 
-def _looks_like_inline_lrc(s: str) -> bool:
-    """A ``str`` holding LRC content rather than a path to it."""
-    return "\n" in s or "\r" in s or s.lstrip().startswith("[")
-
-
 def _effective_ms(tag_ms: int, offset_ms: int) -> int:
     """The time of a tag or stamp: minus the offset ("+" makes lyrics appear
     sooner, as in ffmpeg's lrcdec), clamped to 0."""
@@ -428,8 +423,8 @@ def load(
 
     Args:
         source: Bytes (UTF-8, BOM tolerated), a path, or inline text. A
-            ``str`` with a line break, or starting with ``[``, is inline text;
-            any other ``str`` is read as a path when a file exists there.
+            ``str`` naming an existing file is read from it (even one named
+            ``"[Group] Song.lrc"``); any other ``str`` is inline text.
         rate: Rate of every ``RationalTime`` produced; must hold a millisecond.
         asset_id: The ``MediaRef.asset_id`` the lyrics annotate.
         attribution: ``Provenance.was_attributed_to`` of every annotation.
@@ -443,9 +438,7 @@ def load(
     Raises:
         ValueError: On malformed input, naming the line number.
     """
-    parsed = _parse(
-        read_text(source, looks_inline=_looks_like_inline_lrc, encoding=encoding)
-    )
+    parsed = _parse(read_text(source, encoding=encoding))
     offset = parsed.offset_ms
 
     # (start_ms, row) per time tag, sorted by start; file order breaks ties.

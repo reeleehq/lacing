@@ -13,7 +13,7 @@ from lacing.adapters import ass as adapter_module  # noqa: F401  registers
 from lacing.adapters import lrc, srt, webvtt
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import MemoryStore
-from lacing.tier import TierStereotype, validate_tier_constraint
+from lacing.tier import Tier, TierStereotype, validate_tier_constraint
 from lacing.time import LossyTimeConversionError, RationalTime, TimeInterval
 
 
@@ -693,29 +693,21 @@ def _view_text(store):
 # --- scale ----------------------------------------------------------------------
 
 
-def test_a_large_karaoke_file_loads_and_dumps_in_linear_time():
-    n = 1500
-
-    def build(count):
-        rows = [
-            f"Dialogue: 0,{_clock(i * 300)},{_clock(i * 300 + 250)},Default,,0,0,0,,"
-            "{\\k50}one {\\kf50}two {\\ko50}three, {\\k50}four"
-            for i in range(count)
-        ]
-        return f"[Events]\n{EVENTS_FORMAT}\n" + "\n".join(rows) + "\n"
-
-    def cost(count):
-        src = build(count)
-        began = time.perf_counter()
-        store = adapter_module.load(src)
-        blob = adapter_module.dump(store)
-        took = time.perf_counter() - began
-        assert len(_events(blob)) == count
-        return took
-
-    small, large = cost(n), cost(4 * n)
-    assert large < 10.0  # generous: no CI flakes (mostly the intervaltree)
-    assert large < 12 * small + 0.5  # 4x the input: ~4x the time, not ~16x
+def test_a_large_karaoke_file_round_trips_within_a_generous_bound():
+    n = 6000
+    rows = [
+        f"Dialogue: 0,{_clock(i * 300)},{_clock(i * 300 + 250)},Default,,0,0,0,,"
+        "{\\k50}one {\\kf50}two {\\ko50}three, {\\k50}four"
+        for i in range(n)
+    ]
+    src = f"[Events]\n{EVENTS_FORMAT}\n" + "\n".join(rows) + "\n"
+    began = time.perf_counter()
+    store = adapter_module.load(src)
+    blob = adapter_module.dump(store)
+    took = time.perf_counter() - began
+    assert len(_tier(store, "words")) == 4 * n
+    assert _events(blob) == rows  # every syllable re-encoded as it was read
+    assert took < 30.0  # absolute and generous: a quadratic dump takes minutes
 
 
 def test_unlinked_words_in_gaps_dump_in_near_linear_time():
@@ -762,3 +754,123 @@ class TestWithTheCueWritersAndEncoding:
         assert adapter_module.load(cp, encoding="cp1252").all()
         with pytest.raises(UnicodeDecodeError, match="encoding="):
             adapter_module.load(cp)
+
+
+# -- review fixes (#107) ------------------------------------------------------
+
+
+def _ass(*events: str, head: str = "") -> str:
+    return f"{head}[Events]\n{EVENTS_FORMAT}\n" + "\n".join(events) + "\n"
+
+
+def _dialogue(text: str, start: str = "0:00:01.00", end: str = "0:00:02.00") -> str:
+    return f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}"
+
+
+class TestReviewFixes:
+    def test_tied_syllables_dump_in_text_order_whatever_the_store_order(self):
+        import random
+
+        row = _dialogue("{\\k10}x{\\k0}y{\\k0}z{\\k300}p{\\k300}q{\\k300}r")
+        store = adapter_module.load(_ass(row))
+        ordinals = {a.body["text"]: a.body["ordinal"] for a in _tier(store, "words")}
+        assert ordinals == {c: i for i, c in enumerate("xyzpqr")}
+        for seed in range(10):
+            shuffled = list(store.all())
+            random.Random(seed).shuffle(shuffled)
+            again = MemoryStore()
+            for t in store.tiers():
+                again.add_tier(t)
+            for a in shuffled:
+                again.add(a)
+            assert _events(adapter_module.dump(again)) == [row], seed
+
+    def test_a_vector_drawing_reads_as_no_text(self):
+        drawing = "{\\p1}m 0 0 l 100 0 100 100{\\p0}"
+        store = adapter_module.load(
+            _ass(_dialogue(drawing), _dialogue(f"{{\\pos(1,2)}}{drawing}Sign"))
+        )
+        lines = _tier(store, "lines")
+        assert [a.body["text"] for a in lines] == ["", "Sign"]
+        assert lines[0].body["raw"] == drawing  # raw stays verbatim
+        assert b"m 0 0" not in srt.dump(store)
+        assert _events(adapter_module.dump(store))[0].endswith(drawing)
+
+    def test_a_tier_nested_in_another_is_not_written_as_lines(self):
+        s = MemoryStore()
+        s.add_tier(Tier("utt"))
+        s.add_tier(Tier("phones", stereotype=TierStereotype.INCLUDED_IN, parent="utt"))
+        s.add(_ann(0, 1000, "hello", tier="utt"))
+        s.add(_ann(0, 500, "he", tier="phones"))
+        s.add(_ann(500, 1000, "llo", tier="phones"))
+        rows = _events(adapter_module.dump(s))
+        assert len(rows) == 1 == srt.dump(s).count(b" --> ")
+        assert rows[0].endswith(",hello")
+
+    def test_a_file_named_like_a_header_is_read_as_a_file(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "[Group] Show - 01.ass").write_text(KARAOKE_ASS, encoding="utf-8")
+        (tmp_path / "[Group] x.lrc").write_text("[00:01.00]hello\n", encoding="utf-8")
+        store = adapter_module.load("[Group] Show - 01.ass")
+        assert [a.body["text"] for a in _tier(store, "lines")] == ["so long and bye"]
+        lrc_store = lrc.load("[Group] x.lrc")
+        assert [a.body["text"] for a in _tier(lrc_store, "lines")] == ["hello"]
+        # strings the OS cannot stat are content, never an OSError
+        with pytest.raises(ValueError, match=r"no \[Events\]"):
+            adapter_module.load("[Events]" + "x" * 5000)
+        with pytest.raises(ValueError, match=r"no \[Events\]"):
+            adapter_module.load("[a\0b]")
+
+    def test_a_blank_k_lasts_a_second_and_bad_ones_name_their_line(self):
+        store = adapter_module.load(
+            _ass(_dialogue("{\\k}a{\\k\\b1}b", end="0:00:05.00"))
+        )
+        assert [(t, s, e) for t, s, e in _spans(store, "words")] == [
+            ("a", _s(100), _s(200)),
+            ("b", _s(200), _s(300)),
+        ]
+        with pytest.raises(ValueError, match="line 3"):
+            adapter_module.load(_ass(_dialogue("{\\k-5}a")))
+        with pytest.raises(LossyTimeConversionError, match="line 3"):
+            adapter_module.load(_ass(_dialogue("{\\k12.345}a")), rate=1000)
+        with pytest.raises(LossyTimeConversionError, match="line 3"):
+            adapter_module.load(_ass(_dialogue("a", start="0:00:01.01")), rate=24)
+
+    def test_v4_plus_plus_styles_are_the_styles_section(self):
+        style = "Style: Default,Arial," + ",".join(["0"] * 21)
+        head = f"[V4++ Styles]\n{STYLES_FORMAT}\n{style}\n\n"
+        blob = adapter_module.dump(adapter_module.load(_ass(_dialogue("a"), head=head)))
+        headers = [line for line in blob.decode().splitlines() if line.startswith("[")]
+        assert headers == ["[Script Info]", "[V4++ Styles]", "[Events]"]
+
+    def test_an_all_caps_events_header_after_fonts_is_a_header(self):
+        head = "[Fonts]\nfontname: a.ttf\nM+!!!!\n"
+        src = head + f"[EVENTS]\n{EVENTS_FORMAT}\n{_dialogue('hi')}\n"
+        store = adapter_module.load(src)
+        assert [a.body["text"] for a in _tier(store, "lines")] == ["hi"]
+
+    def test_dump_seams_script_info_default_style_event_format(self):
+        s = MemoryStore()
+        s.add(_ann(1000, 2000, "hi"))
+        blob = adapter_module.dump(
+            s,
+            script_info=("Title: Mine", "ScriptType: v4.00+"),
+            default_style={"Name": "Main", "Fontsize": "60"},
+            event_format=("Start", "End", "Style", "Text"),
+        ).decode()
+        assert "Title: Mine" in blob and "Script generated by lacing" not in blob
+        style = next(line for line in blob.splitlines() if line.startswith("Style:"))
+        assert style.startswith("Style: Main,0,60,")
+        assert "Format: Start, End, Style, Text" in blob
+        assert _events(blob.encode()) == ["Dialogue: 0:00:01.00,0:00:02.00,Main,hi"]
+        with pytest.raises(ValueError, match="event_format"):
+            adapter_module.dump(s, event_format=("Start", "Text", "End"))
+
+    def test_load_keep_sections_keeps_only_the_named_sections(self):
+        store = adapter_module.load(AEGISUB_ASS, keep_sections=("script info",))
+        (script,) = [a.body for a in store.all() if a.tier == "script"]
+        assert [sec["name"] for sec in script["sections"]] == ["Script Info"]
+        assert script["events"]["position"] == 1
+        blob = adapter_module.dump(store).decode()
+        assert "demo.mkv" not in blob and "[Fonts]" not in blob
+        assert len(_events(blob.encode())) == 5

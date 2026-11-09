@@ -7,9 +7,9 @@ time-based media (audio, video, speech, music) but generalizes to any 1-D
 interval domain.
 
 > **Status:** Phase 0–2 complete. Core data model, in-memory + SQLite +
-> Postgres stores, **eleven round-trip adapters** (Praat TextGrid, WebVTT,
+> Postgres stores, **thirteen round-trip adapters** (Praat TextGrid, WebVTT,
 > SubRip, LRC, ASS/SSA, W3C Web Annotation, `.annot` SQLite, ELAN EAF, JAMS,
-> Label Studio JSON, OpenTimelineIO), body-schema registry + JSON Schema export + migrations,
+> Label Studio JSON, OpenTimelineIO, Podcasting 2.0 transcript and chapters), body-schema registry + JSON Schema export + migrations,
 > inter-annotator agreement metrics, a `lacing` CLI, a **FastAPI HTTP
 > server** (REST CRUD + ETag + import/export + schemas + op-log +
 > `/state-at` time-travel), an **MCP server** (10 tools, agents as

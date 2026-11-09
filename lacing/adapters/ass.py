@@ -29,8 +29,10 @@ another out of the box):
 
   ``raw`` is the text field verbatim, override tags and all; ``text`` is what
   it reads as: override blocks ``{...}`` removed, ``\\N`` and ``\\n`` as a
-  newline, ``\\h`` as a no-break space (U+00A0). ``style`` is the ``Style``
-  field. ``fields`` holds every other field of the event (``Layer``, ``Name``,
+  newline, ``\\h`` as a no-break space (U+00A0), and a vector drawing (the
+  text between ``{\\p1}``, any ``\\p<n>`` with ``n > 0``, and ``{\\p0}``) as
+  nothing, so a drawing-only event has an empty ``text``. ``style`` is the
+  ``Style`` field. ``fields`` holds every other field of the event (``Layer``, ``Name``,
   ``MarginL``, ``MarginR``, ``MarginV``, ``Effect``, or ``Marked`` in SSA)
   verbatim, keyed by its name in the ``Format:`` line. ``index`` is the
   event's position in ``[Events]`` (dialogues and comments counted together),
@@ -42,11 +44,16 @@ another out of the box):
 - ``words`` (stereotype ``INCLUDED_IN`` ``lines``, only when some dialogue has
   karaoke tags): one annotation per karaoke syllable, body
   ``annot://schema/ass-syllable/v1``
-  ``{"text": str, "karaoke": "k" | "K" | "kf" | "ko", "event": int}``.
+  ``{"text": str, "karaoke": "k" | "K" | "kf" | "ko", "event": int,
+  "ordinal": int}``.
   ``text`` is the syllable's text (what follows its tag up to the next
   karaoke tag), stripped of blanks; ``karaoke`` the tag that timed it;
-  ``event`` the ``index`` of its line. A syllable whose text is blank (a lead-in
-  ``{\\k50}`` pause, or ``{\\k20} ``) is a gap, not a word.
+  ``event`` the ``index`` of its line; ``ordinal`` its place among that
+  line's syllables (from 0), which :func:`dump` writes them back in, since
+  times tie (``{\\k0}``, syllables cut at the event's end) and ``\\kt`` can
+  move a later syllable before an earlier one. A word body without
+  ``ordinal`` (another source's) is ordered by time. A syllable whose text
+  is blank (a lead-in ``{\\k50}`` pause, or ``{\\k20} ``) is a gap, not a word.
 - ``comments`` (stereotype ``NONE``, only when the file has some): one
   annotation per ``Comment`` event, with the same body as a dialogue. Comment
   events are not shown by a renderer; they are kept (on their own tier, so
@@ -66,7 +73,11 @@ another out of the box):
   them; its ``Format:`` field names; and its other lines (``;`` comments,
   ``Picture:``, ``Sound:``, ``Movie:``, ``Command:``) verbatim. :func:`dump`
   writes all of this back. Inside ``[Fonts]`` and ``[Graphics]`` a bracketed
-  line made only of uuencode characters is data, not a section header.
+  line made only of uuencode characters is data, not a section header,
+  unless it names a known section (``[EVENTS]``, ``[Script Info]``, a styles
+  section, ``[Fonts]``, ``[Graphics]``, in any case). ``load(keep_sections=)``
+  keeps only the named sections: ``[Fonts]``/``[Graphics]`` can be megabytes
+  and ``[Aegisub Project Garbage]`` holds local file paths.
 
 Karaoke:
     ``{\\k<cs>}``, ``{\\K<cs>}`` (= ``\\kf``), ``{\\kf<cs>}`` and ``{\\ko<cs>}``
@@ -74,16 +85,21 @@ Karaoke:
     another from the event start, so a syllable's start is the event start
     plus the durations before it, exactly. ``{\\kt<cs>}`` moves the start of
     the next syllable to ``<cs>`` after the event start (libass 0.17+). A
-    decimal duration (``\\k12.5``) is read exactly too; a missing or negative
-    one raises. A syllable that runs past its event's end is cut at the end
-    (one that starts at or after it becomes a point there), so the words tier
-    stays ``INCLUDED_IN`` the lines tier; its tag stays in ``raw``.
+    decimal duration (``\\k12.5``) is read exactly too. A tag with no value
+    (``{\\k}``) lasts 100 centiseconds (``\\kt``: 0), as in libass; a
+    negative or malformed one raises, naming the line. A syllable that runs
+    past its event's end is cut at the end (one that starts at or after it
+    becomes a point there), so the words tier stays ``INCLUDED_IN`` the
+    lines tier; its tag stays in ``raw``.
 
 Time discipline:
-    Event times are ``H:MM:SS.cc``, integer centiseconds, read as integers and
+    Event times are strictly ``H:MM:SS.cc``: exactly two centisecond digits,
+    minutes and seconds below 60, so ``0:00:01.5`` and ``0:60:00.00`` raise
+    (libass is laxer). They are integer centiseconds, read as integers and
     converted exactly to ``RationalTime`` at ``rate`` (default 1000; ``rate``
     must hold the times exactly, a centisecond and any decimal karaoke
-    duration, or loading raises ``LossyTimeConversionError``). No float is
+    duration, or loading raises ``LossyTimeConversionError`` naming the
+    line). No float is
     involved. :func:`dump` writes centiseconds: a finer time is **truncated**
     to the centisecond (the floor, for the non-negative times ASS holds), and
     karaoke durations are differences of truncated times, so truncation is
@@ -93,13 +109,15 @@ Time discipline:
 
 dump:
     Writes ``[Script Info]``, a styles section and ``[Events]`` from the
-    script metadata when the store has it (a default ``[Script Info]`` when
-    it has none, and a ``Default`` style, Aegisub's defaults, when there are
-    no styles), then one ``Dialogue:`` per line and one ``Comment:`` per
+    script metadata when the store has it (``script_info=`` when it has no
+    ``[Script Info]``, ``default_style=``, Aegisub's ``Default``, when there
+    are no styles, and ``event_format=`` when it has no ``[Events]`` format),
+    then one ``Dialogue:`` per line and one ``Comment:`` per
     comment, ASS events in their ``index`` order, others after them by time.
     Any annotation with a time interval and a ``text`` body can be a line
     (by default the ``lines`` tier when it has text annotations, otherwise
-    every tier but the words, comments and script tiers), so SubRip, WebVTT
+    every top-level tier but the words and comments tiers, as the SubRip and
+    WebVTT writers choose), so SubRip, WebVTT
     and LRC cues dump to ASS, their newlines written as ``\\N``. A line whose
     ``raw`` still reads as its ``text`` is written from ``raw``, override tags
     kept; when the ``text`` was edited, the ``text`` wins and the tags are
@@ -149,7 +167,7 @@ from __future__ import annotations
 import os
 import re
 from bisect import bisect_right
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
@@ -163,12 +181,13 @@ from lacing.adapters._cues import (
     assign_words,
     nonnegative_ms,
     place_words,
+    select_cue_annotations,
     split_cue_lines,
 )
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier, TierStereotype
-from lacing.time import RationalTime, TimeInterval
+from lacing.time import LossyTimeConversionError, RationalTime, TimeInterval
 from lacing.tracks.subtitle import LINES_TIER, WORDS_TIER
 
 ADAPTER_NAME = "ass"
@@ -196,8 +215,16 @@ EVENTS_SECTION = "Events"
 SCRIPT_INFO_SECTION = "Script Info"
 STYLES_SECTION = "V4+ Styles"
 _SSA_STYLES_SECTION = "v4 styles"
-_STYLES_SECTIONS = {STYLES_SECTION.lower(), _SSA_STYLES_SECTION}
+_STYLES_SECTIONS = {STYLES_SECTION.lower(), _SSA_STYLES_SECTION, "v4++ styles"}
 _BINARY_SECTIONS = {"fonts", "graphics"}
+# Headers always read as headers, even inside [Fonts]/[Graphics] data (where an
+# all-caps "[EVENTS]" is also made of uuencode characters).
+_KNOWN_SECTIONS = {
+    EVENTS_SECTION.lower(),
+    SCRIPT_INFO_SECTION.lower(),
+    *_STYLES_SECTIONS,
+    *_BINARY_SECTIONS,
+}
 DIALOGUE, COMMENT = "Dialogue", "Comment"
 
 DEFAULT_EVENT_FORMAT = (
@@ -283,6 +310,9 @@ _TOKEN_RE = re.compile(r"(\{[^}]*\})|\\([Nnh])|([^{\\]+|.)", re.DOTALL)
 _ESCAPES = {"N": "\n", "n": "\n", "h": " "}
 _KARAOKE_TAG_RE = re.compile(r"\\(kf|ko|kt|k|K)([^\\]*)")
 _KARAOKE_VALUE_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)", re.ASCII)
+_KARAOKE_DEFAULT_CS = 100  # libass: a ``\k`` with no value lasts a second
+# ``\p<scale>`` (drawing mode), not ``\pos(`` or ``\pbo``; no digits is scale 0.
+_DRAWING_TAG_RE = re.compile(r"\\p(?!os|bo)\s*(-?\d+)?", re.ASCII)
 
 
 # ---------------------------------------------------------------------------
@@ -300,14 +330,29 @@ class _Token:
     is_run: bool = False  # plain text, one raw character per plain character
 
 
+def _drawing_after(block: str, drawing: bool) -> bool:
+    """Whether drawing mode is on after the override block ``block``: the last
+    ``\\p<n>`` in it decides (``n > 0`` on; ``0``, negative or none off)."""
+    scales = _DRAWING_TAG_RE.findall(block)
+    if not scales:
+        return drawing
+    return int(scales[-1] or 0) > 0
+
+
 def _tokens(raw: str) -> list[_Token]:
     """``raw`` cut into override blocks, ``\\N``/``\\n``/``\\h`` escapes and
-    plain runs. An unclosed ``{`` and any other backslash are plain text."""
+    plain runs. An unclosed ``{`` and any other backslash are plain text.
+    Between ``{\\p1}`` (any ``\\p<n>``, ``n > 0``) and ``{\\p0}``, text is a
+    vector drawing, not words: its runs and escapes read as nothing."""
     out: list[_Token] = []
+    drawing = False
     for m in _TOKEN_RE.finditer(raw):
         block, escape, run = m.groups()
         if block is not None:
             out.append(_Token(block, "", block[1:-1]))
+            drawing = _drawing_after(block[1:-1], drawing)
+        elif drawing:
+            out.append(_Token(m.group(0), ""))
         elif escape is not None:
             out.append(_Token(m.group(0), _ESCAPES[escape]))
         else:
@@ -317,15 +362,21 @@ def _tokens(raw: str) -> list[_Token]:
 
 def plain_text(raw: str) -> str:
     """What an ASS text reads as: override blocks removed, ``\\N`` and ``\\n``
-    as a newline, ``\\h`` as a no-break space.
+    as a newline, ``\\h`` as a no-break space, a ``\\p`` drawing as nothing.
 
     >>> plain_text(r"Hello, {\\i1}world{\\i0}\\Nline\\htwo")
     'Hello, world\\nline\\xa0two'
+    >>> plain_text(r"{\\p1}m 0 0 l 100 0 100 100{\\p0}Sign")
+    'Sign'
     """
     return "".join(t.plain for t in _tokens(raw))
 
 
-def _karaoke_cs(arg: str, *, where: str) -> Fraction:
+def _karaoke_cs(arg: str, *, kind: str, where: str) -> Fraction:
+    """A karaoke tag's centiseconds, exactly; a blank one is libass's default
+    (100 for a syllable, 0 for ``\\kt``)."""
+    if not arg.strip():
+        return Fraction(0 if kind == _KARAOKE_RESET else _KARAOKE_DEFAULT_CS)
     m = _KARAOKE_VALUE_RE.match(arg)
     if m is None:
         raise ValueError(f"{where}: malformed karaoke duration {arg!r}")
@@ -360,7 +411,8 @@ def _syllables(tokens: list[_Token], *, where: str) -> list[_Syllable]:
             texts.append(token.plain)
             continue
         for m in _KARAOKE_TAG_RE.finditer(token.block):
-            kind, cs = m.group(1), _karaoke_cs(m.group(2), where=where)
+            kind = m.group(1)
+            cs = _karaoke_cs(m.group(2), kind=kind, where=where)
             if kind == _KARAOKE_RESET:
                 cursor = cs
                 continue
@@ -433,16 +485,23 @@ def _section_name(stripped: str, *, current: str | None) -> str | None:
     m = _HEADER_RE.match(stripped)
     if m is None:
         return None
+    if m.group(1).strip().lower() in _KNOWN_SECTIONS:
+        return m.group(1)
     in_binary = current is not None and current.strip().lower() in _BINARY_SECTIONS
     if in_binary and _UUENCODED_RE.match(stripped):
         return None  # uuencoded font or picture data that happens to be bracketed
     return m.group(1)
 
 
+def _is_event_format(names: Iterable[str]) -> bool:
+    """Whether ``names`` can be an ``[Events]`` format: Start, End, Text last."""
+    lowered = [n.strip().lower() for n in names]
+    return bool(lowered) and {"start", "end"} <= set(lowered) and lowered[-1] == "text"
+
+
 def _parse_format(value: str, *, line_no: int) -> tuple[str, ...]:
     names = tuple(n.strip() for n in value.split(","))
-    lowered = [n.lower() for n in names]
-    if "start" not in lowered or "end" not in lowered or lowered[-1] != "text":
+    if not _is_event_format(names):
         raise ValueError(
             f"line {line_no}: an [Events] Format line needs Start, End, and Text "
             f"last: {value!r}"
@@ -524,7 +583,9 @@ def _parse_events(
     return meta, events
 
 
-def _parse(text: str) -> _Parsed:
+def _parse(text: str, *, keep_sections: Iterable[str] | None = None) -> _Parsed:
+    """``text`` parsed; the script keeps only the non-Events sections named in
+    ``keep_sections`` (case-insensitive; ``None`` keeps them all)."""
     raw_sections: list[tuple[str | None, list[tuple[int, str]]]] = [(None, [])]
     for line_no, line in enumerate(split_cue_lines(text), start=1):
         stripped = line.strip()
@@ -550,17 +611,20 @@ def _parse(text: str) -> _Parsed:
     meta, events = _parse_events(
         events_lines, name=events_at[0], position=events_at[1], sections=sections
     )
+    if keep_sections is not None:
+        keep = {name.strip().lower() for name in keep_sections}
+
+        def kept(s: dict[str, Any]) -> bool:
+            return s["name"] is not None and s["name"].strip().lower() in keep
+
+        meta["position"] = sum(map(kept, sections[: meta["position"]]))
+        sections = [s for s in sections if kept(s)]
     return _Parsed(sections, meta, events)
 
 
 # ---------------------------------------------------------------------------
 # load
 # ---------------------------------------------------------------------------
-
-
-def _looks_like_inline_ass(s: str) -> bool:
-    """A ``str`` holding ASS content rather than a path to it."""
-    return "\n" in s or "\r" in s or s.lstrip().startswith("[")
 
 
 def load(
@@ -574,6 +638,7 @@ def load(
     comments_tier: str = DEFAULT_COMMENTS_TIER_NAME,
     script_tier: str = DEFAULT_SCRIPT_TIER_NAME,
     encoding: str | None = None,
+    keep_sections: Iterable[str] | None = None,
     **_kwargs: Any,
 ) -> IntervalAnnotationStore:
     """Parse an ASS/SSA file, or ASS bytes or text, into a ``MemoryStore``.
@@ -584,8 +649,8 @@ def load(
 
     Args:
         source: Bytes (see ``encoding``), a path, or inline text. A
-            ``str`` with a line break, or starting with ``[``, is inline text;
-            any other ``str`` is read as a path when a file exists there.
+            ``str`` naming an existing file is read from it (even one named
+            ``"[Group] Show - 01.ass"``); any other ``str`` is inline text.
         rate: Rate of every ``RationalTime`` produced; must hold a centisecond
             (and any decimal karaoke duration) exactly.
         asset_id: The ``MediaRef.asset_id`` the events annotate.
@@ -599,14 +664,24 @@ def load(
         encoding: Text encoding of a file or of bytes. ``None`` sniffs a BOM
             (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one
             (``"cp1252"``) for an older file without a BOM.
+        keep_sections: Names of the non-``[Events]`` sections the ``script``
+            annotation keeps verbatim (case-insensitive, e.g.
+            ``("Script Info", "V4+ Styles")``); ``None`` (the default) keeps
+            them all. ``[Fonts]`` and ``[Graphics]`` can be megabytes of
+            uuencoded data, and ``[Aegisub Project Garbage]`` holds local file
+            paths, so name what you need before storing or sharing the result.
+            :func:`dump` writes defaults for a dropped ``[Script Info]`` or
+            styles section.
 
     Raises:
         ValueError: On malformed input, naming the line number, and on input
-            with no ``[Events]`` section.
+            with no ``[Events]`` section. A ``rate`` that cannot hold a time
+            or a karaoke duration raises ``LossyTimeConversionError`` (a
+            ``ValueError``) naming the line too.
     """
-    parsed = _parse(
-        read_text(source, looks_inline=_looks_like_inline_ass, encoding=encoding)
-    )
+    if isinstance(keep_sections, str):
+        keep_sections = (keep_sections,)
+    parsed = _parse(read_text(source, encoding=encoding), keep_sections=keep_sections)
 
     def at(seconds: Fraction) -> RationalTime:
         return RationalTime.from_seconds(seconds, rate=rate)
@@ -633,8 +708,8 @@ def load(
             )
         )
 
-    has_words = has_comments = False
-    for ev in parsed.events:
+    def add_event(ev: _Event) -> int:
+        """Add ``ev`` and its syllables; the number of syllables added."""
         tokens = _tokens(ev.raw)
         body = {
             "text": "".join(t.plain for t in tokens),
@@ -644,19 +719,32 @@ def load(
             "index": ev.index,
         }
         if ev.kind == COMMENT:
-            has_comments = True
             add(comments_tier, ev.start, ev.end, body, EVENT_BODY_SCHEMA_URI)
-            continue
+            return 0
         add(tier, ev.start, ev.end, body, EVENT_BODY_SCHEMA_URI)
-        for syl in _syllables(tokens, where=f"line {ev.line_no}"):
-            has_words = True
+        syllables = _syllables(tokens, where=f"line {ev.line_no}")
+        for ordinal, syl in enumerate(syllables):
             add(
                 words_tier,
                 min(ev.start + syl.start / CS_PER_SECOND, ev.end),
                 min(ev.start + syl.end / CS_PER_SECOND, ev.end),
-                {"text": syl.text, "karaoke": syl.kind, "event": ev.index},
+                {
+                    "text": syl.text,
+                    "karaoke": syl.kind,
+                    "event": ev.index,
+                    "ordinal": ordinal,
+                },
                 SYLLABLE_BODY_SCHEMA_URI,
             )
+        return len(syllables)
+
+    has_words = has_comments = False
+    for ev in parsed.events:
+        try:
+            has_words |= add_event(ev) > 0
+        except LossyTimeConversionError as error:
+            raise LossyTimeConversionError(f"line {ev.line_no}: {error}") from error
+        has_comments |= ev.kind == COMMENT
     script = {"sections": parsed.sections, "events": parsed.events_meta}
     add(script_tier, Fraction(0), Fraction(0), script, SCRIPT_BODY_SCHEMA_URI)
 
@@ -719,9 +807,12 @@ class _Word:
     text: str
     kind: str
     event: int | None
+    ordinal: int | None  # its place among its event's syllables
 
 
-def _line_of(a: Annotation, *, comment: bool) -> _Line | None:
+def _line_of(
+    a: Annotation, *, comment: bool, default_style: str = DEFAULT_STYLE_NAME
+) -> _Line | None:
     body, iv = a.body, a.interval
     if not isinstance(body, dict) or body.get("text") is None or iv is None:
         return None
@@ -738,9 +829,7 @@ def _line_of(a: Annotation, *, comment: bool) -> _Line | None:
         end=iv.end.to_fraction(),
         text=text,
         raw=raw,
-        style=str(body.get("style") or DEFAULT_STYLE_NAME)
-        if is_ass
-        else DEFAULT_STYLE_NAME,
+        style=str(body.get("style") or default_style) if is_ass else default_style,
         fields={str(k): str(v) for k, v in fields.items()}
         if isinstance(fields, dict)
         else {},
@@ -757,7 +846,10 @@ def _word_of(a: Annotation) -> _Word | None:
     if not text:
         return None
     kind = body.get("karaoke")
-    event = body.get("event") if a.body_schema_uri == SYLLABLE_BODY_SCHEMA_URI else None
+    is_ass = a.body_schema_uri == SYLLABLE_BODY_SCHEMA_URI
+    event, ordinal = (
+        (body.get("event"), body.get("ordinal")) if is_ass else (None, None)
+    )
     return _Word(
         interval=iv,
         start=iv.start.to_fraction(),
@@ -765,6 +857,7 @@ def _word_of(a: Annotation) -> _Word | None:
         text=text,
         kind=kind if kind in KARAOKE_KINDS else _DEFAULT_KARAOKE,
         event=event if isinstance(event, int) else None,
+        ordinal=ordinal if isinstance(ordinal, int) else None,
     )
 
 
@@ -784,12 +877,24 @@ def _words_by_line(lines: list[_Line], words: list[_Word]) -> dict[int, list[_Wo
     for i, ws in assign_words(lines, others).items():
         by_line.setdefault(i, []).extend(ws)
     for ws in by_line.values():
-        ws.sort(key=_word_order)
+        if len({w.event for w in ws}) == 1 and all(w.ordinal is not None for w in ws):
+            ws.sort(key=lambda w: w.ordinal)  # one event's syllables: text order
+        else:
+            ws.sort(key=_word_order)
     return by_line
 
 
-def _word_order(w: _Word) -> tuple[Fraction, Fraction]:
-    return (w.start, w.end)
+def _word_order(w: _Word) -> tuple[Fraction, Fraction, int, int]:
+    """Time order; ties (zero-length syllables, syllables cut at their event's
+    end) broken by event and syllable ordinal, so the order never depends on
+    the store's iteration order."""
+    missing = -1
+    return (
+        w.start,
+        w.end,
+        missing if w.event is None else w.event,
+        missing if w.ordinal is None else w.ordinal,
+    )
 
 
 def _encodes(line: _Line, tokens: list[_Token], words: list[_Word]) -> bool:
@@ -887,20 +992,20 @@ def _event_row(line: _Line, text: str, fmt: list[str]) -> str:
     return f"{COMMENT if line.comment else DIALOGUE}: {','.join(values)}"
 
 
-def _default_style_line(fmt: list[str]) -> str:
-    return "Style: " + ",".join(DEFAULT_STYLE.get(n.lower(), "0") for n in fmt)
+def _default_style_line(fmt: list[str], style: Mapping[str, str]) -> str:
+    return "Style: " + ",".join(_field(style.get(n.lower(), "0"), name=n) for n in fmt)
 
 
-def _with_default_style(lines: list[str]) -> list[str]:
-    """A styles section's lines, with a ``Default`` style when it has none."""
+def _with_default_style(lines: list[str], style: Mapping[str, str]) -> list[str]:
+    """A styles section's lines, with ``style`` added when it has none."""
     if any(_STYLE_KEY_RE.match(line) for line in lines):
         return lines
     fmt_line = next((line for line in lines if _FORMAT_KEY_RE.match(line)), None)
     if fmt_line is None:
         fmt = list(DEFAULT_STYLE_FORMAT)
-        return [f"Format: {', '.join(fmt)}", *lines, _default_style_line(fmt)]
+        return [f"Format: {', '.join(fmt)}", *lines, _default_style_line(fmt, style)]
     fmt = [n.strip() for n in fmt_line.split(":", 1)[1].split(",")]
-    return [*lines, _default_style_line(fmt)]
+    return [*lines, _default_style_line(fmt, style)]
 
 
 def _script_of(annotations: list[Annotation]) -> dict[str, Any] | None:
@@ -916,12 +1021,16 @@ def _script_of(annotations: list[Annotation]) -> dict[str, Any] | None:
 
 def _sections_to_write(
     script: dict[str, Any] | None,
+    *,
+    script_info: Sequence[str],
+    default_style: Mapping[str, str],
+    event_format: Sequence[str],
 ) -> tuple[list[tuple[str | None, list[str]]], dict[str, Any]]:
     """``(sections, events meta)``; the events section is the ``None``-lines
     entry in ``sections``."""
     events = dict((script or {}).get("events") or {})
     events.setdefault("name", EVENTS_SECTION)
-    events.setdefault("format", list(DEFAULT_EVENT_FORMAT))
+    events.setdefault("format", list(event_format))
     events.setdefault("lines", [])
     found = [
         (s.get("name"), list(s.get("lines") or []))
@@ -937,21 +1046,14 @@ def _sections_to_write(
     styles = [i for i, n in enumerate(names) if n in _STYLES_SECTIONS]
     if styles:
         i = styles[0]
-        sections[i] = (sections[i][0], _with_default_style(sections[i][1] or []))
+        lines = _with_default_style(sections[i][1] or [], default_style)
+        sections[i] = (sections[i][0], lines)
     else:
         at = next(i for i, (_, lines) in enumerate(sections) if lines is None)
-        sections.insert(at, (STYLES_SECTION, _with_default_style([])))
+        sections.insert(at, (STYLES_SECTION, _with_default_style([], default_style)))
     if SCRIPT_INFO_SECTION.lower() not in names:
-        sections.insert(0, (SCRIPT_INFO_SECTION, list(DEFAULT_SCRIPT_INFO)))
+        sections.insert(0, (SCRIPT_INFO_SECTION, list(script_info)))
     return sections, events
-
-
-def _is_line_tier(lines: list[tuple[str, _Line]], *, tier: str | None, skip: set[str]):
-    if tier is not None:
-        return lambda name: name == tier
-    if any(name == DEFAULT_TIER_NAME for name, _ in lines):
-        return lambda name: name == DEFAULT_TIER_NAME
-    return lambda name: name not in skip
 
 
 def _event_order(line: _Line) -> tuple[int, int, Fraction, Fraction]:
@@ -967,6 +1069,9 @@ def dump(
     tier: str | None = None,
     words_tier: str = DEFAULT_WORDS_TIER_NAME,
     comments_tier: str = DEFAULT_COMMENTS_TIER_NAME,
+    script_info: Sequence[str] = DEFAULT_SCRIPT_INFO,
+    default_style: Mapping[str, str] = DEFAULT_STYLE,
+    event_format: Sequence[str] = DEFAULT_EVENT_FORMAT,
     **_kwargs: Any,
 ) -> bytes | None:
     """Write annotations as an ASS (v4.00+) script.
@@ -978,30 +1083,49 @@ def dump(
         target: Output path. If None, returns bytes (UTF-8, no BOM, ``\\n``).
         tier: The tier whose texts are the dialogue lines. None (the default)
             means the ``lines`` tier when the store has text annotations on
-            it, and otherwise every tier but ``words_tier`` and
-            ``comments_tier``.
+            it, and otherwise every top-level tier (one with no parent
+            constraint, as the SubRip and WebVTT writers choose) but
+            ``words_tier`` and ``comments_tier``.
         words_tier: Tier whose annotations are written as karaoke tags.
         comments_tier: Tier whose annotations are written as ``Comment:``.
+        script_info: The ``[Script Info]`` lines written when the store has
+            no ASS script metadata, or it has no such section.
+        default_style: The style written when the styles section has no
+            ``Style:`` line: field values keyed by lowercased ``Format:``
+            name (``"0"`` for a missing field); its ``name`` is also the
+            style of every non-ASS line. Aegisub's ``Default`` by default.
+        event_format: The ``[Events]`` ``Format:`` field names written when
+            the store has no ASS script metadata (``Start``, ``End`` and
+            ``Text`` last required; raises ``ValueError`` otherwise).
     """
+    if not _is_event_format(event_format):
+        raise ValueError(
+            f"event_format needs Start, End, and Text last: {list(event_format)!r}"
+        )
+    style = {str(k).lower(): str(v) for k, v in default_style.items()}
+    style_name = style.setdefault("name", DEFAULT_STYLE_NAME)
     annotations = list(iter_with_intervals(store))
     script = _script_of(annotations)
-    sections, events = _sections_to_write(script)
+    sections, events = _sections_to_write(
+        script, script_info=script_info, default_style=style, event_format=event_format
+    )
 
-    candidates = [
-        (a.tier, line)
+    line_by_id = {
+        id(a): line
         for a in annotations
         if a.tier not in (words_tier, comments_tier)
-        and (line := _line_of(a, comment=False)) is not None
-    ]
-    is_line = _is_line_tier(candidates, tier=tier, skip={words_tier, comments_tier})
+        and (line := _line_of(a, comment=False, default_style=style_name)) is not None
+    }
+    texts = [a for a in annotations if id(a) in line_by_id]
     lines = sorted(
-        (line for name, line in candidates if is_line(name)),
+        (line_by_id[id(a)] for a in select_cue_annotations(store, texts, tier=tier)),
         key=lambda line: (line.start, line.end),
     )
     comments = [
         line
         for a in annotations
-        if a.tier == comments_tier and (line := _line_of(a, comment=True)) is not None
+        if a.tier == comments_tier
+        and (line := _line_of(a, comment=True, default_style=style_name)) is not None
     ]
     words = sorted(
         (w for a in annotations if a.tier == words_tier and (w := _word_of(a))),
