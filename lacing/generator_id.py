@@ -69,9 +69,14 @@ GENERATOR_PREFIXES: Mapping[str, str] = {
     "transform": "a pipeline transform: ``transform:<name>@<version>``",
     "server": "a server-side operation: ``server:<service>``",
     "fetch": "a retrieval from an external source: ``fetch:<source>``",
+    "system": (
+        "the application's own bookkeeping (project init, seeds, migrations): "
+        "``system:<operation>``"
+    ),
 }
-"""The documented prefixes, each with what follows it. ``transform``, ``server``
-and ``fetch`` were in production before they were documented (lacing#17)."""
+"""The documented prefixes, each with what follows it. ``transform``, ``server``,
+``fetch`` and ``system`` were in production before they were documented
+(lacing#17)."""
 
 VERSIONED_PREFIXES: frozenset[str] = frozenset({"agent"})
 """Prefixes whose convention asks for an ``@<version>``."""
