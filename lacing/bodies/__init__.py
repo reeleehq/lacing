@@ -11,6 +11,7 @@ Importing this package registers every built-in body schema.
 """
 
 from lacing.bodies import (  # noqa: F401  registers
+    aligned_track,
     character_voice,
     continuity_violation,
     lyric_line,
@@ -23,6 +24,7 @@ from lacing.bodies import (  # noqa: F401  registers
 )
 
 __all__ = [
+    "aligned_track",
     "character_voice",
     "continuity_violation",
     "lyric_line",

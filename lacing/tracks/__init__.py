@@ -12,6 +12,7 @@ track facade can be built with the raw API; the facade just makes
 the common case ergonomic and consistent.
 """
 
+from lacing.tracks.aligned import from_aligned_track, to_aligned_track
 from lacing.tracks.subtitle import (
     BUILT_IN_BODY_SCHEMAS,
     SubtitleBuilder,
@@ -23,5 +24,7 @@ __all__ = [
     "BUILT_IN_BODY_SCHEMAS",
     "SubtitleBuilder",
     "SubtitleTrack",
+    "from_aligned_track",
     "register_subtitle_schemas",
+    "to_aligned_track",
 ]

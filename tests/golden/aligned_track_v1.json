@@ -1,0 +1,17 @@
+{
+  "asset_id": "song/audio.mp3",
+  "text": "the cat\nsat down",
+  "language": "en",
+  "spans": [
+    {"level": "section", "label": "verse_1", "time": {"kind": "imported", "confidence": null, "source": null}, "chars": null, "start_ms": 0, "end_ms": 5005, "parent": null},
+    {"level": "line", "label": null, "time": {"kind": "imported", "confidence": null, "source": null}, "chars": [0, 7], "start_ms": 0, "end_ms": 2002, "parent": 0},
+    {"level": "word", "label": null, "time": {"kind": "measured", "confidence": 0.98, "source": "model:whisperx@3"}, "chars": [0, 3], "start_ms": 0, "end_ms": 1001, "parent": 1},
+    {"level": "syllable", "label": null, "time": {"kind": "interpolated", "confidence": null, "source": null}, "chars": [0, 3], "start_ms": 0, "end_ms": 1001, "parent": 2},
+    {"level": "phone", "label": "DH", "time": {"kind": "measured", "confidence": 0.5, "source": null}, "chars": null, "start_ms": 0, "end_ms": 500, "parent": 3},
+    {"level": "phone", "label": "AH", "time": {"kind": "measured", "confidence": 0.5, "source": null}, "chars": null, "start_ms": 500, "end_ms": 1001, "parent": 3},
+    {"level": "word", "label": null, "time": {"kind": "measured", "confidence": 0.9, "source": "model:whisperx@3"}, "chars": [4, 7], "start_ms": 1001, "end_ms": 2002, "parent": 1},
+    {"level": "line", "label": null, "time": {"kind": "imported", "confidence": null, "source": null}, "chars": [8, 16], "start_ms": 2002, "end_ms": 5005, "parent": 0},
+    {"level": "word", "label": null, "time": {"kind": "interpolated", "confidence": null, "source": null}, "chars": [8, 11], "start_ms": 2002, "end_ms": 3003, "parent": 7},
+    {"level": "word", "label": null, "time": {"kind": "interpolated", "confidence": null, "source": null}, "chars": [12, 16], "start_ms": 3003, "end_ms": 5005, "parent": 7}
+  ]
+}

@@ -1,4 +1,22 @@
 {
+  "annot://schema/aligned-span/v1": {
+    "model": "lacing.bodies.aligned_track.AlignedSpanBodyV1",
+    "name": "aligned-span",
+    "path": "aligned-span/v1.json",
+    "version": "1"
+  },
+  "annot://schema/aligned-text/v1": {
+    "model": "lacing.bodies.aligned_track.AlignedTextBodyV1",
+    "name": "aligned-text",
+    "path": "aligned-text/v1.json",
+    "version": "1"
+  },
+  "annot://schema/aligned-track/v1": {
+    "model": "lacing.bodies.aligned_track.AlignedTrackV1",
+    "name": "aligned-track",
+    "path": "aligned-track/v1.json",
+    "version": "1"
+  },
   "annot://schema/character-voice/v1": {
     "model": "lacing.bodies.character_voice.CharacterVoiceBodyV1",
     "name": "character-voice",
