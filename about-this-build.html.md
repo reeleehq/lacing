@@ -2,20 +2,18 @@
 
 # About this build
 
-This documentation was built on **2026-11-09 02:11 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/dad8ad733da82f7cb52b9f9cc980fec3631a739d"><code>dad8ad7</code></a> on branch <code>main</code>, for **lacing 0.0.98** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 02:24 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/a0575bd4ce32f5294a161a49973c8ca44d3d28b0"><code>a0575bd</code></a> on branch <code>main</code>, for **lacing 0.0.100** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.98) is behind the latest release on PyPI (0.0.99): `pip install lacing` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/dad8ad733da82f7cb52b9f9cc980fec3631a739d"><code>dad8ad733da82f7cb52b9f9cc980fec3631a739d</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/a0575bd4ce32f5294a161a49973c8ca44d3d28b0"><code>a0575bd4ce32f5294a161a49973c8ca44d3d28b0</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
-| Tags at this commit | none                                                                                                                                                   |
+| Tags at this commit | <code>0.0.100</code>                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
 | Remote              | <code>https://github.com/reeleehq/lacing</code>                                                                                                        |
 
@@ -24,9 +22,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42549284550">42549284550</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42550169678">42550169678</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>4e67f6daf7bbd2d335403c04a8a99d50acf5fc30</code> (in the history of the built commit) |
+| Event commit | <code>0d839e311a23beface5a62c631116a90c4b62752</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -51,13 +49,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.99/">0.0.99</a>, newer than the documented version (0.0.98).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.100/">0.0.100</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout dad8ad733da82f7cb52b9f9cc980fec3631a739d
+git checkout a0575bd4ce32f5294a161a49973c8ca44d3d28b0
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

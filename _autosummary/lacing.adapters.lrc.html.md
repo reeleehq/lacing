@@ -141,7 +141,7 @@ by it, so that loading applies it again.
 * **Return type:**
   [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### lacing.adapters.lrc.load(source, , rate=1000, asset_id='lrc:unspecified', attribution='anonymous', tier='lines', words_tier='words', tags_tier='tags', \*\*\_kwargs)
+### lacing.adapters.lrc.load(source, , rate=1000, asset_id='lrc:unspecified', attribution='anonymous', tier='lines', words_tier='words', tags_tier='tags', encoding=None, \*\*\_kwargs)
 
 Parse an LRC file, or LRC bytes or text, into a `MemoryStore`.
 
@@ -159,6 +159,9 @@ the offset sign).
   * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the lines tier.
   * **words_tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the words tier (created only for enhanced LRC).
   * **tags_tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the ID-tag tier (created only when there are tags).
+  * **encoding** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Text encoding of a file or of bytes. `None` sniffs a BOM
+    (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one
+    (`"cp1252"`) for a file without a BOM.
 * **Raises:**
   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – On malformed input, naming the line number.
 * **Return type:**

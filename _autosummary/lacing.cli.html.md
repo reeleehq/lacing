@@ -57,15 +57,16 @@ coerce in the body.\*\*
 | [`migrate`](#lacing.cli.migrate)(path, \*[, to_version])                    | Upgrade PATH (a `.annot` file) to the current store schema, in place.                                                                     |
 | [`mk_parser`](#lacing.cli.mk_parser)()                                        | Build the `lacing` parser — a plain [`argparse.ArgumentParser`](https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser). |
 | [`query`](#lacing.cli.query)(path, \*[, tier, start, end, relation, ...]) | Print annotations from PATH matching a tier and/or time-interval query.                                                                   |
-| [`validate`](#lacing.cli.validate)(path, \*[, src_format, rate])             | Round-trip PATH through load + dump and report a summary.                                                                                 |
+| [`validate`](#lacing.cli.validate)(path, \*[, src_format, rate, encoding])   | Round-trip PATH through load + dump and report a summary.                                                                                 |
 
-### lacing.cli.convert(src, dst, , src_format=None, dst_format=None, rate=24000)
+### lacing.cli.convert(src, dst, , src_format=None, dst_format=None, rate=24000, encoding=None)
 
 Convert between annotation file formats.
 
 SRC is a path to a recognized file (or `-` for stdin bytes — not yet).
 DST is the output path. Formats are inferred from extensions; override
-with –src-format / –dst-format.
+with –src-format / –dst-format. A text file that is not UTF-8 (and has
+no byte-order mark) needs –encoding, e.g. cp1252.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -106,7 +107,7 @@ Build the `lacing` parser — a plain [`argparse.ArgumentParser`](https://docs.p
 * **Return type:**
   [`ArgumentParser`](https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser)
 
-### lacing.cli.query(path, , tier=None, start=None, end=None, relation='intersects', src_format=None, rate=24000, limit=100)
+### lacing.cli.query(path, , tier=None, start=None, end=None, relation='intersects', src_format=None, rate=24000, encoding=None, limit=100)
 
 Print annotations from PATH matching a tier and/or time-interval query.
 
@@ -117,7 +118,7 @@ starts, finishes, equals.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### lacing.cli.validate(path, , src_format=None, rate=24000)
+### lacing.cli.validate(path, , src_format=None, rate=24000, encoding=None)
 
 Round-trip PATH through load + dump and report a summary.
 

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=1b335f87"></script>
+    <script src="../../../_static/documentation_options.js?v=a02dbd69"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.98" />
+  <meta name="docsearch:version" content="0.0.100" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -919,23 +919,27 @@ window.runMermaid = runMermaid;</script>
     <span class="n">asset_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_ASSET_ID</span><span class="p">,</span>
     <span class="n">attribution</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"anonymous"</span><span class="p">,</span>
     <span class="n">tier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_TIER_NAME</span><span class="p">,</span>
+    <span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">_kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalAnnotationStore</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Parse a SubRip file, or SubRip bytes or text, into a ``MemoryStore``.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        source: Bytes (UTF-8, BOM tolerated), a path, or inline text. A</span>
+<span class="sd">        source: Bytes (see ``encoding``), a path, or inline text. A</span>
 <span class="sd">            ``str`` containing a newline or ``--&gt;`` is inline text; any other</span>
 <span class="sd">            ``str`` is read as a path when one exists there.</span>
 <span class="sd">        rate: Rate of every ``RationalTime`` produced; must hold a millisecond.</span>
 <span class="sd">        asset_id: The ``MediaRef.asset_id`` the cues annotate.</span>
 <span class="sd">        attribution: ``Provenance.was_attributed_to`` of every cue.</span>
 <span class="sd">        tier: Name of the tier the cues go in.</span>
+<span class="sd">        encoding: Text encoding of a file or of bytes. ``None`` sniffs a BOM</span>
+<span class="sd">            (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one</span>
+<span class="sd">            (``"cp1252"``) for a file without a BOM.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: On a malformed cue, naming the line number.</span>
 <span class="sd">    """</span>
-    <span class="n">text</span> <span class="o">=</span> <span class="n">read_text</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">looks_inline</span><span class="o">=</span><span class="n">_looks_like_inline_srt</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">read_text</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">looks_inline</span><span class="o">=</span><span class="n">_looks_like_inline_srt</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
     <span class="n">cues</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_iter_cues</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">rate</span><span class="p">))</span>  <span class="c1"># parse fully before building anything</span>
 
     <span class="n">store</span> <span class="o">=</span> <span class="n">MemoryStore</span><span class="p">()</span>

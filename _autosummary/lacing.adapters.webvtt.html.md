@@ -57,9 +57,13 @@ Write annotations as WebVTT.
 * **Return type:**
   [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### lacing.adapters.webvtt.load(source, , rate=1000, asset_id='webvtt:unspecified', attribution='anonymous', tier='cues', \*\*\_kwargs)
+### lacing.adapters.webvtt.load(source, , rate=1000, asset_id='webvtt:unspecified', attribution='anonymous', tier='cues', encoding=None, \*\*\_kwargs)
 
 Parse a WebVTT file or string/bytes into a `MemoryStore`.
+
+`encoding`: text encoding of a file or of bytes; `None` sniffs a BOM
+(UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8 (`"cp1252"` for a
+file without a BOM).
 
 * **Return type:**
   [`IntervalAnnotationStore`](lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)

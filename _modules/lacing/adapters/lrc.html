@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=1b335f87"></script>
+    <script src="../../../_static/documentation_options.js?v=a02dbd69"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.98" />
+  <meta name="docsearch:version" content="0.0.100" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -1135,6 +1135,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">tier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_TIER_NAME</span><span class="p">,</span>
     <span class="n">words_tier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_WORDS_TIER_NAME</span><span class="p">,</span>
     <span class="n">tags_tier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_TAGS_TIER_NAME</span><span class="p">,</span>
+    <span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">_kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalAnnotationStore</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Parse an LRC file, or LRC bytes or text, into a ``MemoryStore``.</span>
@@ -1153,11 +1154,16 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        tier: Name of the lines tier.</span>
 <span class="sd">        words_tier: Name of the words tier (created only for enhanced LRC).</span>
 <span class="sd">        tags_tier: Name of the ID-tag tier (created only when there are tags).</span>
+<span class="sd">        encoding: Text encoding of a file or of bytes. ``None`` sniffs a BOM</span>
+<span class="sd">            (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one</span>
+<span class="sd">            (``"cp1252"``) for a file without a BOM.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: On malformed input, naming the line number.</span>
 <span class="sd">    """</span>
-    <span class="n">parsed</span> <span class="o">=</span> <span class="n">_parse</span><span class="p">(</span><span class="n">read_text</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">looks_inline</span><span class="o">=</span><span class="n">_looks_like_inline_lrc</span><span class="p">))</span>
+    <span class="n">parsed</span> <span class="o">=</span> <span class="n">_parse</span><span class="p">(</span>
+        <span class="n">read_text</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">looks_inline</span><span class="o">=</span><span class="n">_looks_like_inline_lrc</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="n">offset</span> <span class="o">=</span> <span class="n">parsed</span><span class="o">.</span><span class="n">offset_ms</span>
 
     <span class="c1"># (start_ms, row) per time tag, sorted by start; file order breaks ties.</span>

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=1b335f87"></script>
+    <script src="../../_static/documentation_options.js?v=a02dbd69"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.98" />
+  <meta name="docsearch:version" content="0.0.100" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -807,6 +807,11 @@ window.runMermaid = runMermaid;</script>
 <span class="c1"># ---------------------------------------------------------------------------</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_encoding_kwargs</span><span class="p">(</span><span class="n">encoding</span><span class="p">:</span> <span class="s2">"str | None"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``encoding=`` for the text adapters, only when the user named one."""</span>
+    <span class="k">return</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">encoding</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{</span><span class="s2">"encoding"</span><span class="p">:</span> <span class="n">encoding</span><span class="p">}</span>
+
+
 <div class="viewcode-block" id="convert">
 <a class="viewcode-back" href="../../_autosummary/lacing.cli.html#lacing.cli.convert">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">convert</span><span class="p">(</span>
@@ -816,18 +821,22 @@ window.runMermaid = runMermaid;</script>
     <span class="n">src_format</span><span class="p">:</span> <span class="s2">"str | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dst_format</span><span class="p">:</span> <span class="s2">"str | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">24000</span><span class="p">,</span>
+    <span class="n">encoding</span><span class="p">:</span> <span class="s2">"str | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Convert between annotation file formats.</span>
 
 <span class="sd">    SRC is a path to a recognized file (or ``-`` for stdin bytes — not yet).</span>
 <span class="sd">    DST is the output path. Formats are inferred from extensions; override</span>
-<span class="sd">    with --src-format / --dst-format.</span>
+<span class="sd">    with --src-format / --dst-format. A text file that is not UTF-8 (and has</span>
+<span class="sd">    no byte-order mark) needs --encoding, e.g. cp1252.</span>
 <span class="sd">    """</span>
     <span class="n">_ensure_adapters</span><span class="p">()</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">dump</span> <span class="k">as</span> <span class="n">adapter_dump</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span> <span class="k">as</span> <span class="n">adapter_load</span>
 
-    <span class="n">store</span> <span class="o">=</span> <span class="n">adapter_load</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">src_format</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">adapter_load</span><span class="p">(</span>
+        <span class="n">src</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">src_format</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">,</span> <span class="o">**</span><span class="n">_encoding_kwargs</span><span class="p">(</span><span class="n">encoding</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">dst_format</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">dst_format</span> <span class="o">=</span> <span class="n">_infer_format_from_extension</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">dst_format</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -860,6 +869,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">relation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"intersects"</span><span class="p">,</span>
     <span class="n">src_format</span><span class="p">:</span> <span class="s2">"str | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">24000</span><span class="p">,</span>
+    <span class="n">encoding</span><span class="p">:</span> <span class="s2">"str | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Print annotations from PATH matching a tier and/or time-interval query.</span>
@@ -872,7 +882,9 @@ window.runMermaid = runMermaid;</script>
     <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span> <span class="k">as</span> <span class="n">adapter_load</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.time</span><span class="w"> </span><span class="kn">import</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">TimeInterval</span>
 
-    <span class="n">store</span> <span class="o">=</span> <span class="n">adapter_load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">src_format</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">adapter_load</span><span class="p">(</span>
+        <span class="n">path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">src_format</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">,</span> <span class="o">**</span><span class="n">_encoding_kwargs</span><span class="p">(</span><span class="n">encoding</span><span class="p">)</span>
+    <span class="p">)</span>
 
     <span class="n">iter_anns</span><span class="p">:</span> <span class="n">Iterable</span>
     <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">end</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -942,6 +954,7 @@ window.runMermaid = runMermaid;</script>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">src_format</span><span class="p">:</span> <span class="s2">"str | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">24000</span><span class="p">,</span>
+    <span class="n">encoding</span><span class="p">:</span> <span class="s2">"str | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Round-trip PATH through load + dump and report a summary.</span>
 
@@ -951,7 +964,9 @@ window.runMermaid = runMermaid;</script>
     <span class="n">_ensure_adapters</span><span class="p">()</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span> <span class="k">as</span> <span class="n">adapter_load</span>
 
-    <span class="n">store</span> <span class="o">=</span> <span class="n">adapter_load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">src_format</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">adapter_load</span><span class="p">(</span>
+        <span class="n">path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">src_format</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">,</span> <span class="o">**</span><span class="n">_encoding_kwargs</span><span class="p">(</span><span class="n">encoding</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="n">iter_all</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="s2">"all"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">anns</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">iter_all</span><span class="p">())</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">iter_all</span><span class="p">)</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">_iter_all</span><span class="p">(</span><span class="n">store</span><span class="p">))</span>
     <span class="n">tiers_iter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="s2">"tiers"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>

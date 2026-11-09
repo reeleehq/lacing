@@ -1,4 +1,4 @@
-> built 2026-11-09 02:11 UTC from dad8ad7 (main) · lacing 0.0.98. Details: build_info.json
+> built 2026-11-09 02:24 UTC from a0575bd (main) · lacing 0.0.100. Details: build_info.json
 
 # index.html.md
 
@@ -1082,7 +1082,7 @@ by it, so that loading applies it again.
 * **Return type:**
   [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### lacing.adapters.lrc.load(source, , rate=1000, asset_id='lrc:unspecified', attribution='anonymous', tier='lines', words_tier='words', tags_tier='tags', \*\*\_kwargs)
+### lacing.adapters.lrc.load(source, , rate=1000, asset_id='lrc:unspecified', attribution='anonymous', tier='lines', words_tier='words', tags_tier='tags', encoding=None, \*\*\_kwargs)
 
 Parse an LRC file, or LRC bytes or text, into a `MemoryStore`.
 
@@ -1100,6 +1100,9 @@ the offset sign).
   * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the lines tier.
   * **words_tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the words tier (created only for enhanced LRC).
   * **tags_tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the ID-tag tier (created only when there are tags).
+  * **encoding** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Text encoding of a file or of bytes. `None` sniffs a BOM
+    (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one
+    (`"cp1252"`) for a file without a BOM.
 * **Raises:**
   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – On malformed input, naming the line number.
 * **Return type:**
@@ -1594,18 +1597,21 @@ Write annotations as SubRip.
 * **Return type:**
   [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### lacing.adapters.srt.load(source, , rate=1000, asset_id='srt:unspecified', attribution='anonymous', tier='cues', \*\*\_kwargs)
+### lacing.adapters.srt.load(source, , rate=1000, asset_id='srt:unspecified', attribution='anonymous', tier='cues', encoding=None, \*\*\_kwargs)
 
 Parse a SubRip file, or SubRip bytes or text, into a `MemoryStore`.
 
 * **Parameters:**
-  * **source** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike)) – Bytes (UTF-8, BOM tolerated), a path, or inline text. A
+  * **source** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike)) – Bytes (see `encoding`), a path, or inline text. A
     `str` containing a newline or `-->` is inline text; any other
     `str` is read as a path when one exists there.
   * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – Rate of every `RationalTime` produced; must hold a millisecond.
   * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The `MediaRef.asset_id` the cues annotate.
   * **attribution** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to` of every cue.
   * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the tier the cues go in.
+  * **encoding** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Text encoding of a file or of bytes. `None` sniffs a BOM
+    (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one
+    (`"cp1252"`) for a file without a BOM.
 * **Raises:**
   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – On a malformed cue, naming the line number.
 * **Return type:**
@@ -1812,9 +1818,13 @@ Write annotations as WebVTT.
 * **Return type:**
   [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### lacing.adapters.webvtt.load(source, , rate=1000, asset_id='webvtt:unspecified', attribution='anonymous', tier='cues', \*\*\_kwargs)
+### lacing.adapters.webvtt.load(source, , rate=1000, asset_id='webvtt:unspecified', attribution='anonymous', tier='cues', encoding=None, \*\*\_kwargs)
 
 Parse a WebVTT file or string/bytes into a `MemoryStore`.
+
+`encoding`: text encoding of a file or of bytes; `None` sniffs a BOM
+(UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8 (`"cp1252"` for a
+file without a BOM).
 
 * **Return type:**
   [`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)
@@ -3726,15 +3736,16 @@ coerce in the body.\*\*
 | [`migrate`](_autosummary/lacing.cli.html.md#lacing.cli.migrate)(path, \*[, to_version])                    | Upgrade PATH (a `.annot` file) to the current store schema, in place.                                                                     |
 | [`mk_parser`](_autosummary/lacing.cli.html.md#lacing.cli.mk_parser)()                                        | Build the `lacing` parser — a plain [`argparse.ArgumentParser`](https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser). |
 | [`query`](_autosummary/lacing.cli.html.md#lacing.cli.query)(path, \*[, tier, start, end, relation, ...]) | Print annotations from PATH matching a tier and/or time-interval query.                                                                   |
-| [`validate`](_autosummary/lacing.cli.html.md#lacing.cli.validate)(path, \*[, src_format, rate])             | Round-trip PATH through load + dump and report a summary.                                                                                 |
+| [`validate`](_autosummary/lacing.cli.html.md#lacing.cli.validate)(path, \*[, src_format, rate, encoding])   | Round-trip PATH through load + dump and report a summary.                                                                                 |
 
-### lacing.cli.convert(src, dst, , src_format=None, dst_format=None, rate=24000)
+### lacing.cli.convert(src, dst, , src_format=None, dst_format=None, rate=24000, encoding=None)
 
 Convert between annotation file formats.
 
 SRC is a path to a recognized file (or `-` for stdin bytes — not yet).
 DST is the output path. Formats are inferred from extensions; override
-with –src-format / –dst-format.
+with –src-format / –dst-format. A text file that is not UTF-8 (and has
+no byte-order mark) needs –encoding, e.g. cp1252.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -3775,7 +3786,7 @@ Build the `lacing` parser — a plain [`argparse.ArgumentParser`](https://docs.p
 * **Return type:**
   [`ArgumentParser`](https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser)
 
-### lacing.cli.query(path, , tier=None, start=None, end=None, relation='intersects', src_format=None, rate=24000, limit=100)
+### lacing.cli.query(path, , tier=None, start=None, end=None, relation='intersects', src_format=None, rate=24000, encoding=None, limit=100)
 
 Print annotations from PATH matching a tier and/or time-interval query.
 
@@ -3786,7 +3797,7 @@ starts, finishes, equals.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### lacing.cli.validate(path, , src_format=None, rate=24000)
+### lacing.cli.validate(path, , src_format=None, rate=24000, encoding=None)
 
 Round-trip PATH through load + dump and report a summary.
 
@@ -11021,20 +11032,18 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-09 02:11 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/dad8ad733da82f7cb52b9f9cc980fec3631a739d"><code>dad8ad7</code></a> on branch <code>main</code>, for **lacing 0.0.98** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 02:24 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/a0575bd4ce32f5294a161a49973c8ca44d3d28b0"><code>a0575bd</code></a> on branch <code>main</code>, for **lacing 0.0.100** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.98) is behind the latest release on PyPI (0.0.99): `pip install lacing` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/dad8ad733da82f7cb52b9f9cc980fec3631a739d"><code>dad8ad733da82f7cb52b9f9cc980fec3631a739d</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/a0575bd4ce32f5294a161a49973c8ca44d3d28b0"><code>a0575bd4ce32f5294a161a49973c8ca44d3d28b0</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
-| Tags at this commit | none                                                                                                                                                   |
+| Tags at this commit | <code>0.0.100</code>                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
 | Remote              | <code>https://github.com/reeleehq/lacing</code>                                                                                                        |
 
@@ -11043,9 +11052,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42549284550">42549284550</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42550169678">42550169678</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>4e67f6daf7bbd2d335403c04a8a99d50acf5fc30</code> (in the history of the built commit) |
+| Event commit | <code>0d839e311a23beface5a62c631116a90c4b62752</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11070,13 +11079,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.99/">0.0.99</a>, newer than the documented version (0.0.98).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.100/">0.0.100</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout dad8ad733da82f7cb52b9f9cc980fec3631a739d
+git checkout a0575bd4ce32f5294a161a49973c8ca44d3d28b0
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

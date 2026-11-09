@@ -81,18 +81,21 @@ Write annotations as SubRip.
 * **Return type:**
   [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### lacing.adapters.srt.load(source, , rate=1000, asset_id='srt:unspecified', attribution='anonymous', tier='cues', \*\*\_kwargs)
+### lacing.adapters.srt.load(source, , rate=1000, asset_id='srt:unspecified', attribution='anonymous', tier='cues', encoding=None, \*\*\_kwargs)
 
 Parse a SubRip file, or SubRip bytes or text, into a `MemoryStore`.
 
 * **Parameters:**
-  * **source** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike)) – Bytes (UTF-8, BOM tolerated), a path, or inline text. A
+  * **source** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike)) – Bytes (see `encoding`), a path, or inline text. A
     `str` containing a newline or `-->` is inline text; any other
     `str` is read as a path when one exists there.
   * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – Rate of every `RationalTime` produced; must hold a millisecond.
   * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The `MediaRef.asset_id` the cues annotate.
   * **attribution** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to` of every cue.
   * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the tier the cues go in.
+  * **encoding** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Text encoding of a file or of bytes. `None` sniffs a BOM
+    (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one
+    (`"cp1252"`) for a file without a BOM.
 * **Raises:**
   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – On a malformed cue, naming the line number.
 * **Return type:**
