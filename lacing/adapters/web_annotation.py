@@ -40,8 +40,8 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import iter_with_intervals, load_json
-from lacing.model import Annotation, MediaRef, Provenance
+from lacing.adapters._common import import_provenance, iter_with_intervals, load_json
+from lacing.model import Annotation, MediaRef
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import RationalTime, TimeInterval
@@ -258,12 +258,7 @@ def load(
                 reference=MediaRef(asset_id=target_source, interval=interval),
                 body=body,
                 body_schema_uri=BODY_SCHEMA_URI,
-                provenance=Provenance(
-                    was_generated_by=GENERATED_BY,
-                    was_attributed_to=creator,
-                    generated_at_time=now,
-                    activity="import",
-                ),
+                provenance=import_provenance(GENERATED_BY, creator, generated_at=now),
             )
         )
 

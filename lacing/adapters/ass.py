@@ -175,7 +175,7 @@ from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import iter_with_intervals, read_text
+from lacing.adapters._common import import_provenance, iter_with_intervals, read_text
 from lacing.adapters._cues import (
     MS_PER_SECOND,
     assign_words,
@@ -184,7 +184,7 @@ from lacing.adapters._cues import (
     select_cue_annotations,
     split_cue_lines,
 )
-from lacing.model import Annotation, MediaRef, Provenance
+from lacing.model import Annotation, MediaRef
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier, TierStereotype
 from lacing.time import LossyTimeConversionError, RationalTime, TimeInterval
@@ -686,11 +686,8 @@ def load(
     def at(seconds: Fraction) -> RationalTime:
         return RationalTime.from_seconds(seconds, rate=rate)
 
-    provenance = Provenance(
-        was_generated_by=GENERATED_BY,
-        was_attributed_to=attribution,
-        generated_at_time=RationalTime.now(rate),
-        activity="import",
+    provenance = import_provenance(
+        GENERATED_BY, attribution, generated_at=RationalTime.now(rate)
     )
     built: list[Annotation] = []
 

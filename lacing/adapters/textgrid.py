@@ -32,8 +32,13 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import decode_text, display_text, iter_with_intervals
-from lacing.model import Annotation, MediaRef, Provenance
+from lacing.adapters._common import (
+    decode_text,
+    display_text,
+    import_provenance,
+    iter_with_intervals,
+)
+from lacing.model import Annotation, MediaRef
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import DEFAULT_RATE, RationalTime, TimeInterval
@@ -207,11 +212,8 @@ def _add_annotation(
             reference=MediaRef(asset_id=asset_id, interval=interval),
             body={"text": label},
             body_schema_uri=BODY_SCHEMA_URI,
-            provenance=Provenance(
-                was_generated_by=GENERATED_BY,
-                was_attributed_to=attribution,
-                generated_at_time=generated_at,
-                activity="import",
+            provenance=import_provenance(
+                GENERATED_BY, attribution, generated_at=generated_at
             ),
         )
     )

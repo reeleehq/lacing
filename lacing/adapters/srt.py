@@ -63,7 +63,12 @@ from typing import Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import display_text, iter_with_intervals, read_text
+from lacing.adapters._common import (
+    display_text,
+    import_provenance,
+    iter_with_intervals,
+    read_text,
+)
 from lacing.adapters._cues import (
     cue_payload,
     format_cue_time,
@@ -73,7 +78,7 @@ from lacing.adapters._cues import (
     select_cue_annotations,
     split_cue_lines,
 )
-from lacing.model import Annotation, MediaRef, Provenance
+from lacing.model import Annotation, MediaRef
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import RationalTime, TimeInterval
@@ -229,11 +234,8 @@ def load(
                 reference=MediaRef(asset_id=asset_id, interval=cue["interval"]),
                 body={"text": cue["text"], "index": cue["index"]},
                 body_schema_uri=BODY_SCHEMA_URI,
-                provenance=Provenance(
-                    was_generated_by=GENERATED_BY,
-                    was_attributed_to=attribution,
-                    generated_at_time=now,
-                    activity="import",
+                provenance=import_provenance(
+                    GENERATED_BY, attribution, generated_at=now
                 ),
             )
         )

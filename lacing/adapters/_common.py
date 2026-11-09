@@ -48,7 +48,8 @@ from collections.abc import Callable, Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from lacing.model import Annotation, MediaRef
+from lacing.model import Annotation, MediaRef, Provenance
+from lacing.time import RationalTime
 from lacing.store import IntervalAnnotationStore
 
 
@@ -133,6 +134,30 @@ _BOM_CODECS: tuple[tuple[bytes, str], ...] = (
     (codecs.BOM_UTF16_LE, "utf-16"),
     (codecs.BOM_UTF16_BE, "utf-16"),
 )
+
+
+def import_provenance(
+    generated_by: str,
+    attributed_to: str,
+    *,
+    generated_at: RationalTime | None = None,
+    activity: str = "import",
+) -> Provenance:
+    """The provenance an adapter stamps on what it loads (lacing#176): who
+    generated it (``generated_by``, the adapter's generator id), who is
+    responsible (``attributed_to``), when (``generated_at``; now by default)
+    and as which activity (``import``; ``infer`` for what the adapter derives).
+
+    >>> p = import_provenance("adapter:srt@1.0.0", "thor")
+    >>> p.activity, p.was_generated_by, p.was_attributed_to
+    ('import', 'adapter:srt@1.0.0', 'thor')
+    """
+    return Provenance(
+        was_generated_by=generated_by,
+        was_attributed_to=attributed_to,
+        generated_at_time=RationalTime.now() if generated_at is None else generated_at,
+        activity=activity,
+    )
 
 
 def decode_text(
