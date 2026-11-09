@@ -1,4 +1,4 @@
-"""``restriction_breach`` and the territory vocabulary (reeleehq/an#743)."""
+"""``restriction_breach``, the ``Use`` it reads, and the territory vocabulary (reeleehq/an#743)."""
 
 import pytest
 
@@ -7,6 +7,7 @@ from lacing import (
     TERRITORY_EXCLUDED,
     Restriction,
     Rights,
+    Use,
     normalize_territory,
     restriction_breach,
     territory_excluded,
@@ -20,7 +21,7 @@ HUNYUAN = Restriction(kind=TERRITORY_EXCLUDED, codes=["EU", "GB", "KR"])
     "revenue, breaks", [(0, False), (999_999, False), (1_000_000, True), (None, True)]
 )
 def test_a_revenue_cap_allows_only_below_the_cap(revenue, breaks):
-    reason = restriction_breach(CAP, revenue_usd=revenue)
+    reason = restriction_breach(CAP, Use(revenue_usd=revenue))
     assert (reason is not None) is breaks
     if breaks:
         assert reason.startswith("stability-community: allowed only below $1,000,000")
@@ -38,37 +39,78 @@ def test_a_revenue_cap_allows_only_below_the_cap(revenue, breaks):
         (None, True),  # unstated: fail closed
         ("", True),
         ("WORLD", True),  # everywhere includes them
-        ("Korea", True),  # not a code: fail closed
     ],
 )
 def test_an_excluded_territory_fails_closed(territory, breaks):
-    assert (restriction_breach(HUNYUAN, territory=territory) is not None) is breaks
+    reason = restriction_breach(HUNYUAN, Use(territory=territory))
+    assert (reason is not None) is breaks
+
+
+@pytest.mark.parametrize("territory", ["Korea", "Franc", "FRA", "EU"])
+def test_a_use_refuses_a_territory_it_cannot_place(territory):
+    with pytest.raises(ValueError, match="alpha-2"):
+        Use(territory=territory)
+
+
+@pytest.mark.parametrize("revenue", [True, 1.5, "100"])
+def test_a_use_refuses_a_revenue_that_is_not_an_int(revenue):
+    with pytest.raises(TypeError, match="whole number"):
+        Use(revenue_usd=revenue)
+
+
+def test_a_use_refuses_a_negative_revenue_and_is_frozen():
+    with pytest.raises(ValueError, match="negative"):
+        Use(revenue_usd=-1)
+    use = Use(revenue_usd=0, territory="uk")
+    assert use == Use(territory="GB", revenue_usd=0)
+    with pytest.raises(AttributeError):
+        use.territory = "FR"
+    with pytest.raises(TypeError):
+        Use(0, "US")  # keyword-only
 
 
 def test_a_restriction_says_what_the_use_must_state():
     assert "state the territory" in restriction_breach(HUNYUAN)
     assert "state the revenue" in restriction_breach(CAP)
-    assert "WORLD" in restriction_breach(HUNYUAN, territory="world")
+    assert "WORLD: a use everywhere includes them" in restriction_breach(
+        HUNYUAN, Use(territory="world")
+    )
+    assert "the use: FR" in restriction_breach(HUNYUAN, Use(territory="fr"))
 
 
 def test_recorded_codes_are_read_through_their_aliases():
     assert territory_excluded({"uk"}, "GB") and territory_excluded({"EL"}, "gr")
+    assert not territory_excluded({"uk", "EU"}, "US")
+
+
+@pytest.mark.parametrize("recorded", [{"Franc"}, {"FRA"}, {"KR", "Asia"}])
+def test_an_unplaceable_recorded_code_excludes_every_use(recorded):
+    assert territory_excluded(recorded, "US")
+    breach = restriction_breach(
+        Restriction(kind=TERRITORY_EXCLUDED, codes=sorted(recorded)),
+        Use(territory="US"),
+    )
+    assert breach is not None
+
+
+def test_a_recorded_world_excludes_every_use():
+    assert territory_excluded({"WORLD"}, "US") and territory_excluded({"world"}, "JP")
+    world = Restriction(kind=TERRITORY_EXCLUDED, codes=["WORLD"])
+    assert restriction_breach(world, Use(territory="US")) is not None
 
 
 def test_an_unknown_kind_is_never_cleared_and_a_known_one_can_be_overridden():
     odd = Restriction(kind="no_broadcast", terms="station-terms")
-    assert restriction_breach(odd, revenue_usd=0, territory="US") == (
+    assert restriction_breach(odd, Use(revenue_usd=0, territory="US")) == (
         "station-terms: an unknown restriction 'no_broadcast': not cleared"
     )
-    assert (
-        restriction_breach(odd, checks={"no_broadcast": lambda r, rev, t: None}) is None
-    )
+    assert restriction_breach(odd, checks={"no_broadcast": lambda r, use: None}) is None
 
 
 def test_every_restriction_of_a_rights_record_is_checked():
     rights = Rights(provider="p", license="CC-BY-4.0", restrictions=[CAP, HUNYUAN])
-    use = {"revenue_usd": 5_000, "territory": "DE"}
-    reasons = [r for x in rights.restrictions if (r := restriction_breach(x, **use))]
+    use = Use(revenue_usd=5_000, territory="DE")
+    reasons = [r for x in rights.restrictions if (r := restriction_breach(x, use))]
     assert reasons == ["not allowed in EU, GB, KR (the use: DE)"]
 
 

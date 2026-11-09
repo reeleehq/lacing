@@ -87,9 +87,12 @@ def territory_excluded(
 ) -> bool:
     """Whether a use in ``territory`` falls in ``excluded`` (a region covers its members).
 
-    It fails closed: whenever anything is excluded, an unstated territory
-    (``None``), a worldwide one, and one that is not a country code all count
-    as excluded. Codes in ``excluded`` are read as recorded, aliases included.
+    It fails closed on both sides. Whenever anything is excluded, an unstated
+    territory (``None``), a worldwide one, and one that is not a country code
+    all count as excluded. And a recorded code is read through its aliases: one
+    that names no country, no key of ``regions`` and not :data:`WORLDWIDE`
+    (a typo such as ``"Franc"``) excludes every use, since nobody can tell what
+    it meant; a recorded ``"WORLD"`` excludes every use by definition.
 
     >>> territory_excluded({"KR"}, None), territory_excluded({"UK"}, "gb")
     (True, True)
@@ -97,11 +100,18 @@ def territory_excluded(
     (True, False)
     >>> territory_excluded({"KR"}, "WORLD"), territory_excluded(set(), "WORLD")
     (True, False)
+    >>> territory_excluded({"Franc"}, "US"), territory_excluded({"WORLD"}, "US")
+    (True, True)
     """
     codes = {str(c).strip().upper() for c in excluded}
     if not codes:
         return False
     codes = {TERRITORY_ALIASES.get(c, c) for c in codes}
+    if any(
+        c == WORLDWIDE or (c not in ISO_COUNTRY_CODES and c not in regions)
+        for c in codes
+    ):
+        return True  # recorded everywhere, or a code nobody can place
     try:
         code = normalize_territory(territory)
     except ValueError:

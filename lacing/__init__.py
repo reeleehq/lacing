@@ -93,6 +93,7 @@ from lacing.artifact_ref import ARTIFACT_REF_PREFIX, ArtifactRef
 from lacing.restrictions import (
     RESTRICTION_CHECKS,
     RestrictionCheck,
+    Use,
     restriction_breach,
 )
 from lacing.territory import (
@@ -169,6 +170,7 @@ __all__ = [
     "Restriction",
     "RESTRICTION_CHECKS",
     "RestrictionCheck",
+    "Use",
     "restriction_breach",
     "REGIONS",
     "WORLDWIDE",
