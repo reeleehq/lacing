@@ -55,6 +55,8 @@ CENSUS = {
     "test:doctest": ["undocumented prefix 'test'"],
     "server:lacing": [],
     "fetch:openverse": [],
+    "system:project-init": [],
+    "system:migration-420": [],
     "processor:lacing.tracks.subtitle": [],
     "lacing.tracks.subtitle": [WRONG_SHAPE],  # the old default, in stored rows
     "reelee.locks.create_reference_lock": [WRONG_SHAPE],
@@ -62,7 +64,7 @@ CENSUS = {
     "an.render.render_project": [WRONG_SHAPE],
     "braidio:importer": [UNDOCUMENTED("braidio")],
     "muvid:align": [UNDOCUMENTED("muvid")],
-    "system:edits": [UNDOCUMENTED("system")],
+    "system:edits": [],
     "orchestrator:supervisor": [UNDOCUMENTED("orchestrator")],
 }
 
@@ -114,10 +116,7 @@ def test_a_census_is_one_counter_over_findings():
     assert counts == {
         "prefix 'agent' expects an @<version>": 1,
         WRONG_SHAPE: 4,
-        **{
-            UNDOCUMENTED(p): 1
-            for p in ("test", "braidio", "muvid", "system", "orchestrator")
-        },
+        **{UNDOCUMENTED(p): 1 for p in ("test", "braidio", "muvid", "orchestrator")},
     }
 
 
