@@ -735,3 +735,30 @@ def _clock(cs: int) -> str:
     m, rem = divmod(rem, 6000)
     sec, c = divmod(rem, 100)
     return f"{h}:{m:02d}:{sec:02d}.{c:02d}"
+
+
+# -- the #162 acceptance line and the #163 seam, on ASS --------------------
+
+
+class TestWithTheCueWritersAndEncoding:
+    def test_convert_a_karaoke_ass_to_srt_writes_one_cue_per_dialogue_line(
+        self, tmp_path
+    ):
+        from lacing import cli
+
+        src, dst = tmp_path / "karaoke.ass", tmp_path / "out.srt"
+        src.write_text(KARAOKE_ASS, encoding="utf-8")
+        cli.convert(str(src), str(dst))
+        store = adapter_module.load(KARAOKE_ASS)
+        n_lines = len([a for a in store.all() if a.tier == "lines"])
+        assert dst.read_text(encoding="utf-8").count(" --> ") == n_lines > 0
+
+    def test_a_utf16_file_loads_and_cp1252_takes_the_keyword(self, tmp_path):
+        text = KARAOKE_ASS.replace("[Script Info]", "[Script Info]\nTitle: café", 1)
+        utf16, cp = tmp_path / "a.ass", tmp_path / "b.ass"
+        utf16.write_bytes(b"\xff\xfe" + text.encode("utf-16-le"))
+        cp.write_bytes(text.encode("cp1252"))
+        assert adapter_module.load(utf16).all()
+        assert adapter_module.load(cp, encoding="cp1252").all()
+        with pytest.raises(UnicodeDecodeError, match="encoding="):
+            adapter_module.load(cp)

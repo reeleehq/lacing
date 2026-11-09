@@ -573,6 +573,7 @@ def load(
     words_tier: str = DEFAULT_WORDS_TIER_NAME,
     comments_tier: str = DEFAULT_COMMENTS_TIER_NAME,
     script_tier: str = DEFAULT_SCRIPT_TIER_NAME,
+    encoding: str | None = None,
     **_kwargs: Any,
 ) -> IntervalAnnotationStore:
     """Parse an ASS/SSA file, or ASS bytes or text, into a ``MemoryStore``.
@@ -582,7 +583,7 @@ def load(
     annotation on ``script_tier`` (see the module docstring).
 
     Args:
-        source: Bytes (UTF-8, BOM tolerated), a path, or inline text. A
+        source: Bytes (see ``encoding``), a path, or inline text. A
             ``str`` with a line break, or starting with ``[``, is inline text;
             any other ``str`` is read as a path when a file exists there.
         rate: Rate of every ``RationalTime`` produced; must hold a centisecond
@@ -595,12 +596,17 @@ def load(
         comments_tier: Name of the comment-event tier (created only when
             there are comments).
         script_tier: Name of the script-metadata tier.
+        encoding: Text encoding of a file or of bytes. ``None`` sniffs a BOM
+            (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one
+            (``"cp1252"``) for an older file without a BOM.
 
     Raises:
         ValueError: On malformed input, naming the line number, and on input
             with no ``[Events]`` section.
     """
-    parsed = _parse(read_text(source, looks_inline=_looks_like_inline_ass))
+    parsed = _parse(
+        read_text(source, looks_inline=_looks_like_inline_ass, encoding=encoding)
+    )
 
     def at(seconds: Fraction) -> RationalTime:
         return RationalTime.from_seconds(seconds, rate=rate)
