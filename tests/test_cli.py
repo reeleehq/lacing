@@ -46,7 +46,11 @@ def annot_path(tmp_path):
     """Build a small ``.annot`` file from scratch."""
     s = MemoryStore()
     s.add_tier(Tier("words"))
-    for start, end, text in ((0, 1500, "hello"), (1500, 3000, "world"), (5000, 6250, "again")):
+    for start, end, text in (
+        (0, 1500, "hello"),
+        (1500, 3000, "world"),
+        (5000, 6250, "again"),
+    ):
         s.add(
             Annotation(
                 id=uuid4(),
@@ -320,3 +324,52 @@ class TestOptionCoercion:
     def test_rate_and_limit_keep_the_int_type_argh_inferred_from_their_defaults(self):
         ns = self._namespace(["query", "f.vtt", "--rate", "1000", "--limit", "5"])
         assert (ns.rate, ns.limit) == (1000, 5)
+
+
+# -- convert --tier / --lines-tier (lacing#168) ------------------------------------
+
+
+def _karaoke_lrc(tmp_path):
+    src = tmp_path / "k.lrc"
+    src.write_text(
+        "[00:01.00]<00:01.00>one <00:01.50>two<00:02.00>\n", encoding="utf-8"
+    )
+    return src
+
+
+def test_convert_tier_writes_only_that_tier(tmp_path):
+    from lacing import cli
+
+    src, dst = _karaoke_lrc(tmp_path), tmp_path / "w.srt"
+    cli.convert(str(src), str(dst), tier="words")
+    text = dst.read_text(encoding="utf-8")
+    assert "one" in text and "one two" not in text
+
+
+def test_convert_default_writes_the_lines(tmp_path):
+    from lacing import cli
+
+    src, dst = _karaoke_lrc(tmp_path), tmp_path / "l.srt"
+    cli.convert(str(src), str(dst))
+    assert dst.read_text(encoding="utf-8").count(" --> ") == 1
+
+
+def test_convert_lines_tier_names_the_lines(tmp_path):
+    from lacing import cli
+
+    src, dst = _karaoke_lrc(tmp_path), tmp_path / "x.srt"
+    cli.convert(str(src), str(dst), lines_tier="words")
+    assert dst.read_text(encoding="utf-8").count(" --> ") == 2
+
+
+def test_convert_passes_neither_tier_when_unnamed(tmp_path, monkeypatch):
+    from lacing import cli
+    import lacing.adapters as adapters
+
+    seen = {}
+    real = adapters.dump
+    monkeypatch.setattr(
+        adapters, "dump", lambda *a, **kw: seen.update(kw) or real(*a, **kw)
+    )
+    cli.convert(str(_karaoke_lrc(tmp_path)), str(tmp_path / "y.vtt"))
+    assert "tier" not in seen and "lines_tier" not in seen

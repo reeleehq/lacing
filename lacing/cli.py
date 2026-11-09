@@ -99,6 +99,12 @@ def _encoding_kwargs(encoding: "str | None") -> dict:
     return {} if encoding is None else {"encoding": encoding}
 
 
+def _tier_kwargs(tier: "str | None", lines_tier: "str | None") -> dict:
+    """``tier=`` / ``lines_tier=`` for the writers, only the ones the user named."""
+    named = {"tier": tier, "lines_tier": lines_tier}
+    return {k: v for k, v in named.items() if v is not None}
+
+
 def convert(
     src: str,
     dst: str,
@@ -107,13 +113,19 @@ def convert(
     dst_format: "str | None" = None,
     rate: int = 24000,
     encoding: "str | None" = None,
+    tier: "str | None" = None,
+    lines_tier: "str | None" = None,
 ) -> None:
     """Convert between annotation file formats.
 
     SRC is a path to a recognized file (or ``-`` for stdin bytes — not yet).
     DST is the output path. Formats are inferred from extensions; override
     with --src-format / --dst-format. A text file that is not UTF-8 (and has
-    no byte-order mark) needs --encoding, e.g. cp1252.
+    no byte-order mark) needs --encoding, e.g. cp1252. SubRip and WebVTT
+    given no --tier write the ``lines`` tier when the store has one, else every
+    top-level tier; --tier writes only that tier (SubRip, WebVTT, LRC, ASS),
+    and --lines-tier names the lines tier when the source called it something
+    else (SubRip, WebVTT). Other formats ignore both.
     """
     _ensure_adapters()
     from lacing.adapters import dump as adapter_dump
@@ -126,7 +138,7 @@ def convert(
         dst_format = _infer_format_from_extension(dst)
     if dst_format is None:
         raise SystemExit(f"Cannot infer output format from {dst!r}. Pass --dst-format.")
-    adapter_dump(store, dst, format=dst_format)
+    adapter_dump(store, dst, format=dst_format, **_tier_kwargs(tier, lines_tier))
     print(f"Wrote {dst!r} ({dst_format})")
 
 
