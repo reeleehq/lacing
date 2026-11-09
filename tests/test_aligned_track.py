@@ -343,3 +343,71 @@ def test_two_assets_in_one_store_export_separately(golden):
     from_aligned_track(other, store)
     assert to_aligned_track(store, asset_id=ASSET) == golden
     assert to_aligned_track(store, asset_id="other.mp3") == other
+
+
+# -- the re-review: edited stores degrade, jittered legacy words keep a parent ---
+
+
+def _overlapping_lines_with_a_word():
+    return AlignedTrackV1(
+        asset_id=ASSET,
+        text="hello world",
+        spans=[
+            _t("line", 0, 1000, chars=(0, 5)),
+            _t("word", 600, 900, chars=(0, 5), parent=0),
+            _t("line", 500, 1500, chars=(6, 11)),
+        ],
+    )
+
+
+def test_an_export_survives_a_deleted_parent():
+    store = from_aligned_track(_overlapping_lines_with_a_word())
+    line = next(
+        a for a in store.all() if a.tier == "lines" and a.body["chars"] == [0, 5]
+    )
+    store.remove(line.id)
+    track = to_aligned_track(store, asset_id=ASSET)  # must not raise
+    word = next(s for s in track.spans if s.level == "word")
+    assert word.chars is None  # re-parented under the other line: chars dropped
+
+
+def test_a_dangling_or_self_parent_id_falls_back_to_time():
+    store = from_aligned_track(_overlapping_lines_with_a_word())
+    word = next(a for a in store.all() if a.tier == "words")
+    for bad in (uuid4(), word.id):
+        body = {**word.body, "parent_id": str(bad)}
+        edited = MemoryStore()
+        for a in store.all():
+            edited.add(a.model_copy(update={"body": body}) if a.id == word.id else a)
+        assert to_aligned_track(edited, asset_id=ASSET).spans
+
+
+def test_a_legacy_word_a_little_outside_its_line_still_has_a_parent():
+    store = MemoryStore()
+    with SubtitleBuilder(store, asset_id=ASSET) as b:
+        b.line("hello world", 1.0, 2.0)
+        b.word("hello", 0.99, 1.4)
+        b.word("world", 1.4, 2.01)
+    track = to_aligned_track(store, asset_id=ASSET)
+    assert [(s.level, s.parent, s.chars) for s in track.spans] == [
+        ("line", None, (0, 11)),
+        ("word", 0, (0, 5)),
+        ("word", 0, (6, 11)),
+    ]
+
+
+def test_a_word_inside_a_nested_line_goes_to_the_innermost_containing_line():
+    store = MemoryStore()
+    with SubtitleBuilder(store, asset_id=ASSET) as b:
+        b.line("outer", 0.0, 3.0)
+        b.line("inner", 0.1, 0.2)
+        b.word("outer", 1.5, 2.0)
+    spans = to_aligned_track(store, asset_id=ASSET).spans
+    word = next(s for s in spans if s.level == "word")
+    assert spans[word.parent].end_ms == 3000
+
+
+def test_a_second_import_for_the_same_asset_is_refused(golden):
+    store = from_aligned_track(golden)
+    with pytest.raises(ValueError, match="already holds"):
+        from_aligned_track(golden, store)

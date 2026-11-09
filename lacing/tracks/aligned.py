@@ -36,12 +36,16 @@ parent is the innermost enclosing span of a coarser level, and the text is the
 lines joined by newlines (else the words, or the syllables, joined by spaces),
 a finer span being located, in order, in its parent's range (ignoring case).
 Spans come out in pre-order: a parent, then what it holds, siblings by start,
-then end, then level.
+then end, then level; the round trip is exact for a document in that order
+(the validator does not require it, so another order comes back reordered).
+A stored ``parent_id`` or ``chars`` an edit made inconsistent (a parent
+deleted, a span moved) is dropped on export, not an error.
 """
 
 from __future__ import annotations
 
 import math
+from bisect import bisect_left, bisect_right
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from fractions import Fraction
@@ -113,9 +117,19 @@ def from_aligned_track(
     nearest coarser level present; a tier the store already has is kept), and
     one annotation on ``text_tier`` holding the text. Millisecond times become
     ``RationalTime`` at ``rate``, which must hold a millisecond exactly (else
-    ``LossyTimeConversionError``).
+    ``LossyTimeConversionError``). One track per asset: a store that already
+    holds one for ``track.asset_id`` raises ``ValueError``.
     """
     store = MemoryStore() if store is None else store
+    if any(
+        a.body_schema_uri == TEXT_SCHEMA_URI
+        and isinstance(a.reference, MediaRef)
+        and a.reference.asset_id == track.asset_id
+        for a in store.all()
+    ):
+        raise ValueError(
+            f"the store already holds an aligned track for {track.asset_id!r}"
+        )
     present = [level for level in LEVELS if any(s.level == level for s in track.spans)]
     for i, level in enumerate(present):
         parent = tiers[present[i - 1]] if i else None
@@ -253,7 +267,7 @@ def to_aligned_track(
         stored_language = None
     else:
         text, stored_language = stored.text, stored.language
-        chars = [r.chars for r in ordered]
+        chars = _consistent_chars([r.chars for r in ordered], parents, len(text))
     spans = [
         AlignedSpan(
             level=r.level,
@@ -272,6 +286,24 @@ def to_aligned_track(
         language=language or stored_language,
         spans=spans,
     )
+
+
+def _consistent_chars(
+    chars: list[tuple[int, int] | None], parents: list[int | None], size: int
+) -> list[tuple[int, int] | None]:
+    """``chars`` with those dropped that the document would refuse: outside the
+    text, or outside the parent's. An edited store (a parent deleted, a span
+    moved) can hold them; an export degrades, it does not fail."""
+    kept: list[tuple[int, int] | None] = []
+    for c, parent in zip(chars, parents):
+        outer = None if parent is None else kept[parent]
+        if c is not None and (
+            c[1] > size
+            or (outer is not None and not outer[0] <= c[0] <= c[1] <= outer[1])
+        ):
+            c = None
+        kept.append(c)
+    return kept
 
 
 def _ms(t: RationalTime, quantize: QuantizeMode | None) -> int:
@@ -359,25 +391,50 @@ def _pre_order(rows: list[_Row]) -> tuple[list[_Row], list[int | None]]:
 
 
 def _enclosing(ordered: list[_Row]) -> list[_Row | None]:
-    """For each row of ``ordered`` (by :attr:`_Row.key`), the innermost earlier
-    row of a coarser level that contains it, in time. One stack per level."""
+    """For each row of ``ordered`` (by :attr:`_Row.key`), its parent in time.
+
+    The innermost earlier row of a coarser level that contains it (one stack
+    per level); failing that, the coarser row that overlaps it most (an
+    aligner's word a few milliseconds outside its line is still that line's).
+    """
     stacks: list[list[_Row]] = [[] for _ in LEVELS]
     found: list[_Row | None] = []
     for r in ordered:
         for stack in stacks:  # a row that ended before this one starts is done
             while stack and stack[-1].end < r.start:
                 stack.pop()
-        parent = next(
-            (
-                stacks[d][-1]
-                for d in range(r.depth - 1, -1, -1)
-                if stacks[d] and stacks[d][-1].end >= r.end
-            ),
-            None,
-        )
-        found.append(parent)
+        coarser = [c for d in range(r.depth - 1, -1, -1) for c in reversed(stacks[d])]
+        found.append(next((c for c in coarser if c.end >= r.end), None))
         stacks[r.depth].append(r)
-    return found
+    by_level = _LevelIndex(ordered)
+    return [parent or by_level.most_overlapping(r) for r, parent in zip(ordered, found)]
+
+
+class _LevelIndex:
+    """Rows per level, by start, for the "which coarser row overlaps most" query."""
+
+    def __init__(self, ordered: list[_Row]) -> None:
+        self._rows: list[list[_Row]] = [[] for _ in LEVELS]
+        for r in ordered:  # already by start
+            self._rows[r.depth].append(r)
+        self._starts = [[r.start for r in rows] for rows in self._rows]
+        self._longest = [
+            max((r.end - r.start for r in rows), default=0) for rows in self._rows
+        ]
+
+    def most_overlapping(self, r: _Row) -> _Row | None:
+        """The row of a coarser level sharing the most time with ``r`` (the
+        innermost level on a tie); ``None`` if none shares any."""
+        best, best_overlap = None, 0
+        for d in range(r.depth - 1, -1, -1):
+            rows, starts = self._rows[d], self._starts[d]
+            hi = bisect_right(starts, r.end)
+            lo = bisect_left(starts, r.start - self._longest[d])
+            for c in rows[lo:hi]:
+                overlap = min(r.end, c.end) - max(r.start, c.start)
+                if overlap > best_overlap:
+                    best, best_overlap = c, overlap
+        return best
 
 
 def _layout(
