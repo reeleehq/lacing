@@ -1,0 +1,187 @@
+{
+  "$defs": {
+    "AlignedSpan": {
+      "additionalProperties": false,
+      "description": "One span of the wire document.",
+      "properties": {
+        "level": {
+          "description": "Granularity of the span.",
+          "enum": [
+            "section",
+            "line",
+            "word",
+            "syllable",
+            "phone"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of a span that is not surface text: a section label, a phone symbol.",
+          "title": "Label"
+        },
+        "time": {
+          "$ref": "#/$defs/SpanTime",
+          "description": "How the span's times were obtained."
+        },
+        "chars": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "``[start, end)`` offsets, in Unicode code points, into the track's ``text``; ``None`` for a span with no surface text (a phone, a bare section).",
+          "title": "Chars"
+        },
+        "start_ms": {
+          "description": "Start, integer milliseconds.",
+          "minimum": 0,
+          "title": "Start Ms",
+          "type": "integer"
+        },
+        "end_ms": {
+          "description": "End, integer milliseconds.",
+          "minimum": 0,
+          "title": "End Ms",
+          "type": "integer"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Index in ``spans`` of the enclosing span, of a coarser level and earlier in the list; ``None`` for a top-level span.",
+          "title": "Parent"
+        }
+      },
+      "required": [
+        "level",
+        "time",
+        "start_ms",
+        "end_ms"
+      ],
+      "title": "AlignedSpan",
+      "type": "object"
+    },
+    "SpanTime": {
+      "additionalProperties": false,
+      "description": "How a span's times were obtained.",
+      "properties": {
+        "kind": {
+          "description": "``measured`` by an aligner or recognizer, ``interpolated`` between measured neighbours, or ``imported`` from a file or source that does not say.",
+          "enum": [
+            "measured",
+            "interpolated",
+            "imported"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Confidence in [0, 1], when known.",
+          "title": "Confidence"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What produced the times, e.g. ``model:whisperx@3``.",
+          "title": "Source"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "SpanTime",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "An aligned text: the text once, and its spans at every level.",
+  "properties": {
+    "asset_id": {
+      "description": "The media the times refer to.",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "text": {
+      "description": "The full text, stored once; spans point into it by ``chars``.",
+      "title": "Text",
+      "type": "string"
+    },
+    "language": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "BCP 47 tag, when known.",
+      "title": "Language"
+    },
+    "spans": {
+      "default": [],
+      "description": "Spans ordered by start, then end descending (a container before what it holds), then level (coarse first).",
+      "items": {
+        "$ref": "#/$defs/AlignedSpan"
+      },
+      "title": "Spans",
+      "type": "array"
+    }
+  },
+  "required": [
+    "asset_id",
+    "text"
+  ],
+  "title": "AlignedTrackV1",
+  "type": "object"
+}

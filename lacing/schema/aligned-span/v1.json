@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "SpanTime": {
+      "additionalProperties": false,
+      "description": "How a span's times were obtained.",
+      "properties": {
+        "kind": {
+          "description": "``measured`` by an aligner or recognizer, ``interpolated`` between measured neighbours, or ``imported`` from a file or source that does not say.",
+          "enum": [
+            "measured",
+            "interpolated",
+            "imported"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Confidence in [0, 1], when known.",
+          "title": "Confidence"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What produced the times, e.g. ``model:whisperx@3``.",
+          "title": "Source"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "SpanTime",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The body of one span's annotation (its interval is the annotation's).",
+  "properties": {
+    "level": {
+      "description": "Granularity of the span.",
+      "enum": [
+        "section",
+        "line",
+        "word",
+        "syllable",
+        "phone"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "label": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Name of a span that is not surface text: a section label, a phone symbol.",
+      "title": "Label"
+    },
+    "time": {
+      "$ref": "#/$defs/SpanTime",
+      "description": "How the span's times were obtained."
+    },
+    "text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Surface text of the span, as ``text[chars]`` of its track.",
+      "title": "Text"
+    }
+  },
+  "required": [
+    "level",
+    "time"
+  ],
+  "title": "AlignedSpanBodyV1",
+  "type": "object"
+}
