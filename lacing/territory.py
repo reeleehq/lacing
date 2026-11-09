@@ -25,6 +25,7 @@ __all__ = [
     "WORLDWIDE",
     "normalize_territory",
     "territory_excluded",
+    "unplaceable_codes",
 ]
 
 #: The ISO 3166-1 alpha-2 country codes (the 249 officially assigned).
@@ -79,6 +80,25 @@ def normalize_territory(territory: str | None) -> str | None:
     return code
 
 
+def unplaceable_codes(
+    codes: Iterable[str], *, regions: Mapping[str, Iterable[str]] = REGIONS
+) -> list[str]:
+    """The recorded ``codes`` no use can be placed against, as recorded: one that
+    is not an ISO code, an alias of one, or a region, and :data:`WORLDWIDE`
+    (everywhere). A restriction recording any of them excludes every use.
+
+    >>> unplaceable_codes(["eu", "Franc", "uk", "WORLD"])
+    ['Franc', 'WORLD']
+    """
+    out = []
+    for c in codes:
+        code = str(c).strip().upper()
+        code = TERRITORY_ALIASES.get(code, code)
+        if code == WORLDWIDE or (code not in ISO_COUNTRY_CODES and code not in regions):
+            out.append(c)
+    return out
+
+
 def territory_excluded(
     excluded: Iterable[str],
     territory: str | None,
@@ -107,10 +127,7 @@ def territory_excluded(
     if not codes:
         return False
     codes = {TERRITORY_ALIASES.get(c, c) for c in codes}
-    if any(
-        c == WORLDWIDE or (c not in ISO_COUNTRY_CODES and c not in regions)
-        for c in codes
-    ):
+    if unplaceable_codes(codes, regions=regions):
         return True  # recorded everywhere, or a code nobody can place
     try:
         code = normalize_territory(territory)

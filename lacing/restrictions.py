@@ -31,7 +31,12 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
 from lacing.artifact import REVENUE_CAP, TERRITORY_EXCLUDED, Restriction
-from lacing.territory import WORLDWIDE, normalize_territory, territory_excluded
+from lacing.territory import (
+    WORLDWIDE,
+    normalize_territory,
+    territory_excluded,
+    unplaceable_codes,
+)
 
 __all__ = [
     "RESTRICTION_CHECKS",
@@ -102,6 +107,8 @@ def _territory_excluded(restriction: Restriction, use: Use) -> str | None:
     codes = _params(restriction)["codes"]
     if not territory_excluded(codes, use.territory):
         return None
+    if unplaced := unplaceable_codes(codes):
+        return f"records {', '.join(map(repr, unplaced))}, which excludes every use"
     if use.territory is None:
         stated = "state the territory"
     elif use.territory == WORLDWIDE:

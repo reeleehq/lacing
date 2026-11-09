@@ -117,3 +117,12 @@ def test_every_restriction_of_a_rights_record_is_checked():
 def test_normalize_territory_refuses_what_it_cannot_place():
     with pytest.raises(ValueError, match="alpha-2"):
         normalize_territory("FRA")
+
+
+def test_a_code_nobody_can_place_is_named_as_the_reason():
+    franc = Restriction(kind=TERRITORY_EXCLUDED, codes=["KR", "Franc"])
+    assert restriction_breach(franc, Use(territory="US")) == (
+        "records 'Franc', which excludes every use"
+    )
+    world = Restriction(kind=TERRITORY_EXCLUDED, codes=["WORLD"])
+    assert "records 'WORLD'" in restriction_breach(world, Use(territory="US"))

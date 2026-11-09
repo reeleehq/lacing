@@ -101,6 +101,7 @@ from lacing.territory import (
     WORLDWIDE,
     normalize_territory,
     territory_excluded,
+    unplaceable_codes,
 )
 from lacing.artifact_store import (
     ArtifactStore,
@@ -176,6 +177,7 @@ __all__ = [
     "WORLDWIDE",
     "normalize_territory",
     "territory_excluded",
+    "unplaceable_codes",
     "REVENUE_CAP",
     "TERRITORY_EXCLUDED",
     "ArtifactStore",
