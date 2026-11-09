@@ -58,11 +58,11 @@ There is no formal SubRip specification; the de facto description is
 
 ### Functions
 
-| [`dump`](#lacing.adapters.srt.dump)(store[, target, tier])             | Write annotations as SubRip.                                        |
-|------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| [`load`](#lacing.adapters.srt.load)(source, \*[, rate, asset_id, ...]) | Parse a SubRip file, or SubRip bytes or text, into a `MemoryStore`. |
+| [`dump`](#lacing.adapters.srt.dump)(store[, target, tier, lines_tier])   | Write annotations as SubRip.                                        |
+|--------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| [`load`](#lacing.adapters.srt.load)(source, \*[, rate, asset_id, ...])   | Parse a SubRip file, or SubRip bytes or text, into a `MemoryStore`. |
 
-### lacing.adapters.srt.dump(store, target=None, , tier=None, \*\*\_kwargs)
+### lacing.adapters.srt.dump(store, target=None, , tier=None, lines_tier='lines', \*\*\_kwargs)
 
 Write annotations as SubRip.
 
@@ -72,7 +72,12 @@ Write annotations as SubRip.
     `text`, else `title`) is emitted,
     sorted by start then end, and numbered 1..N in that order.
   * **target** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Output path. If None, returns bytes (UTF-8, no BOM, `\n`).
-  * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Restrict export to this tier. None = export all tiers.
+  * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Write only this tier. None (the default) writes the `lines`
+    tier when the store has one, else every top-level tier
+    (`lacing.adapters._cues.select_cue_annotations()`); only
+    annotations with a readable text count.
+  * **lines_tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the tier that holds the lines (for a store whose
+    lines tier was loaded under another name).
 * **Return type:**
   [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 

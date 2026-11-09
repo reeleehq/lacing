@@ -33,22 +33,27 @@ Spec: [https://www.w3.org/TR/webvtt1/](https://www.w3.org/TR/webvtt1/)
 
 ### Functions
 
-| [`dump`](#lacing.adapters.webvtt.dump)(store[, target, tier])             | Write annotations as WebVTT.                              |
-|------------------------------------------------------------------------------------------|-----------------------------------------------------------|
-| [`load`](#lacing.adapters.webvtt.load)(source, \*[, rate, asset_id, ...]) | Parse a WebVTT file or string/bytes into a `MemoryStore`. |
+| [`dump`](#lacing.adapters.webvtt.dump)(store[, target, tier, lines_tier])   | Write annotations as WebVTT.                              |
+|--------------------------------------------------------------------------------------------|-----------------------------------------------------------|
+| [`load`](#lacing.adapters.webvtt.load)(source, \*[, rate, asset_id, ...])   | Parse a WebVTT file or string/bytes into a `MemoryStore`. |
 
-### lacing.adapters.webvtt.dump(store, target=None, , tier=None, \*\*\_kwargs)
+### lacing.adapters.webvtt.dump(store, target=None, , tier=None, lines_tier='lines', \*\*\_kwargs)
 
 Write annotations as WebVTT.
 
 * **Parameters:**
-  * **store** ([`IntervalAnnotationStore`](lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – Source store. Only annotations from `tier` (default: all
-    tiers) with a time interval (any reference kind) and readable
+  * **store** ([`IntervalAnnotationStore`](lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – Source store. Only annotations from `tier` (from the tiers
+    `tier` chooses) with a time interval (any reference kind) and readable
     text (`lacing.adapters._common.display_text()`: `text`,
     else `title`) are emitted, sorted by start then
     end.
   * **target** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Output path. If None, returns bytes (UTF-8).
-  * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Restrict export to this tier. None = export all annotations.
+  * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Write only this tier. None (the default) writes the `lines`
+    tier when the store has one, else every top-level tier
+    (`lacing.adapters._cues.select_cue_annotations()`); only
+    annotations with a readable text count.
+  * **lines_tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the tier that holds the lines (for a store whose
+    lines tier was loaded under another name).
 * **Return type:**
   [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 

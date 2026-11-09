@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=c4d1762f"></script>
+    <script src="../_static/documentation_options.js?v=60a9f236"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.94" />
+  <meta name="docsearch:version" content="0.0.95" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -504,7 +504,7 @@ uses the same rule (<code class="xref py py-mod docutils literal notranslate"><s
 <p class="rubric">Functions</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.adapters.srt.dump" title="lacing.adapters.srt.dump"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dump</span></code></a>(store[, target, tier])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.adapters.srt.dump" title="lacing.adapters.srt.dump"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dump</span></code></a>(store[, target, tier, lines_tier])</p></td>
 <td><p>Write annotations as SubRip.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.adapters.srt.load" title="lacing.adapters.srt.load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code></a>(source, *[, rate, asset_id, ...])</p></td>
@@ -515,7 +515,7 @@ uses the same rule (<code class="xref py py-mod docutils literal notranslate"><s
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="lacing.adapters.srt.dump">
-<span class="sig-prename descclassname"><span class="pre">lacing.adapters.srt.</span></span><span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/adapters/srt.html#dump"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.adapters.srt.dump" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lacing.adapters.srt.</span></span><span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lines_tier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lines'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/adapters/srt.html#dump"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.adapters.srt.dump" title="Link to this definition">#</a></dt>
 <dd><p>Write annotations as SubRip.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -525,7 +525,12 @@ readable text (<code class="xref py py-func docutils literal notranslate"><span 
 <code class="docutils literal notranslate"><span class="pre">text</span></code>, else <code class="docutils literal notranslate"><span class="pre">title</span></code>) is emitted,
 sorted by start then end, and numbered 1..N in that order.</p></li>
 <li><p><strong>target</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathLike</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Output path. If None, returns bytes (UTF-8, no BOM, <code class="docutils literal notranslate"><span class="pre">\n</span></code>).</p></li>
-<li><p><strong>tier</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Restrict export to this tier. None = export all tiers.</p></li>
+<li><p><strong>tier</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Write only this tier. None (the default) writes the <code class="docutils literal notranslate"><span class="pre">lines</span></code>
+tier when the store has one, else every top-level tier
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">lacing.adapters._cues.select_cue_annotations()</span></code>); only
+annotations with a readable text count.</p></li>
+<li><p><strong>lines_tier</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Name of the tier that holds the lines (for a store whose
+lines tier was loaded under another name).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>

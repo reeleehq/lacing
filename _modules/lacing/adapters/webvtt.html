@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=c4d1762f"></script>
+    <script src="../../../_static/documentation_options.js?v=60a9f236"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.94" />
+  <meta name="docsearch:version" content="0.0.95" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -763,12 +763,14 @@ window.runMermaid = runMermaid;</script>
     <span class="n">hms_to_ms</span><span class="p">,</span>
     <span class="n">interval_sort_key</span><span class="p">,</span>
     <span class="n">ms_to_rational</span><span class="p">,</span>
+    <span class="n">select_cue_annotations</span><span class="p">,</span>
     <span class="n">split_cue_lines</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">MediaRef</span><span class="p">,</span> <span class="n">Provenance</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntervalAnnotationStore</span><span class="p">,</span> <span class="n">MemoryStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tier</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tier</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.time</span><span class="w"> </span><span class="kn">import</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">TimeInterval</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tracks.subtitle</span><span class="w"> </span><span class="kn">import</span> <span class="n">LINES_TIER</span>
 
 <span class="n">ADAPTER_NAME</span> <span class="o">=</span> <span class="s2">"webvtt"</span>
 <span class="n">ADAPTER_VERSION</span> <span class="o">=</span> <span class="s2">"1.0.0"</span>
@@ -968,24 +970,33 @@ window.runMermaid = runMermaid;</script>
     <span class="n">target</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">tier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">lines_tier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">LINES_TIER</span><span class="p">,</span>
     <span class="o">**</span><span class="n">_kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Write annotations as WebVTT.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        store: Source store. Only annotations from ``tier`` (default: all</span>
-<span class="sd">            tiers) with a time interval (any reference kind) and readable</span>
+<span class="sd">        store: Source store. Only annotations from ``tier`` (from the tiers</span>
+<span class="sd">            ``tier`` chooses) with a time interval (any reference kind) and readable</span>
 <span class="sd">            text (:func:`lacing.adapters._common.display_text`: ``text``,</span>
 <span class="sd">            else ``title``) are emitted, sorted by start then</span>
 <span class="sd">            end.</span>
 <span class="sd">        target: Output path. If None, returns bytes (UTF-8).</span>
-<span class="sd">        tier: Restrict export to this tier. None = export all annotations.</span>
+<span class="sd">        tier: Write only this tier. None (the default) writes the ``lines``</span>
+<span class="sd">            tier when the store has one, else every top-level tier</span>
+<span class="sd">            (:func:`lacing.adapters._cues.select_cue_annotations`); only</span>
+<span class="sd">            annotations with a readable text count.</span>
+<span class="sd">        lines_tier: Name of the tier that holds the lines (for a store whose</span>
+<span class="sd">            lines tier was loaded under another name).</span>
 <span class="sd">    """</span>
     <span class="n">out_lines</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"WEBVTT"</span><span class="p">,</span> <span class="s2">""</span><span class="p">]</span>
 
-    <span class="n">candidates</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">iter_with_intervals</span><span class="p">(</span><span class="n">store</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">tier</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">candidates</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">tier</span> <span class="o">==</span> <span class="n">tier</span><span class="p">]</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="n">select_cue_annotations</span><span class="p">(</span>
+        <span class="n">store</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">iter_with_intervals</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="k">if</span> <span class="n">display_text</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">body</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="n">tier</span><span class="o">=</span><span class="n">tier</span><span class="p">,</span>
+        <span class="n">lines_tier</span><span class="o">=</span><span class="n">lines_tier</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">candidates</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">interval_sort_key</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>

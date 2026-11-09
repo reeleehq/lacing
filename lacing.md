@@ -1,4 +1,4 @@
-> built 2026-11-04 04:13 UTC from 114dd38 (main) · lacing 0.0.94. Details: build_info.json
+> built 2026-11-09 01:54 UTC from a6ac0d7 (main) · lacing 0.0.95. Details: build_info.json
 
 # index.html.md
 
@@ -1571,11 +1571,11 @@ There is no formal SubRip specification; the de facto description is
 
 ### Functions
 
-| [`dump`](_autosummary/lacing.adapters.srt.html.md#lacing.adapters.srt.dump)(store[, target, tier])             | Write annotations as SubRip.                                        |
-|------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| [`load`](_autosummary/lacing.adapters.srt.html.md#lacing.adapters.srt.load)(source, \*[, rate, asset_id, ...]) | Parse a SubRip file, or SubRip bytes or text, into a `MemoryStore`. |
+| [`dump`](_autosummary/lacing.adapters.srt.html.md#lacing.adapters.srt.dump)(store[, target, tier, lines_tier])   | Write annotations as SubRip.                                        |
+|--------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| [`load`](_autosummary/lacing.adapters.srt.html.md#lacing.adapters.srt.load)(source, \*[, rate, asset_id, ...])   | Parse a SubRip file, or SubRip bytes or text, into a `MemoryStore`. |
 
-### lacing.adapters.srt.dump(store, target=None, , tier=None, \*\*\_kwargs)
+### lacing.adapters.srt.dump(store, target=None, , tier=None, lines_tier='lines', \*\*\_kwargs)
 
 Write annotations as SubRip.
 
@@ -1585,7 +1585,12 @@ Write annotations as SubRip.
     `text`, else `title`) is emitted,
     sorted by start then end, and numbered 1..N in that order.
   * **target** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Output path. If None, returns bytes (UTF-8, no BOM, `\n`).
-  * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Restrict export to this tier. None = export all tiers.
+  * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Write only this tier. None (the default) writes the `lines`
+    tier when the store has one, else every top-level tier
+    (`lacing.adapters._cues.select_cue_annotations()`); only
+    annotations with a readable text count.
+  * **lines_tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the tier that holds the lines (for a store whose
+    lines tier was loaded under another name).
 * **Return type:**
   [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
@@ -1783,22 +1788,27 @@ Spec: [https://www.w3.org/TR/webvtt1/](https://www.w3.org/TR/webvtt1/)
 
 ### Functions
 
-| [`dump`](_autosummary/lacing.adapters.webvtt.html.md#lacing.adapters.webvtt.dump)(store[, target, tier])             | Write annotations as WebVTT.                              |
-|------------------------------------------------------------------------------------------|-----------------------------------------------------------|
-| [`load`](_autosummary/lacing.adapters.webvtt.html.md#lacing.adapters.webvtt.load)(source, \*[, rate, asset_id, ...]) | Parse a WebVTT file or string/bytes into a `MemoryStore`. |
+| [`dump`](_autosummary/lacing.adapters.webvtt.html.md#lacing.adapters.webvtt.dump)(store[, target, tier, lines_tier])   | Write annotations as WebVTT.                              |
+|--------------------------------------------------------------------------------------------|-----------------------------------------------------------|
+| [`load`](_autosummary/lacing.adapters.webvtt.html.md#lacing.adapters.webvtt.load)(source, \*[, rate, asset_id, ...])   | Parse a WebVTT file or string/bytes into a `MemoryStore`. |
 
-### lacing.adapters.webvtt.dump(store, target=None, , tier=None, \*\*\_kwargs)
+### lacing.adapters.webvtt.dump(store, target=None, , tier=None, lines_tier='lines', \*\*\_kwargs)
 
 Write annotations as WebVTT.
 
 * **Parameters:**
-  * **store** ([`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – Source store. Only annotations from `tier` (default: all
-    tiers) with a time interval (any reference kind) and readable
+  * **store** ([`IntervalAnnotationStore`](_autosummary/lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)) – Source store. Only annotations from `tier` (from the tiers
+    `tier` chooses) with a time interval (any reference kind) and readable
     text (`lacing.adapters._common.display_text()`: `text`,
     else `title`) are emitted, sorted by start then
     end.
   * **target** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Output path. If None, returns bytes (UTF-8).
-  * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Restrict export to this tier. None = export all annotations.
+  * **tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Write only this tier. None (the default) writes the `lines`
+    tier when the store has one, else every top-level tier
+    (`lacing.adapters._cues.select_cue_annotations()`); only
+    annotations with a readable text count.
+  * **lines_tier** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Name of the tier that holds the lines (for a store whose
+    lines tier was loaded under another name).
 * **Return type:**
   [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
@@ -10669,18 +10679,16 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-04 04:13 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/114dd38dd2e8614f84167bcecf248f85f1256ef2"><code>114dd38</code></a> on branch <code>main</code>, for **lacing 0.0.94** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 01:54 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/a6ac0d7d85164c3e1dc5f53c572cb3352823e8ea"><code>a6ac0d7</code></a> on branch <code>main</code>, for **lacing 0.0.95** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.94) is behind the latest release on PyPI (0.0.95): `pip install lacing` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/114dd38dd2e8614f84167bcecf248f85f1256ef2"><code>114dd38dd2e8614f84167bcecf248f85f1256ef2</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/a6ac0d7d85164c3e1dc5f53c572cb3352823e8ea"><code>a6ac0d7d85164c3e1dc5f53c572cb3352823e8ea</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -10691,9 +10699,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/41770969330">41770969330</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42547827672">42547827672</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>114dd38dd2e8614f84167bcecf248f85f1256ef2</code> (in the history of the built commit) |
+| Event commit | <code>a6ac0d7d85164c3e1dc5f53c572cb3352823e8ea</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10718,13 +10726,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.95/">0.0.95</a>, newer than the documented version (0.0.94).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.95/">0.0.95</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 114dd38dd2e8614f84167bcecf248f85f1256ef2
+git checkout a6ac0d7d85164c3e1dc5f53c572cb3352823e8ea
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
