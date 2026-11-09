@@ -1,7 +1,6 @@
 {
   "$defs": {
     "SpanTime": {
-      "additionalProperties": false,
       "description": "How a span's times were obtained.",
       "properties": {
         "kind": {
@@ -65,6 +64,29 @@
       "title": "Level",
       "type": "string"
     },
+    "chars": {
+      "anyOf": [
+        {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "``[start, end)`` offsets, in Unicode code points, into the track's ``text``; ``None`` for a span with no surface text (a phone, a bare section).",
+      "title": "Chars"
+    },
     "label": {
       "anyOf": [
         {
@@ -94,6 +116,20 @@
       "default": null,
       "description": "Surface text of the span, as ``text[chars]`` of its track.",
       "title": "Text"
+    },
+    "parent_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "``id`` of the annotation of the enclosing span, if any.",
+      "title": "Parent Id"
     }
   },
   "required": [

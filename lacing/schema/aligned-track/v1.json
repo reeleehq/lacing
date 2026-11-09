@@ -1,7 +1,6 @@
 {
   "$defs": {
     "AlignedSpan": {
-      "additionalProperties": false,
       "description": "One span of the wire document.",
       "properties": {
         "level": {
@@ -15,23 +14,6 @@
           ],
           "title": "Level",
           "type": "string"
-        },
-        "label": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Name of a span that is not surface text: a section label, a phone symbol.",
-          "title": "Label"
-        },
-        "time": {
-          "$ref": "#/$defs/SpanTime",
-          "description": "How the span's times were obtained."
         },
         "chars": {
           "anyOf": [
@@ -55,6 +37,23 @@
           "default": null,
           "description": "``[start, end)`` offsets, in Unicode code points, into the track's ``text``; ``None`` for a span with no surface text (a phone, a bare section).",
           "title": "Chars"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of a span that is not surface text: a section label, a phone symbol.",
+          "title": "Label"
+        },
+        "time": {
+          "$ref": "#/$defs/SpanTime",
+          "description": "How the span's times were obtained."
         },
         "start_ms": {
           "description": "Start, integer milliseconds.",
@@ -93,7 +92,6 @@
       "type": "object"
     },
     "SpanTime": {
-      "additionalProperties": false,
       "description": "How a span's times were obtained.",
       "properties": {
         "kind": {
@@ -142,7 +140,6 @@
       "type": "object"
     }
   },
-  "additionalProperties": false,
   "description": "An aligned text: the text once, and its spans at every level.",
   "properties": {
     "asset_id": {
@@ -170,7 +167,7 @@
     },
     "spans": {
       "default": [],
-      "description": "Spans ordered by start, then end descending (a container before what it holds), then level (coarse first).",
+      "description": "Spans in pre-order: a span, then the spans it holds; siblings by start, then end, then level. A parent is of a coarser level and comes earlier than its children.",
       "items": {
         "$ref": "#/$defs/AlignedSpan"
       },

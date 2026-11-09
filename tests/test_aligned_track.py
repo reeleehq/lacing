@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import time as _time
+from uuid import uuid4
 from pathlib import Path
 
 import pytest
@@ -11,6 +13,7 @@ from pydantic import ValidationError
 import lacing.bodies  # noqa: F401  registers
 from lacing.bodies.aligned_track import (
     SPAN_SCHEMA_URI,
+    TEXT_SCHEMA_URI,
     TRACK_SCHEMA_URI,
     AlignedSpan,
     AlignedTrackV1,
@@ -65,7 +68,7 @@ def test_a_time_that_is_not_a_whole_millisecond_is_refused_unless_quantized(gold
     store = from_aligned_track(golden, rate=48000)
     odd = MemoryStore()
     odd.add_tier(next(iter(store.tiers())))
-    a = next(iter(store.all()))
+    a = next(x for x in store.all() if x.body_schema_uri == SPAN_SCHEMA_URI)
     refs = a.reference.model_copy(
         update={
             "interval": TimeInterval(RationalTime(1, 48000), RationalTime(49, 48000))
@@ -83,14 +86,17 @@ def test_a_time_that_is_not_a_whole_millisecond_is_refused_unless_quantized(gold
 
 def test_one_tier_per_level_each_inside_the_coarser_one(golden):
     tiers = {t.name: t for t in from_aligned_track(golden).tiers()}
-    assert list(tiers) == ["sections", "lines", "words", "syllables", "phones"]
+    assert list(tiers) == ["sections", "lines", "words", "syllables", "phones", "text"]
     assert tiers["sections"].parent is None
     assert tiers["phones"].parent == "syllables"
 
 
 def test_a_store_body_validates_against_its_schema(golden):
     store = from_aligned_track(golden)
-    assert {a.body_schema_uri for a in store.all()} == {SPAN_SCHEMA_URI}
+    assert {a.body_schema_uri for a in store.all()} == {
+        SPAN_SCHEMA_URI,
+        TEXT_SCHEMA_URI,
+    }
     word = next(a for a in store.all() if a.tier == "words")
     assert word.body["text"] == "the" and word.confidence == 0.98
 
@@ -201,3 +207,139 @@ def test_the_json_schema_is_the_contract_for_the_typescript_side():
         "interpolated",
         "imported",
     ]
+
+
+# -- the findings of the adversarial review of the first cut ---------------------
+
+
+def test_a_word_straying_outside_its_line_keeps_its_parent_and_chars():
+    # an aligner's word 10 ms before an imported line: the normal case
+    track = AlignedTrackV1(
+        asset_id=ASSET,
+        text="hello world",
+        spans=[
+            _t("line", 1000, 2000, chars=(0, 11)),
+            _t("word", 990, 1500, chars=(0, 5), parent=0),
+        ],
+    )
+    assert to_aligned_track(from_aligned_track(track), asset_id=ASSET) == track
+
+
+def test_a_stored_text_keeps_separators_and_untimed_text():
+    track = AlignedTrackV1(
+        asset_id=ASSET,
+        text="the cat. sat down",
+        language="en",
+        spans=[
+            _t("line", 0, 1000, chars=(0, 8)),
+            _t("line", 1000, 2000, chars=(9, 17)),
+        ],
+    )
+    assert to_aligned_track(from_aligned_track(track), asset_id=ASSET) == track
+
+
+def test_a_section_with_chars_keeps_them():
+    track = AlignedTrackV1(
+        asset_id=ASSET,
+        text="la la",
+        spans=[
+            _t("section", 0, 2000, chars=(0, 5), label="v"),
+            _t("line", 0, 1000, chars=(0, 2), parent=0),
+        ],
+    )
+    assert to_aligned_track(from_aligned_track(track), asset_id=ASSET) == track
+
+
+def test_equal_intervals_do_not_reparent_the_words():
+    track = AlignedTrackV1(
+        asset_id=ASSET,
+        text="a b",
+        spans=[
+            _t("line", 0, 1000, chars=(0, 1)),
+            _t("word", 0, 500, chars=(0, 1), parent=0),
+            _t("line", 0, 1000, chars=(2, 3)),
+            _t("word", 0, 500, chars=(2, 3), parent=2),
+        ],
+    )
+    assert to_aligned_track(from_aligned_track(track), asset_id=ASSET) == track
+
+
+def test_chars_of_a_legacy_store_ignore_case_and_punctuation():
+    store = MemoryStore()
+    with SubtitleBuilder(store, asset_id=ASSET) as b:
+        b.line(
+            "Hello, world!",
+            0.0,
+            1.0,
+            words=[("hello", 0.0, 0.5), ("world", 0.5, 1.0)],
+        )
+    track = to_aligned_track(store, asset_id=ASSET)
+    assert [s.chars for s in track.spans] == [(0, 13), (0, 5), (7, 12)]
+
+
+def test_a_legacy_zero_confidence_is_kept():
+    store = MemoryStore()
+    with SubtitleBuilder(store, asset_id=ASSET) as b:
+        b.line("a", 0.0, 1.0, words=[("a", 0.0, 1.0)])
+    word = next(a for a in store.all() if a.tier == "words")
+    store.add(
+        word.model_copy(
+            update={"id": uuid4(), "body": {**word.body, "confidence": 0.0}}
+        )
+    )
+    confidences = {
+        s.time.confidence for s in to_aligned_track(store, asset_id=ASSET).spans
+    }
+    assert 0.0 in confidences
+
+
+def test_a_ten_thousand_span_export_is_fast():
+    n = 10_000
+    spans = [_t("line", 0, n * 10, chars=(0, 0))] + [
+        _t("word", i * 10, i * 10 + 10, chars=(0, 0), parent=0) for i in range(n)
+    ]
+    track = AlignedTrackV1(asset_id=ASSET, text="", spans=spans)
+    store = from_aligned_track(track)
+    started = _time.perf_counter()
+    assert len(to_aligned_track(store, asset_id=ASSET).spans) == n + 1
+    assert _time.perf_counter() - started < 5  # was 5.8 s at 10k when quadratic
+
+
+def test_the_document_is_open_to_fields_it_does_not_know():
+    raw = json.loads(GOLDEN.read_text())
+    raw["speaker_count"] = 2
+    raw["spans"][0]["mood"] = "calm"
+    raw["spans"][0]["time"]["method"] = "dtw"
+    assert AlignedTrackV1.model_validate(raw).spans[0].level == "section"
+    schema = json_schema(TRACK_SCHEMA_URI)
+    assert "additionalProperties" not in schema
+    assert "additionalProperties" not in schema["$defs"]["AlignedSpan"]
+
+
+def test_a_child_whose_chars_leave_its_parents_is_refused():
+    with pytest.raises(ValidationError, match="leave its parent"):
+        AlignedTrackV1(
+            asset_id=ASSET,
+            text="abcdef",
+            spans=[
+                _t("line", 0, 9, chars=(0, 3)),
+                _t("word", 0, 9, chars=(2, 5), parent=0),
+            ],
+        )
+
+
+def test_converting_into_a_store_keeps_its_existing_tiers(golden):
+    store = MemoryStore()
+    from lacing.tier import Tier
+
+    store.add_tier(Tier("words"))
+    from_aligned_track(golden, store)
+    assert store.get_tier("words").stereotype.value == "NONE"
+
+
+def test_two_assets_in_one_store_export_separately(golden):
+    store = from_aligned_track(golden)
+    other = golden.model_copy(update={"asset_id": "other.mp3"})
+    from_aligned_track(other, store)
+    assert to_aligned_track(store, asset_id=ASSET) == golden
+    assert to_aligned_track(store, asset_id="other.mp3") == other

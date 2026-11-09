@@ -1,0 +1,29 @@
+{
+  "additionalProperties": false,
+  "description": "The text of a track, stored once, on one annotation spanning the asset.",
+  "properties": {
+    "text": {
+      "description": "The full text the spans' ``chars`` index.",
+      "title": "Text",
+      "type": "string"
+    },
+    "language": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "BCP 47 tag, when known.",
+      "title": "Language"
+    }
+  },
+  "required": [
+    "text"
+  ],
+  "title": "AlignedTextBodyV1",
+  "type": "object"
+}
