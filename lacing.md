@@ -1,4 +1,4 @@
-> built 2026-11-09 01:54 UTC from a6ac0d7 (main) · lacing 0.0.95. Details: build_info.json
+> built 2026-11-09 02:02 UTC from 4a3cec0 (main) · lacing 0.0.96. Details: build_info.json
 
 # index.html.md
 
@@ -3042,7 +3042,16 @@ crash never leaves the catalog pointing at missing bytes. Idempotent on
 * **Returns:**
   The blob’s content hash if `data` was written, else `None`.
 * **Raises:**
-  [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError) – `data` was given but no blob store is configured.
+  * [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError) – `data` was given but no blob store is configured.
+  * [**KeyError**](https://docs.python.org/3/builtins/exceptions.html#KeyError) – the catalog refuses `artifact_id`. A catalog that
+        exposes `check_write(artifact_id, record)` (a dry run of its
+        write: it raises what the write would, and writes nothing;
+        [`from_directory()`](_autosummary/lacing.artifact_store.html.md#lacing.artifact_store.ArtifactStore.from_directory)’s does) is asked first, so a refused
+        id or record leaves no blob (lacing#160). Catalogs without one
+        (dict, SQL, S3) refuse nothing a dry run could predict. A
+        write that fails for another reason (a read-only folder, a full
+        disk) still leaves the blob, which is content-addressed and so
+        harmless to keep.
 
 ### *class* lacing.artifact_store.ResolvedArtifact(key, record, content_hash, data)
 
@@ -5689,7 +5698,16 @@ crash never leaves the catalog pointing at missing bytes. Idempotent on
 * **Returns:**
   The blob’s content hash if `data` was written, else `None`.
 * **Raises:**
-  [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError) – `data` was given but no blob store is configured.
+  * [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError) – `data` was given but no blob store is configured.
+  * [**KeyError**](https://docs.python.org/3/builtins/exceptions.html#KeyError) – the catalog refuses `artifact_id`. A catalog that
+        exposes `check_write(artifact_id, record)` (a dry run of its
+        write: it raises what the write would, and writes nothing;
+        [`from_directory()`](_autosummary/lacing.html.md#lacing.ArtifactStore.from_directory)’s does) is asked first, so a refused
+        id or record leaves no blob (lacing#160). Catalogs without one
+        (dict, SQL, S3) refuse nothing a dry run could predict. A
+        write that fails for another reason (a read-only folder, a full
+        disk) still leaves the blob, which is content-addressed and so
+        harmless to keep.
 
 ### *exception* lacing.BodySchemaError
 
@@ -10679,7 +10697,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-09 01:54 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/a6ac0d7d85164c3e1dc5f53c572cb3352823e8ea"><code>a6ac0d7</code></a> on branch <code>main</code>, for **lacing 0.0.95** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 02:02 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/4a3cec05b29a83caba8f2a3ed836ba4c4286f0bb"><code>4a3cec0</code></a> on branch <code>main</code>, for **lacing 0.0.96** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10688,7 +10706,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/a6ac0d7d85164c3e1dc5f53c572cb3352823e8ea"><code>a6ac0d7d85164c3e1dc5f53c572cb3352823e8ea</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/4a3cec05b29a83caba8f2a3ed836ba4c4286f0bb"><code>4a3cec05b29a83caba8f2a3ed836ba4c4286f0bb</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -10699,9 +10717,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42547827672">42547827672</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42548487906">42548487906</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>a6ac0d7d85164c3e1dc5f53c572cb3352823e8ea</code> (in the history of the built commit) |
+| Event commit | <code>4a3cec05b29a83caba8f2a3ed836ba4c4286f0bb</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10726,13 +10744,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.95/">0.0.95</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.96/">0.0.96</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout a6ac0d7d85164c3e1dc5f53c572cb3352823e8ea
+git checkout 4a3cec05b29a83caba8f2a3ed836ba4c4286f0bb
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

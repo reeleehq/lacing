@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=60a9f236"></script>
+    <script src="../_static/documentation_options.js?v=5751785c"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.95" />
+  <meta name="docsearch:version" content="0.0.96" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -1594,7 +1594,18 @@ is responsible for also recording that hash on <code class="docutils literal not
 <dd class="field-odd"><p>The blob’s content hash if <code class="docutils literal notranslate"><span class="pre">data</span></code> was written, else <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.15)"><strong>RuntimeError</strong></a> – <code class="docutils literal notranslate"><span class="pre">data</span></code> was given but no blob store is configured.</p>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.15)"><strong>RuntimeError</strong></a> – <code class="docutils literal notranslate"><span class="pre">data</span></code> was given but no blob store is configured.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#KeyError" title="(in Python v3.15)"><strong>KeyError</strong></a> – the catalog refuses <code class="docutils literal notranslate"><span class="pre">artifact_id</span></code>. A catalog that
+    exposes <code class="docutils literal notranslate"><span class="pre">check_write(artifact_id,</span> <span class="pre">record)</span></code> (a dry run of its
+    write: it raises what the write would, and writes nothing;
+    <a class="reference internal" href="#lacing.ArtifactStore.from_directory" title="lacing.ArtifactStore.from_directory"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_directory()</span></code></a>’s does) is asked first, so a refused
+    id or record leaves no blob (lacing#160). Catalogs without one
+    (dict, SQL, S3) refuse nothing a dry run could predict. A
+    write that fails for another reason (a read-only folder, a full
+    disk) still leaves the blob, which is content-addressed and so
+    harmless to keep.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>

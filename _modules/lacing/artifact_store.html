@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=60a9f236"></script>
+    <script src="../../_static/documentation_options.js?v=5751785c"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.95" />
+  <meta name="docsearch:version" content="0.0.96" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1217,8 +1217,20 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            RuntimeError: ``data`` was given but no blob store is configured.</span>
+<span class="sd">            KeyError: the catalog refuses ``artifact_id``. A catalog that</span>
+<span class="sd">                exposes ``check_write(artifact_id, record)`` (a dry run of its</span>
+<span class="sd">                write: it raises what the write would, and writes nothing;</span>
+<span class="sd">                :meth:`from_directory`'s does) is asked first, so a refused</span>
+<span class="sd">                id or record leaves no blob (lacing#160). Catalogs without one</span>
+<span class="sd">                (dict, SQL, S3) refuse nothing a dry run could predict. A</span>
+<span class="sd">                write that fails for another reason (a read-only folder, a full</span>
+<span class="sd">                disk) still leaves the blob, which is content-addressed and so</span>
+<span class="sd">                harmless to keep.</span>
 <span class="sd">        """</span>
         <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_admitted</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>  <span class="c1"># a refusal leaves no blob</span>
+        <span class="n">check_write</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">catalog</span><span class="p">,</span> <span class="s2">"check_write"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">check_write</span><span class="p">):</span>
+            <span class="n">check_write</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>  <span class="c1"># nor does a refused catalog write</span>
         <span class="n">content_hash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1790,24 +1802,28 @@ window.runMermaid = runMermaid;</script>
             <span class="n">catalog_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">blob_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+        <span class="n">contained</span> <span class="o">=</span> <span class="n">_ContainedDirStore</span><span class="p">(</span>
+            <span class="n">Files</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">catalog_dir</span><span class="p">),</span> <span class="n">delete_func</span><span class="o">=</span><span class="n">catalog_delete_func</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">check_write</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">BaseModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">contained</span><span class="o">.</span><span class="n">writable_target</span><span class="p">(</span><span class="n">_catalog_filename</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">))</span>
+            <span class="n">_record_json</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+
         <span class="n">catalog</span> <span class="o">=</span> <span class="n">wrap_kvs</span><span class="p">(</span>
-            <span class="n">filt_iter</span><span class="p">(</span>
-                <span class="n">_ContainedDirStore</span><span class="p">(</span>
-                    <span class="n">Files</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">catalog_dir</span><span class="p">),</span> <span class="n">delete_func</span><span class="o">=</span><span class="n">catalog_delete_func</span><span class="p">)</span>
-                <span class="p">),</span>
-                <span class="n">filt</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".json"</span><span class="p">),</span>
-            <span class="p">),</span>
+            <span class="n">filt_iter</span><span class="p">(</span><span class="n">contained</span><span class="p">,</span> <span class="n">filt</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".json"</span><span class="p">)),</span>
             <span class="n">id_of_key</span><span class="o">=</span><span class="n">_catalog_filename</span><span class="p">,</span>
             <span class="n">key_of_id</span><span class="o">=</span><span class="k">lambda</span> <span class="n">filename</span><span class="p">:</span> <span class="p">(</span>
                 <span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span> <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".json"</span><span class="p">)</span> <span class="k">else</span> <span class="n">filename</span>
             <span class="p">),</span>
-            <span class="n">data_of_obj</span><span class="o">=</span><span class="k">lambda</span> <span class="n">record</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">),</span>
+            <span class="n">data_of_obj</span><span class="o">=</span><span class="n">_record_json</span><span class="p">,</span>
             <span class="n">obj_of_data</span><span class="o">=</span><span class="k">lambda</span> <span class="n">raw</span><span class="p">:</span> <span class="n">record_type</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span><span class="n">raw</span><span class="p">),</span>
         <span class="p">)</span>
         <span class="c1"># A bare Files raises KeyError writing into a missing folder; the catalog</span>
         <span class="c1"># (_ContainedDirStore) and the spooled writes make theirs already.</span>
         <span class="n">files</span> <span class="o">=</span> <span class="n">Files</span> <span class="k">if</span> <span class="n">create</span> <span class="k">else</span> <span class="n">mk_dirs_if_missing</span><span class="p">(</span><span class="n">Files</span><span class="p">)</span>
         <span class="n">blobs</span> <span class="o">=</span> <span class="n">files</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">blob_dir</span><span class="p">),</span> <span class="n">delete_func</span><span class="o">=</span><span class="n">blob_delete_func</span><span class="p">)</span>
+        <span class="n">catalog</span><span class="o">.</span><span class="n">check_write</span> <span class="o">=</span> <span class="n">check_write</span>  <span class="c1"># the probe ``save`` looks for</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span> <span class="n">blobs</span><span class="o">=</span><span class="n">blobs</span><span class="p">,</span> <span class="n">on_write</span><span class="o">=</span><span class="n">on_write</span><span class="p">)</span></div>
 
 
@@ -2285,13 +2301,20 @@ window.runMermaid = runMermaid;</script>
         <span class="k">with</span> <span class="n">os</span><span class="o">.</span><span class="n">fdopen</span><span class="p">(</span><span class="n">opened</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">writable_target</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The path a write of ``key`` would land on; ``KeyError`` if it would</span>
+<span class="sd">        be refused. Touches nothing: :meth:`__setitem__` is this, then the write."""</span>
         <span class="n">contained</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contained_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">contained</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">_refuse</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
         <span class="n">target</span> <span class="o">=</span> <span class="n">_resolve_within</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">contained</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">_refuse</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">too_long</span> <span class="o">=</span> <span class="n">_name_too_long</span><span class="p">(</span><span class="n">contained</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rootdir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">too_long</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># stat says "not found" below a missing folder</span>
+            <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">_refuse</span><span class="p">(</span>
+                <span class="n">key</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"has a name part too long to write (</span><span class="si">{</span><span class="n">too_long</span><span class="si">!r:</span><span class="s2">.40</span><span class="si">}</span><span class="s2">)"</span>
+            <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">is_regular</span> <span class="o">=</span> <span class="n">stat</span><span class="o">.</span><span class="n">S_ISREG</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">target</span><span class="p">)</span><span class="o">.</span><span class="n">st_mode</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
@@ -2300,6 +2323,10 @@ window.runMermaid = runMermaid;</script>
             <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">_refuse</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"cannot be written (</span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">is_regular</span><span class="p">:</span>
             <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">_refuse</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s2">"names something that is not a regular file"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">target</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">writable_target</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
         <span class="c1"># dol's Files does not create parent directories; ``target`` is already</span>
         <span class="c1"># resolved inside rootdir, so creating its parents cannot escape.</span>
         <span class="k">try</span><span class="p">:</span>
@@ -2329,6 +2356,26 @@ window.runMermaid = runMermaid;</script>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
+
+
+<span class="n">_FALLBACK_NAME_MAX</span> <span class="o">=</span> <span class="mi">255</span>  <span class="c1"># bytes: the common filesystem limit</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_name_too_long</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">rootdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The first part of ``path`` whose UTF-8 length exceeds the filesystem's</span>
+<span class="sd">    name limit under ``rootdir``, else None. A write below a missing folder</span>
+<span class="sd">    cannot be probed with ``stat`` (it says "not found", not "too long")."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">limit</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">pathconf</span><span class="p">(</span><span class="n">rootdir</span><span class="p">,</span> <span class="s2">"PC_NAME_MAX"</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>  <span class="c1"># Windows, or no such folder</span>
+        <span class="n">limit</span> <span class="o">=</span> <span class="n">_FALLBACK_NAME_MAX</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">,</span> <span class="s2">"/"</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">next</span><span class="p">((</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parts</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_record_json</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">BaseModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A catalog record as the bytes :meth:`ArtifactStore.from_directory` files."""</span>
+    <span class="k">return</span> <span class="n">record</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_catalog_filename</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>

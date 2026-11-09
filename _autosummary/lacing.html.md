@@ -875,7 +875,16 @@ crash never leaves the catalog pointing at missing bytes. Idempotent on
 * **Returns:**
   The blob’s content hash if `data` was written, else `None`.
 * **Raises:**
-  [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError) – `data` was given but no blob store is configured.
+  * [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError) – `data` was given but no blob store is configured.
+  * [**KeyError**](https://docs.python.org/3/builtins/exceptions.html#KeyError) – the catalog refuses `artifact_id`. A catalog that
+        exposes `check_write(artifact_id, record)` (a dry run of its
+        write: it raises what the write would, and writes nothing;
+        [`from_directory()`](#lacing.ArtifactStore.from_directory)’s does) is asked first, so a refused
+        id or record leaves no blob (lacing#160). Catalogs without one
+        (dict, SQL, S3) refuse nothing a dry run could predict. A
+        write that fails for another reason (a read-only folder, a full
+        disk) still leaves the blob, which is content-addressed and so
+        harmless to keep.
 
 ### *exception* lacing.BodySchemaError
 
