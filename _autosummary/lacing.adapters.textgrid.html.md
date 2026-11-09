@@ -45,7 +45,7 @@ Write a `IntervalAnnotationStore` as a Praat TextGrid.
 * **Return type:**
   [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### lacing.adapters.textgrid.load(source, , rate=24000, asset_id='textgrid:unspecified', attribution='anonymous', include_empty=True, \*\*\_kwargs)
+### lacing.adapters.textgrid.load(source, , rate=24000, asset_id='textgrid:unspecified', attribution='anonymous', include_empty=True, encoding=None, \*\*\_kwargs)
 
 Load a TextGrid file or bytes into a `MemoryStore`.
 
@@ -55,5 +55,8 @@ Load a TextGrid file or bytes into a `MemoryStore`.
   * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `MediaRef.asset_id` to attach to every annotation.
   * **attribution** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to` value.
   * **include_empty** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – If False, drop intervals/points with empty labels.
+  * **encoding** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Text encoding of the file or bytes. `None` sniffs a BOM
+    (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one
+    (`"latin-1"`) for a Praat file written without a BOM.
 * **Return type:**
   [`IntervalAnnotationStore`](lacing.store.base.html.md#lacing.store.base.IntervalAnnotationStore)

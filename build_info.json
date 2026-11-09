@@ -1,32 +1,32 @@
 {
   "schema_version": 1,
-  "built_at": "2026-11-09T03:46:34Z",
+  "built_at": "2026-11-09T03:53:21Z",
   "package": {
     "name": "lacing",
-    "version": "0.0.105",
+    "version": "0.0.106",
     "display_name": "lacing",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "46470d76c529a087b6e05829d1a5de0ff315ed07",
-    "short_commit": "46470d7",
+    "commit": "8447dde77237c176d89c1273353e625ab02805cf",
+    "short_commit": "8447dde",
     "branch": "main",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/reeleehq/lacing",
-    "commit_url": "https://github.com/reeleehq/lacing/commit/46470d76c529a087b6e05829d1a5de0ff315ed07",
+    "commit_url": "https://github.com/reeleehq/lacing/commit/8447dde77237c176d89c1273353e625ab02805cf",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "reeleehq/lacing",
-    "sha": "46470d76c529a087b6e05829d1a5de0ff315ed07",
+    "sha": "8447dde77237c176d89c1273353e625ab02805cf",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "42557954597",
-    "run_url": "https://github.com/reeleehq/lacing/actions/runs/42557954597",
+    "run_id": "42558563497",
+    "run_url": "https://github.com/reeleehq/lacing/actions/runs/42558563497",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -60,11 +60,11 @@
   },
   "pypi": {
     "checked": true,
-    "latest": "0.0.105",
+    "latest": "0.0.106",
     "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout 46470d76c529a087b6e05829d1a5de0ff315ed07\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout 8447dde77237c176d89c1273353e625ab02805cf\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,

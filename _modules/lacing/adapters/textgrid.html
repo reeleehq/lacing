@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=f82423d7"></script>
+    <script src="../../../_static/documentation_options.js?v=cfdca9bd"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.105" />
+  <meta name="docsearch:version" content="0.0.106" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -749,7 +749,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">adapter_generator_id</span><span class="p">,</span> <span class="n">register_adapter</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters._common</span><span class="w"> </span><span class="kn">import</span> <span class="n">display_text</span><span class="p">,</span> <span class="n">iter_with_intervals</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters._common</span><span class="w"> </span><span class="kn">import</span> <span class="n">decode_text</span><span class="p">,</span> <span class="n">display_text</span><span class="p">,</span> <span class="n">iter_with_intervals</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">MediaRef</span><span class="p">,</span> <span class="n">Provenance</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntervalAnnotationStore</span><span class="p">,</span> <span class="n">MemoryStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tier</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tier</span>
@@ -821,6 +821,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">asset_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_ASSET_ID</span><span class="p">,</span>
     <span class="n">attribution</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"anonymous"</span><span class="p">,</span>
     <span class="n">include_empty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">_kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalAnnotationStore</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Load a TextGrid file or bytes into a ``MemoryStore``.</span>
@@ -831,13 +832,18 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        asset_id: ``MediaRef.asset_id`` to attach to every annotation.</span>
 <span class="sd">        attribution: ``Provenance.was_attributed_to`` value.</span>
 <span class="sd">        include_empty: If False, drop intervals/points with empty labels.</span>
+<span class="sd">        encoding: Text encoding of the file or bytes. ``None`` sniffs a BOM</span>
+<span class="sd">            (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one</span>
+<span class="sd">            (``"latin-1"``) for a Praat file written without a BOM.</span>
 <span class="sd">    """</span>
     <span class="n">deps</span> <span class="o">=</span> <span class="n">_require_praatio</span><span class="p">()</span>
     <span class="n">Textgrid</span> <span class="o">=</span> <span class="n">deps</span><span class="p">[</span><span class="s2">"Textgrid"</span><span class="p">]</span>
     <span class="n">IntervalTier</span> <span class="o">=</span> <span class="n">deps</span><span class="p">[</span><span class="s2">"IntervalTier"</span><span class="p">]</span>
     <span class="n">PointTier</span> <span class="o">=</span> <span class="n">deps</span><span class="p">[</span><span class="s2">"PointTier"</span><span class="p">]</span>
 
-    <span class="n">grid</span> <span class="o">=</span> <span class="n">_open_textgrid</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">Textgrid</span><span class="p">,</span> <span class="n">include_empty</span><span class="o">=</span><span class="n">include_empty</span><span class="p">)</span>
+    <span class="n">grid</span> <span class="o">=</span> <span class="n">_open_textgrid</span><span class="p">(</span>
+        <span class="n">source</span><span class="p">,</span> <span class="n">Textgrid</span><span class="p">,</span> <span class="n">include_empty</span><span class="o">=</span><span class="n">include_empty</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span>
+    <span class="p">)</span>
 
     <span class="n">store</span> <span class="o">=</span> <span class="n">MemoryStore</span><span class="p">()</span>
     <span class="n">now</span> <span class="o">=</span> <span class="n">RationalTime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">rate</span><span class="p">)</span>
@@ -878,23 +884,31 @@ window.runMermaid = runMermaid;</script>
     <span class="n">Textgrid_cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="s2">"Textgrid"</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">include_empty</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Textgrid"</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Open the TextGrid ``source`` holds, whatever its encoding.</span>
+
+<span class="sd">    praatio reads a path itself (UTF-16, then UTF-8, nothing else), so lacing</span>
+<span class="sd">    decodes first (:func:`lacing.adapters._common.decode_text`: ``encoding``</span>
+<span class="sd">    named, or a BOM sniffed, else UTF-8) and hands praatio a UTF-16 temp file,</span>
+<span class="sd">    the first thing it tries and so the one thing that always reads.</span>
+<span class="sd">    """</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+
     <span class="kn">from</span><span class="w"> </span><span class="nn">praatio</span><span class="w"> </span><span class="kn">import</span> <span class="n">textgrid</span> <span class="k">as</span> <span class="n">_tg</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">)):</span>
-        <span class="c1"># praatio doesn't read bytes directly; round-trip through a temp file</span>
-        <span class="c1"># for now. Phase 1 can replace with a string-based parser.</span>
-        <span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
-
-        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="s2">"wb"</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">".TextGrid"</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
-            <span class="n">tmp_path</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">_tg</span><span class="o">.</span><span class="n">openTextgrid</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">includeEmptyIntervals</span><span class="o">=</span><span class="n">include_empty</span><span class="p">)</span>
-        <span class="k">finally</span><span class="p">:</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">_tg</span><span class="o">.</span><span class="n">openTextgrid</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="n">source</span><span class="p">),</span> <span class="n">includeEmptyIntervals</span><span class="o">=</span><span class="n">include_empty</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="n">source</span><span class="p">))</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">()</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">decode_text</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="s2">"wb"</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">".TextGrid"</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-16"</span><span class="p">))</span>
+        <span class="n">tmp_path</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_tg</span><span class="o">.</span><span class="n">openTextgrid</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="n">includeEmptyIntervals</span><span class="o">=</span><span class="n">include_empty</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_add_annotation</span><span class="p">(</span>
