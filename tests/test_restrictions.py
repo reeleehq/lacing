@@ -60,7 +60,9 @@ def test_an_unknown_kind_is_never_cleared_and_a_known_one_can_be_overridden():
     assert restriction_breach(odd, revenue_usd=0, territory="US") == (
         "station-terms: an unknown restriction 'no_broadcast': not cleared"
     )
-    assert restriction_breach(odd, checks={"no_broadcast": lambda r, rev, t: None}) is None
+    assert (
+        restriction_breach(odd, checks={"no_broadcast": lambda r, rev, t: None}) is None
+    )
 
 
 def test_every_restriction_of_a_rights_record_is_checked():
