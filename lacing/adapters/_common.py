@@ -15,7 +15,9 @@ What several adapters need, whatever the format, lives here once:
   structure there); the chapters writer titles with it. The podcast
   transcript does not use it: a segment is speech, so only ``text`` counts;
 - :func:`read_text`: a text ``source`` given as bytes, a path, or inline
-  text, byte-order mark stripped (WebVTT, SubRip);
+  text, byte-order mark stripped; a ``str`` naming an existing file is that
+  file (:func:`existing_file`), whatever it looks like (WebVTT, SubRip, LRC,
+  ASS);
 - :func:`load_json`: a JSON ``source`` given as bytes, a path, or inline text
   (Label Studio, W3C Web Annotation, and, with exact ``Decimal`` numbers, the
   Podcasting 2.0 transcript and chapters adapters). It keeps its own rules (plain UTF-8, a
@@ -171,34 +173,53 @@ def decode_text(data: bytes, *, encoding: str | None = None) -> str:
         raise
 
 
+def existing_file(s: str) -> Path | None:
+    """``s`` as the path of an existing file, ``None`` when it names none.
+
+    A ``str`` with a line break is content, never a path (no stat is made),
+    and one the OS cannot take as a path (too long, a NUL) names no file. Not
+    ``exists()``: ``""`` or a folder is not a text file.
+
+    >>> existing_file("[00:01.00]hello\\n") is None, existing_file("a\\0b") is None
+    (True, True)
+    """
+    if "\n" in s or "\r" in s:
+        return None
+    p = Path(s)
+    try:
+        return p if p.is_file() else None
+    except (OSError, ValueError):  # ENAMETOOLONG, an embedded NUL
+        return None
+
+
 def read_text(
     source: str | bytes | os.PathLike,
     *,
-    looks_inline: Callable[[str], bool],
     encoding: str | None = None,
 ) -> str:
     """The text of ``source``: bytes, a path, or inline content.
 
-    A ``str`` is inline content when ``looks_inline(source)`` says so;
-    otherwise it is read as a path if one exists there, and is taken as
-    inline content if not (the format's parser then reports what is wrong).
-    Bytes and files are decoded by :func:`decode_text` (``encoding`` named, or
-    a BOM sniffed, else UTF-8); ``encoding`` does not apply to a ``str``,
-    which is already text. Bytes, files and inline text alike lose a leading
-    byte-order mark.
+    A ``str`` is read as a path when it names an existing file
+    (:func:`existing_file`), and is inline content otherwise (the format's
+    parser then reports what is wrong). The file wins even when the name
+    looks like content: ``"[Group] Show - 01.ass"`` is a file name, not an
+    ASS or LRC header. Bytes and files are decoded by :func:`decode_text`
+    (``encoding`` named, or a BOM sniffed, else UTF-8); ``encoding`` does not
+    apply to a ``str``, which is already text. Bytes, files and inline text
+    alike lose a leading byte-order mark.
 
-    >>> read_text(b"\\xef\\xbb\\xbfWEBVTT", looks_inline=lambda s: True)
+    >>> read_text(b"\\xef\\xbb\\xbfWEBVTT")
     'WEBVTT'
+    >>> read_text("[ar:Someone]")  # no such file: inline content
+    '[ar:Someone]'
     """
     if isinstance(source, (bytes, bytearray)):
         return decode_text(bytes(source), encoding=encoding)
     if not isinstance(source, str) and isinstance(source, os.PathLike):
         return decode_text(Path(os.fspath(source)).read_bytes(), encoding=encoding)
     s = str(source).removeprefix(_BOM)
-    if looks_inline(s):
-        return s
-    p = Path(s)
-    if p.is_file():  # not exists(): "" or a folder is not a text file
+    p = existing_file(s)
+    if p is not None:
         return decode_text(p.read_bytes(), encoding=encoding)
     return s
 

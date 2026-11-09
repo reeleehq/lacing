@@ -14,7 +14,10 @@ in common lives here, once:
 - :func:`select_cue_annotations`: which tiers a cue writer writes when the
   caller names none (the ``lines`` tier, else every top-level tier);
 - :func:`interval_sort_key`: cue order, for the annotations a cue writer
-  emits (:func:`lacing.adapters._common.iter_with_intervals`).
+  emits (:func:`lacing.adapters._common.iter_with_intervals`);
+- :func:`assign_words` / :func:`place_words`: for formats with lines and
+  timed words inside them (LRC, ASS karaoke), which line a word goes in and
+  where its text sits in that line.
 
 The format-neutral helpers (reading a ``source``, the annotations that have a
 time interval) are in :mod:`lacing.adapters._common`.
@@ -31,9 +34,11 @@ sweep test skips ``_``-prefixed modules and checks that they register none).
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from bisect import bisect_right
+from collections.abc import Iterable, Sequence
 from fractions import Fraction
-from typing import Any
+from itertools import accumulate
+from typing import Any, Protocol, TypeVar
 
 from lacing.model import Annotation
 from lacing.tier import TierStereotype
@@ -191,3 +196,63 @@ def format_cue_time(t: RationalTime, *, separator: str, format_name: str) -> str
     """``t`` as ``HH:MM:SS<separator>mmm``, sub-milliseconds truncated; a
     negative time raises (:func:`nonnegative_ms`)."""
     return format_hms(nonnegative_ms(t, format_name=format_name), separator=separator)
+
+
+class TimedText(Protocol):
+    """A line or a word to write: exact bounds and its text."""
+
+    @property
+    def start(self) -> Fraction: ...
+
+    @property
+    def end(self) -> Fraction: ...
+
+    @property
+    def text(self) -> str: ...
+
+
+_L = TypeVar("_L", bound=TimedText)
+_W = TypeVar("_W", bound=TimedText)
+
+
+def place_words(text: str, words: Sequence[_W]) -> list[tuple[_W, int]]:
+    """``(word, position)`` of each word found in ``text``, in order; a word
+    the text does not contain (after the previous one) is dropped."""
+    placed: list[tuple[_W, int]] = []
+    cursor = 0
+    for w in words:
+        found = text.find(w.text, cursor)
+        if found >= 0:
+            placed.append((w, found))
+            cursor = found + len(w.text)
+    return placed
+
+
+def assign_words(lines: Sequence[_L], words: Sequence[_W]) -> dict[int, list[_W]]:
+    """Words per line index. A word goes to the latest-starting line that
+    contains it in time *and* whose text contains it; failing that, to the
+    latest-starting line that contains it in time. A word no line contains is
+    dropped. Each line's words keep the order of ``words``.
+
+    ``lines`` is sorted by start. Each word scans back from the last line that
+    starts by the word's start, and stops as soon as no earlier line can reach
+    the word's end (a running maximum of ends), so a word in a gap costs one
+    step and the scan only walks lines that overlap the word.
+    """
+    starts = [line.start for line in lines]
+    reach = list(accumulate((line.end for line in lines), max))
+    by_line: dict[int, list[_W]] = {}
+    for w in words:
+        chosen = None
+        i = bisect_right(starts, w.start) - 1
+        while i >= 0 and reach[i] >= w.end:
+            if lines[i].end >= w.end:
+                if w.text in lines[i].text:
+                    chosen = i
+                    break
+                if chosen is None:
+                    chosen = i  # the latest holder, kept unless a better one
+            i -= 1
+        if chosen is not None:
+            by_line.setdefault(chosen, []).append(w)
+    return by_line
