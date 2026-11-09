@@ -46,12 +46,14 @@ from lacing.adapters._cues import (
     hms_to_ms,
     interval_sort_key,
     ms_to_rational,
+    select_cue_annotations,
     split_cue_lines,
 )
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import RationalTime, TimeInterval
+from lacing.tracks.subtitle import LINES_TIER
 
 ADAPTER_NAME = "webvtt"
 ADAPTER_VERSION = "1.0.0"
@@ -246,24 +248,33 @@ def dump(
     target: str | os.PathLike | None = None,
     *,
     tier: str | None = None,
+    lines_tier: str = LINES_TIER,
     **_kwargs: Any,
 ) -> bytes | None:
     """Write annotations as WebVTT.
 
     Args:
-        store: Source store. Only annotations from ``tier`` (default: all
-            tiers) with a time interval (any reference kind) and readable
+        store: Source store. Only annotations from ``tier`` (from the tiers
+            ``tier`` chooses) with a time interval (any reference kind) and readable
             text (:func:`lacing.adapters._common.display_text`: ``text``,
             else ``title``) are emitted, sorted by start then
             end.
         target: Output path. If None, returns bytes (UTF-8).
-        tier: Restrict export to this tier. None = export all annotations.
+        tier: Write only this tier. None (the default) writes the ``lines``
+            tier when the store has one, else every top-level tier
+            (:func:`lacing.adapters._cues.select_cue_annotations`); only
+            annotations with a readable text count.
+        lines_tier: Name of the tier that holds the lines (for a store whose
+            lines tier was loaded under another name).
     """
     out_lines: list[str] = ["WEBVTT", ""]
 
-    candidates = list(iter_with_intervals(store))
-    if tier is not None:
-        candidates = [a for a in candidates if a.tier == tier]
+    candidates = select_cue_annotations(
+        store,
+        (a for a in iter_with_intervals(store) if display_text(a.body) is not None),
+        tier=tier,
+        lines_tier=lines_tier,
+    )
     candidates.sort(key=interval_sort_key)
 
     for ann in candidates:

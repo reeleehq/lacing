@@ -11,6 +11,8 @@ in common lives here, once:
 - :func:`cue_payload` / :func:`format_cue_time`: what a cue writer emits for a
   text and a time; :func:`nonnegative_ms` is its negative-time check and
   truncation, for writers with another clock layout (LRC's ``mm:ss.xx``);
+- :func:`select_cue_annotations`: which tiers a cue writer writes when the
+  caller names none (the ``lines`` tier, else every top-level tier);
 - :func:`interval_sort_key`: cue order, for the annotations a cue writer
   emits (:func:`lacing.adapters._common.iter_with_intervals`).
 
@@ -29,10 +31,14 @@ sweep test skips ``_``-prefixed modules and checks that they register none).
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from fractions import Fraction
+from typing import Any
 
 from lacing.model import Annotation
+from lacing.tier import TierStereotype
 from lacing.time import RationalTime
+from lacing.tracks.subtitle import LINES_TIER
 
 
 MS_PER_SECOND = 1000
@@ -91,6 +97,49 @@ def format_hms(total_ms: int, *, separator: str) -> str:
     minutes, rem = divmod(rem, MS_PER_MINUTE)
     seconds, ms = divmod(rem, MS_PER_SECOND)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}{separator}{ms:03d}"
+
+
+def select_cue_annotations(
+    store: Any,
+    annotations: Iterable[Annotation],
+    *,
+    tier: str | None = None,
+    lines_tier: str = LINES_TIER,
+) -> list[Annotation]:
+    """The ``annotations`` a cue writer emits, by tier.
+
+    A caller-named ``tier`` selects that tier alone. With none, the cues are
+    ``lines_tier`` when ``annotations`` has any on it (so a karaoke store's
+    words and comments are not written beside its lines), else every
+    annotation on a top-level tier: one the store declares with a parent
+    constraint (``INCLUDED_IN`` and the like) is a refinement of another tier,
+    not a cue stream of its own. A tier the store does not declare, or a store
+    that declares none, counts as top-level.
+
+    >>> from types import SimpleNamespace as Ann
+    >>> from lacing.tier import Tier
+    >>> from lacing.store import MemoryStore
+    >>> store = MemoryStore()
+    >>> store.add_tier(Tier("lines"))
+    >>> store.add_tier(Tier("words", stereotype=TierStereotype.INCLUDED_IN, parent="lines"))
+    >>> anns = [Ann(tier="lines"), Ann(tier="words")]
+    >>> [a.tier for a in select_cue_annotations(store, anns)]
+    ['lines']
+    >>> [a.tier for a in select_cue_annotations(store, anns, tier="words")]
+    ['words']
+    """
+    annotations = list(annotations)
+    if tier is not None:
+        return [a for a in annotations if a.tier == tier]
+    if any(a.tier == lines_tier for a in annotations):
+        return [a for a in annotations if a.tier == lines_tier]
+    tiers_of = getattr(store, "tiers", None)
+    nested = {
+        t.name
+        for t in (tiers_of() if callable(tiers_of) else ())
+        if t.stereotype is not TierStereotype.NONE
+    }
+    return [a for a in annotations if a.tier not in nested]
 
 
 def interval_sort_key(a: Annotation) -> tuple[Fraction, Fraction]:
