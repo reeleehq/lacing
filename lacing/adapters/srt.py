@@ -200,23 +200,27 @@ def load(
     asset_id: str = DEFAULT_ASSET_ID,
     attribution: str = "anonymous",
     tier: str = DEFAULT_TIER_NAME,
+    encoding: str | None = None,
     **_kwargs: Any,
 ) -> IntervalAnnotationStore:
     """Parse a SubRip file, or SubRip bytes or text, into a ``MemoryStore``.
 
     Args:
-        source: Bytes (UTF-8, BOM tolerated), a path, or inline text. A
+        source: Bytes (see ``encoding``), a path, or inline text. A
             ``str`` containing a newline or ``-->`` is inline text; any other
             ``str`` is read as a path when one exists there.
         rate: Rate of every ``RationalTime`` produced; must hold a millisecond.
         asset_id: The ``MediaRef.asset_id`` the cues annotate.
         attribution: ``Provenance.was_attributed_to`` of every cue.
         tier: Name of the tier the cues go in.
+        encoding: Text encoding of a file or of bytes. ``None`` sniffs a BOM
+            (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one
+            (``"cp1252"``) for a file without a BOM.
 
     Raises:
         ValueError: On a malformed cue, naming the line number.
     """
-    text = read_text(source, looks_inline=_looks_like_inline_srt)
+    text = read_text(source, looks_inline=_looks_like_inline_srt, encoding=encoding)
     cues = list(_iter_cues(text, rate))  # parse fully before building anything
 
     store = MemoryStore()

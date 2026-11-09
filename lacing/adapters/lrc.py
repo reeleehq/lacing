@@ -416,6 +416,7 @@ def load(
     tier: str = DEFAULT_TIER_NAME,
     words_tier: str = DEFAULT_WORDS_TIER_NAME,
     tags_tier: str = DEFAULT_TAGS_TIER_NAME,
+    encoding: str | None = None,
     **_kwargs: Any,
 ) -> IntervalAnnotationStore:
     """Parse an LRC file, or LRC bytes or text, into a ``MemoryStore``.
@@ -434,11 +435,16 @@ def load(
         tier: Name of the lines tier.
         words_tier: Name of the words tier (created only for enhanced LRC).
         tags_tier: Name of the ID-tag tier (created only when there are tags).
+        encoding: Text encoding of a file or of bytes. ``None`` sniffs a BOM
+            (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one
+            (``"cp1252"``) for a file without a BOM.
 
     Raises:
         ValueError: On malformed input, naming the line number.
     """
-    parsed = _parse(read_text(source, looks_inline=_looks_like_inline_lrc))
+    parsed = _parse(
+        read_text(source, looks_inline=_looks_like_inline_lrc, encoding=encoding)
+    )
     offset = parsed.offset_ms
 
     # (start_ms, row) per time tag, sorted by start; file order breaks ties.

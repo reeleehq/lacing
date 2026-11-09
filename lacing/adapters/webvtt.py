@@ -142,10 +142,16 @@ def load(
     asset_id: str = DEFAULT_ASSET_ID,
     attribution: str = "anonymous",
     tier: str = DEFAULT_TIER_NAME,
+    encoding: str | None = None,
     **_kwargs: Any,
 ) -> IntervalAnnotationStore:
-    """Parse a WebVTT file or string/bytes into a ``MemoryStore``."""
-    text = read_text(source, looks_inline=_looks_like_inline_vtt)
+    """Parse a WebVTT file or string/bytes into a ``MemoryStore``.
+
+    ``encoding``: text encoding of a file or of bytes; ``None`` sniffs a BOM
+    (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8 (``"cp1252"`` for a
+    file without a BOM).
+    """
+    text = read_text(source, looks_inline=_looks_like_inline_vtt, encoding=encoding)
 
     store = MemoryStore()
     store.add_tier(Tier(tier))
