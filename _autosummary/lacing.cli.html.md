@@ -59,14 +59,19 @@ coerce in the body.\*\*
 | [`query`](#lacing.cli.query)(path, \*[, tier, start, end, relation, ...]) | Print annotations from PATH matching a tier and/or time-interval query.                                                                   |
 | [`validate`](#lacing.cli.validate)(path, \*[, src_format, rate, encoding])   | Round-trip PATH through load + dump and report a summary.                                                                                 |
 
-### lacing.cli.convert(src, dst, , src_format=None, dst_format=None, rate=24000, encoding=None)
+### lacing.cli.convert(src, dst, , src_format=None, dst_format=None, rate=24000, encoding=None, tier=None, lines_tier=None)
 
 Convert between annotation file formats.
 
 SRC is a path to a recognized file (or `-` for stdin bytes — not yet).
 DST is the output path. Formats are inferred from extensions; override
 with –src-format / –dst-format. A text file that is not UTF-8 (and has
-no byte-order mark) needs –encoding, e.g. cp1252.
+no byte-order mark) needs –encoding, e.g. cp1252. SubRip and WebVTT
+given no –tier write the `lines` tier when the store has one, else every
+top-level tier. –tier writes only that tier (SubRip, WebVTT, LRC, ASS and
+the podcast formats; LRC and ASS need a tier of lines, not of words), and
+–lines-tier names the lines tier when the source called it something else
+(SubRip, WebVTT). A tier the source does not have is an error.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)

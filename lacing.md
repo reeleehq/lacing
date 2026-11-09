@@ -1,4 +1,4 @@
-> built 2026-11-09 03:35 UTC from 5ec1816 (main) · lacing 0.0.103. Details: build_info.json
+> built 2026-11-09 03:43 UTC from bcfe85c (main) · lacing 0.0.104. Details: build_info.json
 
 # index.html.md
 
@@ -4129,14 +4129,19 @@ coerce in the body.\*\*
 | [`query`](_autosummary/lacing.cli.html.md#lacing.cli.query)(path, \*[, tier, start, end, relation, ...]) | Print annotations from PATH matching a tier and/or time-interval query.                                                                   |
 | [`validate`](_autosummary/lacing.cli.html.md#lacing.cli.validate)(path, \*[, src_format, rate, encoding])   | Round-trip PATH through load + dump and report a summary.                                                                                 |
 
-### lacing.cli.convert(src, dst, , src_format=None, dst_format=None, rate=24000, encoding=None)
+### lacing.cli.convert(src, dst, , src_format=None, dst_format=None, rate=24000, encoding=None, tier=None, lines_tier=None)
 
 Convert between annotation file formats.
 
 SRC is a path to a recognized file (or `-` for stdin bytes — not yet).
 DST is the output path. Formats are inferred from extensions; override
 with –src-format / –dst-format. A text file that is not UTF-8 (and has
-no byte-order mark) needs –encoding, e.g. cp1252.
+no byte-order mark) needs –encoding, e.g. cp1252. SubRip and WebVTT
+given no –tier write the `lines` tier when the store has one, else every
+top-level tier. –tier writes only that tier (SubRip, WebVTT, LRC, ASS and
+the podcast formats; LRC and ASS need a tier of lines, not of words), and
+–lines-tier names the lines tier when the source called it something else
+(SubRip, WebVTT). A tier the source does not have is an error.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -11590,7 +11595,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-09 03:35 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/5ec18166a050577ffd01111b3e55ee483e818394"><code>5ec1816</code></a> on branch <code>main</code>, for **lacing 0.0.103** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 03:43 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/bcfe85c90428f49354727d3166530d42b05a68f7"><code>bcfe85c</code></a> on branch <code>main</code>, for **lacing 0.0.104** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11599,7 +11604,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/5ec18166a050577ffd01111b3e55ee483e818394"><code>5ec18166a050577ffd01111b3e55ee483e818394</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/bcfe85c90428f49354727d3166530d42b05a68f7"><code>bcfe85c90428f49354727d3166530d42b05a68f7</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -11610,9 +11615,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42557028931">42557028931</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42557707683">42557707683</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>5ec18166a050577ffd01111b3e55ee483e818394</code> (in the history of the built commit) |
+| Event commit | <code>bcfe85c90428f49354727d3166530d42b05a68f7</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11637,13 +11642,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.103/">0.0.103</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.104/">0.0.104</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 5ec18166a050577ffd01111b3e55ee483e818394
+git checkout bcfe85c90428f49354727d3166530d42b05a68f7
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
