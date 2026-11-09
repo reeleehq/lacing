@@ -1,4 +1,4 @@
-> built 2026-11-09 03:11 UTC from 9eacd39 (main) · lacing 0.0.101. Details: build_info.json
+> built 2026-11-09 03:30 UTC from 6fd1fdb (main) · lacing 0.0.102. Details: build_info.json
 
 # index.html.md
 
@@ -4550,13 +4550,14 @@ consumers.
 
 ### Module Attributes
 
-| [`VALUE_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                                                                                                                                                                                                                                                          |
-|-----------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`BODY_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_FIELDS)          | The narrower payload for [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                                     |
-| [`VALUE_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) by default.                                                                                                                                                                                                                                 |
-| [`VALUE_DIGEST_SCHEMES`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEMES) | Every scheme [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) can compute, oldest first.                                                                                                                                                                                                                                      |
-| [`MAX_MIXED_FILLS`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_FILLS)      | Default budget of mixed-state bodies [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) tries (lacing#152, lacing#157): a body whose derived fields were filled one occurrence at a time was recorded with each occurrence in its own state (as now, absent, `null`, at its pre-fill value), and every combination is a candidate. |
-| [`BODY_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_DIGEST_SCHEME)   | Domain-separation tag mixed into [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                             |
+| [`VALUE_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_FIELDS)         | Annotation fields that constitute its *value*.                                                                                                                                                                                                                                                                                                                                      |
+|-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`BODY_FIELDS`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_FIELDS)          | The narrower payload for [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                                                                 |
+| [`VALUE_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEME)  | Domain-separation tag mixed into [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) by default.                                                                                                                                                                                                                                                             |
+| [`VALUE_DIGEST_SCHEMES`](_autosummary/lacing.digest.html.md#lacing.digest.VALUE_DIGEST_SCHEMES) | Every scheme [`annotation_value_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_value_digest) can compute, oldest first.                                                                                                                                                                                                                                                                  |
+| [`MAX_MIXED_BYTES`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_BYTES)      | Default budget of bytes [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) digests over mixed-state bodies (lacing#161), beside [`MAX_MIXED_FILLS`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_FILLS): each candidate is a whole canonical dump of the body plus a SHA-256, so the count alone made a miss cost the body's size times 1024 (2.15 s at 5000 images). |
+| [`MAX_MIXED_FILLS`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_FILLS)      | Default budget of mixed-state bodies [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) tries (lacing#152, lacing#157): a body whose derived fields were filled one occurrence at a time was recorded with each occurrence in its own state (as now, absent, `null`, at its pre-fill value), and every combination is a candidate.                             |
+| [`BODY_DIGEST_SCHEME`](_autosummary/lacing.digest.html.md#lacing.digest.BODY_DIGEST_SCHEME)   | Domain-separation tag mixed into [`annotation_body_digest()`](_autosummary/lacing.digest.html.md#lacing.digest.annotation_body_digest).                                                                                                                                                                                                                                                                         |
 
 ### Functions
 
@@ -4586,6 +4587,25 @@ Note what this drops, which is more than timing: the **entire** `reference`
 `tier` and `confidence`. Two annotations over different assets digest
 alike here.
 
+### lacing.digest.MAX_MIXED_BYTES *= 1500000*
+
+Default budget of bytes [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) digests over mixed-state
+bodies (lacing#161), beside [`MAX_MIXED_FILLS`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_FILLS): each candidate is a whole
+canonical dump of the body plus a SHA-256, so the count alone made a miss cost
+the body’s size times 1024 (2.15 s at 5000 images). A miss tries at most
+`MAX_MIXED_BYTES // len(body)` candidates (at least one), so a small body
+still gets the whole count and a large one a bounded cost, about 50 ms with the
+default. `None` is no byte budget.
+
+What it costs in reach: reaching a fill on the `k`-th image needs about `k`
+candidates (`2k` with a non-null pre-fill), so the byte budget limits a
+last-fill trace to about `sqrt(MAX_MIXED_BYTES / bytes_per_image)` images with
+the defaults: 135 images at 80 bytes each, 45 at 800. Panels of a few dozen
+images, the realistic case, are not limited; a verifier over larger ones can
+pass `max_mixed_bytes=None` (or a larger budget) for the old reach and its
+cost. Making the candidates cheap instead of capping them (canonical JSON as
+fixed segments plus per-site segments) is lacing#181.
+
 ### lacing.digest.MAX_MIXED_FILLS *= 1024*
 
 Default budget of mixed-state bodies [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) tries
@@ -4595,7 +4615,9 @@ now, absent, `null`, at its pre-fill value), and every combination is a
 candidate. There are `3**n` of them or more, so they are tried likeliest
 first (see [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches)), and at most this many.
 
-What it reaches, by enumeration, counting only the images filled now (those
+What it reaches, by enumeration, for a body small enough that the count is
+the limit ([`MAX_MIXED_BYTES`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_BYTES) // body size is at least this: bodies up to
+about 1.4 KB; see the byte budget for larger ones), counting only the images filled now (those
 still `null` now are held as they are): with a `null` pre-fill (artful’s
 `PanelImage`), a trace recorded before a panel’s last fill on up to 1024
 images when that image was `null` then, 512 when absent; before its last two
@@ -4607,8 +4629,9 @@ occurrence `null` now but absent when recorded is moved only after every
 combination of the filled ones, so with seven or more filled images it is past
 the budget.
 
-Cost: a miss computes up to this many more digests, each over the whole body
-(about 0.45 s at 1,000 images).
+Cost: a miss computes up to this many more digests, each over the whole body,
+so at most [`MAX_MIXED_BYTES`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_BYTES) of body bytes (lacing#161): about 0.45 s at
+1,000 images without that budget, about 35 ms with it.
 
 ### *exception* lacing.digest.NonStringBodyKeyError
 
@@ -4646,14 +4669,14 @@ the latest excludes derived fields.
 Annotation fields that constitute its *value*. See the module docstring for
 why each is in, and why `id` and `provenance` are out.
 
-### lacing.digest.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
+### lacing.digest.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024, max_mixed_bytes=1500000)
 
 Every digest [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches) accepts for `annotation`.
 
 For a verifier that memoizes per annotation and scheme and checks many
 recorded digests against one set; `value_digest_matches` stays the lazy
-one-off check. `resolve_derived` and `max_mixed_fills` are as in
-[`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches).
+one-off check. `resolve_derived`, `max_mixed_fills` and `max_mixed_bytes`
+are as in [`value_digest_matches()`](_autosummary/lacing.digest.html.md#lacing.digest.value_digest_matches).
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -4835,7 +4858,7 @@ Empty for an unregistered `uri`, as [`registered_derived_paths()`](_autosummary/
 * **Return type:**
   [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
-### lacing.digest.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
+### lacing.digest.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024, max_mixed_bytes=1500000)
 
 Whether `recorded`, a value digest a trace stored under `scheme`, still
 describes `annotation`’s value.
@@ -4872,8 +4895,10 @@ current body outside `D`. They are tried last, likeliest first
 (lacing#157): moving only the occurrences filled now before moving those
 still `null` or at their pre-fill, fewest occurrences moved first, each
 at its pre-fill value before `null` before absent; and at most
-`max_mixed_fills` of them ([`MAX_MIXED_FILLS`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_FILLS)). A body recorded in a
-state past that budget reads as changed.
+`max_mixed_fills` of them ([`MAX_MIXED_FILLS`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_FILLS)), and no more than
+`max_mixed_bytes` of canonical JSON in all ([`MAX_MIXED_BYTES`](_autosummary/lacing.digest.html.md#lacing.digest.MAX_MIXED_BYTES), so a
+body of a thousand occurrences costs about 50 ms, not seconds). A body
+recorded in a state past either budget reads as changed.
 
 ```pycon
 >>> from uuid import uuid4
@@ -6940,14 +6965,14 @@ Use(revenue_usd=None, territory=None)
         negative.
   * [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError) – If `revenue_usd` is not an `int` (a `bool` is not).
 
-### lacing.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
+### lacing.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024, max_mixed_bytes=1500000)
 
 Every digest [`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value_digest_matches) accepts for `annotation`.
 
 For a verifier that memoizes per annotation and scheme and checks many
 recorded digests against one set; `value_digest_matches` stays the lazy
-one-off check. `resolve_derived` and `max_mixed_fills` are as in
-[`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value_digest_matches).
+one-off check. `resolve_derived`, `max_mixed_fills` and `max_mixed_bytes`
+are as in [`value_digest_matches()`](_autosummary/lacing.html.md#lacing.value_digest_matches).
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -7786,7 +7811,7 @@ or [`UnknownBodySchemaError`](_autosummary/lacing.html.md#lacing.UnknownBodySche
 * **Return type:**
   `BaseModel`
 
-### lacing.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
+### lacing.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024, max_mixed_bytes=1500000)
 
 Whether `recorded`, a value digest a trace stored under `scheme`, still
 describes `annotation`’s value.
@@ -7823,8 +7848,10 @@ current body outside `D`. They are tried last, likeliest first
 (lacing#157): moving only the occurrences filled now before moving those
 still `null` or at their pre-fill, fewest occurrences moved first, each
 at its pre-fill value before `null` before absent; and at most
-`max_mixed_fills` of them (`MAX_MIXED_FILLS`). A body recorded in a
-state past that budget reads as changed.
+`max_mixed_fills` of them (`MAX_MIXED_FILLS`), and no more than
+`max_mixed_bytes` of canonical JSON in all (`MAX_MIXED_BYTES`, so a
+body of a thousand occurrences costs about 50 ms, not seconds). A body
+recorded in a state past either budget reads as changed.
 
 ```pycon
 >>> from uuid import uuid4
@@ -11562,7 +11589,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-09 03:11 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/9eacd392f81924af85e9d6f36cd53195ed443679"><code>9eacd39</code></a> on branch <code>main</code>, for **lacing 0.0.101** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 03:30 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/6fd1fdb1e4793a03d3bcb956cd05d6c24d3e2d28"><code>6fd1fdb</code></a> on branch <code>main</code>, for **lacing 0.0.102** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11571,7 +11598,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/9eacd392f81924af85e9d6f36cd53195ed443679"><code>9eacd392f81924af85e9d6f36cd53195ed443679</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/6fd1fdb1e4793a03d3bcb956cd05d6c24d3e2d28"><code>6fd1fdb1e4793a03d3bcb956cd05d6c24d3e2d28</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -11582,9 +11609,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42554790152">42554790152</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42556493167">42556493167</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>9eacd392f81924af85e9d6f36cd53195ed443679</code> (in the history of the built commit) |
+| Event commit | <code>6fd1fdb1e4793a03d3bcb956cd05d6c24d3e2d28</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11609,13 +11636,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.101/">0.0.101</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.102/">0.0.102</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 9eacd392f81924af85e9d6f36cd53195ed443679
+git checkout 6fd1fdb1e4793a03d3bcb956cd05d6c24d3e2d28
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -1715,14 +1715,14 @@ Use(revenue_usd=None, territory=None)
         negative.
   * [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError) – If `revenue_usd` is not an `int` (a `bool` is not).
 
-### lacing.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
+### lacing.accepted_value_digests(annotation, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024, max_mixed_bytes=1500000)
 
 Every digest [`value_digest_matches()`](#lacing.value_digest_matches) accepts for `annotation`.
 
 For a verifier that memoizes per annotation and scheme and checks many
 recorded digests against one set; `value_digest_matches` stays the lazy
-one-off check. `resolve_derived` and `max_mixed_fills` are as in
-[`value_digest_matches()`](#lacing.value_digest_matches).
+one-off check. `resolve_derived`, `max_mixed_fills` and `max_mixed_bytes`
+are as in [`value_digest_matches()`](#lacing.value_digest_matches).
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -2561,7 +2561,7 @@ or [`UnknownBodySchemaError`](#lacing.UnknownBodySchemaError) if the URI isn’t
 * **Return type:**
   `BaseModel`
 
-### lacing.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024)
+### lacing.value_digest_matches(annotation, recorded, , scheme='lacing/annotation-value-digest/v2', resolve_derived=None, max_mixed_fills=1024, max_mixed_bytes=1500000)
 
 Whether `recorded`, a value digest a trace stored under `scheme`, still
 describes `annotation`’s value.
@@ -2598,8 +2598,10 @@ current body outside `D`. They are tried last, likeliest first
 (lacing#157): moving only the occurrences filled now before moving those
 still `null` or at their pre-fill, fewest occurrences moved first, each
 at its pre-fill value before `null` before absent; and at most
-`max_mixed_fills` of them (`MAX_MIXED_FILLS`). A body recorded in a
-state past that budget reads as changed.
+`max_mixed_fills` of them (`MAX_MIXED_FILLS`), and no more than
+`max_mixed_bytes` of canonical JSON in all (`MAX_MIXED_BYTES`, so a
+body of a thousand occurrences costs about 50 ms, not seconds). A body
+recorded in a state past either budget reads as changed.
 
 ```pycon
 >>> from uuid import uuid4

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=04553970"></script>
+    <script src="../../_static/documentation_options.js?v=33adb31a"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.101" />
+  <meta name="docsearch:version" content="0.0.102" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -895,6 +895,7 @@ window.runMermaid = runMermaid;</script>
     <span class="s2">"VALUE_DIGEST_SCHEME"</span><span class="p">,</span>
     <span class="s2">"VALUE_DIGEST_SCHEMES"</span><span class="p">,</span>
     <span class="s2">"BODY_DIGEST_SCHEME"</span><span class="p">,</span>
+    <span class="s2">"MAX_MIXED_BYTES"</span><span class="p">,</span>
     <span class="s2">"MAX_MIXED_FILLS"</span><span class="p">,</span>
     <span class="s2">"registered_prefills"</span><span class="p">,</span>
     <span class="s2">"registered_derived_paths"</span><span class="p">,</span>
@@ -990,6 +991,24 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">"""Every scheme :func:`annotation_value_digest` can compute, oldest first. Only</span>
 <span class="sd">the latest excludes derived fields."""</span>
 
+<span class="n">MAX_MIXED_BYTES</span> <span class="o">=</span> <span class="mi">1_500_000</span>
+<span class="sd">"""Default budget of bytes :func:`value_digest_matches` digests over mixed-state</span>
+<span class="sd">bodies (lacing#161), beside :data:`MAX_MIXED_FILLS`: each candidate is a whole</span>
+<span class="sd">canonical dump of the body plus a SHA-256, so the count alone made a miss cost</span>
+<span class="sd">the body's size times 1024 (2.15 s at 5000 images). A miss tries at most</span>
+<span class="sd">``MAX_MIXED_BYTES // len(body)`` candidates (at least one), so a small body</span>
+<span class="sd">still gets the whole count and a large one a bounded cost, about 50 ms with the</span>
+<span class="sd">default. ``None`` is no byte budget.</span>
+
+<span class="sd">What it costs in reach: reaching a fill on the ``k``-th image needs about ``k``</span>
+<span class="sd">candidates (``2k`` with a non-null pre-fill), so the byte budget limits a</span>
+<span class="sd">last-fill trace to about ``sqrt(MAX_MIXED_BYTES / bytes_per_image)`` images with</span>
+<span class="sd">the defaults: 135 images at 80 bytes each, 45 at 800. Panels of a few dozen</span>
+<span class="sd">images, the realistic case, are not limited; a verifier over larger ones can</span>
+<span class="sd">pass ``max_mixed_bytes=None`` (or a larger budget) for the old reach and its</span>
+<span class="sd">cost. Making the candidates cheap instead of capping them (canonical JSON as</span>
+<span class="sd">fixed segments plus per-site segments) is lacing#181."""</span>
+
 <span class="n">MAX_MIXED_FILLS</span> <span class="o">=</span> <span class="mi">1024</span>
 <span class="sd">"""Default budget of mixed-state bodies :func:`value_digest_matches` tries</span>
 <span class="sd">(lacing#152, lacing#157): a body whose derived fields were filled one</span>
@@ -998,7 +1017,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">candidate. There are ``3**n`` of them or more, so they are tried likeliest</span>
 <span class="sd">first (see :func:`value_digest_matches`), and at most this many.</span>
 
-<span class="sd">What it reaches, by enumeration, counting only the images filled now (those</span>
+<span class="sd">What it reaches, by enumeration, for a body small enough that the count is</span>
+<span class="sd">the limit (:data:`MAX_MIXED_BYTES` // body size is at least this: bodies up to</span>
+<span class="sd">about 1.4 KB; see the byte budget for larger ones), counting only the images filled now (those</span>
 <span class="sd">still ``null`` now are held as they are): with a ``null`` pre-fill (artful's</span>
 <span class="sd">``PanelImage``), a trace recorded before a panel's last fill on up to 1024</span>
 <span class="sd">images when that image was ``null`` then, 512 when absent; before its last two</span>
@@ -1010,8 +1031,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">combination of the filled ones, so with seven or more filled images it is past</span>
 <span class="sd">the budget.</span>
 
-<span class="sd">Cost: a miss computes up to this many more digests, each over the whole body</span>
-<span class="sd">(about 0.45 s at 1,000 images)."""</span>
+<span class="sd">Cost: a miss computes up to this many more digests, each over the whole body,</span>
+<span class="sd">so at most :data:`MAX_MIXED_BYTES` of body bytes (lacing#161): about 0.45 s at</span>
+<span class="sd">1,000 images without that budget, about 35 ms with it."""</span>
 
 <span class="n">BODY_DIGEST_SCHEME</span> <span class="o">=</span> <span class="s2">"lacing/annotation-body-digest/v1"</span>
 <span class="sd">"""Domain-separation tag mixed into :func:`annotation_body_digest`."""</span>
@@ -1103,6 +1125,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">scheme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">VALUE_DIGEST_SCHEME</span><span class="p">,</span>
     <span class="n">resolve_derived</span><span class="p">:</span> <span class="n">DerivedResolver</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">max_mixed_fills</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">MAX_MIXED_FILLS</span><span class="p">,</span>
+    <span class="n">max_mixed_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">MAX_MIXED_BYTES</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Whether ``recorded``, a value digest a trace stored under ``scheme``, still</span>
 <span class="sd">    describes ``annotation``'s value.</span>
@@ -1139,8 +1162,10 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    (lacing#157): moving only the occurrences filled now before moving those</span>
 <span class="sd">    still ``null`` or at their pre-fill, fewest occurrences moved first, each</span>
 <span class="sd">    at its pre-fill value before ``null`` before absent; and at most</span>
-<span class="sd">    ``max_mixed_fills`` of them (:data:`MAX_MIXED_FILLS`). A body recorded in a</span>
-<span class="sd">    state past that budget reads as changed.</span>
+<span class="sd">    ``max_mixed_fills`` of them (:data:`MAX_MIXED_FILLS`), and no more than</span>
+<span class="sd">    ``max_mixed_bytes`` of canonical JSON in all (:data:`MAX_MIXED_BYTES`, so a</span>
+<span class="sd">    body of a thousand occurrences costs about 50 ms, not seconds). A body</span>
+<span class="sd">    recorded in a state past either budget reads as changed.</span>
 
 <span class="sd">    &gt;&gt;&gt; from uuid import uuid4</span>
 <span class="sd">    &gt;&gt;&gt; from lacing import Annotation, MediaRef, Provenance</span>
@@ -1177,7 +1202,11 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    False</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="n">recorded</span> <span class="ow">in</span> <span class="n">_value_digests</span><span class="p">(</span>
-        <span class="n">annotation</span><span class="p">,</span> <span class="n">scheme</span><span class="p">,</span> <span class="n">resolve_derived</span><span class="p">,</span> <span class="n">max_mixed_fills</span><span class="o">=</span><span class="n">max_mixed_fills</span>
+        <span class="n">annotation</span><span class="p">,</span>
+        <span class="n">scheme</span><span class="p">,</span>
+        <span class="n">resolve_derived</span><span class="p">,</span>
+        <span class="n">max_mixed_fills</span><span class="o">=</span><span class="n">max_mixed_fills</span><span class="p">,</span>
+        <span class="n">max_mixed_bytes</span><span class="o">=</span><span class="n">max_mixed_bytes</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 
@@ -1190,17 +1219,22 @@ window.runMermaid = runMermaid;</script>
     <span class="n">scheme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">VALUE_DIGEST_SCHEME</span><span class="p">,</span>
     <span class="n">resolve_derived</span><span class="p">:</span> <span class="n">DerivedResolver</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">max_mixed_fills</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">MAX_MIXED_FILLS</span><span class="p">,</span>
+    <span class="n">max_mixed_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">MAX_MIXED_BYTES</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Every digest :func:`value_digest_matches` accepts for ``annotation``.</span>
 
 <span class="sd">    For a verifier that memoizes per annotation and scheme and checks many</span>
 <span class="sd">    recorded digests against one set; ``value_digest_matches`` stays the lazy</span>
-<span class="sd">    one-off check. ``resolve_derived`` and ``max_mixed_fills`` are as in</span>
-<span class="sd">    :func:`value_digest_matches`.</span>
+<span class="sd">    one-off check. ``resolve_derived``, ``max_mixed_fills`` and ``max_mixed_bytes``</span>
+<span class="sd">    are as in :func:`value_digest_matches`.</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span>
         <span class="n">_value_digests</span><span class="p">(</span>
-            <span class="n">annotation</span><span class="p">,</span> <span class="n">scheme</span><span class="p">,</span> <span class="n">resolve_derived</span><span class="p">,</span> <span class="n">max_mixed_fills</span><span class="o">=</span><span class="n">max_mixed_fills</span>
+            <span class="n">annotation</span><span class="p">,</span>
+            <span class="n">scheme</span><span class="p">,</span>
+            <span class="n">resolve_derived</span><span class="p">,</span>
+            <span class="n">max_mixed_fills</span><span class="o">=</span><span class="n">max_mixed_fills</span><span class="p">,</span>
+            <span class="n">max_mixed_bytes</span><span class="o">=</span><span class="n">max_mixed_bytes</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="p">)</span></div>
 
@@ -1325,6 +1359,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">resolve_derived</span><span class="p">:</span> <span class="n">DerivedResolver</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">max_mixed_fills</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">MAX_MIXED_FILLS</span><span class="p">,</span>
+    <span class="n">max_mixed_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">MAX_MIXED_BYTES</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""The digest of ``annotation`` under ``scheme``, then (lazily) the digests a</span>
 <span class="sd">    producer unaware of the derived paths would have recorded under the same tag</span>
@@ -1371,8 +1406,20 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">digest</span><span class="p">)</span>
                 <span class="k">yield</span> <span class="n">digest</span>
     <span class="c1"># last, each occurrence in its own state, editing the dropped dump in place</span>
-    <span class="k">for</span> <span class="n">mixed</span> <span class="ow">in</span> <span class="n">_mixed_fills</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">dropped</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">max_mixed_fills</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">mixed</span> <span class="ow">in</span> <span class="n">_mixed_fills</span><span class="p">(</span>
+        <span class="n">payload</span><span class="p">,</span> <span class="n">dropped</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">max_mixed_fills</span><span class="p">,</span> <span class="n">max_bytes</span><span class="o">=</span><span class="n">max_mixed_bytes</span>
+    <span class="p">):</span>
         <span class="k">yield</span> <span class="n">_digest</span><span class="p">(</span><span class="n">_V1_SCHEME</span><span class="p">,</span> <span class="n">mixed</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mixed_limit</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">max_fills</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">max_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""How many mixed-state bodies to try: ``max_fills``, cut so that digesting</span>
+<span class="sd">    them is about ``max_bytes`` of canonical JSON (each costs the size of</span>
+<span class="sd">    ``payload``, the body as it is now; at least one is tried)."""</span>
+    <span class="k">if</span> <span class="n">max_bytes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">max_fills</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">max_fills</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_bytes</span> <span class="o">//</span> <span class="nb">max</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_is_json</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -1404,11 +1451,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">the value it held)."""</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_mixed_fills</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">dropped</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_mixed_fills</span><span class="p">(</span>
+    <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">dropped</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">max_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""``payload``, whose derived entries ``dropped`` were removed, with each of</span>
 <span class="sd">    them in its own state: as now, absent, ``None``, or its path's pre-fill</span>
 <span class="sd">    value. Only the mixed combinations (the bodies of the uniform ones were</span>
-<span class="sd">    tried before), at most ``limit`` of them, the likeliest first, so a miss</span>
+<span class="sd">    tried before), at most ``limit`` of them and about ``max_bytes`` of</span>
+<span class="sd">    canonical JSON (:func:`_mixed_limit`), the likeliest first, so a miss</span>
 <span class="sd">    costs ``limit`` digests, never ``3**n``.</span>
 
 <span class="sd">    Likeliest first (lacing#157): the occurrences filled now (not ``None``, not</span>
@@ -1420,7 +1470,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    ``payload`` is edited in place from one combination to the next, only where</span>
 <span class="sd">    an occurrence's state changes, so each yield is valid only until the next</span>
 <span class="sd">    (the caller digests it at once)."""</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.derived</span><span class="w"> </span><span class="kn">import</span> <span class="n">same_json</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.derived</span><span class="w"> </span><span class="kn">import</span> <span class="n">memoized_same_json</span>
+
+    <span class="n">same_json</span> <span class="o">=</span> <span class="n">memoized_same_json</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dropped</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">limit</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># one site: every combination is uniform</span>
         <span class="k">return</span>
@@ -1468,6 +1520,7 @@ window.runMermaid = runMermaid;</script>
 
     <span class="k">for</span> <span class="n">container</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">dropped</span><span class="p">:</span>  <span class="c1"># start from the body as now</span>
         <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="n">limit</span> <span class="o">=</span> <span class="n">_mixed_limit</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">max_bytes</span><span class="p">)</span>
     <span class="n">applied</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># the sites ``payload`` holds off "as now"</span>
     <span class="k">for</span> <span class="n">combo</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">islice</span><span class="p">((</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">combos</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tried</span><span class="p">),</span> <span class="n">limit</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">applied</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="n">combo</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
