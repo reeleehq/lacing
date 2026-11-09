@@ -1184,3 +1184,35 @@ def test_an_unreadable_catalog_folder_does_not_hide_the_other_temps(tmp_path):
         assert [p.name for p in store.interrupted_writes()] == [".blob-x.part"]
     finally:
         locked.chmod(0o700)
+
+
+# -- a refused save writes nothing, not even the blob (lacing#160) -----------
+
+
+@pytest.mark.parametrize("create", [True, False])
+@pytest.mark.parametrize("bad_id", ["../x", "d/", "/abs", "a\0b"])
+def test_a_refused_id_leaves_no_blob_and_no_folder(tmp_path: Path, create, bad_id):
+    root = tmp_path / "x"
+    store = ArtifactStore.from_directory(root, create=create)
+    before = _tree(root)
+    with pytest.raises(KeyError):
+        store.save(bad_id, _artifact(), data=b"png-bytes")
+    assert _tree(root) == before
+    assert list(store.iter_blobs()) == []
+
+
+@pytest.mark.parametrize("create", [True, False])
+def test_an_unserialisable_record_leaves_no_blob(tmp_path: Path, create):
+    root = tmp_path / "x"
+    store = ArtifactStore.from_directory(root, create=create)
+    before = _tree(root)
+    with pytest.raises(AttributeError):
+        store.save("rec", object(), data=b"png-bytes")  # type: ignore[arg-type]
+    assert _tree(root) == before
+
+
+def test_a_store_without_check_write_is_unchanged():
+    store = ArtifactStore.in_memory()
+    art = _artifact()
+    assert store.check_write is None
+    assert store.save(art.asset_id, art, data=b"png-bytes") == hash_bytes(b"png-bytes")

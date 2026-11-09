@@ -434,6 +434,13 @@ class ArtifactStore(MutableMapping):
             all use it. Defaults to :func:`content_hash_of`; :meth:`from_sql`
             sets it from its ``content_hash_of`` argument, so the store and
             its ``content_hash`` column agree.
+        check_write: Keyword-only. ``check_write(artifact_id, record)``, a dry
+            run of the catalog write: it raises what the write would raise
+            (``KeyError`` for an id the catalog refuses, ``AttributeError`` or
+            ``TypeError`` for a record it cannot serialise) and writes
+            nothing. :meth:`save` calls it before the blob, so a refused save
+            leaves no orphan blob (lacing#160). ``None`` (the default) skips
+            the check; :meth:`from_directory` sets it.
 
     Construct one with :meth:`in_memory` or :meth:`from_directory` rather than
     wiring the backing stores by hand, unless you are injecting a custom
@@ -445,6 +452,9 @@ class ArtifactStore(MutableMapping):
     on_write: WritePolicy | None = field(default=keep_rights, kw_only=True)
     content_hash_of: Callable[[Any], str | None] = field(
         default=_default_content_hash_of, kw_only=True
+    )
+    check_write: Callable[[str, BaseModel], None] | None = field(
+        default=None, kw_only=True
     )
 
     # -- catalog: the MutableMapping surface (artifact_id -> record) --------
@@ -487,8 +497,12 @@ class ArtifactStore(MutableMapping):
 
         Raises:
             RuntimeError: ``data`` was given but no blob store is configured.
+            KeyError: the catalog refuses ``artifact_id`` (when the store has a
+                ``check_write``, nothing was written, not even the blob).
         """
         record = self._admitted(artifact_id, record)  # a refusal leaves no blob
+        if self.check_write is not None:
+            self.check_write(artifact_id, record)  # nor does a refused catalog write
         content_hash: str | None = None
         if data is not None:
             if self.blobs is None:
@@ -1018,25 +1032,30 @@ class ArtifactStore(MutableMapping):
             catalog_dir.mkdir(parents=True, exist_ok=True)
             blob_dir.mkdir(parents=True, exist_ok=True)
 
+        contained = _ContainedDirStore(
+            Files(str(catalog_dir), delete_func=catalog_delete_func)
+        )
+
+        def check_write(artifact_id: str, record: BaseModel) -> None:
+            contained.writable_target(_catalog_filename(artifact_id))
+            _record_json(record)
+
         catalog = wrap_kvs(
-            filt_iter(
-                _ContainedDirStore(
-                    Files(str(catalog_dir), delete_func=catalog_delete_func)
-                ),
-                filt=lambda k: k.endswith(".json"),
-            ),
+            filt_iter(contained, filt=lambda k: k.endswith(".json")),
             id_of_key=_catalog_filename,
             key_of_id=lambda filename: (
                 filename[:-5] if filename.endswith(".json") else filename
             ),
-            data_of_obj=lambda record: record.model_dump_json(indent=2).encode("utf-8"),
+            data_of_obj=_record_json,
             obj_of_data=lambda raw: record_type.model_validate_json(raw),
         )
         # A bare Files raises KeyError writing into a missing folder; the catalog
         # (_ContainedDirStore) and the spooled writes make theirs already.
         files = Files if create else mk_dirs_if_missing(Files)
         blobs = files(str(blob_dir), delete_func=blob_delete_func)
-        return cls(catalog=catalog, blobs=blobs, on_write=on_write)
+        return cls(
+            catalog=catalog, blobs=blobs, on_write=on_write, check_write=check_write
+        )
 
     def count_refs(self, content_hash: str) -> int:
         """How many catalog records point at ``content_hash`` (a blob).
@@ -1499,7 +1518,9 @@ class _ContainedDirStore(MutableMapping):
         with os.fdopen(opened[1], "rb") as file:
             return file.read()
 
-    def __setitem__(self, key: str, value: bytes) -> None:
+    def writable_target(self, key: str) -> str:
+        """The path a write of ``key`` would land on; ``KeyError`` if it would
+        be refused. Touches nothing: :meth:`__setitem__` is this, then the write."""
         contained = self._contained_key(key)
         if contained is None:
             raise self._refuse(key)
@@ -1514,6 +1535,10 @@ class _ContainedDirStore(MutableMapping):
             raise self._refuse(key, f"cannot be written ({error})") from error
         if not is_regular:
             raise self._refuse(key, "names something that is not a regular file")
+        return target
+
+    def __setitem__(self, key: str, value: bytes) -> None:
+        target = self.writable_target(key)
         # dol's Files does not create parent directories; ``target`` is already
         # resolved inside rootdir, so creating its parents cannot escape.
         try:
@@ -1543,6 +1568,11 @@ class _ContainedDirStore(MutableMapping):
 
     def __len__(self) -> int:
         return sum(1 for _ in self)
+
+
+def _record_json(record: BaseModel) -> bytes:
+    """A catalog record as the bytes :meth:`ArtifactStore.from_directory` files."""
+    return record.model_dump_json(indent=2).encode("utf-8")
 
 
 def _catalog_filename(artifact_id: str) -> str:
