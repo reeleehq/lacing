@@ -90,6 +90,19 @@ from lacing.artifact import (
     hash_file,
 )
 from lacing.artifact_ref import ARTIFACT_REF_PREFIX, ArtifactRef
+from lacing.restrictions import (
+    RESTRICTION_CHECKS,
+    RestrictionCheck,
+    Use,
+    restriction_breach,
+)
+from lacing.territory import (
+    REGIONS,
+    WORLDWIDE,
+    normalize_territory,
+    territory_excluded,
+    unplaceable_codes,
+)
 from lacing.artifact_store import (
     ArtifactStore,
     ResolvedArtifact,
@@ -156,6 +169,15 @@ __all__ = [
     "ArtifactKind",
     "Rights",
     "Restriction",
+    "RESTRICTION_CHECKS",
+    "RestrictionCheck",
+    "Use",
+    "restriction_breach",
+    "REGIONS",
+    "WORLDWIDE",
+    "normalize_territory",
+    "territory_excluded",
+    "unplaceable_codes",
     "REVENUE_CAP",
     "TERRITORY_EXCLUDED",
     "ArtifactStore",
