@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
-from lacing.adapters._common import display_text, iter_with_intervals
+from lacing.adapters._common import decode_text, display_text, iter_with_intervals
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
@@ -102,6 +102,7 @@ def load(
     asset_id: str = DEFAULT_ASSET_ID,
     attribution: str = "anonymous",
     include_empty: bool = True,
+    encoding: str | None = None,
     **_kwargs: Any,
 ) -> IntervalAnnotationStore:
     """Load a TextGrid file or bytes into a ``MemoryStore``.
@@ -112,13 +113,18 @@ def load(
         asset_id: ``MediaRef.asset_id`` to attach to every annotation.
         attribution: ``Provenance.was_attributed_to`` value.
         include_empty: If False, drop intervals/points with empty labels.
+        encoding: Text encoding of the file or bytes. ``None`` sniffs a BOM
+            (UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one
+            (``"latin-1"``) for a Praat file written without a BOM.
     """
     deps = _require_praatio()
     Textgrid = deps["Textgrid"]
     IntervalTier = deps["IntervalTier"]
     PointTier = deps["PointTier"]
 
-    grid = _open_textgrid(source, Textgrid, include_empty=include_empty)
+    grid = _open_textgrid(
+        source, Textgrid, include_empty=include_empty, encoding=encoding
+    )
 
     store = MemoryStore()
     now = RationalTime.now(rate)
@@ -158,23 +164,31 @@ def _open_textgrid(
     Textgrid_cls: type["Textgrid"],
     *,
     include_empty: bool,
+    encoding: str | None = None,
 ) -> "Textgrid":
+    """Open the TextGrid ``source`` holds, whatever its encoding.
+
+    praatio reads a path itself (UTF-16, then UTF-8, nothing else), so lacing
+    decodes first (:func:`lacing.adapters._common.decode_text`: ``encoding``
+    named, or a BOM sniffed, else UTF-8) and hands praatio a UTF-16 temp file,
+    the first thing it tries and so the one thing that always reads.
+    """
+    import tempfile
+
     from praatio import textgrid as _tg
 
     if isinstance(source, (bytes, bytearray)):
-        # praatio doesn't read bytes directly; round-trip through a temp file
-        # for now. Phase 1 can replace with a string-based parser.
-        import tempfile
-
-        with tempfile.NamedTemporaryFile("wb", suffix=".TextGrid", delete=False) as f:
-            f.write(source)
-            tmp_path = f.name
-        try:
-            return _tg.openTextgrid(tmp_path, includeEmptyIntervals=include_empty)
-        finally:
-            os.unlink(tmp_path)
-
-    return _tg.openTextgrid(os.fspath(source), includeEmptyIntervals=include_empty)
+        data = bytes(source)
+    else:
+        data = Path(os.fspath(source)).read_bytes()
+    text = decode_text(data, encoding=encoding)
+    with tempfile.NamedTemporaryFile("wb", suffix=".TextGrid", delete=False) as f:
+        f.write(text.encode("utf-16"))
+        tmp_path = f.name
+    try:
+        return _tg.openTextgrid(tmp_path, includeEmptyIntervals=include_empty)
+    finally:
+        os.unlink(tmp_path)
 
 
 def _add_annotation(
