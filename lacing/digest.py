@@ -659,18 +659,17 @@ def _value_digests(
                 seen.add(digest)
                 yield digest
     # last, each occurrence in its own state, editing the dropped dump in place
-    limit = _mixed_limit(payload, dropped, max_mixed_fills, max_mixed_bytes)
-    for mixed in _mixed_fills(payload, dropped, limit=limit):
+    for mixed in _mixed_fills(
+        payload, dropped, limit=max_mixed_fills, max_bytes=max_mixed_bytes
+    ):
         yield _digest(_V1_SCHEME, mixed)
 
 
-def _mixed_limit(
-    payload: dict, dropped: list, max_fills: int, max_bytes: int | None
-) -> int:
+def _mixed_limit(payload: dict, max_fills: int, max_bytes: int | None) -> int:
     """How many mixed-state bodies to try: ``max_fills``, cut so that digesting
-    them is about ``max_bytes`` of canonical JSON (one body's size is the cost
-    of each; at least one is tried). Costs one dump, only when a mix exists."""
-    if max_bytes is None or len(dropped) < 2 or max_fills < 1:
+    them is about ``max_bytes`` of canonical JSON (each costs the size of
+    ``payload``, the body as it is now; at least one is tried)."""
+    if max_bytes is None:
         return max_fills
     size = len(json.dumps(payload, sort_keys=True, separators=(",", ":")))
     return min(max_fills, max(1, max_bytes // max(size, 1)))
@@ -705,11 +704,14 @@ _ABSENT = object()
 the value it held)."""
 
 
-def _mixed_fills(payload: dict, dropped: list, *, limit: int) -> Iterator[dict]:
+def _mixed_fills(
+    payload: dict, dropped: list, *, limit: int, max_bytes: int | None = None
+) -> Iterator[dict]:
     """``payload``, whose derived entries ``dropped`` were removed, with each of
     them in its own state: as now, absent, ``None``, or its path's pre-fill
     value. Only the mixed combinations (the bodies of the uniform ones were
-    tried before), at most ``limit`` of them, the likeliest first, so a miss
+    tried before), at most ``limit`` of them and about ``max_bytes`` of
+    canonical JSON (:func:`_mixed_limit`), the likeliest first, so a miss
     costs ``limit`` digests, never ``3**n``.
 
     Likeliest first (lacing#157): the occurrences filled now (not ``None``, not
@@ -769,6 +771,7 @@ def _mixed_fills(payload: dict, dropped: list, *, limit: int) -> Iterator[dict]:
 
     for container, key, value, _ in dropped:  # start from the body as now
         container[key] = value
+    limit = _mixed_limit(payload, limit, max_bytes)
     applied: dict[int, Any] = {}  # the sites ``payload`` holds off "as now"
     for combo in itertools.islice((c for c in combos if c not in tried), limit):
         for i in applied.keys() - combo.keys():
