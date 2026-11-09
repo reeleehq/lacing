@@ -87,8 +87,8 @@ Parse a SubRip file, or SubRip bytes or text, into a `MemoryStore`.
 
 * **Parameters:**
   * **source** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike)) – Bytes (see `encoding`), a path, or inline text. A
-    `str` containing a newline or `-->` is inline text; any other
-    `str` is read as a path when one exists there.
+    `str` naming an existing file is read from it; any other
+    `str` is inline text.
   * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – Rate of every `RationalTime` produced; must hold a millisecond.
   * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The `MediaRef.asset_id` the cues annotate.
   * **attribution** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to` of every cue.

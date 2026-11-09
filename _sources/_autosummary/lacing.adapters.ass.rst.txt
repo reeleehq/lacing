@@ -1,0 +1,14 @@
+lacing.adapters.ass
+===================
+
+.. automodule:: lacing.adapters.ass
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      dump
+      load
+      plain_text
+   

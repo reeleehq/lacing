@@ -151,8 +151,8 @@ the offset sign).
 
 * **Parameters:**
   * **source** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`bytes`](https://docs.python.org/3/builtins/stdtypes.html#bytes) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike)) – Bytes (UTF-8, BOM tolerated), a path, or inline text. A
-    `str` with a line break, or starting with `[`, is inline text;
-    any other `str` is read as a path when a file exists there.
+    `str` naming an existing file is read from it (even one named
+    `"[Group] Song.lrc"`); any other `str` is inline text.
   * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – Rate of every `RationalTime` produced; must hold a millisecond.
   * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The `MediaRef.asset_id` the lyrics annotate.
   * **attribution** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – `Provenance.was_attributed_to` of every annotation.

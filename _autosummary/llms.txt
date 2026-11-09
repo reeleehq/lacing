@@ -8,6 +8,7 @@
 - [lacing](lacing.html.md): lacing — interval annotation system.
 - [lacing.adapters](lacing.adapters.html.md): I/O adapter registry.
 - [lacing.adapters.annot](lacing.adapters.annot.html.md): &#96;.annot&#96; portable file format adapter.
+- [lacing.adapters.ass](lacing.adapters.ass.html.md): ASS / SSA (Advanced SubStation Alpha) subtitle adapter, with karaoke timing.
 - [lacing.adapters.eaf](lacing.adapters.eaf.html.md): ELAN EAF adapter (Max Planck Institute’s annotation tool format).
 - [lacing.adapters.jams](lacing.adapters.jams.html.md): JAMS (JSON Annotated Music Specification) adapter.
 - [lacing.adapters.label_studio](lacing.adapters.label_studio.html.md): Label Studio JSON adapter.

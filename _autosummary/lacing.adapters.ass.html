@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<link rel="alternate" type="text/markdown" href="lacing.adapters.ass.html.md">
+<link rel="describedby" href="../llms.txt" type="text/markdown">
+<link rel="alternate" type="text/markdown" href="lacing.adapters.ass.html.md">
+<link rel="describedby" href="llms.txt">
+    <title>lacing.adapters.ass &#8212; lacing</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=37d13f4f" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../_static/documentation_options.js?v=a02dbd69"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=fd10adb8"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_autosummary/lacing.adapters.ass';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="lacing.adapters.eaf" href="lacing.adapters.eaf.html" />
+    <link rel="prev" title="lacing.adapters.annot" href="lacing.adapters.annot.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.0.100" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">lacing</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../ai-agents.html">
+    For AI agents
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/thorwhalen/lacing" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page" aria-expanded="false" aria-controls="pst-secondary-sidebar-modal">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../ai-agents.html">
+    For AI agents
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/thorwhalen/lacing" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="lacing.html">lacing</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="lacing.adapters.html">lacing.adapters</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.annot.html">lacing.adapters.annot</a></li>
+<li class="toctree-l3 current active"><a aria-current="page" class="current reference internal" href="#">lacing.adapters.ass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.eaf.html">lacing.adapters.eaf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.jams.html">lacing.adapters.jams</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.label_studio.html">lacing.adapters.label_studio</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.lrc.html">lacing.adapters.lrc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.otio.html">lacing.adapters.otio</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.podcast_chapters.html">lacing.adapters.podcast_chapters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.podcast_transcript.html">lacing.adapters.podcast_transcript</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.srt.html">lacing.adapters.srt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.textgrid.html">lacing.adapters.textgrid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.web_annotation.html">lacing.adapters.web_annotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.adapters.webvtt.html">lacing.adapters.webvtt</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.allen.html">lacing.allen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.artifact.html">lacing.artifact</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.artifact_ref.html">lacing.artifact_ref</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.artifact_store.html">lacing.artifact_store</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="lacing.bodies.html">lacing.bodies</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.character_voice.html">lacing.bodies.character_voice</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.continuity_violation.html">lacing.bodies.continuity_violation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.lyric_line.html">lacing.bodies.lyric_line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.named_entity.html">lacing.bodies.named_entity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.reference_lock.html">lacing.bodies.reference_lock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.review.html">lacing.bodies.review</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.review_candidate.html">lacing.bodies.review_candidate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.song_section.html">lacing.bodies.song_section</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.bodies.word.html">lacing.bodies.word</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.cli.html">lacing.cli</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.derived.html">lacing.derived</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.digest.html">lacing.digest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.exhibit.html">lacing.exhibit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.generator_id.html">lacing.generator_id</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.locations.html">lacing.locations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.model.html">lacing.model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.oplog.html">lacing.oplog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.otel.html">lacing.otel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.processors.html">lacing.processors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.quality.html">lacing.quality</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.registry.html">lacing.registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.restrictions.html">lacing.restrictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.schema.html">lacing.schema</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="lacing.store.html">lacing.store</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="lacing.store.base.html">lacing.store.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.store.locking.html">lacing.store.locking</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.store.mapping.html">lacing.store.mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.store.memory.html">lacing.store.memory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.store.migrations.html">lacing.store.migrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.store.postgres.html">lacing.store.postgres</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lacing.store.sqlite.html">lacing.store.sqlite</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.territory.html">lacing.territory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.tier.html">lacing.tier</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.time.html">lacing.time</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="lacing.tracks.html">lacing.tracks</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="lacing.tracks.subtitle.html">lacing.tracks.subtitle</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.worker.html">lacing.worker</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../api.html" class="nav-link">API reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="lacing.html" class="nav-link">lacing</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="lacing.adapters.html" class="nav-link">lacing.adapters</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">lacing.adapters.ass</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-lacing.adapters.ass">
+<span id="lacing-adapters-ass"></span><h1>lacing.adapters.ass<a class="headerlink" href="#module-lacing.adapters.ass" title="Link to this heading">#</a></h1>
+<p>ASS / SSA (Advanced SubStation Alpha) subtitle adapter, with karaoke timing.</p>
+<p>An ASS file is a set of <code class="docutils literal notranslate"><span class="pre">[Section]</span></code> blocks; the timed text is in <code class="docutils literal notranslate"><span class="pre">[Events]</span></code>,
+whose <code class="docutils literal notranslate"><span class="pre">Format:</span></code> line names the comma-separated fields of each event, the
+text field last (so the text may hold commas):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">Script</span> <span class="n">Info</span><span class="p">]</span>
+<span class="n">ScriptType</span><span class="p">:</span> <span class="n">v4</span><span class="mf">.00</span><span class="o">+</span>
+<span class="n">PlayResX</span><span class="p">:</span> <span class="mi">1920</span>
+
+<span class="p">[</span><span class="n">V4</span><span class="o">+</span> <span class="n">Styles</span><span class="p">]</span>
+<span class="n">Format</span><span class="p">:</span> <span class="n">Name</span><span class="p">,</span> <span class="n">Fontname</span><span class="p">,</span> <span class="n">Fontsize</span><span class="p">,</span> <span class="n">PrimaryColour</span><span class="p">,</span> <span class="o">...</span>
+<span class="n">Style</span><span class="p">:</span> <span class="n">Default</span><span class="p">,</span><span class="n">Arial</span><span class="p">,</span><span class="mi">48</span><span class="p">,</span><span class="o">&amp;</span><span class="n">H00FFFFFF</span><span class="p">,</span><span class="o">...</span>
+
+<span class="p">[</span><span class="n">Events</span><span class="p">]</span>
+<span class="n">Format</span><span class="p">:</span> <span class="n">Layer</span><span class="p">,</span> <span class="n">Start</span><span class="p">,</span> <span class="n">End</span><span class="p">,</span> <span class="n">Style</span><span class="p">,</span> <span class="n">Name</span><span class="p">,</span> <span class="n">MarginL</span><span class="p">,</span> <span class="n">MarginR</span><span class="p">,</span> <span class="n">MarginV</span><span class="p">,</span> <span class="n">Effect</span><span class="p">,</span> <span class="n">Text</span>
+<span class="n">Dialogue</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mf">01.00</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mf">03.50</span><span class="p">,</span><span class="n">Default</span><span class="p">,,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,,</span><span class="n">Hello</span><span class="p">,</span> <span class="p">{</span>\<span class="n">i1</span><span class="p">}</span><span class="n">world</span><span class="p">{</span>\<span class="n">i0</span><span class="p">}</span>\<span class="n">Nline</span> <span class="n">two</span>
+<span class="n">Dialogue</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mf">04.00</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mf">06.00</span><span class="p">,</span><span class="n">Karaoke</span><span class="p">,,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,,{</span>\<span class="n">k50</span><span class="p">}</span><span class="n">Ka</span><span class="p">{</span>\<span class="n">kf40</span><span class="p">}</span><span class="n">ra</span><span class="p">{</span>\<span class="n">ko60</span><span class="p">}</span><span class="n">o</span><span class="p">{</span>\<span class="n">k50</span><span class="p">}</span><span class="n">ke</span>
+<span class="n">Comment</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mf">07.00</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mf">08.00</span><span class="p">,</span><span class="n">Default</span><span class="p">,,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,,</span><span class="n">a</span> <span class="n">note</span><span class="p">,</span> <span class="ow">not</span> <span class="n">shown</span>
+</pre></div>
+</div>
+<p>Tiers and bodies (the <code class="docutils literal notranslate"><span class="pre">lines</span></code>/<code class="docutils literal notranslate"><span class="pre">words</span></code> names of lacing’s lyric tracks,
+<a class="reference internal" href="lacing.tracks.subtitle.html#module-lacing.tracks.subtitle" title="lacing.tracks.subtitle"><code class="xref py py-mod docutils literal notranslate"><span class="pre">lacing.tracks.subtitle</span></code></a>, so ASS, LRC, SubRip and WebVTT convert into one
+another out of the box):</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">lines</span></code> (stereotype <code class="docutils literal notranslate"><span class="pre">NONE</span></code>): one annotation per <code class="docutils literal notranslate"><span class="pre">Dialogue</span></code> event,
+body <code class="docutils literal notranslate"><span class="pre">annot://schema/ass-event/v1</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">"text"</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">"raw"</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">"style"</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">"fields"</span><span class="p">:</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">},</span> <span class="s2">"index"</span><span class="p">:</span> <span class="nb">int</span><span class="p">}</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">raw</span></code> is the text field verbatim, override tags and all; <code class="docutils literal notranslate"><span class="pre">text</span></code> is what
+it reads as: override blocks <code class="docutils literal notranslate"><span class="pre">{...}</span></code> removed, <code class="docutils literal notranslate"><span class="pre">\N</span></code> and <code class="docutils literal notranslate"><span class="pre">\n</span></code> as a
+newline, <code class="docutils literal notranslate"><span class="pre">\h</span></code> as a no-break space (U+00A0), and a vector drawing (the
+text between <code class="docutils literal notranslate"><span class="pre">{\p1}</span></code>, any <code class="docutils literal notranslate"><span class="pre">\p&lt;n&gt;</span></code> with <code class="docutils literal notranslate"><span class="pre">n</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>, and <code class="docutils literal notranslate"><span class="pre">{\p0}</span></code>) as
+nothing, so a drawing-only event has an empty <code class="docutils literal notranslate"><span class="pre">text</span></code>. <code class="docutils literal notranslate"><span class="pre">style</span></code> is the
+<code class="docutils literal notranslate"><span class="pre">Style</span></code> field. <code class="docutils literal notranslate"><span class="pre">fields</span></code> holds every other field of the event (<code class="docutils literal notranslate"><span class="pre">Layer</span></code>, <code class="docutils literal notranslate"><span class="pre">Name</span></code>,
+<code class="docutils literal notranslate"><span class="pre">MarginL</span></code>, <code class="docutils literal notranslate"><span class="pre">MarginR</span></code>, <code class="docutils literal notranslate"><span class="pre">MarginV</span></code>, <code class="docutils literal notranslate"><span class="pre">Effect</span></code>, or <code class="docutils literal notranslate"><span class="pre">Marked</span></code> in SSA)
+verbatim, keyed by its name in the <code class="docutils literal notranslate"><span class="pre">Format:</span></code> line. <code class="docutils literal notranslate"><span class="pre">index</span></code> is the
+event’s position in <code class="docutils literal notranslate"><span class="pre">[Events]</span></code> (dialogues and comments counted together),
+which <a class="reference internal" href="#lacing.adapters.ass.dump" title="lacing.adapters.ass.dump"><code class="xref py py-func docutils literal notranslate"><span class="pre">dump()</span></code></a> uses to write events back in file order, since a
+renderer resolves collisions in that order.
+<strong>One tier for all styles, the style in the body</strong>, rather than one tier per
+style: ASS styles are presentation, events of one style overlap freely, and
+one lines tier lets the words tier be <code class="docutils literal notranslate"><span class="pre">INCLUDED_IN</span></code> a single parent.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">words</span></code> (stereotype <code class="docutils literal notranslate"><span class="pre">INCLUDED_IN</span></code> <code class="docutils literal notranslate"><span class="pre">lines</span></code>, only when some dialogue has
+karaoke tags): one annotation per karaoke syllable, body
+<code class="docutils literal notranslate"><span class="pre">annot://schema/ass-syllable/v1</span></code>
+<code class="docutils literal notranslate"><span class="pre">{&quot;text&quot;:</span> <span class="pre">str,</span> <span class="pre">&quot;karaoke&quot;:</span> <span class="pre">&quot;k&quot;</span> <span class="pre">|</span> <span class="pre">&quot;K&quot;</span> <span class="pre">|</span> <span class="pre">&quot;kf&quot;</span> <span class="pre">|</span> <span class="pre">&quot;ko&quot;,</span> <span class="pre">&quot;event&quot;:</span> <span class="pre">int,</span>
+<span class="pre">&quot;ordinal&quot;:</span> <span class="pre">int}</span></code>.
+<code class="docutils literal notranslate"><span class="pre">text</span></code> is the syllable’s text (what follows its tag up to the next
+karaoke tag), stripped of blanks; <code class="docutils literal notranslate"><span class="pre">karaoke</span></code> the tag that timed it;
+<code class="docutils literal notranslate"><span class="pre">event</span></code> the <code class="docutils literal notranslate"><span class="pre">index</span></code> of its line; <code class="docutils literal notranslate"><span class="pre">ordinal</span></code> its place among that
+line’s syllables (from 0), which <a class="reference internal" href="#lacing.adapters.ass.dump" title="lacing.adapters.ass.dump"><code class="xref py py-func docutils literal notranslate"><span class="pre">dump()</span></code></a> writes them back in, since
+times tie (<code class="docutils literal notranslate"><span class="pre">{\k0}</span></code>, syllables cut at the event’s end) and <code class="docutils literal notranslate"><span class="pre">\kt</span></code> can
+move a later syllable before an earlier one. A word body without
+<code class="docutils literal notranslate"><span class="pre">ordinal</span></code> (another source’s) is ordered by time. A syllable whose text
+is blank (a lead-in <code class="docutils literal notranslate"><span class="pre">{\k50}</span></code> pause, or <a href="#id1"><span class="problematic" id="id2">``</span></a>{k20} <a href="#id3"><span class="problematic" id="id4">``</span></a>) is a gap, not a word.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">comments</span></code> (stereotype <code class="docutils literal notranslate"><span class="pre">NONE</span></code>, only when the file has some): one
+annotation per <code class="docutils literal notranslate"><span class="pre">Comment</span></code> event, with the same body as a dialogue. Comment
+events are not shown by a renderer; they are kept (on their own tier, so
+that they are flagged and other formats’ writers can leave them out with
+<code class="docutils literal notranslate"><span class="pre">tier=</span></code>), and their karaoke tags are not read as syllables (Aegisub’s
+karaoke templater comments out the timed originals).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script</span></code> (stereotype <code class="docutils literal notranslate"><span class="pre">NONE</span></code>): <strong>one</strong> metadata annotation, a point at
+time 0, body <code class="docutils literal notranslate"><span class="pre">annot://schema/ass-script/v1</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">"sections"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"name"</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"lines"</span><span class="p">:</span> <span class="p">[</span><span class="nb">str</span><span class="p">]}],</span>
+ <span class="s2">"events"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">"position"</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">"format"</span><span class="p">:</span> <span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="s2">"lines"</span><span class="p">:</span> <span class="p">[</span><span class="nb">str</span><span class="p">]}}</span>
+</pre></div>
+</div>
+<p>Every section but <code class="docutils literal notranslate"><span class="pre">[Events]</span></code> (<code class="docutils literal notranslate"><span class="pre">[Script</span> <span class="pre">Info]</span></code>, <code class="docutils literal notranslate"><span class="pre">[V4+</span> <span class="pre">Styles]</span></code> or
+<code class="docutils literal notranslate"><span class="pre">[V4</span> <span class="pre">Styles]</span></code>, <code class="docutils literal notranslate"><span class="pre">[Fonts]</span></code>, <code class="docutils literal notranslate"><span class="pre">[Graphics]</span></code>, <code class="docutils literal notranslate"><span class="pre">[Aegisub</span> <span class="pre">Project</span> <span class="pre">Garbage]</span></code>,
+anything else) with its non-blank lines verbatim, in file order (a <code class="docutils literal notranslate"><span class="pre">None</span></code>
+name holds lines before the first header); where <code class="docutils literal notranslate"><span class="pre">[Events]</span></code> stood among
+them; its <code class="docutils literal notranslate"><span class="pre">Format:</span></code> field names; and its other lines (<code class="docutils literal notranslate"><span class="pre">;</span></code> comments,
+<code class="docutils literal notranslate"><span class="pre">Picture:</span></code>, <code class="docutils literal notranslate"><span class="pre">Sound:</span></code>, <code class="docutils literal notranslate"><span class="pre">Movie:</span></code>, <code class="docutils literal notranslate"><span class="pre">Command:</span></code>) verbatim. <a class="reference internal" href="#lacing.adapters.ass.dump" title="lacing.adapters.ass.dump"><code class="xref py py-func docutils literal notranslate"><span class="pre">dump()</span></code></a>
+writes all of this back. Inside <code class="docutils literal notranslate"><span class="pre">[Fonts]</span></code> and <code class="docutils literal notranslate"><span class="pre">[Graphics]</span></code> a bracketed
+line made only of uuencode characters is data, not a section header,
+unless it names a known section (<code class="docutils literal notranslate"><span class="pre">[EVENTS]</span></code>, <code class="docutils literal notranslate"><span class="pre">[Script</span> <span class="pre">Info]</span></code>, a styles
+section, <code class="docutils literal notranslate"><span class="pre">[Fonts]</span></code>, <code class="docutils literal notranslate"><span class="pre">[Graphics]</span></code>, in any case). <code class="docutils literal notranslate"><span class="pre">load(keep_sections=)</span></code>
+keeps only the named sections: <code class="docutils literal notranslate"><span class="pre">[Fonts]</span></code>/<code class="docutils literal notranslate"><span class="pre">[Graphics]</span></code> can be megabytes
+and <code class="docutils literal notranslate"><span class="pre">[Aegisub</span> <span class="pre">Project</span> <span class="pre">Garbage]</span></code> holds local file paths.</p>
+</li>
+</ul>
+<dl class="simple">
+<dt>Karaoke:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">{\k&lt;cs&gt;}</span></code>, <code class="docutils literal notranslate"><span class="pre">{\K&lt;cs&gt;}</span></code> (= <code class="docutils literal notranslate"><span class="pre">\kf</span></code>), <code class="docutils literal notranslate"><span class="pre">{\kf&lt;cs&gt;}</span></code> and <code class="docutils literal notranslate"><span class="pre">{\ko&lt;cs&gt;}</span></code>
+each start a syllable lasting <code class="docutils literal notranslate"><span class="pre">&lt;cs&gt;</span></code> centiseconds; syllables follow one
+another from the event start, so a syllable’s start is the event start
+plus the durations before it, exactly. <code class="docutils literal notranslate"><span class="pre">{\kt&lt;cs&gt;}</span></code> moves the start of
+the next syllable to <code class="docutils literal notranslate"><span class="pre">&lt;cs&gt;</span></code> after the event start (libass 0.17+). A
+decimal duration (<code class="docutils literal notranslate"><span class="pre">\k12.5</span></code>) is read exactly too. A tag with no value
+(<code class="docutils literal notranslate"><span class="pre">{\k}</span></code>) lasts 100 centiseconds (<code class="docutils literal notranslate"><span class="pre">\kt</span></code>: 0), as in libass; a
+negative or malformed one raises, naming the line. A syllable that runs
+past its event’s end is cut at the end (one that starts at or after it
+becomes a point there), so the words tier stays <code class="docutils literal notranslate"><span class="pre">INCLUDED_IN</span></code> the
+lines tier; its tag stays in <code class="docutils literal notranslate"><span class="pre">raw</span></code>.</p>
+</dd>
+<dt>Time discipline:</dt><dd><p>Event times are strictly <code class="docutils literal notranslate"><span class="pre">H:MM:SS.cc</span></code>: exactly two centisecond digits,
+minutes and seconds below 60, so <code class="docutils literal notranslate"><span class="pre">0:00:01.5</span></code> and <code class="docutils literal notranslate"><span class="pre">0:60:00.00</span></code> raise
+(libass is laxer). They are integer centiseconds, read as integers and
+converted exactly to <code class="docutils literal notranslate"><span class="pre">RationalTime</span></code> at <code class="docutils literal notranslate"><span class="pre">rate</span></code> (default 1000; <code class="docutils literal notranslate"><span class="pre">rate</span></code>
+must hold the times exactly, a centisecond and any decimal karaoke
+duration, or loading raises <code class="docutils literal notranslate"><span class="pre">LossyTimeConversionError</span></code> naming the
+line). No float is
+involved. <a class="reference internal" href="#lacing.adapters.ass.dump" title="lacing.adapters.ass.dump"><code class="xref py py-func docutils literal notranslate"><span class="pre">dump()</span></code></a> writes centiseconds: a finer time is <strong>truncated</strong>
+to the centisecond (the floor, for the non-negative times ASS holds), and
+karaoke durations are differences of truncated times, so truncation is
+monotone (every event keeps <code class="docutils literal notranslate"><span class="pre">start</span> <span class="pre">&lt;=</span> <span class="pre">end</span></code>, syllables keep their order
+and never get a negative duration) and the times read back are exactly the
+truncated ones. A negative time raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+</dd>
+<dt>dump:</dt><dd><p>Writes <code class="docutils literal notranslate"><span class="pre">[Script</span> <span class="pre">Info]</span></code>, a styles section and <code class="docutils literal notranslate"><span class="pre">[Events]</span></code> from the
+script metadata when the store has it (<code class="docutils literal notranslate"><span class="pre">script_info=</span></code> when it has no
+<code class="docutils literal notranslate"><span class="pre">[Script</span> <span class="pre">Info]</span></code>, <code class="docutils literal notranslate"><span class="pre">default_style=</span></code>, Aegisub’s <code class="docutils literal notranslate"><span class="pre">Default</span></code>, when there
+are no styles, and <code class="docutils literal notranslate"><span class="pre">event_format=</span></code> when it has no <code class="docutils literal notranslate"><span class="pre">[Events]</span></code> format),
+then one <code class="docutils literal notranslate"><span class="pre">Dialogue:</span></code> per line and one <code class="docutils literal notranslate"><span class="pre">Comment:</span></code> per
+comment, ASS events in their <code class="docutils literal notranslate"><span class="pre">index</span></code> order, others after them by time.
+Any annotation with a time interval and a <code class="docutils literal notranslate"><span class="pre">text</span></code> body can be a line
+(by default the <code class="docutils literal notranslate"><span class="pre">lines</span></code> tier when it has text annotations, otherwise
+every top-level tier but the words and comments tiers, as the SubRip and
+WebVTT writers choose), so SubRip, WebVTT
+and LRC cues dump to ASS, their newlines written as <code class="docutils literal notranslate"><span class="pre">\N</span></code>. A line whose
+<code class="docutils literal notranslate"><span class="pre">raw</span></code> still reads as its <code class="docutils literal notranslate"><span class="pre">text</span></code> is written from <code class="docutils literal notranslate"><span class="pre">raw</span></code>, override tags
+kept; when the <code class="docutils literal notranslate"><span class="pre">text</span></code> was edited, the <code class="docutils literal notranslate"><span class="pre">text</span></code> wins and the tags are
+lost. Karaoke tags come from the word annotations inside a line (an ASS
+syllable goes back to its own event; any other word, an LRC word stamp
+for one, to the latest-starting line that holds it in time and in text,
+the rule LRC uses): when they are the syllables <code class="docutils literal notranslate"><span class="pre">raw</span></code> already encodes,
+<code class="docutils literal notranslate"><span class="pre">raw</span></code> is written as is; otherwise <code class="docutils literal notranslate"><span class="pre">raw</span></code>’s karaoke tags are replaced
+by <code class="docutils literal notranslate"><span class="pre">{\k..}</span></code> tags (the word’s own <code class="docutils literal notranslate"><span class="pre">karaoke</span></code> kind, <code class="docutils literal notranslate"><span class="pre">k</span></code> by default)
+placed before each word found in the text, in order, with an empty
+<code class="docutils literal notranslate"><span class="pre">{\k..}</span></code> filling a gap before a word and a word cut at the next one’s
+start. The text is never replaced by its words.</p>
+</dd>
+<dt>Lossy fields on dump:</dt><dd><p>Provenance, confidence, schema URIs and tier metadata are dropped. Blank
+lines are not kept, and a <code class="docutils literal notranslate"><span class="pre">Format:</span></code> line is written with <code class="docutils literal notranslate"><span class="pre">&quot;,</span> <span class="pre">&quot;</span></code>
+between names; <code class="docutils literal notranslate"><span class="pre">[Events]</span></code> lines other than events are written after its
+<code class="docutils literal notranslate"><span class="pre">Format:</span></code> line; an event field not in the target <code class="docutils literal notranslate"><span class="pre">Format:</span></code> is dropped
+(a missing one is written as Aegisub writes it empty: <code class="docutils literal notranslate"><span class="pre">0</span></code> for layer and
+margins, empty otherwise). A word no line holds, or one not found in its
+line’s text, is dropped; text between two words reads back as part of
+the earlier one. ASS has no escape: a <code class="docutils literal notranslate"><span class="pre">{...}</span></code> or a <code class="docutils literal notranslate"><span class="pre">\N</span></code>, <code class="docutils literal notranslate"><span class="pre">\n</span></code>,
+<code class="docutils literal notranslate"><span class="pre">\h</span></code> in a plain text (a SubRip <code class="docutils literal notranslate"><span class="pre">{\an8}</span></code>, say) is written through and
+reads back as an override block or a break. A comma or line break in a
+non-text field, or a line break in <code class="docutils literal notranslate"><span class="pre">raw</span></code>, cannot be written and raises
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+</dd>
+</dl>
+<p>Malformed input raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming the line number: a line in
+<code class="docutils literal notranslate"><span class="pre">[Events]</span></code> that is not <code class="docutils literal notranslate"><span class="pre">Key:</span> <span class="pre">value</span></code> or a <code class="docutils literal notranslate"><span class="pre">;</span></code> comment, a second or late
+<code class="docutils literal notranslate"><span class="pre">Format:</span></code> line, a <code class="docutils literal notranslate"><span class="pre">Format:</span></code> without <code class="docutils literal notranslate"><span class="pre">Start</span></code>, <code class="docutils literal notranslate"><span class="pre">End</span></code> or <code class="docutils literal notranslate"><span class="pre">Text</span></code> last, an
+event with too few fields, a bad time, an event ending before it starts, a
+bad karaoke duration. Input with no <code class="docutils literal notranslate"><span class="pre">[Events]</span></code> section is not ASS and raises
+too (an empty input included). <code class="docutils literal notranslate"><span class="pre">[Events]</span></code> without a <code class="docutils literal notranslate"><span class="pre">Format:</span></code> line uses
+the default one (with <code class="docutils literal notranslate"><span class="pre">Layer</span></code>; with <code class="docutils literal notranslate"><span class="pre">Marked</span></code> under <code class="docutils literal notranslate"><span class="pre">[V4</span> <span class="pre">Styles]</span></code>), as
+libass does, and <a class="reference internal" href="#lacing.adapters.ass.dump" title="lacing.adapters.ass.dump"><code class="xref py py-func docutils literal notranslate"><span class="pre">dump()</span></code></a> then writes it.</p>
+<p>Sources: the format specification “Sub Station Alpha v4.00+ Script Format”
+(<a class="reference external" href="http://www.tcax.org/docs/ass-specs.htm">http://www.tcax.org/docs/ass-specs.htm</a>), Aegisub’s override-tag reference
+(<a class="reference external" href="https://aegisub.org/docs/latest/ass_tags/">https://aegisub.org/docs/latest/ass_tags/</a>, for <code class="docutils literal notranslate"><span class="pre">\k</span></code>, <code class="docutils literal notranslate"><span class="pre">\K</span></code>, <code class="docutils literal notranslate"><span class="pre">\kf</span></code>,
+<code class="docutils literal notranslate"><span class="pre">\ko</span></code>, <code class="docutils literal notranslate"><span class="pre">\N</span></code>, <code class="docutils literal notranslate"><span class="pre">\n</span></code>, <code class="docutils literal notranslate"><span class="pre">\h</span></code>), and libass’s reader
+(<a class="github reference external" href="https://github.com/libass/libass">libass/libass</a>, <code class="docutils literal notranslate"><span class="pre">libass/ass.c</span></code> and
+<code class="docutils literal notranslate"><span class="pre">libass/ass_parse.c</span></code>) for what real files do.</p>
+<p class="rubric">Functions</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.adapters.ass.dump" title="lacing.adapters.ass.dump"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dump</span></code></a>(store[, target, tier, words_tier, ...])</p></td>
+<td><p>Write annotations as an ASS (v4.00+) script.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.adapters.ass.load" title="lacing.adapters.ass.load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code></a>(source, *[, rate, asset_id, ...])</p></td>
+<td><p>Parse an ASS/SSA file, or ASS bytes or text, into a <code class="docutils literal notranslate"><span class="pre">MemoryStore</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.adapters.ass.plain_text" title="lacing.adapters.ass.plain_text"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plain_text</span></code></a>(raw)</p></td>
+<td><p>What an ASS text reads as: override blocks removed, <code class="docutils literal notranslate"><span class="pre">\N</span></code> and <code class="docutils literal notranslate"><span class="pre">\n</span></code> as a newline, <code class="docutils literal notranslate"><span class="pre">\h</span></code> as a no-break space, a <code class="docutils literal notranslate"><span class="pre">\p</span></code> drawing as nothing.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.adapters.ass.dump">
+<span class="sig-prename descclassname"><span class="pre">lacing.adapters.ass.</span></span><span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">words_tier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'words'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comments_tier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'comments'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">script_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(';</span> <span class="pre">Script</span> <span class="pre">generated</span> <span class="pre">by</span> <span class="pre">lacing',</span> <span class="pre">'ScriptType:</span> <span class="pre">v4.00+')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_style</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'alignment':</span> <span class="pre">'2',</span> <span class="pre">'backcolour':</span> <span class="pre">'&amp;H00000000',</span> <span class="pre">'borderstyle':</span> <span class="pre">'1',</span> <span class="pre">'encoding':</span> <span class="pre">'1',</span> <span class="pre">'fontname':</span> <span class="pre">'Arial',</span> <span class="pre">'fontsize':</span> <span class="pre">'20',</span> <span class="pre">'marginl':</span> <span class="pre">'10',</span> <span class="pre">'marginr':</span> <span class="pre">'10',</span> <span class="pre">'marginv':</span> <span class="pre">'10',</span> <span class="pre">'name':</span> <span class="pre">'Default',</span> <span class="pre">'outline':</span> <span class="pre">'2',</span> <span class="pre">'outlinecolour':</span> <span class="pre">'&amp;H00000000',</span> <span class="pre">'primarycolour':</span> <span class="pre">'&amp;H00FFFFFF',</span> <span class="pre">'scalex':</span> <span class="pre">'100',</span> <span class="pre">'scaley':</span> <span class="pre">'100',</span> <span class="pre">'secondarycolour':</span> <span class="pre">'&amp;H000000FF',</span> <span class="pre">'shadow':</span> <span class="pre">'2',</span> <span class="pre">'tertiarycolour':</span> <span class="pre">'&amp;H00000000'}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('Layer',</span> <span class="pre">'Start',</span> <span class="pre">'End',</span> <span class="pre">'Style',</span> <span class="pre">'Name',</span> <span class="pre">'MarginL',</span> <span class="pre">'MarginR',</span> <span class="pre">'MarginV',</span> <span class="pre">'Effect',</span> <span class="pre">'Text')</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/adapters/ass.html#dump"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.adapters.ass.dump" title="Link to this definition">#</a></dt>
+<dd><p>Write annotations as an ASS (v4.00+) script.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>store</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.store.base.html#lacing.store.base.IntervalAnnotationStore" title="lacing.store.base.IntervalAnnotationStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code></a></span>) – Source store. Lines are annotations with a time interval and a
+<code class="docutils literal notranslate"><span class="pre">text</span></code> body (an ASS dialogue, an LRC line, a SubRip or WebVTT
+cue, or any other); comments are those on <code class="docutils literal notranslate"><span class="pre">comments_tier</span></code>.</p></li>
+<li><p><strong>target</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathLike</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Output path. If None, returns bytes (UTF-8, no BOM, <code class="docutils literal notranslate"><span class="pre">\n</span></code>).</p></li>
+<li><p><strong>tier</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – The tier whose texts are the dialogue lines. None (the default)
+means the <code class="docutils literal notranslate"><span class="pre">lines</span></code> tier when the store has text annotations on
+it, and otherwise every top-level tier (one with no parent
+constraint, as the SubRip and WebVTT writers choose) but
+<code class="docutils literal notranslate"><span class="pre">words_tier</span></code> and <code class="docutils literal notranslate"><span class="pre">comments_tier</span></code>.</p></li>
+<li><p><strong>words_tier</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Tier whose annotations are written as karaoke tags.</p></li>
+<li><p><strong>comments_tier</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Tier whose annotations are written as <code class="docutils literal notranslate"><span class="pre">Comment:</span></code>.</p></li>
+<li><p><strong>script_info</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – The <code class="docutils literal notranslate"><span class="pre">[Script</span> <span class="pre">Info]</span></code> lines written when the store has
+no ASS script metadata, or it has no such section.</p></li>
+<li><p><strong>default_style</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – The style written when the styles section has no
+<code class="docutils literal notranslate"><span class="pre">Style:</span></code> line: field values keyed by lowercased <code class="docutils literal notranslate"><span class="pre">Format:</span></code>
+name (<code class="docutils literal notranslate"><span class="pre">&quot;0&quot;</span></code> for a missing field); its <code class="docutils literal notranslate"><span class="pre">name</span></code> is also the
+style of every non-ASS line. Aegisub’s <code class="docutils literal notranslate"><span class="pre">Default</span></code> by default.</p></li>
+<li><p><strong>event_format</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – The <code class="docutils literal notranslate"><span class="pre">[Events]</span></code> <code class="docutils literal notranslate"><span class="pre">Format:</span></code> field names written when
+the store has no ASS script metadata (<code class="docutils literal notranslate"><span class="pre">Start</span></code>, <code class="docutils literal notranslate"><span class="pre">End</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Text</span></code> last required; raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> otherwise).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#bytes" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.adapters.ass.load">
+<span class="sig-prename descclassname"><span class="pre">lacing.adapters.ass.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asset_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ass:unspecified'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'anonymous'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lines'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">words_tier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'words'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comments_tier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'comments'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">script_tier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'script'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_sections</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/adapters/ass.html#load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.adapters.ass.load" title="Link to this definition">#</a></dt>
+<dd><p>Parse an ASS/SSA file, or ASS bytes or text, into a <code class="docutils literal notranslate"><span class="pre">MemoryStore</span></code>.</p>
+<p>Dialogue events go on <code class="docutils literal notranslate"><span class="pre">tier</span></code>, their karaoke syllables on <code class="docutils literal notranslate"><span class="pre">words_tier</span></code>,
+comment events on <code class="docutils literal notranslate"><span class="pre">comments_tier</span></code>, the script’s other sections on one
+annotation on <code class="docutils literal notranslate"><span class="pre">script_tier</span></code> (see the module docstring).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#bytes" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathLike</span></code></a></span>) – Bytes (see <code class="docutils literal notranslate"><span class="pre">encoding</span></code>), a path, or inline text. A
+<code class="docutils literal notranslate"><span class="pre">str</span></code> naming an existing file is read from it (even one named
+<code class="docutils literal notranslate"><span class="pre">&quot;[Group]</span> <span class="pre">Show</span> <span class="pre">-</span> <span class="pre">01.ass&quot;</span></code>); any other <code class="docutils literal notranslate"><span class="pre">str</span></code> is inline text.</p></li>
+<li><p><strong>rate</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Rate of every <code class="docutils literal notranslate"><span class="pre">RationalTime</span></code> produced; must hold a centisecond
+(and any decimal karaoke duration) exactly.</p></li>
+<li><p><strong>asset_id</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The <code class="docutils literal notranslate"><span class="pre">MediaRef.asset_id</span></code> the events annotate.</p></li>
+<li><p><strong>attribution</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – <code class="docutils literal notranslate"><span class="pre">Provenance.was_attributed_to</span></code> of every annotation.</p></li>
+<li><p><strong>tier</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Name of the lines (dialogue) tier.</p></li>
+<li><p><strong>words_tier</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Name of the karaoke syllable tier (created only when
+there are syllables).</p></li>
+<li><p><strong>comments_tier</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Name of the comment-event tier (created only when
+there are comments).</p></li>
+<li><p><strong>script_tier</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Name of the script-metadata tier.</p></li>
+<li><p><strong>encoding</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Text encoding of a file or of bytes. <code class="docutils literal notranslate"><span class="pre">None</span></code> sniffs a BOM
+(UTF-8, UTF-16, UTF-32) and otherwise reads UTF-8; name one
+(<code class="docutils literal notranslate"><span class="pre">&quot;cp1252&quot;</span></code>) for an older file without a BOM.</p></li>
+<li><p><strong>keep_sections</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>] | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Names of the non-<code class="docutils literal notranslate"><span class="pre">[Events]</span></code> sections the <code class="docutils literal notranslate"><span class="pre">script</span></code>
+annotation keeps verbatim (case-insensitive, e.g.
+<code class="docutils literal notranslate"><span class="pre">(&quot;Script</span> <span class="pre">Info&quot;,</span> <span class="pre">&quot;V4+</span> <span class="pre">Styles&quot;)</span></code>); <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default) keeps
+them all. <code class="docutils literal notranslate"><span class="pre">[Fonts]</span></code> and <code class="docutils literal notranslate"><span class="pre">[Graphics]</span></code> can be megabytes of
+uuencoded data, and <code class="docutils literal notranslate"><span class="pre">[Aegisub</span> <span class="pre">Project</span> <span class="pre">Garbage]</span></code> holds local file
+paths, so name what you need before storing or sharing the result.
+<a class="reference internal" href="#lacing.adapters.ass.dump" title="lacing.adapters.ass.dump"><code class="xref py py-func docutils literal notranslate"><span class="pre">dump()</span></code></a> writes defaults for a dropped <code class="docutils literal notranslate"><span class="pre">[Script</span> <span class="pre">Info]</span></code> or
+styles section.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – On malformed input, naming the line number, and on input
+    with no <code class="docutils literal notranslate"><span class="pre">[Events]</span></code> section. A <code class="docutils literal notranslate"><span class="pre">rate</span></code> that cannot hold a time
+    or a karaoke duration raises <code class="docutils literal notranslate"><span class="pre">LossyTimeConversionError</span></code> (a
+    <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>) naming the line too.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.store.base.html#lacing.store.base.IntervalAnnotationStore" title="lacing.store.base.IntervalAnnotationStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.adapters.ass.plain_text">
+<span class="sig-prename descclassname"><span class="pre">lacing.adapters.ass.</span></span><span class="sig-name descname"><span class="pre">plain_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/adapters/ass.html#plain_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.adapters.ass.plain_text" title="Link to this definition">#</a></dt>
+<dd><p>What an ASS text reads as: override blocks removed, <code class="docutils literal notranslate"><span class="pre">\N</span></code> and <code class="docutils literal notranslate"><span class="pre">\n</span></code>
+as a newline, <code class="docutils literal notranslate"><span class="pre">\h</span></code> as a no-break space, a <code class="docutils literal notranslate"><span class="pre">\p</span></code> drawing as nothing.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">plain_text</span><span class="p">(</span><span class="sa">r</span><span class="s2">"Hello, {\i1}world{\i0}\Nline\htwo"</span><span class="p">)</span>
+<span class="go">'Hello, world\nline\xa0two'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plain_text</span><span class="p">(</span><span class="sa">r</span><span class="s2">"{\p1}m 0 0 l 100 0 100 100{\p0}Sign"</span><span class="p">)</span>
+<span class="go">'Sign'</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="lacing.adapters.annot.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">lacing.adapters.annot</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="lacing.adapters.eaf.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">lacing.adapters.eaf</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal" tabindex="-1"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.adapters.ass.dump"><code class="docutils literal notranslate"><span class="pre">dump()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.adapters.ass.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.adapters.ass.plain_text"><code class="docutils literal notranslate"><span class="pre">plain_text()</span></code></a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/_autosummary/lacing.adapters.ass.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -10,6 +10,7 @@
 - [lacing](_autosummary/lacing.html.md): lacing — interval annotation system.
 - [lacing.adapters](_autosummary/lacing.adapters.html.md): I/O adapter registry.
 - [lacing.adapters.annot](_autosummary/lacing.adapters.annot.html.md): &#96;.annot&#96; portable file format adapter.
+- [lacing.adapters.ass](_autosummary/lacing.adapters.ass.html.md): ASS / SSA (Advanced SubStation Alpha) subtitle adapter, with karaoke timing.
 - [lacing.adapters.eaf](_autosummary/lacing.adapters.eaf.html.md): ELAN EAF adapter (Max Planck Institute’s annotation tool format).
 - [lacing.adapters.jams](_autosummary/lacing.adapters.jams.html.md): JAMS (JSON Annotated Music Specification) adapter.
 - [lacing.adapters.label_studio](_autosummary/lacing.adapters.label_studio.html.md): Label Studio JSON adapter.
@@ -64,7 +65,7 @@
 - [lacing.tracks.subtitle](_autosummary/lacing.tracks.subtitle.html.md): Subtitle / lyric / caption tracks — the (sections, lines, words) trio.
 - [lacing.worker](_autosummary/lacing.worker.html.md): Optional Arq integration — queue processors through Redis.
 - [For AI agents](ai-agents.html.md): &#96;lacing&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-09 02:24 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-09 02:49 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
 
 ## Optional
 

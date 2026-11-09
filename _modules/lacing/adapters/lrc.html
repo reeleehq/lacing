@@ -830,7 +830,6 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">bisect</span><span class="w"> </span><span class="kn">import</span> <span class="n">bisect_right</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">accumulate</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fractions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fraction</span>
@@ -843,10 +842,12 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters._cues</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">MS_PER_MINUTE</span><span class="p">,</span>
     <span class="n">MS_PER_SECOND</span><span class="p">,</span>
+    <span class="n">assign_words</span><span class="p">,</span>
     <span class="n">cue_payload</span><span class="p">,</span>
     <span class="n">hms_to_ms</span><span class="p">,</span>
     <span class="n">ms_to_rational</span><span class="p">,</span>
     <span class="n">nonnegative_ms</span><span class="p">,</span>
+    <span class="n">place_words</span><span class="p">,</span>
     <span class="n">split_cue_lines</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">MediaRef</span><span class="p">,</span> <span class="n">Provenance</span>
@@ -1048,11 +1049,6 @@ window.runMermaid = runMermaid;</script>
 <span class="c1"># ---------------------------------------------------------------------------</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_looks_like_inline_lrc</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""A ``str`` holding LRC content rather than a path to it."""</span>
-    <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">s</span> <span class="ow">or</span> <span class="s2">"</span><span class="se">\r</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">s</span> <span class="ow">or</span> <span class="n">s</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"["</span><span class="p">)</span>
-
-
 <span class="k">def</span><span class="w"> </span><span class="nf">_effective_ms</span><span class="p">(</span><span class="n">tag_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">offset_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The time of a tag or stamp: minus the offset ("+" makes lyrics appear</span>
 <span class="sd">    sooner, as in ffmpeg's lrcdec), clamped to 0."""</span>
@@ -1146,8 +1142,8 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    Args:</span>
 <span class="sd">        source: Bytes (UTF-8, BOM tolerated), a path, or inline text. A</span>
-<span class="sd">            ``str`` with a line break, or starting with ``[``, is inline text;</span>
-<span class="sd">            any other ``str`` is read as a path when a file exists there.</span>
+<span class="sd">            ``str`` naming an existing file is read from it (even one named</span>
+<span class="sd">            ``"[Group] Song.lrc"``); any other ``str`` is inline text.</span>
 <span class="sd">        rate: Rate of every ``RationalTime`` produced; must hold a millisecond.</span>
 <span class="sd">        asset_id: The ``MediaRef.asset_id`` the lyrics annotate.</span>
 <span class="sd">        attribution: ``Provenance.was_attributed_to`` of every annotation.</span>
@@ -1161,9 +1157,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: On malformed input, naming the line number.</span>
 <span class="sd">    """</span>
-    <span class="n">parsed</span> <span class="o">=</span> <span class="n">_parse</span><span class="p">(</span>
-        <span class="n">read_text</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">looks_inline</span><span class="o">=</span><span class="n">_looks_like_inline_lrc</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">parsed</span> <span class="o">=</span> <span class="n">_parse</span><span class="p">(</span><span class="n">read_text</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">))</span>
     <span class="n">offset</span> <span class="o">=</span> <span class="n">parsed</span><span class="o">.</span><span class="n">offset_ms</span>
 
     <span class="c1"># (start_ms, row) per time tag, sorted by start; file order breaks ties.</span>
@@ -1267,19 +1261,6 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">_Timed</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">tier</span><span class="p">,</span> <span class="n">iv</span><span class="p">,</span> <span class="n">iv</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">to_fraction</span><span class="p">(),</span> <span class="n">iv</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">to_fraction</span><span class="p">(),</span> <span class="n">text</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_place_words</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">_Timed</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">_Timed</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">"""``(word, position)`` of each word found in ``text``, in order; a word</span>
-<span class="sd">    the text does not contain (after the previous one) is dropped."""</span>
-    <span class="n">placed</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">_Timed</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">cursor</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">words</span><span class="p">:</span>
-        <span class="n">found</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">cursor</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">found</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">placed</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">w</span><span class="p">,</span> <span class="n">found</span><span class="p">))</span>
-            <span class="n">cursor</span> <span class="o">=</span> <span class="n">found</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">placed</span>
-
-
 <span class="k">def</span><span class="w"> </span><span class="nf">_stamped_text</span><span class="p">(</span>
     <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">_Timed</span><span class="p">],</span>
@@ -1293,7 +1274,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    later of ``line_end`` (the next later line's start) and its own start,</span>
 <span class="sd">    always stamped when ``line_end`` is None. A word running past the next</span>
 <span class="sd">    word's start is cut there."""</span>
-    <span class="n">placed</span> <span class="o">=</span> <span class="n">_place_words</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">words</span><span class="p">)</span>
+    <span class="n">placed</span> <span class="o">=</span> <span class="n">place_words</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">words</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">placed</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">text</span>
     <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="n">text</span><span class="p">[:</span> <span class="n">placed</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]]]</span>
@@ -1309,36 +1290,6 @@ window.runMermaid = runMermaid;</script>
         <span class="k">if</span> <span class="n">needs_end</span><span class="p">:</span>
             <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"&lt;</span><span class="si">{</span><span class="n">stamp</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">interval</span><span class="o">.</span><span class="n">end</span><span class="p">)</span><span class="si">}</span><span class="s2">&gt;"</span><span class="p">)</span>
     <span class="k">return</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_assign_words</span><span class="p">(</span><span class="n">lines</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">_Timed</span><span class="p">],</span> <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">_Timed</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">_Timed</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">"""Words per line index. A word goes to the latest-starting line that</span>
-<span class="sd">    contains it in time *and* whose text contains it; failing that, to the</span>
-<span class="sd">    latest-starting line that contains it in time. A word no line contains is</span>
-<span class="sd">    dropped.</span>
-
-<span class="sd">    ``lines`` is sorted by start. Each word scans back from the last line that</span>
-<span class="sd">    starts by the word's start, and stops as soon as no earlier line can reach</span>
-<span class="sd">    the word's end (a running maximum of ends), so a word in a gap costs one</span>
-<span class="sd">    step and the scan only walks lines that overlap the word.</span>
-<span class="sd">    """</span>
-    <span class="n">starts</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">start</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">]</span>
-    <span class="n">reach</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">accumulate</span><span class="p">((</span><span class="n">line</span><span class="o">.</span><span class="n">end</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">),</span> <span class="nb">max</span><span class="p">))</span>
-    <span class="n">by_line</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">_Timed</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">words</span><span class="p">:</span>
-        <span class="n">chosen</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">i</span> <span class="o">=</span> <span class="n">bisect_right</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">start</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="k">while</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">reach</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">w</span><span class="o">.</span><span class="n">end</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">end</span> <span class="o">&gt;=</span> <span class="n">w</span><span class="o">.</span><span class="n">end</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">text</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">:</span>
-                    <span class="n">chosen</span> <span class="o">=</span> <span class="n">i</span>
-                    <span class="k">break</span>
-                <span class="k">if</span> <span class="n">chosen</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">chosen</span> <span class="o">=</span> <span class="n">i</span>  <span class="c1"># the latest holder, kept unless a better one</span>
-            <span class="n">i</span> <span class="o">-=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">chosen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">by_line</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">chosen</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">by_line</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_tags_to_write</span><span class="p">(</span><span class="n">annotations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Annotation</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
@@ -1416,7 +1367,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">words</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
         <span class="p">(</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">texts</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">tier</span> <span class="o">==</span> <span class="n">words_tier</span> <span class="ow">and</span> <span class="n">t</span><span class="o">.</span><span class="n">text</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="n">_by_interval</span>
     <span class="p">)</span>
-    <span class="n">words_by_line</span> <span class="o">=</span> <span class="n">_assign_words</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">words</span><span class="p">)</span>
+    <span class="n">words_by_line</span> <span class="o">=</span> <span class="n">assign_words</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">words</span><span class="p">)</span>
     <span class="n">next_starts</span> <span class="o">=</span> <span class="n">_line_ends</span><span class="p">([</span><span class="n">line</span><span class="o">.</span><span class="n">start</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">])</span>
 
     <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">]"</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">]</span>

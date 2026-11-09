@@ -2,7 +2,7 @@
 
 # About this build
 
-This documentation was built on **2026-11-09 02:24 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/a0575bd4ce32f5294a161a49973c8ca44d3d28b0"><code>a0575bd</code></a> on branch <code>main</code>, for **lacing 0.0.100** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 02:49 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/c115fc12c490460ef1e62c48524a662873a42ec9"><code>c115fc1</code></a> on branch <code>main</code>, for **lacing 0.0.100** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11,9 +11,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/a0575bd4ce32f5294a161a49973c8ca44d3d28b0"><code>a0575bd4ce32f5294a161a49973c8ca44d3d28b0</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/c115fc12c490460ef1e62c48524a662873a42ec9"><code>c115fc12c490460ef1e62c48524a662873a42ec9</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
-| Tags at this commit | <code>0.0.100</code>                                                                                                                                   |
+| Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
 | Remote              | <code>https://github.com/reeleehq/lacing</code>                                                                                                        |
 
@@ -22,9 +22,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42550169678">42550169678</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42552786261">42552786261</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>0d839e311a23beface5a62c631116a90c4b62752</code> (in the history of the built commit) |
+| Event commit | <code>c115fc12c490460ef1e62c48524a662873a42ec9</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -55,7 +55,7 @@ Latest release: <a href="https://pypi.org/project/lacing/0.0.100/">0.0.100</a>, 
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout a0575bd4ce32f5294a161a49973c8ca44d3d28b0
+git checkout c115fc12c490460ef1e62c48524a662873a42ec9
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -30,6 +30,7 @@ lacing.adapters
    :recursive:
 
    annot
+   ass
    eaf
    jams
    label_studio
