@@ -1,4 +1,4 @@
-> built 2026-11-09 03:30 UTC from 6fd1fdb (main) · lacing 0.0.102. Details: build_info.json
+> built 2026-11-09 03:35 UTC from 5ec1816 (main) · lacing 0.0.103. Details: build_info.json
 
 # index.html.md
 
@@ -5176,10 +5176,11 @@ Whether the `@` slot holds a digest or a slug cannot be told from the string
 
 The shape every `was_generated_by` is checked against.
 
-### lacing.generator_id.GENERATOR_PREFIXES *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= {'adapter': 'an import/export format adapter: \`\`adapter:<format>@<version>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}*
+### lacing.generator_id.GENERATOR_PREFIXES *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [str](https://docs.python.org/3/builtins/stdtypes.html#str)]* *= {'adapter': 'an import/export format adapter: \`\`adapter:<format>@<version>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'system': "the application's own bookkeeping (project init, seeds, migrations): \`\`system:<operation>\`\`", 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}*
 
-The documented prefixes, each with what follows it. `transform`, `server`
-and `fetch` were in production before they were documented (lacing#17).
+The documented prefixes, each with what follows it. `transform`, `server`,
+`fetch` and `system` were in production before they were documented
+(lacing#17).
 
 ### *class* lacing.generator_id.GeneratorId(prefix, name, version=None)
 
@@ -5197,7 +5198,7 @@ A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.
 
 Prefixes whose convention asks for an `@<version>`.
 
-### lacing.generator_id.generator_id_findings(value, , prefixes={'adapter': 'an import/export format adapter: \`\`adapter:<format>@<version>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}, versioned=frozenset({'agent'}))
+### lacing.generator_id.generator_id_findings(value, , prefixes={'adapter': 'an import/export format adapter: \`\`adapter:<format>@<version>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'system': "the application's own bookkeeping (project init, seeds, migrations): \`\`system:<operation>\`\`", 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}, versioned=frozenset({'agent'}))
 
 What `value` does differently from the documented convention; empty if nothing.
 
@@ -7255,7 +7256,7 @@ written, in registration order.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 
-### lacing.generator_id_findings(value, , prefixes={'adapter': 'an import/export format adapter: \`\`adapter:<format>@<version>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}, versioned=frozenset({'agent'}))
+### lacing.generator_id_findings(value, , prefixes={'adapter': 'an import/export format adapter: \`\`adapter:<format>@<version>\`\`', 'agent': 'a model or service: \`\`agent:<model>@<version digest or snapshot>\`\`', 'fetch': 'a retrieval from an external source: \`\`fetch:<source>\`\`', 'processor': 'a lacing processor: \`\`processor:<name>\`\`', 'server': 'a server-side operation: \`\`server:<service>\`\`', 'system': "the application's own bookkeeping (project init, seeds, migrations): \`\`system:<operation>\`\`", 'transform': 'a pipeline transform: \`\`transform:<name>@<version>\`\`', 'user': 'a person acting through a UI or API: \`\`user:<handle>\`\`'}, versioned=frozenset({'agent'}))
 
 What `value` does differently from the documented convention; empty if nothing.
 
@@ -11589,7 +11590,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-09 03:30 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/6fd1fdb1e4793a03d3bcb956cd05d6c24d3e2d28"><code>6fd1fdb</code></a> on branch <code>main</code>, for **lacing 0.0.102** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 03:35 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/5ec18166a050577ffd01111b3e55ee483e818394"><code>5ec1816</code></a> on branch <code>main</code>, for **lacing 0.0.103** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11598,7 +11599,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/6fd1fdb1e4793a03d3bcb956cd05d6c24d3e2d28"><code>6fd1fdb1e4793a03d3bcb956cd05d6c24d3e2d28</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/5ec18166a050577ffd01111b3e55ee483e818394"><code>5ec18166a050577ffd01111b3e55ee483e818394</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -11609,9 +11610,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42556493167">42556493167</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/42557028931">42557028931</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>6fd1fdb1e4793a03d3bcb956cd05d6c24d3e2d28</code> (in the history of the built commit) |
+| Event commit | <code>5ec18166a050577ffd01111b3e55ee483e818394</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11636,13 +11637,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.102/">0.0.102</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.103/">0.0.103</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 6fd1fdb1e4793a03d3bcb956cd05d6c24d3e2d28
+git checkout 5ec18166a050577ffd01111b3e55ee483e818394
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
