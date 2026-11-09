@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from datetime import datetime
 from itertools import product
@@ -823,3 +824,80 @@ def test_a_prefill_that_is_not_json_is_tried_as_null(registered):
         recorded = _recorded_unaware(_images(*recorded_states))
         assert value_digest_matches(filled, recorded, resolve_derived=resolve)
         assert recorded in accepted_value_digests(filled, resolve_derived=resolve)
+
+
+# -- a miss's cost is bounded in work, not just in count (lacing#161) -----------
+
+
+def _digests_computed(monkeypatch):
+    from lacing import digest
+
+    computed = []
+    real = digest._digest
+    monkeypatch.setattr(
+        digest, "_digest", lambda *a: computed.append(1) or real(*a), raising=True
+    )
+    return computed
+
+
+def test_a_miss_on_a_big_body_digests_a_bounded_number_of_bytes(
+    registered, monkeypatch
+):
+    from lacing.digest import MAX_MIXED_BYTES
+
+    computed = _digests_computed(monkeypatch)
+    ann = _ann(_images(*(f"h{i}" for i in range(1000))))
+    size = len(json.dumps(ann.body, sort_keys=True, separators=(",", ":")))
+    uniform = 5
+    assert not value_digest_matches(ann, "0" * 64)
+    mixed = len(computed) - uniform
+    assert 1 <= mixed <= MAX_MIXED_BYTES // size < MAX_MIXED_FILLS
+    computed.clear()
+    assert not value_digest_matches(ann, "0" * 64, max_mixed_bytes=None)
+    assert len(computed) == uniform + MAX_MIXED_FILLS  # no byte budget: the count
+
+
+def test_the_byte_budget_always_leaves_one_candidate(registered, monkeypatch):
+    computed = _digests_computed(monkeypatch)
+    ann = _ann(_images(*(f"h{i}" for i in range(50))))
+    assert not value_digest_matches(ann, "0" * 64, max_mixed_bytes=1)
+    assert len(computed) == 5 + 1
+
+
+def test_a_small_body_still_gets_the_whole_count(registered, monkeypatch):
+    computed = _digests_computed(monkeypatch)
+    assert not value_digest_matches(
+        _ann(_images(*(f"h{i}" for i in range(20)))), "0" * 64
+    )
+    assert len(computed) == 5 + MAX_MIXED_FILLS
+
+
+def test_the_enumerations_setup_dumps_each_value_once_not_per_comparison(
+    registered, monkeypatch
+):
+    from lacing import derived
+
+    dumps = []
+    real = derived._json_key
+    monkeypatch.setattr(
+        derived, "_json_key", lambda v: dumps.append(1) or real(v), raising=True
+    )
+    n = 1000
+    assert not value_digest_matches(
+        _ann(_images(*(f"h{i}" for i in range(n)))), "0" * 64, max_mixed_fills=1
+    )
+    assert len(dumps) < 5 * n  # was ~45 per site
+
+
+def test_the_memoized_comparison_agrees_with_same_json():
+    from datetime import datetime
+
+    from lacing.derived import same_json
+    from lacing.digest import _memoized_same_json
+
+    same = _memoized_same_json()
+    when = datetime(2026, 1, 1)
+    values = [0, False, 1, 1.0, None, "", [0], [False], {"a": 1}, {"a": 1.0}, when]
+    for a in values:
+        for b in values:
+            assert same(a, b) == same_json(a, b), (a, b)

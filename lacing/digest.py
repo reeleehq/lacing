@@ -181,6 +181,7 @@ __all__ = [
     "VALUE_DIGEST_SCHEME",
     "VALUE_DIGEST_SCHEMES",
     "BODY_DIGEST_SCHEME",
+    "MAX_MIXED_BYTES",
     "MAX_MIXED_FILLS",
     "registered_prefills",
     "registered_derived_paths",
@@ -272,6 +273,15 @@ _V1_SCHEME = "lacing/annotation-value-digest/v1"
 VALUE_DIGEST_SCHEMES: tuple[str, ...] = (_V1_SCHEME, VALUE_DIGEST_SCHEME)
 """Every scheme :func:`annotation_value_digest` can compute, oldest first. Only
 the latest excludes derived fields."""
+
+MAX_MIXED_BYTES = 1_500_000
+"""Default budget of bytes :func:`value_digest_matches` digests over mixed-state
+bodies (lacing#161), beside :data:`MAX_MIXED_FILLS`: each candidate is a whole
+canonical dump of the body plus a SHA-256, so the count alone made a miss cost
+the body's size times 1024 (2.15 s at 5000 images). A miss tries at most
+``MAX_MIXED_BYTES // len(body)`` candidates (at least one), so a small body
+still gets the whole count and a large one a bounded cost, about 50 ms with the
+default. ``None`` is no byte budget."""
 
 MAX_MIXED_FILLS = 1024
 """Default budget of mixed-state bodies :func:`value_digest_matches` tries
@@ -381,6 +391,7 @@ def value_digest_matches(
     scheme: str = VALUE_DIGEST_SCHEME,
     resolve_derived: DerivedResolver | None = None,
     max_mixed_fills: int = MAX_MIXED_FILLS,
+    max_mixed_bytes: int | None = MAX_MIXED_BYTES,
 ) -> bool:
     """Whether ``recorded``, a value digest a trace stored under ``scheme``, still
     describes ``annotation``'s value.
@@ -417,8 +428,10 @@ def value_digest_matches(
     (lacing#157): moving only the occurrences filled now before moving those
     still ``null`` or at their pre-fill, fewest occurrences moved first, each
     at its pre-fill value before ``null`` before absent; and at most
-    ``max_mixed_fills`` of them (:data:`MAX_MIXED_FILLS`). A body recorded in a
-    state past that budget reads as changed.
+    ``max_mixed_fills`` of them (:data:`MAX_MIXED_FILLS`), and no more than
+    ``max_mixed_bytes`` of canonical JSON in all (:data:`MAX_MIXED_BYTES`, so a
+    body of a thousand occurrences costs about 50 ms, not seconds). A body
+    recorded in a state past either budget reads as changed.
 
     >>> from uuid import uuid4
     >>> from lacing import Annotation, MediaRef, Provenance
@@ -455,7 +468,11 @@ def value_digest_matches(
     False
     """
     return recorded in _value_digests(
-        annotation, scheme, resolve_derived, max_mixed_fills=max_mixed_fills
+        annotation,
+        scheme,
+        resolve_derived,
+        max_mixed_fills=max_mixed_fills,
+        max_mixed_bytes=max_mixed_bytes,
     )
 
 
@@ -465,17 +482,22 @@ def accepted_value_digests(
     scheme: str = VALUE_DIGEST_SCHEME,
     resolve_derived: DerivedResolver | None = None,
     max_mixed_fills: int = MAX_MIXED_FILLS,
+    max_mixed_bytes: int | None = MAX_MIXED_BYTES,
 ) -> frozenset[str]:
     """Every digest :func:`value_digest_matches` accepts for ``annotation``.
 
     For a verifier that memoizes per annotation and scheme and checks many
     recorded digests against one set; ``value_digest_matches`` stays the lazy
-    one-off check. ``resolve_derived`` and ``max_mixed_fills`` are as in
-    :func:`value_digest_matches`.
+    one-off check. ``resolve_derived``, ``max_mixed_fills`` and ``max_mixed_bytes``
+    are as in :func:`value_digest_matches`.
     """
     return frozenset(
         _value_digests(
-            annotation, scheme, resolve_derived, max_mixed_fills=max_mixed_fills
+            annotation,
+            scheme,
+            resolve_derived,
+            max_mixed_fills=max_mixed_fills,
+            max_mixed_bytes=max_mixed_bytes,
         )
     )
 
@@ -590,6 +612,7 @@ def _value_digests(
     resolve_derived: DerivedResolver | None,
     *,
     max_mixed_fills: int = MAX_MIXED_FILLS,
+    max_mixed_bytes: int | None = MAX_MIXED_BYTES,
 ) -> Iterator[str]:
     """The digest of ``annotation`` under ``scheme``, then (lazily) the digests a
     producer unaware of the derived paths would have recorded under the same tag
@@ -636,8 +659,21 @@ def _value_digests(
                 seen.add(digest)
                 yield digest
     # last, each occurrence in its own state, editing the dropped dump in place
-    for mixed in _mixed_fills(payload, dropped, limit=max_mixed_fills):
+    limit = _mixed_limit(payload, dropped, max_mixed_fills, max_mixed_bytes)
+    for mixed in _mixed_fills(payload, dropped, limit=limit):
         yield _digest(_V1_SCHEME, mixed)
+
+
+def _mixed_limit(
+    payload: dict, dropped: list, max_fills: int, max_bytes: int | None
+) -> int:
+    """How many mixed-state bodies to try: ``max_fills``, cut so that digesting
+    them is about ``max_bytes`` of canonical JSON (one body's size is the cost
+    of each; at least one is tried). Costs one dump, only when a mix exists."""
+    if max_bytes is None or len(dropped) < 2 or max_fills < 1:
+        return max_fills
+    size = len(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+    return min(max_fills, max(1, max_bytes // max(size, 1)))
 
 
 def _is_json(value: Any) -> bool:
@@ -685,7 +721,7 @@ def _mixed_fills(payload: dict, dropped: list, *, limit: int) -> Iterator[dict]:
     ``payload`` is edited in place from one combination to the next, only where
     an occurrence's state changes, so each yield is valid only until the next
     (the caller digests it at once)."""
-    from lacing.derived import same_json
+    same_json = _memoized_same_json()
 
     if len(dropped) < 2 or limit < 1:  # one site: every combination is uniform
         return
@@ -779,6 +815,29 @@ def _by_distance(
             for chosen in itertools.product(*(options[i] for i in moved)):
                 if not all(same(s, chosen[0]) for s in chosen[1:]):
                     yield dict(zip(moved, chosen))
+
+
+def _memoized_same_json() -> Callable[[Any, Any], bool]:
+    """:func:`lacing.derived.same_json` with each value's canonical key computed
+    once (lacing#161): the sites share a handful of objects (``None``, the
+    pre-fill, the absent marker) and compare them over and over, so the
+    enumeration's set-up was a JSON dump per comparison, 45k of them for a
+    panel of a thousand images. A value is kept alive by the cache, so its
+    ``id`` is not reused while the comparison runs."""
+    from lacing.derived import _json_key
+
+    keys: dict[int, tuple[Any, Any]] = {}
+
+    def key(value: Any) -> Any:
+        known = keys.get(id(value))
+        if known is None:
+            known = keys[id(value)] = (value, _json_key(value))
+        return known[1]
+
+    def same(a: Any, b: Any) -> bool:
+        return a is b or key(a) == key(b)
+
+    return same
 
 
 def _states(current: Any, prefill: Any, same: Callable[[Any, Any], bool]) -> list:
