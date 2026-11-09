@@ -78,7 +78,7 @@ from lacing.adapters._cues import (
     select_cue_annotations,
     split_cue_lines,
 )
-from lacing.model import Annotation, MediaRef, Provenance
+from lacing.model import Annotation, MediaRef
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import RationalTime, TimeInterval

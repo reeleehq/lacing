@@ -140,6 +140,22 @@ def test_import_stamps_a_known_generation_time(name, tmp_path):
     assert unknown == [], f"{name}: tick-0 generated_at_time on {unknown}"
 
 
+@pytest.mark.parametrize("name", STAMPING_ADAPTERS)
+def test_import_stamps_an_import_activity_and_its_own_generator(name, tmp_path):
+    """What the shared ``import_provenance`` stamps (lacing#176): an ``import``
+    (or, for what an adapter infers, ``infer``) activity, and a generator id of
+    the adapter's own or an agent's."""
+    import importlib
+
+    module = importlib.import_module(f"lacing.adapters.{name}")
+    for a in _LOADERS[name](tmp_path).all():
+        prov = a.provenance
+        assert prov.activity in {"import", "infer"}, (name, prov.activity)
+        assert prov.was_generated_by in {module.GENERATED_BY} or (
+            prov.was_generated_by.startswith("agent:")
+        ), (name, prov.was_generated_by)
+
+
 def test_every_adapter_module_is_swept():
     """A new adapter module lands in this sweep or this fails.
 

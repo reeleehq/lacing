@@ -48,7 +48,7 @@ from lacing.adapters._common import (
     iter_with_media_intervals,
     load_json,
 )
-from lacing.model import Annotation, MediaRef, Provenance
+from lacing.model import Annotation, MediaRef
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import DEFAULT_RATE, RationalTime, TimeInterval

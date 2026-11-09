@@ -60,7 +60,7 @@ from uuid import uuid4
 
 from lacing.adapters import adapter_generator_id, register_adapter
 from lacing.adapters._common import import_provenance, iter_with_media_intervals
-from lacing.model import Annotation, MediaRef, Provenance
+from lacing.model import Annotation, MediaRef
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import DEFAULT_RATE, RationalTime, TimeInterval

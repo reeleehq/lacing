@@ -122,7 +122,7 @@ from lacing.adapters._podcast import (
     time_fields,
     write_json,
 )
-from lacing.model import Annotation, MediaRef, Provenance
+from lacing.model import Annotation, MediaRef
 from lacing.store import IntervalAnnotationStore, MemoryStore
 from lacing.tier import Tier
 from lacing.time import RationalTime, TimeInterval
