@@ -91,12 +91,16 @@ def _seconds_as_fraction(seconds: object) -> Fraction:
             f"seconds must be str or a real number (int, float, Fraction, numpy "
             f"scalar); got {type(seconds).__name__}"
         )
+    # int() each part: a numpy integer would wrap around in ``f * rate``.
     if isinstance(seconds, numbers.Rational):
-        return Fraction(seconds.numerator, seconds.denominator)
-    as_float = float(seconds)
-    if not math.isfinite(as_float):  # Fraction raises OverflowError for inf
-        raise ValueError(f"seconds must be finite, got {seconds!r}")
-    return Fraction(as_float)
+        return Fraction(int(seconds.numerator), int(seconds.denominator))
+    # float, np.floating (longdouble included), Decimal: the value's own ratio
+    as_ratio = getattr(seconds, "as_integer_ratio", None)
+    try:
+        ratio = as_ratio() if callable(as_ratio) else float(seconds).as_integer_ratio()
+    except (ValueError, OverflowError):  # nan, inf
+        raise ValueError(f"seconds must be finite, got {seconds!r}") from None
+    return Fraction(int(ratio[0]), int(ratio[1]))
 
 
 class RationalTime:
@@ -134,24 +138,14 @@ class RationalTime:
 
     @classmethod
     def from_seconds(
-        cls, seconds: float | Fraction | str, rate: int = DEFAULT_RATE
+        cls, seconds: str | numbers.Real, rate: int = DEFAULT_RATE
     ) -> "RationalTime":
         """Build from seconds. Quantizes to ``rate``; raises if lossy.
 
-        ``seconds`` may be a ``str`` like ``"1.001"`` to avoid float ingestion.
+        ``seconds`` may be a ``str`` like ``"1.001"`` to avoid float ingestion,
+        or any real number (see :meth:`from_seconds_lossy`).
         """
-        if isinstance(seconds, str):
-            f = Fraction(seconds)
-        elif isinstance(seconds, Fraction):
-            f = seconds
-        elif isinstance(seconds, int) and not isinstance(seconds, bool):
-            f = Fraction(seconds)
-        elif isinstance(seconds, float):
-            f = Fraction(seconds)
-        else:
-            raise TypeError(
-                f"seconds must be str, int, float, or Fraction; got {type(seconds).__name__}"
-            )
+        f = _seconds_as_fraction(seconds)
         scaled = f * rate
         if scaled.denominator != 1:
             raise LossyTimeConversionError(
@@ -162,7 +156,7 @@ class RationalTime:
     @classmethod
     def from_seconds_lossy(
         cls,
-        seconds: float | Fraction | str | int | numbers.Real,
+        seconds: str | numbers.Real,
         *,
         rate: int = DEFAULT_RATE,
         mode: QuantizeMode = "round",
@@ -428,8 +422,8 @@ class TimeInterval:
     @classmethod
     def from_seconds_lossy(
         cls,
-        start: float | Fraction | str | int | numbers.Real,
-        end: float | Fraction | str | int | numbers.Real,
+        start: str | numbers.Real,
+        end: str | numbers.Real,
         *,
         rate: int = DEFAULT_RATE,
         mode: QuantizeMode = "round",

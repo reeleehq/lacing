@@ -272,12 +272,15 @@ class _Real(numbers.Real):
         self._x = x
 
     __float__ = lambda self: float(self._x)  # noqa: E731
-    __trunc__ = __floor__ = __ceil__ = __round__ = lambda self, *a: 0
-    __add__ = __radd__ = __mul__ = __rmul__ = __neg__ = __pos__ = __abs__ = lambda *a: 0
-    __truediv__ = __rtruediv__ = __floordiv__ = __rfloordiv__ = lambda *a: 0
-    __mod__ = __rmod__ = __pow__ = __rpow__ = lambda *a: 0
-    __lt__ = __le__ = lambda *a: False
-    __eq__ = lambda self, o: False
+    __trunc__ = __floor__ = __ceil__ = __round__ = lambda self, *a: NotImplemented
+    __add__ = __radd__ = __mul__ = __rmul__ = __neg__ = __pos__ = __abs__ = lambda *a: (
+        NotImplemented
+    )
+    __truediv__ = __rtruediv__ = __floordiv__ = __rfloordiv__ = lambda *a: (
+        NotImplemented
+    )
+    __mod__ = __rmod__ = __pow__ = __rpow__ = lambda *a: NotImplemented
+    __lt__ = __le__ = __eq__ = lambda *a: NotImplemented
     __hash__ = lambda self: 0
 
 
@@ -318,3 +321,35 @@ def test_lossy_refuses_non_finite_reals(bad):
 def test_lossy_still_refuses_non_numbers(bad):
     with pytest.raises(TypeError):
         RationalTime.from_seconds_lossy(bad)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "name, seconds",
+    [
+        ("int8", 100),
+        ("uint8", 200),
+        ("int32", 100_000),
+        ("int64", 10**15),
+        ("uint64", 2**64 - 1),
+    ],
+)
+def test_numpy_integers_do_not_wrap_around(name, seconds):
+    np = pytest.importorskip("numpy")
+    rate = 24000
+    got = RationalTime.from_seconds_lossy(getattr(np, name)(seconds), rate=rate)
+    assert got.value == seconds * rate
+
+
+def test_numpy_longdouble_keeps_its_value():
+    np = pytest.importorskip("numpy")
+    x = np.longdouble(1) / np.longdouble(3)
+    t = RationalTime.from_seconds_lossy(x, rate=3)
+    assert t.value == 1
+
+
+def test_from_seconds_takes_the_same_inputs_as_the_lossy_one():
+    np = pytest.importorskip("numpy")
+    assert RationalTime.from_seconds(np.float32(0.5), rate=2).value == 1
+    assert RationalTime.from_seconds(np.int64(3), rate=2).value == 6
+    with pytest.raises(LossyTimeConversionError):
+        RationalTime.from_seconds(np.float32(0.1), rate=2)
