@@ -53,7 +53,6 @@ from lacing.store import IntervalAnnotationStore
 
 
 _BOM = "\ufeff"
-_JSON_ENCODING = "utf-8"
 _JSON_INLINE_PREFIXES = ("{", "[")
 
 #: Body keys that hold an annotation's readable text, in preference order: a
@@ -136,13 +135,16 @@ _BOM_CODECS: tuple[tuple[bytes, str], ...] = (
 )
 
 
-def decode_text(data: bytes, *, encoding: str | None = None) -> str:
+def decode_text(
+    data: bytes, *, encoding: str | None = None, nameable: bool = True
+) -> str:
     """``data`` as text, with no leading byte-order mark.
 
     ``encoding=None`` sniffs a BOM (UTF-8, UTF-16 LE/BE, UTF-32 LE/BE) and
     otherwise reads UTF-8. A named ``encoding`` is used as given (a UTF-8 BOM
     is still dropped). A failure is a ``UnicodeDecodeError`` that names the
-    ``encoding=`` keyword.
+    ``encoding=`` keyword, unless the caller has none to offer
+    (``nameable=False``: JSON, which is UTF-8 by its standard).
 
     >>> decode_text("é".encode("utf-16"))
     'é'
@@ -165,6 +167,8 @@ def decode_text(data: bytes, *, encoding: str | None = None) -> str:
     except UnicodeDecodeError as error:
         if sniffed is not None:
             hint = f"it starts with a {sniffed} BOM but does not decode as {sniffed}"
+        elif not nameable:
+            hint = "not UTF-8"
         elif encoding is not None:
             hint = "wrong encoding= for this text"
         else:
@@ -230,7 +234,8 @@ def load_json(
     parse_float: Callable[[str], Any] | None = None,
     parse_constant: Callable[[str], Any] | None = None,
 ) -> Any:
-    """The JSON value of ``source``: bytes (UTF-8), a path, or inline JSON.
+    """The JSON value of ``source``: bytes (UTF-8, or a BOM-marked UTF-16/32), a
+    path, or inline JSON.
 
     A ``str`` whose first non-blank character opens an object or an array is
     inline JSON; otherwise it is read as a path if one exists there, and is
@@ -244,6 +249,8 @@ def load_json(
 
     >>> load_json(b'[1, 2]')
     [1, 2]
+    >>> load_json(b'\\xef\\xbb\\xbf[1]')  # a UTF-8 byte-order mark
+    [1]
     >>> from decimal import Decimal
     >>> load_json('[1.001]', parse_float=Decimal)
     [Decimal('1.001')]
@@ -253,13 +260,19 @@ def load_json(
         return json.loads(text, parse_float=parse_float, parse_constant=parse_constant)
 
     if isinstance(source, (bytes, bytearray)):
-        return parse(bytes(source).decode(_JSON_ENCODING))
+        return parse(_decode_json(bytes(source)))
     if not isinstance(source, str) and isinstance(source, os.PathLike):
-        return parse(Path(os.fspath(source)).read_text(encoding=_JSON_ENCODING))
-    s = str(source)
+        return parse(_decode_json(Path(os.fspath(source)).read_bytes()))
+    s = str(source).removeprefix(_BOM)
     if s.lstrip().startswith(_JSON_INLINE_PREFIXES):
         return parse(s)
     p = Path(s)
     if p.exists():
-        return parse(p.read_text(encoding=_JSON_ENCODING))
+        return parse(_decode_json(p.read_bytes()))
     return parse(s)
+
+
+def _decode_json(data: bytes) -> str:
+    """JSON bytes as text: UTF-8 (the standard's), a byte-order mark tolerated
+    (``json.loads`` refuses one), UTF-16/32 sniffed from theirs."""
+    return decode_text(data, nameable=False)
