@@ -1,5 +1,6 @@
 """Tests for lacing.time."""
 
+import numbers
 from fractions import Fraction
 
 import pytest
@@ -259,3 +260,96 @@ class TestTimeInterval:
     def test_repr(self):
         s = repr(TimeInterval(RationalTime(0), RationalTime(1)))
         assert "TimeInterval" in s
+
+
+# -- from_seconds_lossy takes any real number, numpy scalars included (lacing#164) --
+
+
+class _Real(numbers.Real):
+    """A minimal non-float real, as a numpy scalar is: no float subclass."""
+
+    def __init__(self, x: float):
+        self._x = x
+
+    __float__ = lambda self: float(self._x)  # noqa: E731
+    __trunc__ = __floor__ = __ceil__ = __round__ = lambda self, *a: NotImplemented
+    __add__ = __radd__ = __mul__ = __rmul__ = __neg__ = __pos__ = __abs__ = lambda *a: (
+        NotImplemented
+    )
+    __truediv__ = __rtruediv__ = __floordiv__ = __rfloordiv__ = lambda *a: (
+        NotImplemented
+    )
+    __mod__ = __rmod__ = __pow__ = __rpow__ = lambda *a: NotImplemented
+    __lt__ = __le__ = __eq__ = lambda *a: NotImplemented
+    __hash__ = lambda self: 0
+
+
+def test_lossy_accepts_a_real_that_is_not_a_float():
+    t = RationalTime.from_seconds_lossy(_Real(3.48), rate=1000)
+    assert t == RationalTime.from_seconds_lossy(3.48, rate=1000)
+    iv = TimeInterval.from_seconds_lossy(_Real(3.48), _Real(4.0), rate=1000)
+    assert iv == TimeInterval.from_seconds_lossy(3.48, 4.0, rate=1000)
+
+
+@pytest.mark.parametrize("name", ["float32", "float64", "int64", "int32", "float16"])
+def test_lossy_accepts_numpy_scalars(name):
+    np = pytest.importorskip("numpy")
+    x = getattr(np, name)(3)
+    assert RationalTime.from_seconds_lossy(x, rate=1000).value == 3000
+
+
+def test_lossy_numpy_float64_matches_the_python_float():
+    np = pytest.importorskip("numpy")
+    assert RationalTime.from_seconds_lossy(
+        np.float64(3.48), rate=1000
+    ) == RationalTime.from_seconds_lossy(3.48, rate=1000)
+    assert (
+        RationalTime.from_seconds_lossy(np.float32(0.5), rate=4, mode="ceil").value == 2
+    )
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+def test_lossy_refuses_non_finite_reals(bad):
+    with pytest.raises(ValueError):
+        RationalTime.from_seconds_lossy(bad)
+    np = pytest.importorskip("numpy")
+    with pytest.raises(ValueError):
+        RationalTime.from_seconds_lossy(np.float32(bad))
+
+
+@pytest.mark.parametrize("bad", [None, [1.0], b"1", 1j])
+def test_lossy_still_refuses_non_numbers(bad):
+    with pytest.raises(TypeError):
+        RationalTime.from_seconds_lossy(bad)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "name, seconds",
+    [
+        ("int8", 100),
+        ("uint8", 200),
+        ("int32", 100_000),
+        ("int64", 10**15),
+        ("uint64", 2**64 - 1),
+    ],
+)
+def test_numpy_integers_do_not_wrap_around(name, seconds):
+    np = pytest.importorskip("numpy")
+    rate = 24000
+    got = RationalTime.from_seconds_lossy(getattr(np, name)(seconds), rate=rate)
+    assert got.value == seconds * rate
+
+
+def test_numpy_longdouble_keeps_its_value():
+    np = pytest.importorskip("numpy")
+    x = np.longdouble(1) / np.longdouble(3)
+    t = RationalTime.from_seconds_lossy(x, rate=3)
+    assert t.value == 1
+
+
+def test_from_seconds_takes_the_same_inputs_as_the_lossy_one():
+    np = pytest.importorskip("numpy")
+    assert RationalTime.from_seconds(np.float32(0.5), rate=2).value == 1
+    assert RationalTime.from_seconds(np.int64(3), rate=2).value == 6
+    with pytest.raises(LossyTimeConversionError):
+        RationalTime.from_seconds(np.float32(0.1), rate=2)
