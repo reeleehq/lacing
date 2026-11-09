@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from datetime import datetime
 from itertools import product
@@ -27,6 +28,7 @@ from lacing import (
 )
 from lacing.derived import derived_defaults, drop_paths, fill_paths, null_paths
 from lacing.digest import (
+    MAX_MIXED_BYTES,
     MAX_MIXED_FILLS,
     VALUE_DIGEST_SCHEME,
     VALUE_DIGEST_SCHEMES,
@@ -823,3 +825,110 @@ def test_a_prefill_that_is_not_json_is_tried_as_null(registered):
         recorded = _recorded_unaware(_images(*recorded_states))
         assert value_digest_matches(filled, recorded, resolve_derived=resolve)
         assert recorded in accepted_value_digests(filled, resolve_derived=resolve)
+
+
+# -- a miss's cost is bounded in work, not just in count (lacing#161) -----------
+
+
+def _digests_computed(monkeypatch):
+    from lacing import digest
+
+    computed = []
+    real = digest._digest
+    monkeypatch.setattr(
+        digest, "_digest", lambda *a: computed.append(1) or real(*a), raising=True
+    )
+    return computed
+
+
+def test_a_miss_on_a_big_body_digests_a_bounded_number_of_bytes(
+    registered, monkeypatch
+):
+    from lacing import digest
+
+    sizes: list[int] = []
+    real = digest._digest
+
+    def counting(scheme, payload):
+        sizes.append(len(json.dumps(payload, sort_keys=True, separators=(",", ":"))))
+        return real(scheme, payload)
+
+    monkeypatch.setattr(digest, "_digest", counting, raising=True)
+    ann = _ann(_images(*(f"h{i}" for i in range(1000))))
+    uniform = 5
+    assert not value_digest_matches(ann, "0" * 64)
+    mixed = sizes[uniform:]
+    assert 0 < len(mixed) < MAX_MIXED_FILLS
+    assert sum(mixed) <= MAX_MIXED_BYTES + max(sizes)  # one body past, at most
+    sizes.clear()
+    assert not value_digest_matches(ann, "0" * 64, max_mixed_bytes=None)
+    assert len(sizes) == uniform + MAX_MIXED_FILLS  # no byte budget: the count
+
+
+def test_a_late_fill_on_a_realistic_panel_is_reached_under_the_defaults(registered):
+    """The byte budget must not cost the #157 reach on panels of a few dozen images."""
+    n = 40
+    recorded = _recorded_unaware(_images(*(f"h{i}" for i in range(n - 1)), None))
+    assert value_digest_matches(_ann(_images(*(f"h{i}" for i in range(n)))), recorded)
+
+
+def test_the_byte_budget_always_leaves_one_candidate(registered, monkeypatch):
+    computed = _digests_computed(monkeypatch)
+    ann = _ann(_images(*(f"h{i}" for i in range(50))))
+    assert not value_digest_matches(ann, "0" * 64, max_mixed_bytes=1)
+    assert len(computed) == 5 + 1
+
+
+def test_a_small_body_still_gets_the_whole_count(registered, monkeypatch):
+    computed = _digests_computed(monkeypatch)
+    assert not value_digest_matches(
+        _ann(_images(*(f"h{i}" for i in range(20)))), "0" * 64
+    )
+    assert len(computed) == 5 + MAX_MIXED_FILLS
+
+
+def test_the_enumerations_setup_dumps_each_value_once_not_per_comparison(
+    registered, monkeypatch
+):
+    from lacing import derived
+
+    dumps = []
+    real = derived._json_key
+    monkeypatch.setattr(
+        derived, "_json_key", lambda v: dumps.append(1) or real(v), raising=True
+    )
+    n = 1000
+    assert not value_digest_matches(
+        _ann(_images(*(f"h{i}" for i in range(n)))), "0" * 64, max_mixed_fills=1
+    )
+    assert len(dumps) < 5 * n  # was ~45 per site
+
+
+def test_the_memoized_comparison_agrees_with_same_json():
+    from datetime import datetime
+
+    from lacing.derived import same_json
+    from lacing.derived import memoized_same_json
+
+    same = memoized_same_json()
+    when = datetime(2026, 1, 1)
+    values = [
+        0,
+        False,
+        True,
+        1,
+        1.0,
+        None,
+        "",
+        [0],
+        [False],
+        {"a": 1},
+        {"a": 1.0},
+        when,
+    ]
+    for a in values:
+        for b in values:
+            assert same(a, b) == same_json(a, b), (a, b)
+    assert same(values[1], values[1]) and not same(values[0], values[1])
+    for _ in range(3):  # temporaries: ids are reused once a value dies
+        assert not same([0], [False]) and same({"a": [1]}, {"a": [1]})
