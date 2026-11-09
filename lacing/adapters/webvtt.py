@@ -46,6 +46,7 @@ from lacing.adapters._cues import (
     hms_to_ms,
     interval_sort_key,
     ms_to_rational,
+    select_cue_annotations,
     split_cue_lines,
 )
 from lacing.model import Annotation, MediaRef, Provenance
@@ -251,19 +252,19 @@ def dump(
     """Write annotations as WebVTT.
 
     Args:
-        store: Source store. Only annotations from ``tier`` (default: all
-            tiers) with a time interval (any reference kind) and readable
+        store: Source store. Only annotations from ``tier`` (default: see
+            ``tier`` below) with a time interval (any reference kind) and readable
             text (:func:`lacing.adapters._common.display_text`: ``text``,
             else ``title``) are emitted, sorted by start then
             end.
         target: Output path. If None, returns bytes (UTF-8).
-        tier: Restrict export to this tier. None = export all annotations.
+        tier: Write only this tier. None (the default) writes the ``lines``
+            tier when the store has one, else every top-level tier
+            (:func:`lacing.adapters._cues.select_cue_annotations`).
     """
     out_lines: list[str] = ["WEBVTT", ""]
 
-    candidates = list(iter_with_intervals(store))
-    if tier is not None:
-        candidates = [a for a in candidates if a.tier == tier]
+    candidates = select_cue_annotations(store, iter_with_intervals(store), tier=tier)
     candidates.sort(key=interval_sort_key)
 
     for ann in candidates:

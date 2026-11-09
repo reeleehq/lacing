@@ -70,6 +70,7 @@ from lacing.adapters._cues import (
     hms_to_ms,
     interval_sort_key,
     ms_to_rational,
+    select_cue_annotations,
     split_cue_lines,
 )
 from lacing.model import Annotation, MediaRef, Provenance
@@ -269,12 +270,14 @@ def dump(
             ``text``, else ``title``) is emitted,
             sorted by start then end, and numbered 1..N in that order.
         target: Output path. If None, returns bytes (UTF-8, no BOM, ``\\n``).
-        tier: Restrict export to this tier. None = export all tiers.
+        tier: Write only this tier. None (the default) writes the ``lines``
+            tier when the store has one, else every top-level tier
+            (:func:`lacing.adapters._cues.select_cue_annotations`).
     """
     candidates = [
         a
-        for a in iter_with_intervals(store)
-        if (tier is None or a.tier == tier) and _cue_text(a.body) is not None
+        for a in select_cue_annotations(store, iter_with_intervals(store), tier=tier)
+        if _cue_text(a.body) is not None
     ]
     candidates.sort(key=interval_sort_key)
 
