@@ -28,6 +28,7 @@ from lacing import (
 )
 from lacing.derived import derived_defaults, drop_paths, fill_paths, null_paths
 from lacing.digest import (
+    MAX_MIXED_BYTES,
     MAX_MIXED_FILLS,
     VALUE_DIGEST_SCHEME,
     VALUE_DIGEST_SCHEMES,
@@ -843,18 +844,32 @@ def _digests_computed(monkeypatch):
 def test_a_miss_on_a_big_body_digests_a_bounded_number_of_bytes(
     registered, monkeypatch
 ):
-    from lacing.digest import MAX_MIXED_BYTES
+    from lacing import digest
 
-    computed = _digests_computed(monkeypatch)
+    sizes: list[int] = []
+    real = digest._digest
+
+    def counting(scheme, payload):
+        sizes.append(len(json.dumps(payload, sort_keys=True, separators=(",", ":"))))
+        return real(scheme, payload)
+
+    monkeypatch.setattr(digest, "_digest", counting, raising=True)
     ann = _ann(_images(*(f"h{i}" for i in range(1000))))
-    size = len(json.dumps(ann.body, sort_keys=True, separators=(",", ":")))
     uniform = 5
     assert not value_digest_matches(ann, "0" * 64)
-    mixed = len(computed) - uniform
-    assert 1 <= mixed <= MAX_MIXED_BYTES // size < MAX_MIXED_FILLS
-    computed.clear()
+    mixed = sizes[uniform:]
+    assert 0 < len(mixed) < MAX_MIXED_FILLS
+    assert sum(mixed) <= MAX_MIXED_BYTES + max(sizes)  # one body past, at most
+    sizes.clear()
     assert not value_digest_matches(ann, "0" * 64, max_mixed_bytes=None)
-    assert len(computed) == uniform + MAX_MIXED_FILLS  # no byte budget: the count
+    assert len(sizes) == uniform + MAX_MIXED_FILLS  # no byte budget: the count
+
+
+def test_a_late_fill_on_a_realistic_panel_is_reached_under_the_defaults(registered):
+    """The byte budget must not cost the #157 reach on panels of a few dozen images."""
+    n = 40
+    recorded = _recorded_unaware(_images(*(f"h{i}" for i in range(n - 1)), None))
+    assert value_digest_matches(_ann(_images(*(f"h{i}" for i in range(n)))), recorded)
 
 
 def test_the_byte_budget_always_leaves_one_candidate(registered, monkeypatch):
@@ -893,11 +908,27 @@ def test_the_memoized_comparison_agrees_with_same_json():
     from datetime import datetime
 
     from lacing.derived import same_json
-    from lacing.digest import _memoized_same_json
+    from lacing.derived import memoized_same_json
 
-    same = _memoized_same_json()
+    same = memoized_same_json()
     when = datetime(2026, 1, 1)
-    values = [0, False, 1, 1.0, None, "", [0], [False], {"a": 1}, {"a": 1.0}, when]
+    values = [
+        0,
+        False,
+        True,
+        1,
+        1.0,
+        None,
+        "",
+        [0],
+        [False],
+        {"a": 1},
+        {"a": 1.0},
+        when,
+    ]
     for a in values:
         for b in values:
             assert same(a, b) == same_json(a, b), (a, b)
+    assert same(values[1], values[1]) and not same(values[0], values[1])
+    for _ in range(3):  # temporaries: ids are reused once a value dies
+        assert not same([0], [False]) and same({"a": [1]}, {"a": [1]})

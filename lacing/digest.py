@@ -281,7 +281,16 @@ canonical dump of the body plus a SHA-256, so the count alone made a miss cost
 the body's size times 1024 (2.15 s at 5000 images). A miss tries at most
 ``MAX_MIXED_BYTES // len(body)`` candidates (at least one), so a small body
 still gets the whole count and a large one a bounded cost, about 50 ms with the
-default. ``None`` is no byte budget."""
+default. ``None`` is no byte budget.
+
+What it costs in reach: reaching a fill on the ``k``-th image needs about ``k``
+candidates (``2k`` with a non-null pre-fill), so the byte budget limits a
+last-fill trace to about ``sqrt(MAX_MIXED_BYTES / bytes_per_image)`` images with
+the defaults: 135 images at 80 bytes each, 45 at 800. Panels of a few dozen
+images, the realistic case, are not limited; a verifier over larger ones can
+pass ``max_mixed_bytes=None`` (or a larger budget) for the old reach and its
+cost. Making the candidates cheap instead of capping them (canonical JSON as
+fixed segments plus per-site segments) is lacing#181."""
 
 MAX_MIXED_FILLS = 1024
 """Default budget of mixed-state bodies :func:`value_digest_matches` tries
@@ -291,7 +300,9 @@ now, absent, ``null``, at its pre-fill value), and every combination is a
 candidate. There are ``3**n`` of them or more, so they are tried likeliest
 first (see :func:`value_digest_matches`), and at most this many.
 
-What it reaches, by enumeration, counting only the images filled now (those
+What it reaches, by enumeration, for a body small enough that the count is
+the limit (:data:`MAX_MIXED_BYTES` // body size is at least this: bodies up to
+about 1.4 KB; see the byte budget for larger ones), counting only the images filled now (those
 still ``null`` now are held as they are): with a ``null`` pre-fill (artful's
 ``PanelImage``), a trace recorded before a panel's last fill on up to 1024
 images when that image was ``null`` then, 512 when absent; before its last two
@@ -303,8 +314,9 @@ occurrence ``null`` now but absent when recorded is moved only after every
 combination of the filled ones, so with seven or more filled images it is past
 the budget.
 
-Cost: a miss computes up to this many more digests, each over the whole body
-(about 0.45 s at 1,000 images)."""
+Cost: a miss computes up to this many more digests, each over the whole body,
+so at most :data:`MAX_MIXED_BYTES` of body bytes (lacing#161): about 0.45 s at
+1,000 images without that budget, about 35 ms with it."""
 
 BODY_DIGEST_SCHEME = "lacing/annotation-body-digest/v1"
 """Domain-separation tag mixed into :func:`annotation_body_digest`."""
@@ -723,7 +735,9 @@ def _mixed_fills(
     ``payload`` is edited in place from one combination to the next, only where
     an occurrence's state changes, so each yield is valid only until the next
     (the caller digests it at once)."""
-    same_json = _memoized_same_json()
+    from lacing.derived import memoized_same_json
+
+    same_json = memoized_same_json()
 
     if len(dropped) < 2 or limit < 1:  # one site: every combination is uniform
         return
@@ -818,29 +832,6 @@ def _by_distance(
             for chosen in itertools.product(*(options[i] for i in moved)):
                 if not all(same(s, chosen[0]) for s in chosen[1:]):
                     yield dict(zip(moved, chosen))
-
-
-def _memoized_same_json() -> Callable[[Any, Any], bool]:
-    """:func:`lacing.derived.same_json` with each value's canonical key computed
-    once (lacing#161): the sites share a handful of objects (``None``, the
-    pre-fill, the absent marker) and compare them over and over, so the
-    enumeration's set-up was a JSON dump per comparison, 45k of them for a
-    panel of a thousand images. A value is kept alive by the cache, so its
-    ``id`` is not reused while the comparison runs."""
-    from lacing.derived import _json_key
-
-    keys: dict[int, tuple[Any, Any]] = {}
-
-    def key(value: Any) -> Any:
-        known = keys.get(id(value))
-        if known is None:
-            known = keys[id(value)] = (value, _json_key(value))
-        return known[1]
-
-    def same(a: Any, b: Any) -> bool:
-        return a is b or key(a) == key(b)
-
-    return same
 
 
 def _states(current: Any, prefill: Any, same: Callable[[Any, Any], bool]) -> list:

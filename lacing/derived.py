@@ -125,6 +125,27 @@ def same_json(a: Any, b: Any) -> bool:
     return a is b or _json_key(a) == _json_key(b)
 
 
+def memoized_same_json() -> Callable[[Any, Any], bool]:
+    """:func:`lacing.derived.same_json` with each value's canonical key computed
+    once (lacing#161): the sites share a handful of objects (``None``, the
+    pre-fill, the absent marker) and compare them over and over, so the
+    enumeration's set-up was a JSON dump per comparison, 45k of them for a
+    panel of a thousand images. A value is kept alive by the cache, so its
+    ``id`` is not reused while the comparison runs."""
+    keys: dict[int, tuple[Any, Any]] = {}
+
+    def key(value: Any) -> Any:
+        known = keys.get(id(value))
+        if known is None:
+            known = keys[id(value)] = (value, _json_key(value))
+        return known[1]
+
+    def same(a: Any, b: Any) -> bool:
+        return a is b or key(a) == key(b)
+
+    return same
+
+
 def _note(out: dict, path: DerivedPath, default: Any) -> None:
     """Record ``path`` with ``default``; a disagreeing second default forgets it."""
     known = out.get(path, default)
