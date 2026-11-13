@@ -284,7 +284,7 @@ class TestMalformed:
             ('{"version": 1.2, "chapters": []}', "version must be a string"),
             (_doc(3), r"chapters\[0\]: must be an object"),
             (_doc({"title": "x"}), r"chapters\[0\]: missing startTime"),
-            (_doc({"startTime": 0}, {"startTime": "1"}), r"chapters\[1\]\.startTime"),
+            (_doc({"startTime": 0}, {"startTime": "1:23"}), r"chapters\[1\]\.startTime"),
             (_doc({"startTime": -0.5}), r"chapters\[0\]\.startTime: negative"),
             (
                 _doc({"startTime": 0}, {"startTime": 5, "endTime": 4}),
