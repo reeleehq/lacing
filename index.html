@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="_static/documentation_options.js?v=6ba42da4"></script>
+    <script src="_static/documentation_options.js?v=83be8e66"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.107" />
+  <meta name="docsearch:version" content="0.0.108" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -371,7 +371,7 @@ pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'laci
 </div>
 </section>
 <section id="second-tour">
-<h2>30-second tour<a class="headerlink" href="#second-tour" title="Link to this heading">#</a></h2>
+<span id="30-second-tour"></span><h2>30-second tour<a class="headerlink" href="#second-tour" title="Link to this heading">#</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">textgrid</span><span class="p">,</span> <span class="n">webvtt</span><span class="p">,</span> <span class="n">web_annotation</span>  <span class="c1"># registers each</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span><span class="p">,</span> <span class="n">dump</span>
 
@@ -398,7 +398,7 @@ pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'laci
 </div>
 </section>
 <section id="track-facades-opinionated-bundles-of-tiers">
-<h2>Track facades — opinionated bundles of tiers<a class="headerlink" href="#track-facades-opinionated-bundles-of-tiers" title="Link to this heading">#</a></h2>
+<span id="track-facades--opinionated-bundles-of-tiers"></span><h2>Track facades — opinionated bundles of tiers<a class="headerlink" href="#track-facades-opinionated-bundles-of-tiers" title="Link to this heading">#</a></h2>
 <p>Some tier shapes recur often enough to deserve a friendly builder.
 <code class="docutils literal notranslate"><span class="pre">lacing.tracks.subtitle</span></code> is the first: a <code class="docutils literal notranslate"><span class="pre">(sections,</span> <span class="pre">lines,</span> <span class="pre">words)</span></code>
 trio over one audio asset, with float-second times and the
@@ -436,7 +436,7 @@ are lacing built-in bodies, registered on import: sections and lines
 keep any extra fields you pass, words use the strict <code class="docutils literal notranslate"><span class="pre">word/v1</span></code>.</p>
 </section>
 <section id="what-s-in-the-core">
-<h2>What’s in the core<a class="headerlink" href="#what-s-in-the-core" title="Link to this heading">#</a></h2>
+<span id="whats-in-the-core"></span><h2>What’s in the core<a class="headerlink" href="#what-s-in-the-core" title="Link to this heading">#</a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>lacing/
 ├── time.py          RationalTime + TimeInterval — rational, half-open, never float
 ├── model.py         Annotation envelope + Reference union + Provenance (PROV-O subset)
@@ -528,7 +528,7 @@ and an OSS deep-dive of what to build on. The synthesized plan is in
 </div>
 </section>
 <section id="query-with-allen-s-relations">
-<h3>Query with Allen’s relations<a class="headerlink" href="#query-with-allen-s-relations" title="Link to this heading">#</a></h3>
+<span id="query-with-allens-relations"></span><h3>Query with Allen’s relations<a class="headerlink" href="#query-with-allen-s-relations" title="Link to this heading">#</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing.allen</span><span class="w"> </span><span class="kn">import</span> <span class="n">AllenRelation</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.time</span><span class="w"> </span><span class="kn">import</span> <span class="n">RationalTime</span><span class="p">,</span> <span class="n">TimeInterval</span>
 
@@ -686,7 +686,7 @@ time-travel debug — pick any past clock value and reconstruct exactly
 what the system saw.</p>
 </section>
 <section id="mcp-server-agents-as-first-class-clients">
-<h3>MCP server — agents as first-class clients<a class="headerlink" href="#mcp-server-agents-as-first-class-clients" title="Link to this heading">#</a></h3>
+<span id="mcp-server--agents-as-first-class-clients"></span><h3>MCP server — agents as first-class clients<a class="headerlink" href="#mcp-server-agents-as-first-class-clients" title="Link to this heading">#</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lacing.oplog</span><span class="w"> </span><span class="kn">import</span> <span class="n">InMemoryOpLog</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.server.mcp</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_mcp_server</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">SqliteStore</span>
@@ -722,7 +722,7 @@ TextGrid tier, and an asset-less item in a Web Annotation collection —
 one per accept.</p>
 </section>
 <section id="freshness-did-the-answer-actually-change">
-<h3>Freshness — “did the answer actually change?”<a class="headerlink" href="#freshness-did-the-answer-actually-change" title="Link to this heading">#</a></h3>
+<span id="freshness--did-the-answer-actually-change"></span><h3>Freshness — “did the answer actually change?”<a class="headerlink" href="#freshness-did-the-answer-actually-change" title="Link to this heading">#</a></h3>
 <p>lacing has <strong>three</strong> digests answering three different questions. Picking the
 wrong one is a silent correctness bug, so they are named apart:</p>
 <div class="pst-scrollable-table-container"><table class="table">
@@ -812,7 +812,7 @@ cache at once.</p>
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-09 04:01 UTC from <a href="https://github.com/reeleehq/lacing/commit/23fbcf93794abf1c8c4c3bf9a5e942ab923d6bab">23fbcf9</a> (main) · lacing 0.0.107 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-13 12:21 UTC from <a href="https://github.com/reeleehq/lacing/commit/f289adef19f9d7405e877de392c525b5c58cb077">f289ade</a> (main) · lacing 0.0.108 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               
