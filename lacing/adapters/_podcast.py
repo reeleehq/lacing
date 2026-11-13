@@ -42,6 +42,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 from bisect import bisect_right
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -80,6 +81,8 @@ times are whole seconds get the rate of the other cue formats."""
 # is refused instead of being expanded into a billion-digit integer.
 _MAX_DECIMAL_EXPONENT = 64
 _DECIMAL_BASE = 10
+# A plain decimal number of seconds written as a string (some hosts emit these).
+_DECIMAL_STRING = re.compile(r"\+?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?")
 
 
 # ---------------------------------------------------------------------------
@@ -108,7 +111,8 @@ def load_podcast_json(source: str | bytes | os.PathLike, *, format_name: str) ->
 
 
 def seconds_fraction(value: Any, *, where: str) -> Fraction:
-    """``value`` seconds (a JSON integer or ``Decimal``) as an exact fraction.
+    """``value`` seconds (a JSON integer, ``Decimal`` or numeric string) as an
+    exact fraction.
 
     ``where`` names the field in error messages (``"chapters[2].endTime"``).
     Raises ``ValueError`` for a value that is not a finite, non-negative
@@ -116,11 +120,15 @@ def seconds_fraction(value: Any, *, where: str) -> Fraction:
 
     >>> seconds_fraction(Decimal("0.333"), where="t")
     Fraction(333, 1000)
+    >>> seconds_fraction("8.56", where="t")
+    Fraction(214, 25)
     >>> seconds_fraction(Decimal("NaN"), where="t")
     Traceback (most recent call last):
     ...
     ValueError: t: not a finite number: NaN
     """
+    if isinstance(value, str) and _DECIMAL_STRING.fullmatch(value):
+        value = Decimal(value)
     if isinstance(value, bool) or not isinstance(value, (int, Decimal)):
         raise ValueError(f"{where}: expected a number of seconds, got {value!r}")
     if isinstance(value, Decimal):

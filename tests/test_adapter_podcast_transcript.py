@@ -252,7 +252,7 @@ class TestMalformed:
                 r"segments\[0\]: speaker",
             ),
             (
-                _doc({"startTime": "1", "endTime": 2, "body": "x"}),
+                _doc({"startTime": "1:23", "endTime": 2, "body": "x"}),
                 r"segments\[0\]\.startTime: expected a number",
             ),
             (
@@ -533,3 +533,26 @@ class TestNullIsAbsent:
         assert a.body["speaker"] is None
         out = json.loads(adapter_module.dump(adapter_module.load(doc)))
         assert "speaker" not in out["segments"][0]
+
+
+def test_numeric_string_times_are_read_exactly():
+    """Some hosts write every time as a string; read them like numbers."""
+    text = json.dumps(
+        {
+            "version": "1.0.0",
+            "segments": [
+                {"speaker": "A", "startTime": "0.0", "endTime": "8.56", "body": "Hi."}
+            ],
+        }
+    )
+    [interval] = list(adapter_module.load(text))
+    assert interval.end.value * 100 == 856 * interval.end.rate
+
+
+@pytest.mark.parametrize("bad", ["", "NaN", "inf", "1:23", " 1", "-1"])
+def test_non_numeric_string_times_still_refused(bad):
+    text = json.dumps(
+        {"version": "1.0.0", "segments": [{"startTime": bad, "body": "x"}]}
+    )
+    with pytest.raises(ValueError, match="startTime"):
+        adapter_module.load(text)
