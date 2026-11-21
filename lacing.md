@@ -1,4 +1,4 @@
-> built 2026-11-13 12:21 UTC from f289ade (main) · lacing 0.0.108. Details: build_info.json
+> built 2026-11-21 16:19 UTC from a5626c6 (main) · lacing 0.0.109. Details: build_info.json
 
 # index.html.md
 
@@ -11598,18 +11598,18 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-13 12:21 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/f289adef19f9d7405e877de392c525b5c58cb077"><code>f289ade</code></a> on branch <code>main</code>, for **lacing 0.0.108** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-21 16:19 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/a5626c6f3cbc8bc53fc963b8cc64e9db1cc8121b"><code>a5626c6</code></a> on branch <code>main</code>, for **lacing 0.0.109** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.0.108) is behind the latest release on PyPI (0.0.109): `pip install lacing` gives newer code than these docs describe.
+- The documented version (0.0.109) is behind the latest release on PyPI (0.0.110): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/f289adef19f9d7405e877de392c525b5c58cb077"><code>f289adef19f9d7405e877de392c525b5c58cb077</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/a5626c6f3cbc8bc53fc963b8cc64e9db1cc8121b"><code>a5626c6f3cbc8bc53fc963b8cc64e9db1cc8121b</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -11620,9 +11620,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/43424042379">43424042379</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/44923715386">44923715386</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>f289adef19f9d7405e877de392c525b5c58cb077</code> (in the history of the built commit) |
+| Event commit | <code>a5626c6f3cbc8bc53fc963b8cc64e9db1cc8121b</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11647,13 +11647,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.109/">0.0.109</a>, newer than the documented version (0.0.108).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.110/">0.0.110</a>, newer than the documented version (0.0.109).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout f289adef19f9d7405e877de392c525b5c58cb077
+git checkout a5626c6f3cbc8bc53fc963b8cc64e9db1cc8121b
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
