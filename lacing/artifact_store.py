@@ -1040,12 +1040,12 @@ class ArtifactStore(MutableMapping):
 
         catalog = wrap_kvs(
             filt_iter(contained, filt=lambda k: k.endswith(".json")),
-            id_of_key=_catalog_filename,
-            key_of_id=lambda filename: (
+            key_encoder=_catalog_filename,
+            key_decoder=lambda filename: (
                 filename[:-5] if filename.endswith(".json") else filename
             ),
-            data_of_obj=_record_json,
-            obj_of_data=lambda raw: record_type.model_validate_json(raw),
+            value_encoder=_record_json,
+            value_decoder=lambda raw: record_type.model_validate_json(raw),
         )
         # A bare Files raises KeyError writing into a missing folder; the catalog
         # (_ContainedDirStore) and the spooled writes make theirs already.
@@ -1234,13 +1234,13 @@ class ArtifactStore(MutableMapping):
 
         catalog = wrap_kvs(
             raw,
-            id_of_key=lambda artifact_id: {"artifact_id": artifact_id},
-            key_of_id=_key_of_id,
-            data_of_obj=lambda record: {
+            key_encoder=lambda artifact_id: {"artifact_id": artifact_id},
+            key_decoder=_key_of_id,
+            value_encoder=lambda record: {
                 "record_json": record.model_dump_json(),
                 "content_hash": content_hash_of(record) or "",
             },
-            obj_of_data=lambda row: record_type.model_validate_json(row.record_json),
+            value_decoder=lambda row: record_type.model_validate_json(row.record_json),
         )
         # Attach the content-hash capabilities that ``count_refs`` and ``resolve``
         # probe for, so each is a single indexed query (see ``count_refs``).
