@@ -59,6 +59,7 @@ class OpLogEntry:
     """Wall-clock time the operation was received (seconds since epoch)."""
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialise the entry to a plain dict."""
         return {
             "clock": self.clock,
             "operation": self.operation,
@@ -70,6 +71,7 @@ class OpLogEntry:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "OpLogEntry":
+        """Rebuild an entry from :meth:`to_dict` output."""
         return cls(
             clock=int(d["clock"]),
             operation=str(d["operation"]),
@@ -137,6 +139,7 @@ class InMemoryOpLog:
         payload: dict[str, Any] | None = None,
         actor: str = "anonymous",
     ) -> int:
+        """Append an entry to the log."""
         with self._lock:
             clock = len(self._entries) + 1
             self._entries.append(
@@ -156,6 +159,7 @@ class InMemoryOpLog:
         until_clock: int | None = None,
         from_clock: int | None = None,
     ) -> Iterator[OpLogEntry]:
+        """Iterate over the logged entries."""
         with self._lock:
             snapshot = list(self._entries)
         for e in snapshot:
@@ -166,6 +170,7 @@ class InMemoryOpLog:
             yield e
 
     def latest_clock(self) -> int:
+        """Return the highest logical clock in the log."""
         with self._lock:
             return self._entries[-1].clock if self._entries else 0
 
@@ -224,6 +229,7 @@ class SqliteOpLog:
             self._conn.executescript(_OPLOG_DDL)
 
     def close(self) -> None:
+        """Release the underlying resources."""
         with self._lock:
             self._conn.close()
 
@@ -235,6 +241,7 @@ class SqliteOpLog:
         payload: dict[str, Any] | None = None,
         actor: str = "anonymous",
     ) -> int:
+        """Append an entry to the log."""
         with self._lock:
             cur = self._conn.cursor()
             cur.execute(
@@ -256,6 +263,7 @@ class SqliteOpLog:
         until_clock: int | None = None,
         from_clock: int | None = None,
     ) -> Iterator[OpLogEntry]:
+        """Iterate over the logged entries."""
         sql = "SELECT * FROM oplog"
         clauses: list[str] = []
         params: list[Any] = []
@@ -282,6 +290,7 @@ class SqliteOpLog:
             )
 
     def latest_clock(self) -> int:
+        """Return the highest logical clock in the log."""
         with self._lock:
             row = self._conn.execute("SELECT MAX(clock) AS c FROM oplog").fetchone()
         return int(row["c"]) if row and row["c"] is not None else 0
@@ -377,4 +386,5 @@ def _apply(store: Any, entry: OpLogEntry) -> None:
 
 
 def has_entries(log: OpLog) -> bool:
+    """Return whether the log holds any entries."""
     return log.latest_clock() > 0

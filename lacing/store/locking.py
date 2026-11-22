@@ -71,6 +71,7 @@ class NamedLocks:
 
     @contextmanager
     def __call__(self, key: str) -> Iterator[None]:
+        """Return the lock for ``name``, creating it on first use."""
         with self._guard:
             lock = self._locks.setdefault(key, threading.Lock())
         with lock:

@@ -83,6 +83,7 @@ def register_processor(
 
 
 def get_processor(name: str) -> Callable[..., Awaitable[Any]]:
+    """Return the registered processor called ``name``."""
     if name not in _PROCESSORS:
         raise KeyError(
             f"no processor registered as {name!r}; known: {sorted(_PROCESSORS)}"

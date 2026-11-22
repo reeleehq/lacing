@@ -119,6 +119,7 @@ def create_annotation(
     store=Depends(get_store),
     oplog=Depends(get_oplog),
 ) -> dict[str, Any]:
+    """Create an annotation from the request body."""
     annotation = _build_annotation(payload)
     store.add(annotation)
     clock = oplog.append(
@@ -138,6 +139,7 @@ def get_annotation(
     response: Response,
     store=Depends(get_store),
 ) -> dict[str, Any]:
+    """Find an annotation by id, or ``None``."""
     annotation = _find(store, annotation_id)
     response.headers["ETag"] = annotation_etag(annotation)
     return annotation.model_dump(mode="json")
@@ -149,6 +151,7 @@ def delete_annotation(
     store=Depends(get_store),
     oplog=Depends(get_oplog),
 ) -> Response:
+    """Delete an annotation by id."""
     removed = store.remove(annotation_id)
     if removed is None:
         raise HTTPException(

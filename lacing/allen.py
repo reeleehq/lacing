@@ -83,54 +83,67 @@ _INVERSE: dict[AllenRelation, AllenRelation] = {
 
 
 def before(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``before``: true when ``a`` before ``b``."""
     return a.end < b.start
 
 
 def after(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``after``: true when ``a`` after ``b``."""
     return a.start > b.end
 
 
 def meets(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``meets``: true when ``a`` meets ``b``."""
     return a.end == b.start and a != b
 
 
 def met_by(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``met_by``: true when ``a`` met by ``b``."""
     return a.start == b.end and a != b
 
 
 def overlaps(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``overlaps``: true when ``a`` overlaps ``b``."""
     return a.start < b.start < a.end < b.end
 
 
 def overlapped_by(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``overlapped_by``: true when ``a`` overlapped by ``b``."""
     return b.start < a.start < b.end < a.end
 
 
 def starts(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``starts``: true when ``a`` starts ``b``."""
     return a.start == b.start and a.end < b.end
 
 
 def started_by(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``started_by``: true when ``a`` started by ``b``."""
     return a.start == b.start and a.end > b.end
 
 
 def during(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``during``: true when ``a`` during ``b``."""
     return a.start > b.start and a.end < b.end
 
 
 def contains(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``contains``: true when ``a`` contains ``b``."""
     return a.start < b.start and a.end > b.end
 
 
 def finishes(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``finishes``: true when ``a`` finishes ``b``."""
     return a.start > b.start and a.end == b.end
 
 
 def finished_by(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``finished_by``: true when ``a`` finished by ``b``."""
     return a.start < b.start and a.end == b.end
 
 
 def equals(a: TimeInterval, b: TimeInterval) -> bool:
+    """Allen relation ``equals``: true when ``a`` equals ``b``."""
     return a.start == b.start and a.end == b.end
 
 

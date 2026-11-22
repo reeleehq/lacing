@@ -236,6 +236,7 @@ def body_derived(uri: str) -> frozenset[DerivedPath]:
 
 
 def is_registered(uri: str) -> bool:
+    """Return whether ``name`` is a registered body type."""
     return uri in _BODY_REGISTRY
 
 

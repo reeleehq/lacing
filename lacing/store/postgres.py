@@ -441,18 +441,22 @@ class PostgresStore:
 
     @property
     def rate(self) -> int:
+        """The tick rate (ticks per second) of this store."""
         return self._rate
 
     @property
     def owner_id(self) -> str:
+        """Identifier of the owner this store is scoped to."""
         return self._owner_id
 
     @property
     def project_id(self) -> str:
+        """Identifier of the project this store is scoped to."""
         return self._project_id
 
     @property
     def schema_version(self) -> int:
+        """The schema version recorded in the store."""
         return SCHEMA_VERSION
 
     @contextmanager
@@ -478,6 +482,7 @@ class PostgresStore:
             conn.close()
 
     def close(self) -> None:
+        """Release the underlying resources."""
         if self._pooled and self._pool is not None:
             # Return the connection to the pool rather than closing the socket.
             try:
@@ -504,6 +509,7 @@ class PostgresStore:
         return f"{self._owner_id}/{self._project_id}:{key}"
 
     def get_meta(self, key: str) -> str | None:
+        """Return the metadata value stored under ``key``, or ``None``."""
         with self._conn.cursor() as cur:
             row = cur.execute(
                 "SELECT value FROM meta WHERE key = %s", (self._meta_key(key),)
@@ -522,6 +528,7 @@ class PostgresStore:
             return None
 
     def set_meta(self, key: str, value: str) -> None:
+        """Store a metadata value under ``key``."""
         with self._conn.cursor() as cur:
             cur.execute(
                 "INSERT INTO meta (key, value) VALUES (%s, %s) "
@@ -601,6 +608,7 @@ class PostgresStore:
         )[:63]
 
     def get_tier(self, name: str) -> Tier | None:
+        """Return the tier with the given name, or ``None``."""
         with self._conn.cursor() as cur:
             row = cur.execute(
                 "SELECT name, stereotype, parent, metadata FROM tiers "
@@ -610,6 +618,7 @@ class PostgresStore:
             return None if row is None else _row_to_tier(row)
 
     def tiers(self) -> Iterator[Tier]:
+        """Return the registered tiers."""
         with self._conn.cursor() as cur:
             rows = cur.execute(
                 "SELECT name, stereotype, parent, metadata FROM tiers "
@@ -619,6 +628,7 @@ class PostgresStore:
         return iter([_row_to_tier(r) for r in rows])
 
     def is_no_overlap_enforced(self, tier_name: str) -> bool:
+        """Whether the database enforces no overlap within a tier."""
         with self._conn.cursor() as cur:
             row = cur.execute(
                 "SELECT enforce_no_overlap FROM tiers "
@@ -630,6 +640,7 @@ class PostgresStore:
     # --- annotation CRUD ---------------------------------------------
 
     def add(self, annotation: Annotation) -> None:
+        """Add an annotation to the store."""
         try:
             self._do_add(annotation)
         except self._psycopg.errors.ExclusionViolation as exc:
@@ -656,6 +667,7 @@ class PostgresStore:
             )
 
     def remove(self, annotation_id: UUID) -> Annotation | None:
+        """Remove the annotation with the given id; return it, or ``None`` if absent."""
         scope, params = self._scope()
         with self._conn.cursor() as cur:
             cur.execute(
@@ -702,6 +714,7 @@ class PostgresStore:
             ) from exc
 
     def all(self) -> Iterator[Annotation]:
+        """Iterate over every annotation in the store."""
         scope, params = self._scope()
         with self._conn.cursor() as cur:
             rows = cur.execute(
@@ -796,37 +809,46 @@ class PostgresStore:
     # --- Allen-relation queries ---------------------------------------
 
     def intersects(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations whose interval intersects the query interval."""
         return self._query_with_op("&&", query)
 
     def during(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations lying strictly during the query interval (Allen ``during``)."""
         # Strict: a's span is strictly inside q (Allen 'd' excludes shared
         # endpoints). We pre-filter with `<@` then re-check exact rationals.
         return self._candidates_filtered("<@", query, AllenRelation.DURING)
 
     def contains(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that contain the query interval (Allen ``contains``)."""
         return self._candidates_filtered("@>", query, AllenRelation.CONTAINS)
 
     def overlaps(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that overlap the start of the query interval (Allen ``overlaps``)."""
         # Strict Allen 'o': pre-filter with `&&`, re-check rationals.
         return self._candidates_filtered("&&", query, AllenRelation.OVERLAPS)
 
     def meets(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that end exactly where the query interval starts (Allen ``meets``)."""
         # `-|-` matches both meets and met_by; rational predicate disambiguates.
         return self._candidates_filtered("-|-", query, AllenRelation.MEETS)
 
     def starts(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that start with the query interval but end earlier (Allen ``starts``)."""
         return self._candidates_filtered("&&", query, AllenRelation.STARTS)
 
     def finishes(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that finish with the query interval but start later (Allen ``finishes``)."""
         return self._candidates_filtered("&&", query, AllenRelation.FINISHES)
 
     def equals(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations whose interval equals the query interval."""
         # Range equality matches Allen '=' exactly.
         return self._query_with_op("=", query)
 
     def relate(
         self, query: TimeInterval, relations: Iterable[AllenRelation]
     ) -> Iterator[Annotation]:
+        """Yield annotations standing in the given Allen relation to the query interval."""
         rels = set(relations)
         # Pick the broadest pre-filter that covers all requested relations.
         if rels <= {AllenRelation.BEFORE, AllenRelation.AFTER}:
@@ -891,6 +913,7 @@ class PostgresStore:
     # --- tier filters ------------------------------------------------
 
     def by_tier(self, tier_name: str) -> Iterator[Annotation]:
+        """Iterate over the annotations of one tier."""
         scope, params = self._scope()
         with self._conn.cursor() as cur:
             rows = cur.execute(
@@ -902,6 +925,7 @@ class PostgresStore:
             yield self._row_to_annotation(dict(zip(cols, row)))
 
     def at_tier(self, tier_name: str, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations of one tier that intersect the query interval."""
         for ann in self.intersects(query):
             if ann.tier == tier_name:
                 yield ann
@@ -909,6 +933,7 @@ class PostgresStore:
     # --- bulk -------------------------------------------------------
 
     def extend(self, annotations: Iterable[Annotation]) -> None:
+        """Add several annotations at once."""
         with self._transaction():
             for ann in annotations:
                 self._do_add(ann)

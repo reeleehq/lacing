@@ -132,6 +132,7 @@ class MemoryStore:
     # --- annotation-level convenience ---------------------------------------
 
     def add(self, annotation: Annotation) -> None:
+        """Add an annotation to the store."""
         self._insert(annotation)
 
     def _insert(self, annotation: Annotation) -> None:
@@ -145,6 +146,7 @@ class MemoryStore:
             bucket.append(annotation)
 
     def remove(self, annotation_id: UUID) -> Annotation | None:
+        """Remove the annotation with the given id; return it, or ``None`` if absent."""
         with self._lock:
             # Search timeless first.
             if annotation_id in self._timeless:
@@ -159,6 +161,7 @@ class MemoryStore:
             return None
 
     def update(self, annotation: Annotation) -> None:
+        """Replace the stored annotation that has the same id."""
         with self._lock:
             old = next((a for a in self.all() if a.id == annotation.id), None)
             if old is None:
@@ -192,6 +195,7 @@ class MemoryStore:
             self._drop_node(k)
 
     def all(self) -> Iterator[Annotation]:
+        """Iterate over every annotation in the store."""
         with self._lock:
             snapshot = [a for bucket in self._buckets.values() for a in bucket]
             snapshot.extend(self._timeless.values())
@@ -214,6 +218,7 @@ class MemoryStore:
                 yield from bucket
 
     def intersects(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations whose interval intersects the query interval."""
         from lacing.allen import intersects as _intersects
 
         for bucket in self._bucket_snapshot():
@@ -222,29 +227,37 @@ class MemoryStore:
                 yield from bucket
 
     def during(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations lying strictly during the query interval (Allen ``during``)."""
         return self._query(query, AllenRelation.DURING)
 
     def contains(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that contain the query interval (Allen ``contains``)."""
         return self._query(query, AllenRelation.CONTAINS)
 
     def overlaps(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that overlap the start of the query interval (Allen ``overlaps``)."""
         return self._query(query, AllenRelation.OVERLAPS)
 
     def meets(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that end exactly where the query interval starts (Allen ``meets``)."""
         return self._query(query, AllenRelation.MEETS)
 
     def starts(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that start with the query interval but end earlier (Allen ``starts``)."""
         return self._query(query, AllenRelation.STARTS)
 
     def finishes(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that finish with the query interval but start later (Allen ``finishes``)."""
         return self._query(query, AllenRelation.FINISHES)
 
     def equals(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations whose interval equals the query interval."""
         return self._query(query, AllenRelation.EQUALS)
 
     def relate(
         self, query: TimeInterval, relations: Iterable[AllenRelation]
     ) -> Iterator[Annotation]:
+        """Yield annotations standing in the given Allen relation to the query interval."""
         rels = set(relations)
         for bucket in self._bucket_snapshot():
             iv = bucket[0].interval
@@ -258,11 +271,13 @@ class MemoryStore:
     # --- tier filters --------------------------------------------------------
 
     def by_tier(self, tier_name: str) -> Iterator[Annotation]:
+        """Iterate over the annotations of one tier."""
         for ann in self.all():
             if ann.tier == tier_name:
                 yield ann
 
     def at_tier(self, tier_name: str, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations of one tier that intersect the query interval."""
         for ann in self.intersects(query):
             if ann.tier == tier_name:
                 yield ann
@@ -270,17 +285,21 @@ class MemoryStore:
     # --- tier registry -------------------------------------------------------
 
     def tiers(self) -> Iterator[Tier]:
+        """Return the registered tiers."""
         return iter(self._tiers.values())
 
     def add_tier(self, tier: Tier) -> None:
+        """Register a tier."""
         self._tiers[tier.name] = tier
 
     def get_tier(self, name: str) -> Tier | None:
+        """Return the tier with the given name, or ``None``."""
         return self._tiers.get(name)
 
     # --- bulk ---------------------------------------------------------------
 
     def extend(self, annotations: Iterable[Annotation]) -> None:
+        """Add several annotations at once."""
         for a in annotations:
             self.add(a)
 

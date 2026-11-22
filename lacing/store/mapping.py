@@ -233,6 +233,7 @@ class MappingStore(MemoryStore):
     # --- annotation-level -----------------------------------------------------
 
     def add(self, annotation: Annotation) -> None:
+        """Add an annotation to the store."""
         with self._lock:
             if annotation.id in self._ids:
                 raise ValueError(f"annotation id {annotation.id} already in the store")
@@ -241,6 +242,7 @@ class MappingStore(MemoryStore):
             super().add(annotation)
 
     def remove(self, annotation_id: UUID) -> Annotation | None:
+        """Remove the annotation with the given id; return it, or ``None`` if absent."""
         with self._lock:
             if annotation_id not in self._ids:
                 return None
@@ -249,6 +251,7 @@ class MappingStore(MemoryStore):
             return super().remove(annotation_id)
 
     def update(self, annotation: Annotation) -> None:
+        """Replace the stored annotation that has the same id."""
         with self._lock:
             if annotation.id not in self._ids:
                 raise KeyError(annotation.id)
@@ -258,6 +261,7 @@ class MappingStore(MemoryStore):
     # --- tier registry --------------------------------------------------------
 
     def add_tier(self, tier: Tier) -> None:
+        """Register a tier."""
         merged = {t.name: t for t in self.tiers()}
         merged[tier.name] = tier
         self._put_tiers(merged.values())

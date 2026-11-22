@@ -104,10 +104,12 @@ def add_tier(
 
 
 def list_tiers(store: Any) -> list[Tier]:
+    """List the tiers of the store."""
     return list(store.tiers())
 
 
 def get_tier(store: Any, name: str) -> Tier | None:
+    """Return the tier with the given name, or ``None``."""
     return store.get_tier(name)
 
 
@@ -128,6 +130,7 @@ def _build_reference(payload: dict[str, Any]) -> Reference:
 
 
 def default_provenance(creator: str = "anonymous") -> Provenance:
+    """Build provenance for a server-created annotation, stamped with the current time."""
     # now(), not zero(): generated_at_time is *when this was generated* —
     # consumers (nw freshness, verdict ordering) read it as wall-clock, and
     # tick 0 made every server-created annotation look older than everything
@@ -224,6 +227,7 @@ def add_annotation_from_seconds(
 
 
 def get_annotation(store: Any, annotation_id: UUID) -> Annotation | None:
+    """Find an annotation by id, or ``None``."""
     iter_all = getattr(store, "all", None)
     if not callable(iter_all):
         return None
@@ -236,6 +240,7 @@ def get_annotation(store: Any, annotation_id: UUID) -> Annotation | None:
 def remove_annotation(
     store: Any, oplog: Any, annotation_id: UUID, *, actor: str = "anonymous"
 ) -> Annotation | None:
+    """Remove an annotation by id and log the operation; ``None`` if absent."""
     removed = store.remove(annotation_id)
     if removed is None:
         return None
