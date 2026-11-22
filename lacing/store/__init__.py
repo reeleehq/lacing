@@ -29,7 +29,7 @@ from lacing.store.sqlite import SchemaMismatchError, SqliteStore
 
 # Postgres backend is optional — psycopg may not be installed.
 try:
-    from lacing.store.postgres import (
+    from lacing.store.postgres import (  # noqa: F401  (re-exports)
         DEFAULT_OWNER_ID,
         DEFAULT_PROJECT_ID,
         PgSchemaMismatchError,

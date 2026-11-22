@@ -44,7 +44,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import Any, Iterable, Sequence
+from typing import Any, Sequence
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel
@@ -53,7 +53,6 @@ import lacing.bodies  # noqa: F401  registers the section, line and word schemas
 from lacing.bodies.lyric_line import LyricLineBodyV1
 from lacing.bodies.song_section import SongSectionBodyV1
 
-from lacing.allen import AllenRelation
 from lacing.model import Annotation, MediaRef, Provenance
 from lacing.store.base import IntervalAnnotationStore
 from lacing.tier import Tier, TierStereotype

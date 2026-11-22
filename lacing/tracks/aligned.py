@@ -46,7 +46,7 @@ from __future__ import annotations
 
 import math
 from bisect import bisect_left, bisect_right
-from collections.abc import Iterator, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 from fractions import Fraction
 from uuid import UUID, uuid4

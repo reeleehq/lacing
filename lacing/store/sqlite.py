@@ -48,10 +48,6 @@ from lacing.allen import (
     AllenRelation,
     intersects as _intersects,
 )
-from lacing.allen import (
-    after as _after,
-    before as _before,
-)
 from lacing.model import (
     Annotation,
     AnnotationRef,

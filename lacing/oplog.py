@@ -25,7 +25,7 @@ import json
 import sqlite3
 import threading
 import time as _time
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 

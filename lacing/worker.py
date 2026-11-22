@@ -66,7 +66,7 @@ def build_worker_settings(
     Returns:
         A class suitable for ``arq.run_worker(...)``.
     """
-    arq = _require_arq()
+    _require_arq()
 
     if redis_settings is None:
         from arq.connections import RedisSettings
