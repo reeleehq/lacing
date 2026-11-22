@@ -41,10 +41,10 @@ True
 
 ### Classes
 
-| [`Use`](#lacing.restrictions.Use)(\*[, revenue_usd, territory])   | One use of an asset, as the restrictions on it ask about it.   |
-|--------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| [`Use`](#lacing.restrictions.Use)(\*[, revenue_usd, territory, standalone])   | One use of an asset, as the restrictions on it ask about it.   |
+|--------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 
-### lacing.restrictions.RESTRICTION_CHECKS *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Callable](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[Restriction](lacing.artifact.html.md#lacing.artifact.Restriction), [Use](#lacing.restrictions.Use)], [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)]]* *= {'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>}*
+### lacing.restrictions.RESTRICTION_CHECKS *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Callable](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[Restriction](lacing.artifact.html.md#lacing.artifact.Restriction), [Use](#lacing.restrictions.Use)], [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)]]* *= {'no_standalone_redistribution': <function \_no_standalone_redistribution>, 'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>}*
 
 The check of each well-known kind. A consumer that knows another kind passes
 its own map (`checks=`); a kind missing from the map is not cleared.
@@ -59,7 +59,7 @@ its own map (`checks=`); a kind missing from the map is not cleared.
 
 alias of [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Restriction`](lacing.artifact.html.md#lacing.artifact.Restriction), [`Use`](#lacing.restrictions.Use)], str | None]
 
-### *class* lacing.restrictions.Use(, revenue_usd=None, territory=None)
+### *class* lacing.restrictions.Use(, revenue_usd=None, territory=None, standalone=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -67,14 +67,16 @@ One use of an asset, as the restrictions on it ask about it.
 
 `revenue_usd` is the user’s annual revenue in whole US dollars and
 `territory` where the use happens (an ISO 3166-1 alpha-2 code, an alias
-such as `"UK"`, or [`lacing.territory.WORLDWIDE`](lacing.territory.html.md#lacing.territory.WORLDWIDE)); `None` leaves
-either unstated, which fails closed against a restriction that asks.
+such as `"UK"`, or [`lacing.territory.WORLDWIDE`](lacing.territory.html.md#lacing.territory.WORLDWIDE)); `standalone`
+is whether the use redistributes the asset by itself (`True`) or only
+inside a larger work (`False`). `None` leaves any of them unstated,
+which fails closed against a restriction that asks.
 
 ```pycon
 >>> Use(territory=" uk ", revenue_usd=5_000)
-Use(revenue_usd=5000, territory='GB')
+Use(revenue_usd=5000, territory='GB', standalone=None)
 >>> Use()
-Use(revenue_usd=None, territory=None)
+Use(revenue_usd=None, territory=None, standalone=None)
 ```
 
 * **Raises:**
@@ -83,7 +85,7 @@ Use(revenue_usd=None, territory=None)
         negative.
   * [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError) – If `revenue_usd` is not an `int` (a `bool` is not).
 
-### lacing.restrictions.restriction_breach(restriction, use=Use(revenue_usd=None, territory=None), \*, checks={'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>})
+### lacing.restrictions.restriction_breach(restriction, use=Use(revenue_usd=None, territory=None, standalone=None), \*, checks={'no_standalone_redistribution': <function \_no_standalone_redistribution>, 'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>})
 
 Why `use` breaks `restriction`, or `None` (an unstated use by default).
 

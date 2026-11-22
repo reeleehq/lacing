@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=3893778a"></script>
+    <script src="../../_static/documentation_options.js?v=9cebf393"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.114" />
+  <meta name="docsearch:version" content="0.0.115" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -858,6 +858,11 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">``codes`` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such</span>
 <span class="sd">as ``"EU"``, recorded verbatim)."""</span>
 
+<span class="n">NO_STANDALONE_REDISTRIBUTION</span> <span class="o">=</span> <span class="s2">"no_standalone_redistribution"</span>
+<span class="sd">"""A :class:`Restriction` kind with no parameters: the asset may not be</span>
+<span class="sd">redistributed on its own (only inside a larger work), e.g. a model licence that</span>
+<span class="sd">bars standalone redistribution of its output (lacing#177)."""</span>
+
 
 <span class="n">_NonBlankStr</span> <span class="o">=</span> <span class="n">Annotated</span><span class="p">[</span><span class="n">StrictStr</span><span class="p">,</span> <span class="n">StringConstraints</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">"\S"</span><span class="p">)]</span>
 
@@ -898,7 +903,8 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    ``kind`` is an open vocabulary, like ``Rights.license``: lacing records a</span>
 <span class="sd">    restriction and never classifies it. The well-known kinds</span>
-<span class="sd">    (:data:`REVENUE_CAP`, :data:`TERRITORY_EXCLUDED`) have their parameters</span>
+<span class="sd">    (:data:`REVENUE_CAP`, :data:`TERRITORY_EXCLUDED`, and the parameterless</span>
+<span class="sd">    :data:`NO_STANDALONE_REDISTRIBUTION`) have their parameters</span>
 <span class="sd">    checked; any other kind is kept as given. **A consumer that does not know</span>
 <span class="sd">    a kind must treat the artifact as not cleared**, never skip the</span>
 <span class="sd">    restriction.</span>

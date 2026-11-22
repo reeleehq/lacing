@@ -11,6 +11,7 @@ lacing.artifact
       ArtifactKind
       REVENUE_CAP
       TERRITORY_EXCLUDED
+      NO_STANDALONE_REDISTRIBUTION
    
    .. rubric:: Functions
 

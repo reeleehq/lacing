@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=3893778a"></script>
+    <script src="../_static/documentation_options.js?v=9cebf393"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.114" />
+  <meta name="docsearch:version" content="0.0.115" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -532,6 +532,9 @@ record (<code class="docutils literal notranslate"><span class="pre">None</span>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.artifact.TERRITORY_EXCLUDED" title="lacing.artifact.TERRITORY_EXCLUDED"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TERRITORY_EXCLUDED</span></code></a></p></td>
 <td><p>use is not allowed in the territories listed in <code class="docutils literal notranslate"><span class="pre">codes</span></code> (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such as <code class="docutils literal notranslate"><span class="pre">&quot;EU&quot;</span></code>, recorded verbatim).</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.artifact.NO_STANDALONE_REDISTRIBUTION" title="lacing.artifact.NO_STANDALONE_REDISTRIBUTION"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NO_STANDALONE_REDISTRIBUTION</span></code></a></p></td>
+<td><p>the asset may not be redistributed on its own (only inside a larger work), e.g. a model licence that bars standalone redistribution of its output (lacing#177).</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -630,6 +633,19 @@ should switch on this <em>before</em> falling back to <code class="docutils lite
 </dd></dl>
 
 <dl class="py data">
+<dt class="sig sig-object py" id="lacing.artifact.NO_STANDALONE_REDISTRIBUTION">
+<span class="sig-prename descclassname"><span class="pre">lacing.artifact.</span></span><span class="sig-name descname"><span class="pre">NO_STANDALONE_REDISTRIBUTION</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'no_standalone_redistribution'</span></span><a class="headerlink" href="#lacing.artifact.NO_STANDALONE_REDISTRIBUTION" title="Link to this definition">#</a></dt>
+<dd><p>the asset may not be
+redistributed on its own (only inside a larger work), e.g. a model licence that
+bars standalone redistribution of its output (lacing#177).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A <a class="reference internal" href="#lacing.artifact.Restriction" title="lacing.artifact.Restriction"><code class="xref py py-class docutils literal notranslate"><span class="pre">Restriction</span></code></a> kind with no parameters</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
 <dt class="sig sig-object py" id="lacing.artifact.REVENUE_CAP">
 <span class="sig-prename descclassname"><span class="pre">lacing.artifact.</span></span><span class="sig-name descname"><span class="pre">REVENUE_CAP</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'revenue_cap'</span></span><a class="headerlink" href="#lacing.artifact.REVENUE_CAP" title="Link to this definition">#</a></dt>
 <dd><p>use is allowed only below an annual revenue,
@@ -657,7 +673,8 @@ licence caps revenue:</p>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">kind</span></code> is an open vocabulary, like <code class="docutils literal notranslate"><span class="pre">Rights.license</span></code>: lacing records a
 restriction and never classifies it. The well-known kinds
-(<a class="reference internal" href="#lacing.artifact.REVENUE_CAP" title="lacing.artifact.REVENUE_CAP"><code class="xref py py-data docutils literal notranslate"><span class="pre">REVENUE_CAP</span></code></a>, <a class="reference internal" href="#lacing.artifact.TERRITORY_EXCLUDED" title="lacing.artifact.TERRITORY_EXCLUDED"><code class="xref py py-data docutils literal notranslate"><span class="pre">TERRITORY_EXCLUDED</span></code></a>) have their parameters
+(<a class="reference internal" href="#lacing.artifact.REVENUE_CAP" title="lacing.artifact.REVENUE_CAP"><code class="xref py py-data docutils literal notranslate"><span class="pre">REVENUE_CAP</span></code></a>, <a class="reference internal" href="#lacing.artifact.TERRITORY_EXCLUDED" title="lacing.artifact.TERRITORY_EXCLUDED"><code class="xref py py-data docutils literal notranslate"><span class="pre">TERRITORY_EXCLUDED</span></code></a>, and the parameterless
+<a class="reference internal" href="#lacing.artifact.NO_STANDALONE_REDISTRIBUTION" title="lacing.artifact.NO_STANDALONE_REDISTRIBUTION"><code class="xref py py-data docutils literal notranslate"><span class="pre">NO_STANDALONE_REDISTRIBUTION</span></code></a>) have their parameters
 checked; any other kind is kept as given. **A consumer that does not know
 a kind must treat the artifact as not cleared**, never skip the
 restriction.</p>
@@ -833,6 +850,7 @@ as <code class="docutils literal notranslate"><span class="pre">&quot;EU&quot;</
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.ArtifactKind"><code class="docutils literal notranslate"><span class="pre">ArtifactKind</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.NO_STANDALONE_REDISTRIBUTION"><code class="docutils literal notranslate"><span class="pre">NO_STANDALONE_REDISTRIBUTION</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.REVENUE_CAP"><code class="docutils literal notranslate"><span class="pre">REVENUE_CAP</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.Restriction"><code class="docutils literal notranslate"><span class="pre">Restriction</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.artifact.Restriction.model_config"><code class="docutils literal notranslate"><span class="pre">Restriction.model_config</span></code></a></li>

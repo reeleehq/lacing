@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=3893778a"></script>
+    <script src="../../_static/documentation_options.js?v=9cebf393"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.114" />
+  <meta name="docsearch:version" content="0.0.115" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -744,7 +744,12 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.artifact</span><span class="w"> </span><span class="kn">import</span> <span class="n">REVENUE_CAP</span><span class="p">,</span> <span class="n">TERRITORY_EXCLUDED</span><span class="p">,</span> <span class="n">Restriction</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lacing.artifact</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">NO_STANDALONE_REDISTRIBUTION</span><span class="p">,</span>
+    <span class="n">REVENUE_CAP</span><span class="p">,</span>
+    <span class="n">TERRITORY_EXCLUDED</span><span class="p">,</span>
+    <span class="n">Restriction</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.territory</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">WORLDWIDE</span><span class="p">,</span>
     <span class="n">normalize_territory</span><span class="p">,</span>
@@ -768,13 +773,15 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    ``revenue_usd`` is the user's annual revenue in whole US dollars and</span>
 <span class="sd">    ``territory`` where the use happens (an ISO 3166-1 alpha-2 code, an alias</span>
-<span class="sd">    such as ``"UK"``, or :data:`lacing.territory.WORLDWIDE`); ``None`` leaves</span>
-<span class="sd">    either unstated, which fails closed against a restriction that asks.</span>
+<span class="sd">    such as ``"UK"``, or :data:`lacing.territory.WORLDWIDE`); ``standalone``</span>
+<span class="sd">    is whether the use redistributes the asset by itself (``True``) or only</span>
+<span class="sd">    inside a larger work (``False``). ``None`` leaves any of them unstated,</span>
+<span class="sd">    which fails closed against a restriction that asks.</span>
 
 <span class="sd">    &gt;&gt;&gt; Use(territory=" uk ", revenue_usd=5_000)</span>
-<span class="sd">    Use(revenue_usd=5000, territory='GB')</span>
+<span class="sd">    Use(revenue_usd=5000, territory='GB', standalone=None)</span>
 <span class="sd">    &gt;&gt;&gt; Use()</span>
-<span class="sd">    Use(revenue_usd=None, territory=None)</span>
+<span class="sd">    Use(revenue_usd=None, territory=None, standalone=None)</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If ``territory`` is not one a gate can place (a name, an</span>
@@ -785,6 +792,7 @@ window.runMermaid = runMermaid;</script>
 
     <span class="n">revenue_usd</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">territory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">standalone</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">revenue</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">revenue_usd</span>
@@ -795,6 +803,8 @@ window.runMermaid = runMermaid;</script>
                 <span class="p">)</span>
             <span class="k">if</span> <span class="n">revenue</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"revenue_usd cannot be negative, got </span><span class="si">{</span><span class="n">revenue</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">standalone</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">standalone</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"standalone must be a bool, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">standalone</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
         <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"territory"</span><span class="p">,</span> <span class="n">normalize_territory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">territory</span><span class="p">))</span></div>
 
 
@@ -835,11 +845,19 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="sa">f</span><span class="s2">"not allowed in </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">codes</span><span class="p">)</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">stated</span><span class="si">}</span><span class="s2">)"</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_no_standalone_redistribution</span><span class="p">(</span><span class="n">restriction</span><span class="p">:</span> <span class="n">Restriction</span><span class="p">,</span> <span class="n">use</span><span class="p">:</span> <span class="n">Use</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">use</span><span class="o">.</span><span class="n">standalone</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">stated</span> <span class="o">=</span> <span class="s2">"state whether it is standalone"</span> <span class="k">if</span> <span class="n">use</span><span class="o">.</span><span class="n">standalone</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">"the use"</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"not redistributable on its own (</span><span class="si">{</span><span class="n">stated</span><span class="si">}</span><span class="s2">)"</span>
+
+
 <span class="c1">#: The check of each well-known kind. A consumer that knows another kind passes</span>
 <span class="c1">#: its own map (``checks=``); a kind missing from the map is not cleared.</span>
 <span class="n">RESTRICTION_CHECKS</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">RestrictionCheck</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">REVENUE_CAP</span><span class="p">:</span> <span class="n">_revenue_cap</span><span class="p">,</span>
     <span class="n">TERRITORY_EXCLUDED</span><span class="p">:</span> <span class="n">_territory_excluded</span><span class="p">,</span>
+    <span class="n">NO_STANDALONE_REDISTRIBUTION</span><span class="p">:</span> <span class="n">_no_standalone_redistribution</span><span class="p">,</span>
 <span class="p">}</span>
 
 

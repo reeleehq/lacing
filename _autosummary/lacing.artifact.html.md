@@ -74,10 +74,11 @@ True
 
 ### Module Attributes
 
-| [`ArtifactKind`](#lacing.artifact.ArtifactKind)       | Coarse mime-class.                                                                                                                                         |
-|---------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`REVENUE_CAP`](#lacing.artifact.REVENUE_CAP)        | use is allowed only below an annual revenue, given as `usd` (a positive int), e.g. a model licence's USD 1,000,000 cap.                                    |
-| [`TERRITORY_EXCLUDED`](#lacing.artifact.TERRITORY_EXCLUDED) | use is not allowed in the territories listed in `codes` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such as `"EU"`, recorded verbatim). |
+| [`ArtifactKind`](#lacing.artifact.ArtifactKind)                 | Coarse mime-class.                                                                                                                                              |
+|-------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`REVENUE_CAP`](#lacing.artifact.REVENUE_CAP)                  | use is allowed only below an annual revenue, given as `usd` (a positive int), e.g. a model licence's USD 1,000,000 cap.                                         |
+| [`TERRITORY_EXCLUDED`](#lacing.artifact.TERRITORY_EXCLUDED)           | use is not allowed in the territories listed in `codes` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such as `"EU"`, recorded verbatim).      |
+| [`NO_STANDALONE_REDISTRIBUTION`](#lacing.artifact.NO_STANDALONE_REDISTRIBUTION) | the asset may not be redistributed on its own (only inside a larger work), e.g. a model licence that bars standalone redistribution of its output (lacing#177). |
 
 ### Functions
 
@@ -143,6 +144,15 @@ should switch on this *before* falling back to `mime`/`path.suffix`.
 
 alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[‘image’, ‘video’, ‘audio’, ‘json’, ‘text’, ‘binary’]
 
+### lacing.artifact.NO_STANDALONE_REDISTRIBUTION *= 'no_standalone_redistribution'*
+
+the asset may not be
+redistributed on its own (only inside a larger work), e.g. a model licence that
+bars standalone redistribution of its output (lacing#177).
+
+* **Type:**
+  A [`Restriction`](#lacing.artifact.Restriction) kind with no parameters
+
 ### lacing.artifact.REVENUE_CAP *= 'revenue_cap'*
 
 use is allowed only below an annual revenue,
@@ -170,7 +180,8 @@ Rights(provider="freesound", license="CC-BY-4.0", restrictions=[
 
 `kind` is an open vocabulary, like `Rights.license`: lacing records a
 restriction and never classifies it. The well-known kinds
-([`REVENUE_CAP`](#lacing.artifact.REVENUE_CAP), [`TERRITORY_EXCLUDED`](#lacing.artifact.TERRITORY_EXCLUDED)) have their parameters
+([`REVENUE_CAP`](#lacing.artifact.REVENUE_CAP), [`TERRITORY_EXCLUDED`](#lacing.artifact.TERRITORY_EXCLUDED), and the parameterless
+[`NO_STANDALONE_REDISTRIBUTION`](#lacing.artifact.NO_STANDALONE_REDISTRIBUTION)) have their parameters
 checked; any other kind is kept as given. \*\*A consumer that does not know
 a kind must treat the artifact as not cleared\*\*, never skip the
 restriction.

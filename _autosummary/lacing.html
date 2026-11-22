@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=3893778a"></script>
+    <script src="../_static/documentation_options.js?v=9cebf393"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.114" />
+  <meta name="docsearch:version" content="0.0.115" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -653,7 +653,7 @@ full story. <code class="docutils literal notranslate"><span class="pre">.claude
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.Restriction" title="lacing.Restriction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Restriction</span></code></a>(*, kind[, terms])</p></td>
 <td><p>One usage restriction that a licence code does not imply (lacing#106).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.Use" title="lacing.Use"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Use</span></code></a>(*[, revenue_usd, territory])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.Use" title="lacing.Use"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Use</span></code></a>(*[, revenue_usd, territory, standalone])</p></td>
 <td><p>One use of an asset, as the restrictions on it ask about it.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.ArtifactStore" title="lacing.ArtifactStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArtifactStore</span></code></a>(catalog[, blobs, on_write, ...])</p></td>
@@ -2371,7 +2371,8 @@ licence caps revenue:</p>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">kind</span></code> is an open vocabulary, like <code class="docutils literal notranslate"><span class="pre">Rights.license</span></code>: lacing records a
 restriction and never classifies it. The well-known kinds
-(<code class="xref py py-data docutils literal notranslate"><span class="pre">REVENUE_CAP</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">TERRITORY_EXCLUDED</span></code>) have their parameters
+(<code class="xref py py-data docutils literal notranslate"><span class="pre">REVENUE_CAP</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">TERRITORY_EXCLUDED</span></code>, and the parameterless
+<code class="xref py py-data docutils literal notranslate"><span class="pre">NO_STANDALONE_REDISTRIBUTION</span></code>) have their parameters
 checked; any other kind is kept as given. **A consumer that does not know
 a kind must treat the artifact as not cleared**, never skip the
 restriction.</p>
@@ -2646,17 +2647,19 @@ an error.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="lacing.Use">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">Use</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">revenue_usd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">territory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/restrictions.html#Use"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.Use" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">Use</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">revenue_usd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">territory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">standalone</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/restrictions.html#Use"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.Use" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>One use of an asset, as the restrictions on it ask about it.</p>
 <p><code class="docutils literal notranslate"><span class="pre">revenue_usd</span></code> is the user’s annual revenue in whole US dollars and
 <code class="docutils literal notranslate"><span class="pre">territory</span></code> where the use happens (an ISO 3166-1 alpha-2 code, an alias
-such as <code class="docutils literal notranslate"><span class="pre">&quot;UK&quot;</span></code>, or <a class="reference internal" href="lacing.territory.html#lacing.territory.WORLDWIDE" title="lacing.territory.WORLDWIDE"><code class="xref py py-data docutils literal notranslate"><span class="pre">lacing.territory.WORLDWIDE</span></code></a>); <code class="docutils literal notranslate"><span class="pre">None</span></code> leaves
-either unstated, which fails closed against a restriction that asks.</p>
+such as <code class="docutils literal notranslate"><span class="pre">&quot;UK&quot;</span></code>, or <a class="reference internal" href="lacing.territory.html#lacing.territory.WORLDWIDE" title="lacing.territory.WORLDWIDE"><code class="xref py py-data docutils literal notranslate"><span class="pre">lacing.territory.WORLDWIDE</span></code></a>); <code class="docutils literal notranslate"><span class="pre">standalone</span></code>
+is whether the use redistributes the asset by itself (<code class="docutils literal notranslate"><span class="pre">True</span></code>) or only
+inside a larger work (<code class="docutils literal notranslate"><span class="pre">False</span></code>). <code class="docutils literal notranslate"><span class="pre">None</span></code> leaves any of them unstated,
+which fails closed against a restriction that asks.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Use</span><span class="p">(</span><span class="n">territory</span><span class="o">=</span><span class="s2">" uk "</span><span class="p">,</span> <span class="n">revenue_usd</span><span class="o">=</span><span class="mi">5_000</span><span class="p">)</span>
-<span class="go">Use(revenue_usd=5000, territory='GB')</span>
+<span class="go">Use(revenue_usd=5000, territory='GB', standalone=None)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Use</span><span class="p">()</span>
-<span class="go">Use(revenue_usd=None, territory=None)</span>
+<span class="go">Use(revenue_usd=None, territory=None, standalone=None)</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
@@ -3564,7 +3567,7 @@ store’s <a class="reference internal" href="#lacing.ArtifactStore.resolve" tit
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lacing.restriction_breach">
-<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">restriction_breach</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restriction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Use(revenue_usd=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">territory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'revenue_cap':</span> <span class="pre">&lt;function</span> <span class="pre">_revenue_cap&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'territory_excluded'</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">&lt;function</span> <span class="pre">_territory_excluded&gt;}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/restrictions.html#restriction_breach"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.restriction_breach" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">restriction_breach</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restriction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Use(revenue_usd=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">territory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">standalone</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'no_standalone_redistribution':</span> <span class="pre">&lt;function</span> <span class="pre">_no_standalone_redistribution&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'revenue_cap'</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">&lt;function</span> <span class="pre">_revenue_cap&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'territory_excluded'</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">&lt;function</span> <span class="pre">_territory_excluded&gt;}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/restrictions.html#restriction_breach"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.restriction_breach" title="Link to this definition">#</a></dt>
 <dd><p>Why <code class="docutils literal notranslate"><span class="pre">use</span></code> breaks <code class="docutils literal notranslate"><span class="pre">restriction</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> (an unstated use by default).</p>
 <p>The reason leads with the restriction’s <code class="docutils literal notranslate"><span class="pre">terms</span></code> when it names them. A kind
 with no entry in <code class="docutils literal notranslate"><span class="pre">checks</span></code> is never cleared (lacing#106’s consumer rule).</p>

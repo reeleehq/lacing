@@ -1,4 +1,4 @@
-> built 2026-11-22 11:23 UTC from 814cb28 (main) · lacing 0.0.114. Details: build_info.json
+> built 2026-11-22 11:29 UTC from 7a41767 (main) · lacing 0.0.115. Details: build_info.json
 
 # index.html.md
 
@@ -2308,10 +2308,11 @@ True
 
 ### Module Attributes
 
-| [`ArtifactKind`](_autosummary/lacing.artifact.html.md#lacing.artifact.ArtifactKind)       | Coarse mime-class.                                                                                                                                         |
-|---------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`REVENUE_CAP`](_autosummary/lacing.artifact.html.md#lacing.artifact.REVENUE_CAP)        | use is allowed only below an annual revenue, given as `usd` (a positive int), e.g. a model licence's USD 1,000,000 cap.                                    |
-| [`TERRITORY_EXCLUDED`](_autosummary/lacing.artifact.html.md#lacing.artifact.TERRITORY_EXCLUDED) | use is not allowed in the territories listed in `codes` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such as `"EU"`, recorded verbatim). |
+| [`ArtifactKind`](_autosummary/lacing.artifact.html.md#lacing.artifact.ArtifactKind)                 | Coarse mime-class.                                                                                                                                              |
+|-------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`REVENUE_CAP`](_autosummary/lacing.artifact.html.md#lacing.artifact.REVENUE_CAP)                  | use is allowed only below an annual revenue, given as `usd` (a positive int), e.g. a model licence's USD 1,000,000 cap.                                         |
+| [`TERRITORY_EXCLUDED`](_autosummary/lacing.artifact.html.md#lacing.artifact.TERRITORY_EXCLUDED)           | use is not allowed in the territories listed in `codes` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such as `"EU"`, recorded verbatim).      |
+| [`NO_STANDALONE_REDISTRIBUTION`](_autosummary/lacing.artifact.html.md#lacing.artifact.NO_STANDALONE_REDISTRIBUTION) | the asset may not be redistributed on its own (only inside a larger work), e.g. a model licence that bars standalone redistribution of its output (lacing#177). |
 
 ### Functions
 
@@ -2377,6 +2378,15 @@ should switch on this *before* falling back to `mime`/`path.suffix`.
 
 alias of [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[‘image’, ‘video’, ‘audio’, ‘json’, ‘text’, ‘binary’]
 
+### lacing.artifact.NO_STANDALONE_REDISTRIBUTION *= 'no_standalone_redistribution'*
+
+the asset may not be
+redistributed on its own (only inside a larger work), e.g. a model licence that
+bars standalone redistribution of its output (lacing#177).
+
+* **Type:**
+  A [`Restriction`](_autosummary/lacing.artifact.html.md#lacing.artifact.Restriction) kind with no parameters
+
 ### lacing.artifact.REVENUE_CAP *= 'revenue_cap'*
 
 use is allowed only below an annual revenue,
@@ -2404,7 +2414,8 @@ Rights(provider="freesound", license="CC-BY-4.0", restrictions=[
 
 `kind` is an open vocabulary, like `Rights.license`: lacing records a
 restriction and never classifies it. The well-known kinds
-([`REVENUE_CAP`](_autosummary/lacing.artifact.html.md#lacing.artifact.REVENUE_CAP), [`TERRITORY_EXCLUDED`](_autosummary/lacing.artifact.html.md#lacing.artifact.TERRITORY_EXCLUDED)) have their parameters
+([`REVENUE_CAP`](_autosummary/lacing.artifact.html.md#lacing.artifact.REVENUE_CAP), [`TERRITORY_EXCLUDED`](_autosummary/lacing.artifact.html.md#lacing.artifact.TERRITORY_EXCLUDED), and the parameterless
+[`NO_STANDALONE_REDISTRIBUTION`](_autosummary/lacing.artifact.html.md#lacing.artifact.NO_STANDALONE_REDISTRIBUTION)) have their parameters
 checked; any other kind is kept as given. \*\*A consumer that does not know
 a kind must treat the artifact as not cleared\*\*, never skip the
 restriction.
@@ -5341,7 +5352,7 @@ full story. `.claude/skills/` contains the rules.
 | [`Artifact`](_autosummary/lacing.html.md#lacing.Artifact)(\*, asset_id, kind[, path, url, ...])    | A content-addressed generated file with provenance.                                                                                                                                                                |
 | [`Rights`](_autosummary/lacing.html.md#lacing.Rights)(\*, provider[, id, title, license, ...])   | Who owns the bytes of an *acquired* artifact, and on what terms.                                                                                                                                                   |
 | [`Restriction`](_autosummary/lacing.html.md#lacing.Restriction)(\*, kind[, terms])                    | One usage restriction that a licence code does not imply (lacing#106).                                                                                                                                             |
-| [`Use`](_autosummary/lacing.html.md#lacing.Use)(\*[, revenue_usd, territory])                 | One use of an asset, as the restrictions on it ask about it.                                                                                                                                                       |
+| [`Use`](_autosummary/lacing.html.md#lacing.Use)(\*[, revenue_usd, territory, standalone])     | One use of an asset, as the restrictions on it ask about it.                                                                                                                                                       |
 | [`ArtifactStore`](_autosummary/lacing.html.md#lacing.ArtifactStore)(catalog[, blobs, on_write, ...])    | Facade over an artifact `catalog` and an optional `blobs` store.                                                                                                                                                   |
 | [`ResolvedArtifact`](_autosummary/lacing.html.md#lacing.ResolvedArtifact)(key, record, content_hash, data) | What [`ArtifactStore.resolve()`](_autosummary/lacing.html.md#lacing.ArtifactStore.resolve) found.                                                                                                                               |
 | [`ArtifactRef`](_autosummary/lacing.html.md#lacing.ArtifactRef)(key[, store, pin])                    | A reference to an artifact: its `key`, the `store` that files it when known, and the content `pin` when it names one: the store's content hash, 64 hex digits of SHA-256 (an `Artifact.asset_id`), kept lowercase. |
@@ -6719,7 +6730,8 @@ Rights(provider="freesound", license="CC-BY-4.0", restrictions=[
 
 `kind` is an open vocabulary, like `Rights.license`: lacing records a
 restriction and never classifies it. The well-known kinds
-(`REVENUE_CAP`, `TERRITORY_EXCLUDED`) have their parameters
+(`REVENUE_CAP`, `TERRITORY_EXCLUDED`, and the parameterless
+`NO_STANDALONE_REDISTRIBUTION`) have their parameters
 checked; any other kind is kept as given. \*\*A consumer that does not know
 a kind must treat the artifact as not cleared\*\*, never skip the
 restriction.
@@ -6950,7 +6962,7 @@ Bases: [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError)
 
 Raised when an annotation’s body_schema_uri has no registered model.
 
-### *class* lacing.Use(, revenue_usd=None, territory=None)
+### *class* lacing.Use(, revenue_usd=None, territory=None, standalone=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -6958,14 +6970,16 @@ One use of an asset, as the restrictions on it ask about it.
 
 `revenue_usd` is the user’s annual revenue in whole US dollars and
 `territory` where the use happens (an ISO 3166-1 alpha-2 code, an alias
-such as `"UK"`, or [`lacing.territory.WORLDWIDE`](_autosummary/lacing.territory.html.md#lacing.territory.WORLDWIDE)); `None` leaves
-either unstated, which fails closed against a restriction that asks.
+such as `"UK"`, or [`lacing.territory.WORLDWIDE`](_autosummary/lacing.territory.html.md#lacing.territory.WORLDWIDE)); `standalone`
+is whether the use redistributes the asset by itself (`True`) or only
+inside a larger work (`False`). `None` leaves any of them unstated,
+which fails closed against a restriction that asks.
 
 ```pycon
 >>> Use(territory=" uk ", revenue_usd=5_000)
-Use(revenue_usd=5000, territory='GB')
+Use(revenue_usd=5000, territory='GB', standalone=None)
 >>> Use()
-Use(revenue_usd=None, territory=None)
+Use(revenue_usd=None, territory=None, standalone=None)
 ```
 
 * **Raises:**
@@ -7731,7 +7745,7 @@ store’s [`ArtifactStore.resolve()`](_autosummary/lacing.html.md#lacing.Artifac
 b'x'
 ```
 
-### lacing.restriction_breach(restriction, use=Use(revenue_usd=None, territory=None), \*, checks={'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>})
+### lacing.restriction_breach(restriction, use=Use(revenue_usd=None, territory=None, standalone=None), \*, checks={'no_standalone_redistribution': <function \_no_standalone_redistribution>, 'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>})
 
 Why `use` breaks `restriction`, or `None` (an unstated use by default).
 
@@ -8824,10 +8838,10 @@ True
 
 ### Classes
 
-| [`Use`](_autosummary/lacing.restrictions.html.md#lacing.restrictions.Use)(\*[, revenue_usd, territory])   | One use of an asset, as the restrictions on it ask about it.   |
-|--------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| [`Use`](_autosummary/lacing.restrictions.html.md#lacing.restrictions.Use)(\*[, revenue_usd, territory, standalone])   | One use of an asset, as the restrictions on it ask about it.   |
+|--------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 
-### lacing.restrictions.RESTRICTION_CHECKS *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Callable](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[Restriction](_autosummary/lacing.artifact.html.md#lacing.artifact.Restriction), [Use](_autosummary/lacing.restrictions.html.md#lacing.restrictions.Use)], [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)]]* *= {'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>}*
+### lacing.restrictions.RESTRICTION_CHECKS *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Callable](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[Restriction](_autosummary/lacing.artifact.html.md#lacing.artifact.Restriction), [Use](_autosummary/lacing.restrictions.html.md#lacing.restrictions.Use)], [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)]]* *= {'no_standalone_redistribution': <function \_no_standalone_redistribution>, 'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>}*
 
 The check of each well-known kind. A consumer that knows another kind passes
 its own map (`checks=`); a kind missing from the map is not cleared.
@@ -8842,7 +8856,7 @@ its own map (`checks=`); a kind missing from the map is not cleared.
 
 alias of [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Restriction`](_autosummary/lacing.artifact.html.md#lacing.artifact.Restriction), [`Use`](_autosummary/lacing.restrictions.html.md#lacing.restrictions.Use)], str | None]
 
-### *class* lacing.restrictions.Use(, revenue_usd=None, territory=None)
+### *class* lacing.restrictions.Use(, revenue_usd=None, territory=None, standalone=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -8850,14 +8864,16 @@ One use of an asset, as the restrictions on it ask about it.
 
 `revenue_usd` is the user’s annual revenue in whole US dollars and
 `territory` where the use happens (an ISO 3166-1 alpha-2 code, an alias
-such as `"UK"`, or [`lacing.territory.WORLDWIDE`](_autosummary/lacing.territory.html.md#lacing.territory.WORLDWIDE)); `None` leaves
-either unstated, which fails closed against a restriction that asks.
+such as `"UK"`, or [`lacing.territory.WORLDWIDE`](_autosummary/lacing.territory.html.md#lacing.territory.WORLDWIDE)); `standalone`
+is whether the use redistributes the asset by itself (`True`) or only
+inside a larger work (`False`). `None` leaves any of them unstated,
+which fails closed against a restriction that asks.
 
 ```pycon
 >>> Use(territory=" uk ", revenue_usd=5_000)
-Use(revenue_usd=5000, territory='GB')
+Use(revenue_usd=5000, territory='GB', standalone=None)
 >>> Use()
-Use(revenue_usd=None, territory=None)
+Use(revenue_usd=None, territory=None, standalone=None)
 ```
 
 * **Raises:**
@@ -8866,7 +8882,7 @@ Use(revenue_usd=None, territory=None)
         negative.
   * [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError) – If `revenue_usd` is not an `int` (a `bool` is not).
 
-### lacing.restrictions.restriction_breach(restriction, use=Use(revenue_usd=None, territory=None), \*, checks={'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>})
+### lacing.restrictions.restriction_breach(restriction, use=Use(revenue_usd=None, territory=None, standalone=None), \*, checks={'no_standalone_redistribution': <function \_no_standalone_redistribution>, 'revenue_cap': <function \_revenue_cap>, 'territory_excluded': <function \_territory_excluded>})
 
 Why `use` breaks `restriction`, or `None` (an unstated use by default).
 
@@ -11686,7 +11702,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-22 11:23 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/814cb28d0c6b72e0466ef24b8f83c6bda256dc38"><code>814cb28</code></a> on branch <code>main</code>, for **lacing 0.0.114** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-22 11:29 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/7a417679aef500dee863001b06d0e0451653cedd"><code>7a41767</code></a> on branch <code>main</code>, for **lacing 0.0.115** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11695,7 +11711,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/814cb28d0c6b72e0466ef24b8f83c6bda256dc38"><code>814cb28d0c6b72e0466ef24b8f83c6bda256dc38</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/7a417679aef500dee863001b06d0e0451653cedd"><code>7a417679aef500dee863001b06d0e0451653cedd</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -11706,9 +11722,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45016816699">45016816699</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45017377870">45017377870</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>814cb28d0c6b72e0466ef24b8f83c6bda256dc38</code> (in the history of the built commit) |
+| Event commit | <code>7a417679aef500dee863001b06d0e0451653cedd</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11733,13 +11749,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.114/">0.0.114</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.115/">0.0.115</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 814cb28d0c6b72e0466ef24b8f83c6bda256dc38
+git checkout 7a417679aef500dee863001b06d0e0451653cedd
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
