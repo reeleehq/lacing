@@ -138,6 +138,11 @@ TERRITORY_EXCLUDED = "territory_excluded"
 ``codes`` (non-empty; ISO 3166-1 alpha-2 country codes, or a region code such
 as ``"EU"``, recorded verbatim)."""
 
+NO_STANDALONE_REDISTRIBUTION = "no_standalone_redistribution"
+"""A :class:`Restriction` kind with no parameters: the asset may not be
+redistributed on its own (only inside a larger work), e.g. a model licence that
+bars standalone redistribution of its output (lacing#177)."""
+
 
 _NonBlankStr = Annotated[StrictStr, StringConstraints(pattern=r"\S")]
 
@@ -176,7 +181,8 @@ class Restriction(BaseModel):
 
     ``kind`` is an open vocabulary, like ``Rights.license``: lacing records a
     restriction and never classifies it. The well-known kinds
-    (:data:`REVENUE_CAP`, :data:`TERRITORY_EXCLUDED`) have their parameters
+    (:data:`REVENUE_CAP`, :data:`TERRITORY_EXCLUDED`, and the parameterless
+    :data:`NO_STANDALONE_REDISTRIBUTION`) have their parameters
     checked; any other kind is kept as given. **A consumer that does not know
     a kind must treat the artifact as not cleared**, never skip the
     restriction.

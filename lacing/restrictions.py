@@ -30,7 +30,12 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
-from lacing.artifact import REVENUE_CAP, TERRITORY_EXCLUDED, Restriction
+from lacing.artifact import (
+    NO_STANDALONE_REDISTRIBUTION,
+    REVENUE_CAP,
+    TERRITORY_EXCLUDED,
+    Restriction,
+)
 from lacing.territory import (
     WORLDWIDE,
     normalize_territory,
@@ -52,13 +57,15 @@ class Use:
 
     ``revenue_usd`` is the user's annual revenue in whole US dollars and
     ``territory`` where the use happens (an ISO 3166-1 alpha-2 code, an alias
-    such as ``"UK"``, or :data:`lacing.territory.WORLDWIDE`); ``None`` leaves
-    either unstated, which fails closed against a restriction that asks.
+    such as ``"UK"``, or :data:`lacing.territory.WORLDWIDE`); ``standalone``
+    is whether the use redistributes the asset by itself (``True``) or only
+    inside a larger work (``False``). ``None`` leaves any of them unstated,
+    which fails closed against a restriction that asks.
 
     >>> Use(territory=" uk ", revenue_usd=5_000)
-    Use(revenue_usd=5000, territory='GB')
+    Use(revenue_usd=5000, territory='GB', standalone=None)
     >>> Use()
-    Use(revenue_usd=None, territory=None)
+    Use(revenue_usd=None, territory=None, standalone=None)
 
     Raises:
         ValueError: If ``territory`` is not one a gate can place (a name, an
@@ -69,6 +76,7 @@ class Use:
 
     revenue_usd: int | None = None
     territory: str | None = None
+    standalone: bool | None = None
 
     def __post_init__(self) -> None:
         revenue = self.revenue_usd
@@ -79,6 +87,8 @@ class Use:
                 )
             if revenue < 0:
                 raise ValueError(f"revenue_usd cannot be negative, got {revenue!r}")
+        if self.standalone is not None and not isinstance(self.standalone, bool):
+            raise TypeError(f"standalone must be a bool, got {self.standalone!r}")
         object.__setattr__(self, "territory", normalize_territory(self.territory))
 
 
@@ -118,11 +128,19 @@ def _territory_excluded(restriction: Restriction, use: Use) -> str | None:
     return f"not allowed in {', '.join(codes)} ({stated})"
 
 
+def _no_standalone_redistribution(restriction: Restriction, use: Use) -> str | None:
+    if use.standalone is False:
+        return None
+    stated = "state whether it is standalone" if use.standalone is None else "the use"
+    return f"not redistributable on its own ({stated})"
+
+
 #: The check of each well-known kind. A consumer that knows another kind passes
 #: its own map (``checks=``); a kind missing from the map is not cleared.
 RESTRICTION_CHECKS: Mapping[str, RestrictionCheck] = {
     REVENUE_CAP: _revenue_cap,
     TERRITORY_EXCLUDED: _territory_excluded,
+    NO_STANDALONE_REDISTRIBUTION: _no_standalone_redistribution,
 }
 
 
