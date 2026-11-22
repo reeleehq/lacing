@@ -188,7 +188,14 @@ def decode_text(
         )
     codec = encoding or sniffed or "utf-8"
     try:
-        return data.decode(codec).removeprefix(_BOM)
+        text = data.decode(codec)
+        if encoding is None and sniffed is None and nameable and "\x00" in text:
+            # BOM-less ASCII UTF-16 is valid UTF-8 full of NULs (lacing#187)
+            at = text.index("\x00")
+            raise UnicodeDecodeError(
+                "utf-8", data, at, at + 1, "NUL byte in the text"
+            )
+        return text.removeprefix(_BOM)
     except UnicodeDecodeError as error:
         if sniffed is not None:
             hint = f"it starts with a {sniffed} BOM but does not decode as {sniffed}"
@@ -196,6 +203,8 @@ def decode_text(
             hint = "not UTF-8"
         elif encoding is not None:
             hint = "wrong encoding= for this text"
+        elif b"\x00" in data:
+            hint = "NUL bytes: probably BOM-less UTF-16, pass encoding='utf-16-le'"
         else:
             hint = "not UTF-8: pass encoding=, e.g. encoding='cp1252' or 'utf-16'"
         error.reason += f" ({hint})"
