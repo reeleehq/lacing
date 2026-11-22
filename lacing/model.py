@@ -218,6 +218,30 @@ class Provenance(SchemaModel):
         return self.generated_at_time != UNKNOWN_GENERATED_AT
 
 
+def import_provenance(
+    generated_by: str,
+    attributed_to: str,
+    *,
+    generated_at: RationalTime | None = None,
+    activity: str = "import",
+) -> Provenance:
+    """The provenance a loader stamps on what it brings in (lacing#176, #189): who
+    generated it (``generated_by``, the loader's generator id), who is
+    responsible (``attributed_to``), when (``generated_at``; now by default)
+    and as which activity (``import``; ``infer`` for what is derived).
+
+    >>> p = import_provenance("adapter:srt@1.0.0", "thor")
+    >>> p.activity, p.was_generated_by, p.was_attributed_to
+    ('import', 'adapter:srt@1.0.0', 'thor')
+    """
+    return Provenance(
+        was_generated_by=generated_by,
+        was_attributed_to=attributed_to,
+        generated_at_time=RationalTime.now() if generated_at is None else generated_at,
+        activity=activity,
+    )
+
+
 # --- Annotation envelope -----------------------------------------------------
 
 
