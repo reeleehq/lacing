@@ -48,12 +48,14 @@ def get_all_meta(store=Depends(get_store)) -> dict[str, str]:
 
 
 class MetaSet(BaseModel):
+    """Request body for setting a metadata value."""
     model_config = {"extra": "forbid"}
     value: str = Field(..., description="String value to store.")
 
 
 @router.put("/meta/{key}")
 def set_meta(key: str, payload: MetaSet, store=Depends(get_store)) -> dict[str, str]:
+    """Store a metadata value under ``key``."""
     set_fn = getattr(store, "set_meta", None)
     if set_fn is None:
         raise HTTPException(

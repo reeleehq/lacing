@@ -71,22 +71,27 @@ class Tier:
 
     @property
     def name(self) -> str:
+        """The tier's name."""
         return self._name
 
     @property
     def stereotype(self) -> TierStereotype:
+        """The tier's :class:`TierStereotype`."""
         return self._stereotype
 
     @property
     def parent(self) -> str | None:
+        """Name of the parent tier, or ``None``."""
         return self._parent
 
     @property
     def metadata(self) -> dict:
+        """A copy of the tier's metadata."""
         # Defensive copy — Tier is intended to be value-like.
         return dict(self._metadata)
 
     def to_wire(self) -> dict:
+        """Serialise to the JSON wire format."""
         d: dict = {
             "name": self._name,
             "stereotype": self._stereotype.value,
@@ -99,6 +104,7 @@ class Tier:
 
     @classmethod
     def from_wire(cls, d: dict) -> "Tier":
+        """Rebuild from :meth:`to_wire` output."""
         return cls(
             d["name"],
             stereotype=TierStereotype(d.get("stereotype", "NONE")),

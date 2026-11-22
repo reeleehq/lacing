@@ -31,6 +31,7 @@ class TierIn(BaseModel):
 
 
 class TierOut(BaseModel):
+    """Response model describing a tier."""
     name: str
     stereotype: TierStereotype
     parent: str | None
@@ -38,6 +39,7 @@ class TierOut(BaseModel):
 
     @classmethod
     def from_tier(cls, tier: Tier) -> "TierOut":
+        """Build the response model from a :class:`~lacing.tier.Tier`."""
         return cls(
             name=tier.name,
             stereotype=tier.stereotype,
@@ -53,6 +55,7 @@ def create_tier(
     store=Depends(get_store),
     oplog=Depends(get_oplog),
 ) -> TierOut:
+    """Create a tier."""
     tier = Tier(
         payload.name,
         stereotype=payload.stereotype,
@@ -76,11 +79,13 @@ def create_tier(
 
 @router.get("", response_model=list[TierOut])
 def list_tiers(store=Depends(get_store)) -> list[TierOut]:
+    """List the tiers of the store."""
     return [TierOut.from_tier(t) for t in store.tiers()]
 
 
 @router.get("/{name}", response_model=TierOut)
 def get_tier(name: str, store=Depends(get_store)) -> TierOut:
+    """Return the tier with the given name, or ``None``."""
     tier = store.get_tier(name)
     if tier is None:
         raise HTTPException(

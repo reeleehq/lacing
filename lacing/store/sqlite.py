@@ -238,6 +238,7 @@ class SqliteStore:
         return None if row is None else int(row["value"])
 
     def close(self) -> None:
+        """Release the underlying resources."""
         with self._lock:
             self._conn.close()
 
@@ -264,12 +265,14 @@ class SqliteStore:
     # --- meta -----------------------------------------------------------
 
     def get_meta(self, key: str) -> str | None:
+        """Return the metadata value stored under ``key``, or ``None``."""
         row = self._conn.execute(
             "SELECT value FROM meta WHERE key = ?", (key,)
         ).fetchone()
         return None if row is None else row["value"]
 
     def set_meta(self, key: str, value: str) -> None:
+        """Store a metadata value under ``key``."""
         with self._lock:
             self._conn.execute(
                 "INSERT INTO meta (key, value) VALUES (?, ?) "
@@ -279,16 +282,19 @@ class SqliteStore:
 
     @property
     def schema_version(self) -> int:
+        """The schema version recorded in the store."""
         v = self.get_meta("schema_version")
         return SCHEMA_VERSION if v is None else int(v)
 
     @property
     def path(self) -> str | os.PathLike:
+        """Filesystem path of the backing database file."""
         return self._path
 
     # --- tier registry --------------------------------------------------
 
     def add_tier(self, tier: Tier) -> None:
+        """Register a tier."""
         with self._lock:
             self._conn.execute(
                 "INSERT INTO tiers (name, stereotype, parent, metadata) "
@@ -306,6 +312,7 @@ class SqliteStore:
             )
 
     def get_tier(self, name: str) -> Tier | None:
+        """Return the tier with the given name, or ``None``."""
         row = self._conn.execute(
             "SELECT name, stereotype, parent, metadata FROM tiers WHERE name = ?",
             (name,),
@@ -315,6 +322,7 @@ class SqliteStore:
         return _row_to_tier(row)
 
     def tiers(self) -> Iterator[Tier]:
+        """Return the registered tiers."""
         rows = self._conn.execute(
             "SELECT name, stereotype, parent, metadata FROM tiers"
         ).fetchall()
@@ -323,6 +331,7 @@ class SqliteStore:
     # --- annotation CRUD -----------------------------------------------
 
     def add(self, annotation: Annotation) -> None:
+        """Add an annotation to the store."""
         cols, values = _annotation_to_row(annotation)
         with self._lock:
             cur = self._conn.cursor()
@@ -348,6 +357,7 @@ class SqliteStore:
                 )
 
     def remove(self, annotation_id: UUID) -> Annotation | None:
+        """Remove the annotation with the given id; return it, or ``None`` if absent."""
         ann = self._fetch_one(annotation_id)
         if ann is None:
             return None
@@ -420,6 +430,7 @@ class SqliteStore:
         return _row_to_annotation(rows[0]) if rows else None
 
     def all(self) -> Iterator[Annotation]:
+        """Iterate over every annotation in the store."""
         for row in self._fetchall("SELECT * FROM annotations"):
             yield _row_to_annotation(row)
 
@@ -497,39 +508,47 @@ class SqliteStore:
     # --- Allen-relation queries ----------------------------------------
 
     def intersects(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations whose interval intersects the query interval."""
         # R*Tree pre-filter: rows whose [start, end] overlaps query interval.
         return self._candidates_filtered(query, _intersects)
 
     def during(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations lying strictly during the query interval (Allen ``during``)."""
         return self._candidates_filtered(
             query, PREDICATE_BY_RELATION[AllenRelation.DURING]
         )
 
     def contains(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that contain the query interval (Allen ``contains``)."""
         return self._candidates_filtered(
             query, PREDICATE_BY_RELATION[AllenRelation.CONTAINS]
         )
 
     def overlaps(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that overlap the start of the query interval (Allen ``overlaps``)."""
         return self._candidates_filtered(
             query, PREDICATE_BY_RELATION[AllenRelation.OVERLAPS]
         )
 
     def meets(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that end exactly where the query interval starts (Allen ``meets``)."""
         # meets(a, q): a.end == q.start. R*Tree won't help — scan all.
         return self._scan_filtered(PREDICATE_BY_RELATION[AllenRelation.MEETS], query)
 
     def starts(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that start with the query interval but end earlier (Allen ``starts``)."""
         return self._candidates_filtered(
             query, PREDICATE_BY_RELATION[AllenRelation.STARTS]
         )
 
     def finishes(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations that finish with the query interval but start later (Allen ``finishes``)."""
         return self._candidates_filtered(
             query, PREDICATE_BY_RELATION[AllenRelation.FINISHES]
         )
 
     def equals(self, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations whose interval equals the query interval."""
         return self._candidates_filtered(
             query, PREDICATE_BY_RELATION[AllenRelation.EQUALS]
         )
@@ -537,6 +556,7 @@ class SqliteStore:
     def relate(
         self, query: TimeInterval, relations: Iterable[AllenRelation]
     ) -> Iterator[Annotation]:
+        """Yield annotations standing in the given Allen relation to the query interval."""
         rels = set(relations)
         # If only "before" or "after" relations are requested, R*Tree is a
         # net loss; for everything else it pays.
@@ -558,12 +578,14 @@ class SqliteStore:
     # --- tier filters --------------------------------------------------
 
     def by_tier(self, tier_name: str) -> Iterator[Annotation]:
+        """Iterate over the annotations of one tier."""
         for row in self._fetchall(
             "SELECT * FROM annotations WHERE tier = ?", (tier_name,)
         ):
             yield _row_to_annotation(row)
 
     def at_tier(self, tier_name: str, query: TimeInterval) -> Iterator[Annotation]:
+        """Yield annotations of one tier that intersect the query interval."""
         for ann in self.intersects(query):
             if ann.tier == tier_name:
                 yield ann
@@ -571,6 +593,7 @@ class SqliteStore:
     # --- bulk ----------------------------------------------------------
 
     def extend(self, annotations: Iterable[Annotation]) -> None:
+        """Add several annotations at once."""
         # Batch insert inside a single transaction for throughput.
         with self._lock:
             cur = self._conn.cursor()

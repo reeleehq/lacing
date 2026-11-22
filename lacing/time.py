@@ -130,10 +130,12 @@ class RationalTime:
 
     @property
     def value(self) -> int:
+        """The tick count."""
         return self._value
 
     @property
     def rate(self) -> int:
+        """The tick rate (ticks per second)."""
         return self._rate
 
     @classmethod
@@ -201,6 +203,7 @@ class RationalTime:
 
     @classmethod
     def from_fraction(cls, f: Fraction, rate: int = DEFAULT_RATE) -> "RationalTime":
+        """Build from a number of seconds given as a :class:`~fractions.Fraction`."""
         return cls.from_seconds(f, rate=rate)
 
     @classmethod
@@ -230,6 +233,7 @@ class RationalTime:
         return cls(int(samples), rate)
 
     def to_fraction(self) -> Fraction:
+        """Return the time in seconds as an exact :class:`~fractions.Fraction`."""
         return Fraction(self._value, self._rate)
 
     def to_seconds(self) -> float:
@@ -310,6 +314,7 @@ class RationalTime:
         return f"RationalTime({self._value}, {self._rate})"
 
     def to_wire(self) -> dict[str, int]:
+        """Serialise to the JSON wire format."""
         return {"v": self._value, "r": self._rate}
 
     @classmethod
@@ -388,10 +393,12 @@ class TimeInterval:
 
     @property
     def start(self) -> RationalTime:
+        """The (inclusive) start time."""
         return self._start
 
     @property
     def end(self) -> RationalTime:
+        """The (exclusive) end time."""
         return self._end
 
     @property
@@ -401,10 +408,12 @@ class TimeInterval:
 
     @property
     def is_point(self) -> bool:
+        """Whether the interval is a point (``start == end``)."""
         return self._start == self._end
 
     @classmethod
     def point(cls, t: RationalTime) -> "TimeInterval":
+        """Build a point interval at ``t``."""
         return cls(t, t)
 
     @classmethod
@@ -414,6 +423,7 @@ class TimeInterval:
         end: float | Fraction | str,
         rate: int = DEFAULT_RATE,
     ) -> "TimeInterval":
+        """Build an interval from start and end given in seconds."""
         return cls(
             RationalTime.from_seconds(start, rate=rate),
             RationalTime.from_seconds(end, rate=rate),
@@ -453,9 +463,11 @@ class TimeInterval:
         )
 
     def shift(self, by: RationalTime) -> "TimeInterval":
+        """Return the interval moved by ``by``."""
         return type(self)(self._start + by, self._end + by)
 
     def to_wire(self) -> dict[str, dict[str, int]]:
+        """Serialise to the JSON wire format."""
         return {"start": self._start.to_wire(), "end": self._end.to_wire()}
 
     @classmethod

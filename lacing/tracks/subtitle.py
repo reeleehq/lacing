@@ -387,12 +387,15 @@ class SubtitleTrack:
         return self._tier_in(SECTIONS_TIER, t, t + eps)
 
     def all_lines(self) -> list[Annotation]:
+        """Return every line annotation."""
         return self._tier_all(LINES_TIER)
 
     def all_words(self) -> list[Annotation]:
+        """Return every word annotation."""
         return self._tier_all(WORDS_TIER)
 
     def all_sections(self) -> list[Annotation]:
+        """Return every section annotation."""
         return self._tier_all(SECTIONS_TIER)
 
     # --- internals -------------------------------------------------------

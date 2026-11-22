@@ -41,6 +41,7 @@ class DefaultFactoryJsonSchema(GenerateJsonSchema):
     """
 
     def default_schema(self, schema: Any) -> dict[str, Any]:
+        """Add an encoded ``default_factory`` result as the schema ``default`` when possible."""
         json_schema = super().default_schema(schema)
         factory = schema.get("default_factory")
         if (
@@ -68,6 +69,7 @@ class SchemaModel(BaseModel):
         mode: JsonSchemaMode = "validation",
         **kwargs: Any,
     ) -> dict[str, Any]:
+        """Export the JSON Schema, including ``default_factory`` defaults."""
         return super().model_json_schema(
             by_alias=by_alias,
             ref_template=ref_template,
