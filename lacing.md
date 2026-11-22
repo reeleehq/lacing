@@ -1,4 +1,4 @@
-> built 2026-11-22 11:02 UTC from 3d28eb8 (main) · lacing 0.0.111. Details: build_info.json
+> built 2026-11-22 11:14 UTC from 1ccd0f1 (main) · lacing 0.0.113. Details: build_info.json
 
 # index.html.md
 
@@ -8027,8 +8027,9 @@ and `.claude/skills/lacing-schema-codegen/SKILL.md`.
 
 ### Functions
 
-| [`partition_provenance_refs`](_autosummary/lacing.model.html.md#lacing.model.partition_provenance_refs)(refs)   | Split `was_derived_from` into `(annotation_ids, asset_ids)`.   |
-|------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| [`import_provenance`](_autosummary/lacing.model.html.md#lacing.model.import_provenance)(generated_by, attributed_to, \*)   | The provenance a loader stamps on what it brings in (lacing#176, #189): who generated it (`generated_by`, the loader's generator id), who is responsible (`attributed_to`), when (`generated_at`; now by default) and as which activity (`import`; `infer` for what is derived).   |
+|-------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`partition_provenance_refs`](_autosummary/lacing.model.html.md#lacing.model.partition_provenance_refs)(refs)                      | Split `was_derived_from` into `(annotation_ids, asset_ids)`.                                                                                                                                                                                                                       |
 
 ### Classes
 
@@ -8173,6 +8174,22 @@ an annotation whose own generation time — or whose upstream parent’s — is
 unknown is **unverifiable**, hence stale, never “the oldest thing in the
 project”. Test with [`Provenance.generated_at_is_known`](_autosummary/lacing.model.html.md#lacing.model.Provenance.generated_at_is_known); never order
 a tick-0 annotation against a real timestamp.
+
+### lacing.model.import_provenance(generated_by, attributed_to, , generated_at=None, activity='import')
+
+The provenance a loader stamps on what it brings in (lacing#176, #189): who
+generated it (`generated_by`, the loader’s generator id), who is
+responsible (`attributed_to`), when (`generated_at`; now by default)
+and as which activity (`import`; `infer` for what is derived).
+
+```pycon
+>>> p = import_provenance("adapter:srt@1.0.0", "thor")
+>>> p.activity, p.was_generated_by, p.was_attributed_to
+('import', 'adapter:srt@1.0.0', 'thor')
+```
+
+* **Return type:**
+  [`Provenance`](_autosummary/lacing.model.html.md#lacing.model.Provenance)
 
 ### lacing.model.partition_provenance_refs(refs)
 
@@ -11598,7 +11615,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-22 11:02 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/3d28eb850f75a645c47546f9c14c282a587343b1"><code>3d28eb8</code></a> on branch <code>main</code>, for **lacing 0.0.111** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-22 11:14 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/1ccd0f10b9e3f4a3602c3ec9be180436e4892545"><code>1ccd0f1</code></a> on branch <code>main</code>, for **lacing 0.0.113** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11607,9 +11624,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/3d28eb850f75a645c47546f9c14c282a587343b1"><code>3d28eb850f75a645c47546f9c14c282a587343b1</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/1ccd0f10b9e3f4a3602c3ec9be180436e4892545"><code>1ccd0f10b9e3f4a3602c3ec9be180436e4892545</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
-| Tags at this commit | none                                                                                                                                                   |
+| Tags at this commit | <code>0.0.113</code>                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
 | Remote              | <code>https://github.com/reeleehq/lacing</code>                                                                                                        |
 
@@ -11618,9 +11635,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45014485679">45014485679</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45015615692">45015615692</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>fb1c9b6ec135700d2eebc855736f45f530bc2fa9</code> (in the history of the built commit) |
+| Event commit | <code>6deb74d0f97d6d17ae503989434088e9f43613ca</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11645,13 +11662,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.111/">0.0.111</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.113/">0.0.113</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 3d28eb850f75a645c47546f9c14c282a587343b1
+git checkout 1ccd0f10b9e3f4a3602c3ec9be180436e4892545
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

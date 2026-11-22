@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=609ae934"></script>
+    <script src="../../_static/documentation_options.js?v=f31ae747"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.111" />
+  <meta name="docsearch:version" content="0.0.113" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -944,6 +944,33 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        True</span>
 <span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generated_at_time</span> <span class="o">!=</span> <span class="n">UNKNOWN_GENERATED_AT</span></div>
+
+
+
+<div class="viewcode-block" id="import_provenance">
+<a class="viewcode-back" href="../../_autosummary/lacing.model.html#lacing.import_provenance">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">import_provenance</span><span class="p">(</span>
+    <span class="n">generated_by</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">attributed_to</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">generated_at</span><span class="p">:</span> <span class="n">RationalTime</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">activity</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"import"</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Provenance</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The provenance a loader stamps on what it brings in (lacing#176, #189): who</span>
+<span class="sd">    generated it (``generated_by``, the loader's generator id), who is</span>
+<span class="sd">    responsible (``attributed_to``), when (``generated_at``; now by default)</span>
+<span class="sd">    and as which activity (``import``; ``infer`` for what is derived).</span>
+
+<span class="sd">    &gt;&gt;&gt; p = import_provenance("adapter:srt@1.0.0", "thor")</span>
+<span class="sd">    &gt;&gt;&gt; p.activity, p.was_generated_by, p.was_attributed_to</span>
+<span class="sd">    ('import', 'adapter:srt@1.0.0', 'thor')</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">Provenance</span><span class="p">(</span>
+        <span class="n">was_generated_by</span><span class="o">=</span><span class="n">generated_by</span><span class="p">,</span>
+        <span class="n">was_attributed_to</span><span class="o">=</span><span class="n">attributed_to</span><span class="p">,</span>
+        <span class="n">generated_at_time</span><span class="o">=</span><span class="n">RationalTime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="k">if</span> <span class="n">generated_at</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">generated_at</span><span class="p">,</span>
+        <span class="n">activity</span><span class="o">=</span><span class="n">activity</span><span class="p">,</span>
+    <span class="p">)</span></div>
 
 
 

@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=609ae934"></script>
+    <script src="../_static/documentation_options.js?v=f31ae747"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.111" />
+  <meta name="docsearch:version" content="0.0.113" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -481,7 +481,10 @@ and <code class="docutils literal notranslate"><span class="pre">.claude/skills/
 <p class="rubric">Functions</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.model.partition_provenance_refs" title="lacing.model.partition_provenance_refs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">partition_provenance_refs</span></code></a>(refs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.model.import_provenance" title="lacing.model.import_provenance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_provenance</span></code></a>(generated_by, attributed_to, *)</p></td>
+<td><p>The provenance a loader stamps on what it brings in (lacing#176, #189): who generated it (<code class="docutils literal notranslate"><span class="pre">generated_by</span></code>, the loader's generator id), who is responsible (<code class="docutils literal notranslate"><span class="pre">attributed_to</span></code>), when (<code class="docutils literal notranslate"><span class="pre">generated_at</span></code>; now by default) and as which activity (<code class="docutils literal notranslate"><span class="pre">import</span></code>; <code class="docutils literal notranslate"><span class="pre">infer</span></code> for what is derived).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.model.partition_provenance_refs" title="lacing.model.partition_provenance_refs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">partition_provenance_refs</span></code></a>(refs)</p></td>
 <td><p>Split <code class="docutils literal notranslate"><span class="pre">was_derived_from</span></code> into <code class="docutils literal notranslate"><span class="pre">(annotation_ids,</span> <span class="pre">asset_ids)</span></code>.</p></td>
 </tr>
 </tbody>
@@ -679,6 +682,25 @@ a tick-0 annotation against a real timestamp.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lacing.model.import_provenance">
+<span class="sig-prename descclassname"><span class="pre">lacing.model.</span></span><span class="sig-name descname"><span class="pre">import_provenance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">generated_by</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attributed_to</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">generated_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'import'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/model.html#import_provenance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.model.import_provenance" title="Link to this definition">#</a></dt>
+<dd><p>The provenance a loader stamps on what it brings in (lacing#176, #189): who
+generated it (<code class="docutils literal notranslate"><span class="pre">generated_by</span></code>, the loader’s generator id), who is
+responsible (<code class="docutils literal notranslate"><span class="pre">attributed_to</span></code>), when (<code class="docutils literal notranslate"><span class="pre">generated_at</span></code>; now by default)
+and as which activity (<code class="docutils literal notranslate"><span class="pre">import</span></code>; <code class="docutils literal notranslate"><span class="pre">infer</span></code> for what is derived).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">import_provenance</span><span class="p">(</span><span class="s2">"adapter:srt@1.0.0"</span><span class="p">,</span> <span class="s2">"thor"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">activity</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">was_generated_by</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">was_attributed_to</span>
+<span class="go">('import', 'adapter:srt@1.0.0', 'thor')</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#lacing.model.Provenance" title="lacing.model.Provenance"><code class="xref py py-class docutils literal notranslate"><span class="pre">Provenance</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lacing.model.partition_provenance_refs">
 <span class="sig-prename descclassname"><span class="pre">lacing.model.</span></span><span class="sig-name descname"><span class="pre">partition_provenance_refs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">refs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/model.html#partition_provenance_refs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.model.partition_provenance_refs" title="Link to this definition">#</a></dt>
 <dd><p>Split <code class="docutils literal notranslate"><span class="pre">was_derived_from</span></code> into <code class="docutils literal notranslate"><span class="pre">(annotation_ids,</span> <span class="pre">asset_ids)</span></code>.</p>
@@ -770,6 +792,7 @@ passed validation would land every UUID <em>string</em> in the asset bucket.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.model.ProvenanceRef"><code class="docutils literal notranslate"><span class="pre">ProvenanceRef</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.model.Reference"><code class="docutils literal notranslate"><span class="pre">Reference</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.model.UNKNOWN_GENERATED_AT"><code class="docutils literal notranslate"><span class="pre">UNKNOWN_GENERATED_AT</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.model.import_provenance"><code class="docutils literal notranslate"><span class="pre">import_provenance()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.model.partition_provenance_refs"><code class="docutils literal notranslate"><span class="pre">partition_provenance_refs()</span></code></a></li>
 </ul>
   </nav></div>

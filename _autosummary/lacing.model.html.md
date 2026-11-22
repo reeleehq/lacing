@@ -17,8 +17,9 @@ and `.claude/skills/lacing-schema-codegen/SKILL.md`.
 
 ### Functions
 
-| [`partition_provenance_refs`](#lacing.model.partition_provenance_refs)(refs)   | Split `was_derived_from` into `(annotation_ids, asset_ids)`.   |
-|------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| [`import_provenance`](#lacing.model.import_provenance)(generated_by, attributed_to, \*)   | The provenance a loader stamps on what it brings in (lacing#176, #189): who generated it (`generated_by`, the loader's generator id), who is responsible (`attributed_to`), when (`generated_at`; now by default) and as which activity (`import`; `infer` for what is derived).   |
+|-------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`partition_provenance_refs`](#lacing.model.partition_provenance_refs)(refs)                      | Split `was_derived_from` into `(annotation_ids, asset_ids)`.                                                                                                                                                                                                                       |
 
 ### Classes
 
@@ -163,6 +164,22 @@ an annotation whose own generation time — or whose upstream parent’s — is
 unknown is **unverifiable**, hence stale, never “the oldest thing in the
 project”. Test with [`Provenance.generated_at_is_known`](#lacing.model.Provenance.generated_at_is_known); never order
 a tick-0 annotation against a real timestamp.
+
+### lacing.model.import_provenance(generated_by, attributed_to, , generated_at=None, activity='import')
+
+The provenance a loader stamps on what it brings in (lacing#176, #189): who
+generated it (`generated_by`, the loader’s generator id), who is
+responsible (`attributed_to`), when (`generated_at`; now by default)
+and as which activity (`import`; `infer` for what is derived).
+
+```pycon
+>>> p = import_provenance("adapter:srt@1.0.0", "thor")
+>>> p.activity, p.was_generated_by, p.was_attributed_to
+('import', 'adapter:srt@1.0.0', 'thor')
+```
+
+* **Return type:**
+  [`Provenance`](#lacing.model.Provenance)
 
 ### lacing.model.partition_provenance_refs(refs)
 

@@ -18,6 +18,7 @@ lacing.model
 
    .. autosummary::
    
+      import_provenance
       partition_provenance_refs
    
    .. rubric:: Classes
