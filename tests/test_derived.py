@@ -704,9 +704,9 @@ def test_a_miss_computes_at_most_max_mixed_fills_more_digests(registered, monkey
     from lacing import digest
 
     computed = []
-    real = digest._digest
+    real = digest._digest_canonical
     monkeypatch.setattr(
-        digest, "_digest", lambda *a: computed.append(1) or real(*a), raising=True
+        digest, "_digest_canonical", lambda *a: computed.append(1) or real(*a), raising=True
     )
 
     def cost(ann, **kw):
@@ -834,9 +834,9 @@ def _digests_computed(monkeypatch):
     from lacing import digest
 
     computed = []
-    real = digest._digest
+    real = digest._digest_canonical
     monkeypatch.setattr(
-        digest, "_digest", lambda *a: computed.append(1) or real(*a), raising=True
+        digest, "_digest_canonical", lambda *a: computed.append(1) or real(*a), raising=True
     )
     return computed
 
@@ -847,13 +847,13 @@ def test_a_miss_on_a_big_body_digests_a_bounded_number_of_bytes(
     from lacing import digest
 
     sizes: list[int] = []
-    real = digest._digest
+    real = digest._digest_canonical
 
-    def counting(scheme, payload):
-        sizes.append(len(json.dumps(payload, sort_keys=True, separators=(",", ":"))))
-        return real(scheme, payload)
+    def counting(scheme, canonical):
+        sizes.append(len(canonical))
+        return real(scheme, canonical)
 
-    monkeypatch.setattr(digest, "_digest", counting, raising=True)
+    monkeypatch.setattr(digest, "_digest_canonical", counting, raising=True)
     ann = _ann(_images(*(f"h{i}" for i in range(1000))))
     uniform = 5
     assert not value_digest_matches(ann, "0" * 64)
@@ -932,3 +932,14 @@ def test_the_memoized_comparison_agrees_with_same_json():
     assert same(values[1], values[1]) and not same(values[0], values[1])
     for _ in range(3):  # temporaries: ids are reused once a value dies
         assert not same([0], [False]) and same({"a": [1]}, {"a": [1]})
+
+
+def test_cheap_candidates_extend_the_reach_on_larger_panels(registered):
+    """lacing#181: a candidate is a join and a hash, so the default byte budget
+    reaches a late fill on a 200-image panel; the old budget (1.5 MB) stopped
+    short of 150 images of this size."""
+    n = 200
+    recorded = _recorded_unaware(_images(*(f"h{i}" for i in range(n - 1)), None))
+    filled = _ann(_images(*(f"h{i}" for i in range(n))))
+    assert value_digest_matches(filled, recorded)
+    assert not value_digest_matches(filled, recorded, max_mixed_bytes=1_500_000)

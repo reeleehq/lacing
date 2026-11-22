@@ -163,6 +163,7 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
+import re
 from collections.abc import Callable, Collection, Iterator, Mapping
 from typing import TYPE_CHECKING, Any, Sequence
 
@@ -274,23 +275,40 @@ VALUE_DIGEST_SCHEMES: tuple[str, ...] = (_V1_SCHEME, VALUE_DIGEST_SCHEME)
 """Every scheme :func:`annotation_value_digest` can compute, oldest first. Only
 the latest excludes derived fields."""
 
-MAX_MIXED_BYTES = 1_500_000
-"""Default budget of bytes :func:`value_digest_matches` digests over mixed-state
-bodies (lacing#161), beside :data:`MAX_MIXED_FILLS`: each candidate is a whole
-canonical dump of the body plus a SHA-256, so the count alone made a miss cost
-the body's size times 1024 (2.15 s at 5000 images). A miss tries at most
-``MAX_MIXED_BYTES // len(body)`` candidates (at least one), so a small body
-still gets the whole count and a large one a bounded cost, about 50 ms with the
-default. ``None`` is no byte budget.
+MAX_MIXED_BYTES = 4_000_000
+"""Default budget of canonical JSON bytes :func:`value_digest_matches` hashes over
+mixed-state bodies (lacing#161, lacing#181), beside :data:`MAX_MIXED_FILLS`: a miss
+stops once the candidates it hashed add up to this (at least one is tried), so a
+small body gets the whole count and a large one a bounded cost. ``None`` is no
+byte budget.
+
+Each candidate is rendered from pre-rendered segments (:class:`_SegmentedCanonical`)
+rather than dumped whole, which made a hashed byte about a quarter of its old cost
+(the SHA-256 is now most of it), so the budget grew from 1.5 MB at about the same
+miss cost: about 35 ms at 1,000 images (measured on an M-series Mac). A body whose
+segments would not repay their setup is dumped whole, charged
+:data:`WHOLE_DUMP_BYTE_COST` per byte, at the old cost.
 
 What it costs in reach: reaching a fill on the ``k``-th image needs about ``k``
-candidates (``2k`` with a non-null pre-fill), so the byte budget limits a
-last-fill trace to about ``sqrt(MAX_MIXED_BYTES / bytes_per_image)`` images with
-the defaults: 135 images at 80 bytes each, 45 at 800. Panels of a few dozen
-images, the realistic case, are not limited; a verifier over larger ones can
-pass ``max_mixed_bytes=None`` (or a larger budget) for the old reach and its
-cost. Making the candidates cheap instead of capping them (canonical JSON as
-fixed segments plus per-site segments) is lacing#181."""
+candidates (``2k`` with a non-null pre-fill), so the byte budget limits a last-fill
+trace to about ``sqrt(MAX_MIXED_BYTES / bytes_per_image)`` images: 220 at 80 bytes
+each, 70 at 800 (135 and 45 before lacing#181). Panels of a few dozen images, the
+realistic case, are not limited; a verifier over larger ones can pass
+``max_mixed_bytes=None`` (or a larger budget) for the full count and its cost."""
+
+SEGMENT_SETUP_BYTES_PER_CONTAINER = 2_000
+"""The cost of building the segments (lacing#181), in bytes of whole dump, per
+dict that holds a derived site: measured at 11-17 us a container, about 1,000
+bytes of dump each, doubled for margin. Segments are built only when the
+candidates the budgets allow would dump more than this times the containers;
+setup grows with the containers, not the body, so a large body with a few
+sites always gets them."""
+
+WHOLE_DUMP_BYTE_COST = 8 / 3
+"""How many budget bytes one byte of a whole-dumped candidate costs (when the
+segments do not pay off): dumping a byte costs about this much more than joining
+and hashing it, so that path keeps the miss cost of the 1.5 MB budget it had
+before lacing#181."""
 
 MAX_MIXED_FILLS = 1024
 """Default budget of mixed-state bodies :func:`value_digest_matches` tries
@@ -315,8 +333,8 @@ combination of the filled ones, so with seven or more filled images it is past
 the budget.
 
 Cost: a miss computes up to this many more digests, each over the whole body,
-so at most :data:`MAX_MIXED_BYTES` of body bytes (lacing#161): about 0.45 s at
-1,000 images without that budget, about 35 ms with it."""
+so at most :data:`MAX_MIXED_BYTES` of body bytes (lacing#161): about 0.36 s at
+1,000 images without that budget (3.2 s before lacing#181), about 40 ms with it."""
 
 BODY_DIGEST_SCHEME = "lacing/annotation-body-digest/v1"
 """Domain-separation tag mixed into :func:`annotation_body_digest`."""
@@ -670,21 +688,11 @@ def _value_digests(
             if digest not in seen:
                 seen.add(digest)
                 yield digest
-    # last, each occurrence in its own state, editing the dropped dump in place
-    for mixed in _mixed_fills(
+    # last, each occurrence in its own state, as canonical text (lacing#181)
+    for canonical in _mixed_fills(
         payload, dropped, limit=max_mixed_fills, max_bytes=max_mixed_bytes
     ):
-        yield _digest(_V1_SCHEME, mixed)
-
-
-def _mixed_limit(payload: dict, max_fills: int, max_bytes: int | None) -> int:
-    """How many mixed-state bodies to try: ``max_fills``, cut so that digesting
-    them is about ``max_bytes`` of canonical JSON (each costs the size of
-    ``payload``, the body as it is now; at least one is tried)."""
-    if max_bytes is None:
-        return max_fills
-    size = len(json.dumps(payload, sort_keys=True, separators=(",", ":")))
-    return min(max_fills, max(1, max_bytes // max(size, 1)))
+        yield _digest_canonical(_V1_SCHEME, canonical)
 
 
 def _is_json(value: Any) -> bool:
@@ -718,13 +726,15 @@ the value it held)."""
 
 def _mixed_fills(
     payload: dict, dropped: list, *, limit: int, max_bytes: int | None = None
-) -> Iterator[dict]:
+) -> Iterator[str]:
     """``payload``, whose derived entries ``dropped`` were removed, with each of
     them in its own state: as now, absent, ``None``, or its path's pre-fill
     value. Only the mixed combinations (the bodies of the uniform ones were
-    tried before), at most ``limit`` of them and about ``max_bytes`` of
-    canonical JSON (:func:`_mixed_limit`), the likeliest first, so a miss
-    costs ``limit`` digests, never ``3**n``.
+    tried before), at most ``limit`` of them and until about ``max_bytes`` of
+    canonical JSON have been hashed (at least one), the likeliest first, so a
+    miss costs ``limit`` digests, never ``3**n``. Each is yielded as its
+    canonical JSON text, rendered from segments (:class:`_SegmentedCanonical`,
+    lacing#181) rather than dumped whole.
 
     Likeliest first (lacing#157): the occurrences filled now (not ``None``, not
     at their pre-fill) are where a late fill happened, so the combinations that
@@ -732,9 +742,8 @@ def _mixed_fills(
     ``null`` or at its pre-fill now, it most likely was then too); then those
     that also move the others. Each in :func:`_by_distance` order.
 
-    ``payload`` is edited in place from one combination to the next, only where
-    an occurrence's state changes, so each yield is valid only until the next
-    (the caller digests it at once)."""
+    The segments leave ``payload`` as now; the whole-dump fallback edits it in
+    place from one combination to the next, so a caller must not read it after."""
     from lacing.derived import memoized_same_json
 
     same_json = memoized_same_json()
@@ -785,16 +794,33 @@ def _mixed_fills(
 
     for container, key, value, _ in dropped:  # start from the body as now
         container[key] = value
-    limit = _mixed_limit(payload, limit, max_bytes)
+    size = max(len(_canonical(payload)), 1)
+    expected = limit if max_bytes is None else min(limit, max(1, max_bytes // size))
+    containers = len({id(container) for container, *_ in dropped})
+    # segments repay their setup, which grows with the containers, over enough candidates
+    render = (
+        _SegmentedCanonical.of(payload, dropped)
+        if expected * size > SEGMENT_SETUP_BYTES_PER_CONTAINER * containers
+        else None
+    )
+    cost = 1.0 if render is not None else WHOLE_DUMP_BYTE_COST
+    hashed = 0.0
     applied: dict[int, Any] = {}  # the sites ``payload`` holds off "as now"
     for combo in itertools.islice((c for c in combos if c not in tried), limit):
-        for i in applied.keys() - combo.keys():
-            place(i, dropped[i][2])
-        for i, state in combo.items():
-            if i not in applied or applied[i] is not state:
-                place(i, state)
-        applied = combo
-        yield payload
+        if render is not None:
+            canonical = render.text(combo)
+        else:  # a body the segments cannot render: dump it whole, as before
+            for i in applied.keys() - combo.keys():
+                place(i, dropped[i][2])
+            for i, state in combo.items():
+                if i not in applied or applied[i] is not state:
+                    place(i, state)
+            applied = combo
+            canonical = _canonical(payload)
+        yield canonical
+        hashed += len(canonical) * cost
+        if max_bytes is not None and hashed >= max_bytes:
+            return
 
 
 def _by_distance(
@@ -880,6 +906,182 @@ def _payload(annotation: "Annotation", fields: Sequence[str]) -> dict[str, Any]:
     return {field: dumped[field] for field in fields}
 
 
+def _canonical(value: Any) -> str:
+    """The canonical JSON of ``value``: what every digest here hashes."""
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def _digest_canonical(scheme: str, canonical: str) -> str:
+    """:func:`_digest` of a payload whose canonical JSON is ``canonical``."""
+    return hashlib.sha256(f"{scheme}\n{canonical}".encode("utf-8")).hexdigest()
+
+
+class _SegmentedCanonical:
+    """The canonical JSON of a payload whose derived sites change state, built from
+    pre-rendered slots instead of dumped whole (lacing#181).
+
+    The payload as now is rendered once into a flat list of slots: fixed text, one
+    slot per entry of a dict that holds a site (a site's *container*) and one per
+    comma between its entries. A candidate copies the list, re-renders only the
+    containers it moves a site of (an absent site's slot and its comma go empty, so
+    no stray comma is left), and joins: a list copy and a C-level join instead of a
+    dump, which was 85-95% of a candidate's cost.
+
+    The text is byte for byte :func:`_canonical` of the payload in that state (every
+    piece goes through the same ``json.dumps``). :meth:`of` returns ``None``, and the
+    caller dumps whole, when a token's text also occurs in the payload, or a site's
+    container is not a dict.
+    """
+
+    _TOKEN = "\x00lacing-site-container-{}\x00"
+
+    def __init__(self, slots: list, layout: dict, site_slot: list, keys: list, current: list):
+        self._slots = slots  # the payload as now
+        self._layout = layout  # container -> [(comma slot, site index or None, entry slot)]
+        self._site_slot = site_slot  # site i -> (container, its entry's position)
+        self._keys = keys  # site i -> its '"key":' text
+        self._current = current  # site i -> its value as now
+        self._state_text: dict[tuple[int, int], tuple[Any, str]] = {}
+
+    #: A container's token as ``json.dumps`` renders it (the ``\x00`` escaped).
+    _RENDERED_TOKEN = re.compile(r'"\\u0000lacing-site-container-(\d+)\\u0000"')
+
+    @classmethod
+    def of(cls, payload: dict, dropped: list) -> "_SegmentedCanonical | None":
+        order: dict[int, int] = {}  # id(container) -> container index
+        by_index: list[dict] = []
+        for container, *_ in dropped:
+            if not isinstance(container, dict):
+                return None
+            if id(container) not in order:
+                order[id(container)] = len(by_index)
+                by_index.append(container)
+
+        def shadow(value: Any) -> Any:
+            if isinstance(value, dict):
+                if id(value) in order:
+                    return cls._TOKEN.format(order[id(value)])
+                return {k: shadow(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [shadow(v) for v in value]
+            return value
+
+        site_of = {(order[id(c)], k): i for i, (c, k, *_) in enumerate(dropped)}
+        top = _canonical(shadow(payload))
+        entry_texts = {
+            ci: [
+                site_of.get((ci, key), json.dumps(key) + ":" + _canonical(shadow(c[key])))
+                for key in sorted(c)
+            ]
+            for ci, c in enumerate(by_index)
+        }
+        found = [int(m.group(1)) for m in cls._RENDERED_TOKEN.finditer(top)]
+        found += [
+            int(m.group(1))
+            for es in entry_texts.values()
+            for e in es
+            if isinstance(e, str)
+            for m in cls._RENDERED_TOKEN.finditer(e)
+        ]
+        if sorted(found) != list(range(len(by_index))):
+            return None  # a token's text also occurs in the body itself
+
+        keys = [json.dumps(key) + ":" for _c, key, *_ in dropped]
+        current = [value for _c, _k, value, _p in dropped]
+        if any(_canonical(shadow(v)) != _canonical(v) for v in current):
+            return None  # a container is also reached through a site's value
+        slots: list[str] = []
+        variable: set[int] = set()  # the slots a candidate may change
+        layout: dict[int, list] = {}
+        site_slot: list = [None] * len(dropped)
+
+        def emit(text: str) -> None:
+            """``text`` into the slots, each container token expanded."""
+            pos = 0
+            for m in cls._RENDERED_TOKEN.finditer(text):
+                slots.append(text[pos : m.start()])
+                container(int(m.group(1)))
+                pos = m.end()
+            slots.append(text[pos:])
+
+        def container(ci: int) -> None:
+            slots.append("{")
+            layout[ci] = []
+            after_site = False  # a comma moves only once a site before it may be absent
+            for n, entry in enumerate(entry_texts[ci]):
+                comma = len(slots)
+                slots.append("," if n else "")
+                if isinstance(entry, int):  # a site, present as now
+                    site_slot[entry] = (ci, n)
+                    variable.update((comma, len(slots)))
+                    layout[ci].append((comma, entry, len(slots)))
+                    slots.append(keys[entry] + _canonical(current[entry]))
+                    after_site = True
+                else:
+                    if after_site:
+                        variable.add(comma)
+                    layout[ci].append((comma if after_site else None, None, None))
+                    emit(entry)
+            slots.append("}")
+
+        emit(top)
+        # merge every run of fixed slots into one, so a candidate joins only the
+        # variable slots and the fixed text between them
+        merged: list[str] = []
+        new_index: dict[int, int] = {}
+        run: list[str] = []
+        for i, slot in enumerate(slots):
+            if i in variable:
+                merged.append("".join(run))
+                run = []
+                new_index[i] = len(merged)
+                merged.append(slot)
+            else:
+                run.append(slot)
+        merged.append("".join(run))
+        layout = {
+            ci: [
+                (
+                    None if comma is None else new_index[comma],
+                    site,
+                    None if slot is None else new_index[slot],
+                )
+                for comma, site, slot in entries
+            ]
+            for ci, entries in layout.items()
+        }
+        return cls(merged, layout, site_slot, keys, current)
+
+    def _site_text(self, i: int, state: Any) -> str:
+        """``"key":value`` of site ``i`` in ``state`` (``""``: absent)."""
+        if state is _ABSENT:
+            return ""
+        memo = (i, id(state))
+        held = self._state_text.get(memo)
+        if held is None or held[0] is not state:  # the state is kept, so its id is not reused
+            held = self._state_text[memo] = (state, self._keys[i] + _canonical(state))
+        return held[1]
+
+    def text(self, combo: Mapping[int, Any]) -> str:
+        """The canonical JSON of the payload with the sites of ``combo`` in their
+        states and every other site as now."""
+        slots = self._slots.copy()
+        for ci in {self._site_slot[i][0] for i in combo}:
+            first = True
+            for comma, site, slot in self._layout[ci]:
+                if site is not None:
+                    state = combo.get(site, self._current[site])
+                    if state is _ABSENT:
+                        slots[comma] = slots[slot] = ""
+                        continue
+                    if site in combo:
+                        slots[slot] = self._site_text(site, state)
+                if comma is not None:  # None: no site before it, so it never moves
+                    slots[comma] = "" if first else ","
+                first = False
+        return "".join(slots)
+
+
 def _digest(scheme: str, payload: dict[str, Any]) -> str:
     """SHA-256 hex over ``scheme`` plus the canonical JSON of ``payload``.
 
@@ -889,5 +1091,4 @@ def _digest(scheme: str, payload: dict[str, Any]) -> str:
     functions in this module whose payloads happened to coincide would return
     the same hex for different questions.
     """
-    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(f"{scheme}\n{canonical}".encode("utf-8")).hexdigest()
+    return _digest_canonical(scheme, _canonical(payload))
