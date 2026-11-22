@@ -674,3 +674,15 @@ def test_a_padded_well_known_kind_is_still_checked():
 
     with pytest.raises(pydantic.ValidationError):
         Restriction(kind=" revenue_cap ", usd="lots")
+
+
+def test_no_standalone_redistribution_is_a_parameterless_kind():
+    from lacing import NO_STANDALONE_REDISTRIBUTION
+    from lacing.restrictions import Use, restriction_breach
+
+    r = Restriction(kind=NO_STANDALONE_REDISTRIBUTION, terms="stability-community")
+    assert restriction_breach(r, Use(standalone=False)) is None
+    assert "on its own" in restriction_breach(r, Use(standalone=True))
+    assert "state whether" in restriction_breach(r)  # unstated fails closed
+    with pytest.raises(TypeError):
+        Use(standalone="no")

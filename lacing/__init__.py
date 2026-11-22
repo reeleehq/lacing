@@ -82,6 +82,7 @@ from lacing.generator_id import (
 from lacing.artifact import (
     Artifact,
     ArtifactKind,
+    NO_STANDALONE_REDISTRIBUTION,
     REVENUE_CAP,
     Restriction,
     Rights,
@@ -178,6 +179,7 @@ __all__ = [
     "normalize_territory",
     "territory_excluded",
     "unplaceable_codes",
+    "NO_STANDALONE_REDISTRIBUTION",
     "REVENUE_CAP",
     "TERRITORY_EXCLUDED",
     "ArtifactStore",
