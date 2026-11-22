@@ -411,3 +411,33 @@ def test_a_second_import_for_the_same_asset_is_refused(golden):
     store = from_aligned_track(golden)
     with pytest.raises(ValueError, match="already holds"):
         from_aligned_track(golden, store)
+
+
+# -- lacing#179: per-code-point case folding; legacy words on an aligned store ---
+
+
+def test_one_unfoldable_code_point_does_not_disable_folding_for_the_text():
+    store = MemoryStore()
+    with SubtitleBuilder(store, asset_id=ASSET) as b:
+        b.line(
+            "İstanbul Straße",
+            0.0,
+            1.0,
+            words=[("İSTANBUL", 0.0, 0.5), ("STRAßE", 0.5, 1.0)],
+        )
+    track = to_aligned_track(store, asset_id=ASSET)
+    assert [s.chars for s in track.spans] == [(0, 15), (0, 8), (9, 15)]
+
+
+def test_a_legacy_word_on_an_aligned_store_is_located_in_its_parents_chars():
+    track = AlignedTrackV1(
+        asset_id=ASSET,
+        text="the cat sat",
+        language="en",
+        spans=[_t("line", 0, 1000, chars=(0, 11))],
+    )
+    store = from_aligned_track(track)
+    with SubtitleBuilder(store, asset_id=ASSET) as b:
+        b.line("the cat sat", 0.0, 1.0, words=[("Cat", 0.3, 0.6)])
+    out = to_aligned_track(store, asset_id=ASSET)
+    assert (4, 7) in [s.chars for s in out.spans if s.level == "word"]
