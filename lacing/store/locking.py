@@ -193,7 +193,9 @@ class KeyedTurn:
                     self._fd = fd
                     return True
                 except BlockingIOError:
-                    if deadline is None or (deadline >= 0 and time.monotonic() >= deadline):
+                    if deadline is None or (
+                        deadline >= 0 and time.monotonic() >= deadline
+                    ):
                         os.close(fd)
                         return False
                     time.sleep(self.poll_s)
@@ -231,7 +233,9 @@ class KeyedTurn:
             self._thread_lock.release()
         return taken
 
-    async def acquire_async(self, *, poll_s: float | None = None, deadline_s: float | None = None) -> bool:
+    async def acquire_async(
+        self, *, poll_s: float | None = None, deadline_s: float | None = None
+    ) -> bool:
         """Take the turn from an event loop: :meth:`try_acquire` every ``poll_s``
         (default the turn's), for at most ``deadline_s`` seconds (``None``: until
         taken). Nothing is held across an ``await``, so a cancelled waiter holds
@@ -272,7 +276,10 @@ _KEYED_TURNS_GUARD = threading.Lock()
 
 
 def keyed_turn(
-    directory: str | os.PathLike, key: str, *, name_of: Callable[[str], str] = turn_file_name
+    directory: str | os.PathLike,
+    key: str,
+    *,
+    name_of: Callable[[str], str] = turn_file_name,
 ) -> KeyedTurn:
     """The one :class:`KeyedTurn` per ``(directory, key)`` in this process: every
     caller that takes a key's turn must share one, or their thread locks would not
