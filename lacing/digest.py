@@ -926,7 +926,7 @@ class _SegmentedCanonical:
         self._site_slot = site_slot  # site i -> (container, its entry's position)
         self._keys = keys  # site i -> its '"key":' text
         self._current = current  # site i -> its value as now
-        self._state_text: dict[tuple[int, int], str] = {}
+        self._state_text: dict[tuple[int, int], tuple[Any, str]] = {}
 
     #: A container's token as ``json.dumps`` renders it (the ``\x00`` escaped).
     _RENDERED_TOKEN = re.compile(r'"\\u0000lacing-site-container-(\d+)\\u0000"')
@@ -1040,10 +1040,10 @@ class _SegmentedCanonical:
         if state is _ABSENT:
             return ""
         memo = (i, id(state))
-        text = self._state_text.get(memo)
-        if text is None:
-            text = self._state_text[memo] = self._keys[i] + _canonical(state)
-        return text
+        held = self._state_text.get(memo)
+        if held is None or held[0] is not state:  # the state is kept, so its id is not reused
+            held = self._state_text[memo] = (state, self._keys[i] + _canonical(state))
+        return held[1]
 
     def text(self, combo: Mapping[int, Any]) -> str:
         """The canonical JSON of the payload with the sites of ``combo`` in their
