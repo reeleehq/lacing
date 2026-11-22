@@ -522,7 +522,7 @@ class Artifact(BaseModel):
 
     # -- helpers -------------------------------------------------------------
 
-    def to_media_ref(self, interval) -> "MediaRef":
+    def to_media_ref(self, interval) -> "MediaRef":  # noqa: F821
         """Return a :class:`lacing.MediaRef` pointing at this artifact.
 
         Use this to attach an annotation to a region of the artifact:

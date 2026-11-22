@@ -142,6 +142,7 @@ exclude = [
 [tool.ruff.lint]
 select = [
     "D100",
+    "F",
 ]
 ignore = [
     "D203",

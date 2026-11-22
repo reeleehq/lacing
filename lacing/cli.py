@@ -56,11 +56,9 @@ import importlib
 import json
 import sys
 from collections.abc import Iterable
-from typing import Annotated
 
 import cw
 
-from lacing.allen import AllenRelation
 
 
 _ENABLED_ADAPTERS = (
