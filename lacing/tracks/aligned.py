@@ -263,6 +263,7 @@ def to_aligned_track(
     else:
         text, stored_language = stored.text, stored.language
         chars = _consistent_chars([r.chars for r in ordered], parents, len(text))
+        _locate_legacy(text, ordered, parents, chars)
     spans = [
         AlignedSpan(
             level=r.level,
@@ -299,6 +300,51 @@ def _consistent_chars(
             c = None
         kept.append(c)
     return kept
+
+
+def _fold(text: str) -> str:
+    """``text`` lower-cased per code point, keeping a code point whose lower case
+    has another length (``İ``, ``ß`` stay), so offsets in the result are offsets
+    in ``text``.
+
+    >>> _fold("İstanbul STRASSE"), len(_fold("İstanbul STRASSE"))
+    ('İstanbul strasse', 16)
+    """
+    return "".join(c if len(c.lower()) != 1 else c.lower() for c in text)
+
+
+def _find(text: str, folded: str, wanted: str, lo: int, hi: int) -> int:
+    """Where ``wanted`` starts in ``text[lo:hi]``, exact first, else ignoring
+    case (``folded`` is ``_fold(text)``); ``-1`` when absent."""
+    at = text.find(wanted, lo, hi)
+    return at if at >= 0 else folded.find(_fold(wanted), lo, hi)
+
+
+def _locate_legacy(
+    text: str,
+    ordered: list["_Row"],
+    parents: list[int | None],
+    chars: list[tuple[int, int] | None],
+) -> None:
+    """Fill, in place, the ``chars`` of rows that hold text but no offsets (a
+    legacy word or line on an aligned store): searched, in order, inside the
+    parent's range (the whole text for a root), as :func:`_layout` does."""
+    folded = _fold(text)
+    resume: dict[int | None, int] = {}
+    for i, r in enumerate(ordered):
+        parent = parents[i]
+        if chars[i] is not None or not r.text:
+            continue
+        if parent is None:
+            lo, hi = 0, len(text)
+        elif chars[parent] is None:
+            continue
+        else:
+            lo, hi = chars[parent]  # type: ignore[misc]
+        at = _find(text, folded, r.text, max(resume.get(parent, lo), lo), hi)
+        if at >= 0:
+            chars[i] = (at, at + len(r.text))
+            resume[parent] = at + len(r.text)
 
 
 def _ms(t: RationalTime, quantize: QuantizeMode | None) -> int:
@@ -451,7 +497,7 @@ def _layout(
         return "", chars
     separator = _LINE_SEPARATOR if top == "line" else _INLINE_SEPARATOR
     text = separator.join(texts[i] for i in members)  # type: ignore[misc]
-    folded = text.lower() if len(text.lower()) == len(text) else text
+    folded = _fold(text)
     cursor = 0
     for i in members:
         size = len(texts[i])  # type: ignore[arg-type]
@@ -466,9 +512,7 @@ def _layout(
         lo, hi = chars[parent]  # type: ignore[misc]
         wanted = texts[i]
         start = max(resume.get(parent, lo), lo)
-        at = text.find(wanted, start, hi)  # type: ignore[arg-type]
-        if at < 0:
-            at = folded.find(wanted.lower(), start, hi)  # type: ignore[union-attr]
+        at = _find(text, folded, wanted, start, hi)  # type: ignore[arg-type]
         if at >= 0:
             chars[i] = (at, at + len(wanted))  # type: ignore[arg-type]
             resume[parent] = at + len(wanted)  # type: ignore[arg-type]
