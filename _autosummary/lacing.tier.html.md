@@ -27,6 +27,36 @@ Tiers are pure metadata; they don’t own annotations. The store is keyed
 by interval, not by tier — annotations carry their tier name as a field.
 This matches ELAN’s TIME_ORDER indirection (see ANN-DOC §C).
 
+#### *classmethod* from_wire(d)
+
+Rebuild from [`to_wire()`](#lacing.tier.Tier.to_wire) output.
+
+* **Return type:**
+  [`Tier`](#lacing.tier.Tier)
+
+#### *property* metadata *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)*
+
+A copy of the tier’s metadata.
+
+#### *property* name *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+The tier’s name.
+
+#### *property* parent *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+
+Name of the parent tier, or `None`.
+
+#### *property* stereotype *: [TierStereotype](#lacing.tier.TierStereotype)*
+
+The tier’s [`TierStereotype`](#lacing.tier.TierStereotype).
+
+#### to_wire()
+
+Serialise to the JSON wire format.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
 ### *class* lacing.tier.TierStereotype(\*values)
 
 Bases: [`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Enum`](https://docs.python.org/3/library/enum.html#enum.Enum)

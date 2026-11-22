@@ -35,23 +35,23 @@ Relation table (a R b means: a’s relation to b is R):
 
 ### Functions
 
-| `after`(a, b)                                                     |                                                                     |
-|-------------------------------------------------------------------|---------------------------------------------------------------------|
-| `before`(a, b)                                                    |                                                                     |
-| [`compose`](#lacing.allen.compose)(r1, r2)  | Allen's composition.                                                |
-| `contains`(a, b)                                                  |                                                                     |
-| `during`(a, b)                                                    |                                                                     |
-| `equals`(a, b)                                                    |                                                                     |
-| `finished_by`(a, b)                                               |                                                                     |
-| `finishes`(a, b)                                                  |                                                                     |
-| [`intersects`](#lacing.allen.intersects)(a, b) | True iff `a` and `b` share any positive measure of time.            |
-| `meets`(a, b)                                                     |                                                                     |
-| `met_by`(a, b)                                                    |                                                                     |
-| `overlapped_by`(a, b)                                             |                                                                     |
-| `overlaps`(a, b)                                                  |                                                                     |
-| [`relate`](#lacing.allen.relate)(a, b)     | Return the unique Allen relation between two well-formed intervals. |
-| `started_by`(a, b)                                                |                                                                     |
-| `starts`(a, b)                                                    |                                                                     |
+| [`after`](#lacing.allen.after)(a, b)         | Allen relation `after`: true when `a` after `b`.                    |
+|----------------------------------------------------------------------|---------------------------------------------------------------------|
+| [`before`](#lacing.allen.before)(a, b)        | Allen relation `before`: true when `a` before `b`.                  |
+| [`compose`](#lacing.allen.compose)(r1, r2)     | Allen's composition.                                                |
+| [`contains`](#lacing.allen.contains)(a, b)      | Allen relation `contains`: true when `a` contains `b`.              |
+| [`during`](#lacing.allen.during)(a, b)        | Allen relation `during`: true when `a` during `b`.                  |
+| [`equals`](#lacing.allen.equals)(a, b)        | Allen relation `equals`: true when `a` equals `b`.                  |
+| [`finished_by`](#lacing.allen.finished_by)(a, b)   | Allen relation `finished_by`: true when `a` finished by `b`.        |
+| [`finishes`](#lacing.allen.finishes)(a, b)      | Allen relation `finishes`: true when `a` finishes `b`.              |
+| [`intersects`](#lacing.allen.intersects)(a, b)    | True iff `a` and `b` share any positive measure of time.            |
+| [`meets`](#lacing.allen.meets)(a, b)         | Allen relation `meets`: true when `a` meets `b`.                    |
+| [`met_by`](#lacing.allen.met_by)(a, b)        | Allen relation `met_by`: true when `a` met by `b`.                  |
+| [`overlapped_by`](#lacing.allen.overlapped_by)(a, b) | Allen relation `overlapped_by`: true when `a` overlapped by `b`.    |
+| [`overlaps`](#lacing.allen.overlaps)(a, b)      | Allen relation `overlaps`: true when `a` overlaps `b`.              |
+| [`relate`](#lacing.allen.relate)(a, b)        | Return the unique Allen relation between two well-formed intervals. |
+| [`started_by`](#lacing.allen.started_by)(a, b)    | Allen relation `started_by`: true when `a` started by `b`.          |
+| [`starts`](#lacing.allen.starts)(a, b)        | Allen relation `starts`: true when `a` starts `b`.                  |
 
 ### Classes
 
@@ -77,6 +77,20 @@ The inverse relation.
 
 Lookup table — used by `IntervalAnnotationStore` to dispatch by relation.
 
+### lacing.allen.after(a, b)
+
+Allen relation `after`: true when `a` after `b`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.allen.before(a, b)
+
+Allen relation `before`: true when `a` before `b`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 ### lacing.allen.compose(r1, r2)
 
 Allen’s composition. See module docstring.
@@ -89,6 +103,41 @@ written against it now.
 * **Return type:**
   [`set`](https://docs.python.org/3/builtins/stdtypes.html#set)[[`AllenRelation`](#lacing.allen.AllenRelation)]
 
+### lacing.allen.contains(a, b)
+
+Allen relation `contains`: true when `a` contains `b`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.allen.during(a, b)
+
+Allen relation `during`: true when `a` during `b`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.allen.equals(a, b)
+
+Allen relation `equals`: true when `a` equals `b`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.allen.finished_by(a, b)
+
+Allen relation `finished_by`: true when `a` finished by `b`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.allen.finishes(a, b)
+
+Allen relation `finishes`: true when `a` finishes `b`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 ### lacing.allen.intersects(a, b)
 
 True iff `a` and `b` share any positive measure of time.
@@ -96,6 +145,34 @@ True iff `a` and `b` share any positive measure of time.
 `meets`/`met_by` are NOT intersections (half-open boundaries share
 zero measure). Two zero-length point intervals at the same instant DO
 intersect (they’re equal).
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.allen.meets(a, b)
+
+Allen relation `meets`: true when `a` meets `b`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.allen.met_by(a, b)
+
+Allen relation `met_by`: true when `a` met by `b`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.allen.overlapped_by(a, b)
+
+Allen relation `overlapped_by`: true when `a` overlapped by `b`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.allen.overlaps(a, b)
+
+Allen relation `overlaps`: true when `a` overlaps `b`.
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
@@ -114,3 +191,17 @@ We resolve that by preferring `equals` for identical intervals; the
 
 * **Return type:**
   [`AllenRelation`](#lacing.allen.AllenRelation)
+
+### lacing.allen.started_by(a, b)
+
+Allen relation `started_by`: true when `a` started by `b`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### lacing.allen.starts(a, b)
+
+Allen relation `starts`: true when `a` starts `b`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)

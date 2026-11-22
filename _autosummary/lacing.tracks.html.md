@@ -95,6 +95,27 @@ handled internally. Returned annotations are sorted by start time.
     `None` to ignore asset filtering (rarely what you want).
   * **rate** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – Tick rate used to build query intervals.
 
+#### all_lines()
+
+Return every line annotation.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### all_sections()
+
+Return every section annotation.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### all_words()
+
+Return every word annotation.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
 #### lines_in(start_s, end_s)
 
 Lines that overlap `[start_s, end_s]`.

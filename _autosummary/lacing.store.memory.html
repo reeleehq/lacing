@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -485,12 +485,221 @@ with method bodies — structural typing is enough.</p>
 <dl class="field-list simple">
 </dl>
 <dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.add" title="Link to this definition">#</a></dt>
+<dd><p>Add an annotation to the store.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.add_tier">
+<span class="sig-name descname"><span class="pre">add_tier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tier</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.add_tier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.add_tier" title="Link to this definition">#</a></dt>
+<dd><p>Register a tier.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.all">
+<span class="sig-name descname"><span class="pre">all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.all" title="Link to this definition">#</a></dt>
+<dd><p>Iterate over every annotation in the store.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.at_tier">
+<span class="sig-name descname"><span class="pre">at_tier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tier_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.at_tier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.at_tier" title="Link to this definition">#</a></dt>
+<dd><p>Yield annotations of one tier that intersect the query interval.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.by_tier">
+<span class="sig-name descname"><span class="pre">by_tier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tier_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.by_tier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.by_tier" title="Link to this definition">#</a></dt>
+<dd><p>Iterate over the annotations of one tier.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.contains">
+<span class="sig-name descname"><span class="pre">contains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.contains"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.contains" title="Link to this definition">#</a></dt>
+<dd><p>Yield annotations that contain the query interval (Allen <code class="docutils literal notranslate"><span class="pre">contains</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.during">
+<span class="sig-name descname"><span class="pre">during</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.during"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.during" title="Link to this definition">#</a></dt>
+<dd><p>Yield annotations lying strictly during the query interval (Allen <code class="docutils literal notranslate"><span class="pre">during</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.equals">
+<span class="sig-name descname"><span class="pre">equals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.equals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.equals" title="Link to this definition">#</a></dt>
+<dd><p>Yield annotations whose interval equals the query interval.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.extend">
+<span class="sig-name descname"><span class="pre">extend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.extend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.extend" title="Link to this definition">#</a></dt>
+<dd><p>Add several annotations at once.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.finishes">
+<span class="sig-name descname"><span class="pre">finishes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.finishes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.finishes" title="Link to this definition">#</a></dt>
+<dd><p>Yield annotations that finish with the query interval but start later (Allen <code class="docutils literal notranslate"><span class="pre">finishes</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.get_tier">
+<span class="sig-name descname"><span class="pre">get_tier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.get_tier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.get_tier" title="Link to this definition">#</a></dt>
+<dd><p>Return the tier with the given name, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.tier.html#lacing.tier.Tier" title="lacing.tier.Tier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tier</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.intersects">
+<span class="sig-name descname"><span class="pre">intersects</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.intersects"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.intersects" title="Link to this definition">#</a></dt>
+<dd><p>Yield annotations whose interval intersects the query interval.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.lock">
 <span class="sig-name descname"><span class="pre">lock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.lock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.lock" title="Link to this definition">#</a></dt>
 <dd><p>Exclusive lock named <code class="docutils literal notranslate"><span class="pre">key</span></code> among the threads of this process.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">AbstractContextManager</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.meets">
+<span class="sig-name descname"><span class="pre">meets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.meets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.meets" title="Link to this definition">#</a></dt>
+<dd><p>Yield annotations that end exactly where the query interval starts (Allen <code class="docutils literal notranslate"><span class="pre">meets</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.overlaps">
+<span class="sig-name descname"><span class="pre">overlaps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.overlaps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.overlaps" title="Link to this definition">#</a></dt>
+<dd><p>Yield annotations that overlap the start of the query interval (Allen <code class="docutils literal notranslate"><span class="pre">overlaps</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.relate">
+<span class="sig-name descname"><span class="pre">relate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.relate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.relate" title="Link to this definition">#</a></dt>
+<dd><p>Yield annotations standing in the given Allen relation to the query interval.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.remove">
+<span class="sig-name descname"><span class="pre">remove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.remove"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.remove" title="Link to this definition">#</a></dt>
+<dd><p>Remove the annotation with the given id; return it, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if absent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.starts">
+<span class="sig-name descname"><span class="pre">starts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.starts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.starts" title="Link to this definition">#</a></dt>
+<dd><p>Yield annotations that start with the query interval but end earlier (Allen <code class="docutils literal notranslate"><span class="pre">starts</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.tiers">
+<span class="sig-name descname"><span class="pre">tiers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.tiers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.tiers" title="Link to this definition">#</a></dt>
+<dd><p>Return the registered tiers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.tier.html#lacing.tier.Tier" title="lacing.tier.Tier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tier</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.memory.MemoryStore.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/memory.html#MemoryStore.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.memory.MemoryStore.update" title="Link to this definition">#</a></dt>
+<dd><p>Replace the stored annotation that has the same id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -547,7 +756,26 @@ with method bodies — structural typing is enough.</p>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore"><code class="docutils literal notranslate"><span class="pre">MemoryStore</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.add"><code class="docutils literal notranslate"><span class="pre">MemoryStore.add()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.add_tier"><code class="docutils literal notranslate"><span class="pre">MemoryStore.add_tier()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.all"><code class="docutils literal notranslate"><span class="pre">MemoryStore.all()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.at_tier"><code class="docutils literal notranslate"><span class="pre">MemoryStore.at_tier()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.by_tier"><code class="docutils literal notranslate"><span class="pre">MemoryStore.by_tier()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.contains"><code class="docutils literal notranslate"><span class="pre">MemoryStore.contains()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.during"><code class="docutils literal notranslate"><span class="pre">MemoryStore.during()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.equals"><code class="docutils literal notranslate"><span class="pre">MemoryStore.equals()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.extend"><code class="docutils literal notranslate"><span class="pre">MemoryStore.extend()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.finishes"><code class="docutils literal notranslate"><span class="pre">MemoryStore.finishes()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.get_tier"><code class="docutils literal notranslate"><span class="pre">MemoryStore.get_tier()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.intersects"><code class="docutils literal notranslate"><span class="pre">MemoryStore.intersects()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.lock"><code class="docutils literal notranslate"><span class="pre">MemoryStore.lock()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.meets"><code class="docutils literal notranslate"><span class="pre">MemoryStore.meets()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.overlaps"><code class="docutils literal notranslate"><span class="pre">MemoryStore.overlaps()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.relate"><code class="docutils literal notranslate"><span class="pre">MemoryStore.relate()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.remove"><code class="docutils literal notranslate"><span class="pre">MemoryStore.remove()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.starts"><code class="docutils literal notranslate"><span class="pre">MemoryStore.starts()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.tiers"><code class="docutils literal notranslate"><span class="pre">MemoryStore.tiers()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.memory.MemoryStore.update"><code class="docutils literal notranslate"><span class="pre">MemoryStore.update()</span></code></a></li>
 </ul>
 </li>
 </ul>

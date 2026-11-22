@@ -62,7 +62,7 @@ def v1_to_v2(body: dict) -> dict:
 | [`default_version`](#lacing.schema.default_version)(schema_name)                       | The major version `schema_name` resolves to, or None if none is registered.                                                                                                                  |
 | [`export_json_schemas`](#lacing.schema.export_json_schemas)(target_dir, \*[, ...])         | Write every registered schema as JSON files under `target_dir`.                                                                                                                              |
 | [`get_body_schema`](#lacing.schema.get_body_schema)(uri)                               | Look up the registered Pydantic model for `uri`.                                                                                                                                             |
-| `is_registered`(uri)                                                                                |                                                                                                                                                                                              |
+| [`is_registered`](#lacing.schema.is_registered)(uri)                                 | Return whether `name` is a registered body type.                                                                                                                                             |
 | [`json_schema`](#lacing.schema.json_schema)(uri)                                   | Return the JSON Schema for the body model registered at `uri`.                                                                                                                               |
 | [`latest_version`](#lacing.schema.latest_version)(schema_name)                        | Highest registered major version for `schema_name`, or None.                                                                                                                                 |
 | [`make_uri`](#lacing.schema.make_uri)(name, version)                            | Build a `body_schema_uri` from a name and major version.                                                                                                                                     |
@@ -181,6 +181,13 @@ Look up the registered Pydantic model for `uri`.
 
 * **Return type:**
   [`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]
+
+### lacing.schema.is_registered(uri)
+
+Return whether `name` is a registered body type.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 ### lacing.schema.json_schema(uri)
 

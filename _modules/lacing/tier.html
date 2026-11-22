@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -790,22 +790,29 @@ window.runMermaid = runMermaid;</script>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The tier's name."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">stereotype</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TierStereotype</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The tier's :class:`TierStereotype`."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stereotype</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">parent</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Name of the parent tier, or ``None``."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""A copy of the tier's metadata."""</span>
         <span class="c1"># Defensive copy — Tier is intended to be value-like.</span>
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">)</span>
 
+<div class="viewcode-block" id="Tier.to_wire">
+<a class="viewcode-back" href="../../_autosummary/lacing.tier.html#lacing.Tier.to_wire">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_wire</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Serialise to the JSON wire format."""</span>
         <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
             <span class="s2">"stereotype"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stereotype</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
@@ -814,16 +821,21 @@ window.runMermaid = runMermaid;</script>
             <span class="n">d</span><span class="p">[</span><span class="s2">"parent"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">:</span>
             <span class="n">d</span><span class="p">[</span><span class="s2">"metadata"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">d</span>
+        <span class="k">return</span> <span class="n">d</span></div>
 
+
+<div class="viewcode-block" id="Tier.from_wire">
+<a class="viewcode-back" href="../../_autosummary/lacing.tier.html#lacing.Tier.from_wire">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_wire</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Tier"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Rebuild from :meth:`to_wire` output."""</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">d</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span>
             <span class="n">stereotype</span><span class="o">=</span><span class="n">TierStereotype</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stereotype"</span><span class="p">,</span> <span class="s2">"NONE"</span><span class="p">)),</span>
             <span class="n">parent</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"parent"</span><span class="p">),</span>
             <span class="n">metadata</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">),</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Tier</span><span class="p">):</span>

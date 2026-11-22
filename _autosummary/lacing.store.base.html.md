@@ -39,6 +39,13 @@ Append `annotation` to the list at its reference interval.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### add_tier(tier)
+
+Register a tier.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### all()
 
 Iterate every annotation in the store, order unspecified.
@@ -94,6 +101,13 @@ Allen `f`: later start, same end.
 
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### get_tier(name)
+
+Return the tier with the given name, or `None`.
+
+* **Return type:**
+  [`Tier`](lacing.tier.html.md#lacing.tier.Tier) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### intersects(query)
 

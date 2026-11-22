@@ -132,6 +132,13 @@ scoping is transparent.
     a dedicated connection when `psycopg_pool` is unavailable, when the
     connection is given as a dict, or when `use_pool=False`.
 
+#### add(annotation)
+
+Add an annotation to the store.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### add_tier(tier, , enforce_no_overlap=False)
 
 Add or update a tier.
@@ -144,6 +151,97 @@ Add or update a tier.
     Cannot be toggled after the tier has annotations.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### all()
+
+Iterate over every annotation in the store.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### at_tier(tier_name, query)
+
+Yield annotations of one tier that intersect the query interval.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### by_tier(tier_name)
+
+Iterate over the annotations of one tier.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### close()
+
+Release the underlying resources.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### contains(query)
+
+Yield annotations that contain the query interval (Allen `contains`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### during(query)
+
+Yield annotations lying strictly during the query interval (Allen `during`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### equals(query)
+
+Yield annotations whose interval equals the query interval.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### extend(annotations)
+
+Add several annotations at once.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### finishes(query)
+
+Yield annotations that finish with the query interval but start later (Allen `finishes`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### get_meta(key)
+
+Return the metadata value stored under `key`, or `None`.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### get_tier(name)
+
+Return the tier with the given name, or `None`.
+
+* **Return type:**
+  [`Tier`](lacing.tier.html.md#lacing.tier.Tier) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### intersects(query)
+
+Yield annotations whose interval intersects the query interval.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### is_no_overlap_enforced(tier_name)
+
+Whether the database enforces no overlap within a tier.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 #### lock(key)
 
@@ -159,6 +257,71 @@ available; not re-entrant.
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
+#### meets(query)
+
+Yield annotations that end exactly where the query interval starts (Allen `meets`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### overlaps(query)
+
+Yield annotations that overlap the start of the query interval (Allen `overlaps`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### *property* owner_id *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+Identifier of the owner this store is scoped to.
+
+#### *property* project_id *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+Identifier of the project this store is scoped to.
+
+#### *property* rate *: [int](https://docs.python.org/3/builtins/functions.html#int)*
+
+The tick rate (ticks per second) of this store.
+
+#### relate(query, relations)
+
+Yield annotations standing in the given Allen relation to the query interval.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### remove(annotation_id)
+
+Remove the annotation with the given id; return it, or `None` if absent.
+
+* **Return type:**
+  [`Annotation`](lacing.model.html.md#lacing.model.Annotation) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### *property* schema_version *: [int](https://docs.python.org/3/builtins/functions.html#int)*
+
+The schema version recorded in the store.
+
+#### set_meta(key, value)
+
+Store a metadata value under `key`.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### starts(query)
+
+Yield annotations that start with the query interval but end earlier (Allen `starts`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### tiers()
+
+Return the registered tiers.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Tier`](lacing.tier.html.md#lacing.tier.Tier)]
+
 #### update(annotation)
 
 Replace the row with this id in ONE `UPDATE` statement (lacing#66).
@@ -166,7 +329,7 @@ Replace the row with this id in ONE `UPDATE` statement (lacing#66).
 A single statement is atomic in any isolation mode, so a concurrent
 reader sees the old row or the new one — unlike `remove` then `add`,
 which commit twice. Raises `KeyError` if the id is not in this
-`(owner, project)` and `TierOverlapError` like `add()`.
+`(owner, project)` and `TierOverlapError` like [`add()`](#lacing.store.postgres.PostgresStore.add).
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)

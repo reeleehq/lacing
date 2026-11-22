@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -553,6 +553,17 @@ their rational value, so <code class="docutils literal notranslate"><span class=
 <dl class="field-list simple">
 </dl>
 <dl class="py method">
+<dt class="sig sig-object py" id="lacing.time.RationalTime.from_fraction">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_fraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/time.html#RationalTime.from_fraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.time.RationalTime.from_fraction" title="Link to this definition">#</a></dt>
+<dd><p>Build from a number of seconds given as a <a class="reference external" href="https://docs.python.org/3/library/fractions.html#fractions.Fraction" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fraction</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#lacing.time.RationalTime" title="lacing.time.RationalTime"><code class="xref py py-class docutils literal notranslate"><span class="pre">RationalTime</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lacing.time.RationalTime.from_seconds">
 <span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_seconds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/time.html#RationalTime.from_seconds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.time.RationalTime.from_seconds" title="Link to this definition">#</a></dt>
 <dd><p>Build from seconds. Quantizes to <code class="docutils literal notranslate"><span class="pre">rate</span></code>; raises if lossy.</p>
@@ -632,6 +643,23 @@ as a <em>known</em> time. Tick 0 there is the UNKNOWN sentinel
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="lacing.time.RationalTime.rate">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">rate</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><a class="headerlink" href="#lacing.time.RationalTime.rate" title="Link to this definition">#</a></dt>
+<dd><p>The tick rate (ticks per second).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.time.RationalTime.to_fraction">
+<span class="sig-name descname"><span class="pre">to_fraction</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/time.html#RationalTime.to_fraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.time.RationalTime.to_fraction" title="Link to this definition">#</a></dt>
+<dd><p>Return the time in seconds as an exact <a class="reference external" href="https://docs.python.org/3/library/fractions.html#fractions.Fraction" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fraction</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/fractions.html#fractions.Fraction" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fraction</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="lacing.time.RationalTime.to_rate">
 <span class="sig-name descname"><span class="pre">to_rate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_rate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/time.html#RationalTime.to_rate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.time.RationalTime.to_rate" title="Link to this definition">#</a></dt>
@@ -652,6 +680,23 @@ as a <em>known</em> time. Tick 0 there is the UNKNOWN sentinel
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.time.RationalTime.to_wire">
+<span class="sig-name descname"><span class="pre">to_wire</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/time.html#RationalTime.to_wire"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.time.RationalTime.to_wire" title="Link to this definition">#</a></dt>
+<dd><p>Serialise to the JSON wire format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lacing.time.RationalTime.value">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">value</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><a class="headerlink" href="#lacing.time.RationalTime.value" title="Link to this definition">#</a></dt>
+<dd><p>The tick count.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -693,6 +738,23 @@ Always <code class="docutils literal notranslate"><span class="pre">start</span>
 <dd><p><code class="docutils literal notranslate"><span class="pre">end</span> <span class="pre">-</span> <span class="pre">start</span></code> at the same rate as <code class="docutils literal notranslate"><span class="pre">start</span></code>.</p>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="lacing.time.TimeInterval.end">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">end</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#lacing.time.RationalTime" title="lacing.time.RationalTime"><span class="pre">RationalTime</span></a></span><a class="headerlink" href="#lacing.time.TimeInterval.end" title="Link to this definition">#</a></dt>
+<dd><p>The (exclusive) end time.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.time.TimeInterval.from_seconds">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_seconds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/time.html#TimeInterval.from_seconds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.time.TimeInterval.from_seconds" title="Link to this definition">#</a></dt>
+<dd><p>Build an interval from start and end given in seconds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#lacing.time.TimeInterval" title="lacing.time.TimeInterval"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeInterval</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="lacing.time.TimeInterval.from_seconds_lossy">
 <span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_seconds_lossy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'round'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/time.html#TimeInterval.from_seconds_lossy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.time.TimeInterval.from_seconds_lossy" title="Link to this definition">#</a></dt>
@@ -705,7 +767,7 @@ instead of each writing <code class="docutils literal notranslate"><span class="
 product and disagrees on inputs such as <code class="docutils literal notranslate"><span class="pre">0.0005</span></code>. Both ends use
 <code class="docutils literal notranslate"><span class="pre">mode</span></code>, which keeps <code class="docutils literal notranslate"><span class="pre">start</span> <span class="pre">&lt;=</span> <span class="pre">end</span></code> and puts the shared edge of two
 adjacent windows on one tick; a window shorter than a tick can collapse
-to a point. Use <code class="xref py py-meth docutils literal notranslate"><span class="pre">from_seconds()</span></code> when a lossy conversion should be
+to a point. Use <a class="reference internal" href="#lacing.time.TimeInterval.from_seconds" title="lacing.time.TimeInterval.from_seconds"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_seconds()</span></code></a> when a lossy conversion should be
 an error.</p>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">TimeInterval</span><span class="o">.</span><span class="n">from_seconds_lossy</span><span class="p">(</span><span class="mf">3.48</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
@@ -728,6 +790,51 @@ an error.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#lacing.time.TimeInterval" title="lacing.time.TimeInterval"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeInterval</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lacing.time.TimeInterval.is_point">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_point</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#lacing.time.TimeInterval.is_point" title="Link to this definition">#</a></dt>
+<dd><p>Whether the interval is a point (<code class="docutils literal notranslate"><span class="pre">start</span> <span class="pre">==</span> <span class="pre">end</span></code>).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.time.TimeInterval.point">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/time.html#TimeInterval.point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.time.TimeInterval.point" title="Link to this definition">#</a></dt>
+<dd><p>Build a point interval at <code class="docutils literal notranslate"><span class="pre">t</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#lacing.time.TimeInterval" title="lacing.time.TimeInterval"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeInterval</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.time.TimeInterval.shift">
+<span class="sig-name descname"><span class="pre">shift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">by</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/time.html#TimeInterval.shift"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.time.TimeInterval.shift" title="Link to this definition">#</a></dt>
+<dd><p>Return the interval moved by <code class="docutils literal notranslate"><span class="pre">by</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#lacing.time.TimeInterval" title="lacing.time.TimeInterval"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeInterval</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lacing.time.TimeInterval.start">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">start</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#lacing.time.RationalTime" title="lacing.time.RationalTime"><span class="pre">RationalTime</span></a></span><a class="headerlink" href="#lacing.time.TimeInterval.start" title="Link to this definition">#</a></dt>
+<dd><p>The (inclusive) start time.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.time.TimeInterval.to_wire">
+<span class="sig-name descname"><span class="pre">to_wire</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/time.html#TimeInterval.to_wire"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.time.TimeInterval.to_wire" title="Link to this definition">#</a></dt>
+<dd><p>Serialise to the JSON wire format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -788,20 +895,32 @@ an error.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.QuantizeMode"><code class="docutils literal notranslate"><span class="pre">QuantizeMode</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RATIONAL_TIME_JSON_SCHEMA"><code class="docutils literal notranslate"><span class="pre">RATIONAL_TIME_JSON_SCHEMA</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime"><code class="docutils literal notranslate"><span class="pre">RationalTime</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime.from_fraction"><code class="docutils literal notranslate"><span class="pre">RationalTime.from_fraction()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime.from_seconds"><code class="docutils literal notranslate"><span class="pre">RationalTime.from_seconds()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime.from_seconds_lossy"><code class="docutils literal notranslate"><span class="pre">RationalTime.from_seconds_lossy()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime.from_wire"><code class="docutils literal notranslate"><span class="pre">RationalTime.from_wire()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime.now"><code class="docutils literal notranslate"><span class="pre">RationalTime.now()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime.rate"><code class="docutils literal notranslate"><span class="pre">RationalTime.rate</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime.to_fraction"><code class="docutils literal notranslate"><span class="pre">RationalTime.to_fraction()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime.to_rate"><code class="docutils literal notranslate"><span class="pre">RationalTime.to_rate()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime.to_seconds"><code class="docutils literal notranslate"><span class="pre">RationalTime.to_seconds()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime.to_wire"><code class="docutils literal notranslate"><span class="pre">RationalTime.to_wire()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime.value"><code class="docutils literal notranslate"><span class="pre">RationalTime.value</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.RationalTime.zero"><code class="docutils literal notranslate"><span class="pre">RationalTime.zero()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.TIME_INTERVAL_JSON_SCHEMA"><code class="docutils literal notranslate"><span class="pre">TIME_INTERVAL_JSON_SCHEMA</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.TimeInterval"><code class="docutils literal notranslate"><span class="pre">TimeInterval</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.TimeInterval.duration"><code class="docutils literal notranslate"><span class="pre">TimeInterval.duration</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.TimeInterval.end"><code class="docutils literal notranslate"><span class="pre">TimeInterval.end</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.TimeInterval.from_seconds"><code class="docutils literal notranslate"><span class="pre">TimeInterval.from_seconds()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.TimeInterval.from_seconds_lossy"><code class="docutils literal notranslate"><span class="pre">TimeInterval.from_seconds_lossy()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.TimeInterval.from_wire"><code class="docutils literal notranslate"><span class="pre">TimeInterval.from_wire()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.TimeInterval.is_point"><code class="docutils literal notranslate"><span class="pre">TimeInterval.is_point</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.TimeInterval.point"><code class="docutils literal notranslate"><span class="pre">TimeInterval.point()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.TimeInterval.shift"><code class="docutils literal notranslate"><span class="pre">TimeInterval.shift()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.TimeInterval.start"><code class="docutils literal notranslate"><span class="pre">TimeInterval.start</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.time.TimeInterval.to_wire"><code class="docutils literal notranslate"><span class="pre">TimeInterval.to_wire()</span></code></a></li>
 </ul>
 </li>
 </ul>

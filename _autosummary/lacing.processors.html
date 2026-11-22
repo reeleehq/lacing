@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -494,8 +494,8 @@ window.</p></li>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.processors.detect_density_change_points" title="lacing.processors.detect_density_change_points"><code class="xref py py-obj docutils literal notranslate"><span class="pre">detect_density_change_points</span></code></a>(*, store, oplog)</p></td>
 <td><p>Emit point markers wherever annotation density changes sharply.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_processor</span></code>(name)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.processors.get_processor" title="lacing.processors.get_processor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_processor</span></code></a>(name)</p></td>
+<td><p>Return the registered processor called <code class="docutils literal notranslate"><span class="pre">name</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.processors.low_confidence_review" title="lacing.processors.low_confidence_review"><code class="xref py py-obj docutils literal notranslate"><span class="pre">low_confidence_review</span></code></a>(*, store, oplog[, ...])</p></td>
 <td><p>Flag low-confidence annotations by mirroring them onto a review tier.</p></td>
@@ -570,6 +570,17 @@ architecture is what matters.</p>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">{&quot;markers&quot;:</span> <span class="pre">&lt;count&gt;,</span> <span class="pre">&quot;target_tier&quot;:</span> <span class="pre">&lt;name&gt;}</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.processors.get_processor">
+<span class="sig-prename descclassname"><span class="pre">lacing.processors.</span></span><span class="sig-name descname"><span class="pre">get_processor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/processors.html#get_processor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.processors.get_processor" title="Link to this definition">#</a></dt>
+<dd><p>Return the registered processor called <code class="docutils literal notranslate"><span class="pre">name</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Awaitable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Awaitable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -697,6 +708,7 @@ active). Most callers from sync code want the former.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.processors.ProcessorError"><code class="docutils literal notranslate"><span class="pre">ProcessorError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.processors.clear_processors"><code class="docutils literal notranslate"><span class="pre">clear_processors()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.processors.detect_density_change_points"><code class="docutils literal notranslate"><span class="pre">detect_density_change_points()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.processors.get_processor"><code class="docutils literal notranslate"><span class="pre">get_processor()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.processors.low_confidence_review"><code class="docutils literal notranslate"><span class="pre">low_confidence_review()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.processors.register_processor"><code class="docutils literal notranslate"><span class="pre">register_processor()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.processors.registered_processors"><code class="docutils literal notranslate"><span class="pre">registered_processors()</span></code></a></li>

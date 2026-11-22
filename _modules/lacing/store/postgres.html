@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../../../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -1172,18 +1172,22 @@ window.runMermaid = runMermaid;</script>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">rate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The tick rate (ticks per second) of this store."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rate</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">owner_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Identifier of the owner this store is scoped to."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_owner_id</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">project_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Identifier of the project this store is scoped to."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_id</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">schema_version</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The schema version recorded in the store."""</span>
         <span class="k">return</span> <span class="n">SCHEMA_VERSION</span>
 
 <div class="viewcode-block" id="PostgresStore.lock">
@@ -1211,7 +1215,10 @@ window.runMermaid = runMermaid;</script>
             <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
 
+<div class="viewcode-block" id="PostgresStore.close">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.close">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Release the underlying resources."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pooled</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pool</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># Return the connection to the pool rather than closing the socket.</span>
             <span class="k">try</span><span class="p">:</span>
@@ -1219,7 +1226,8 @@ window.runMermaid = runMermaid;</script>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pragma: no cover  — best-effort</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"PostgresStore"</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span>
@@ -1237,7 +1245,10 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        """</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_owner_id</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_project_id</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span>
 
+<div class="viewcode-block" id="PostgresStore.get_meta">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.get_meta">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the metadata value stored under ``key``, or ``None``."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
             <span class="n">row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
                 <span class="s2">"SELECT value FROM meta WHERE key = </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_meta_key</span><span class="p">(</span><span class="n">key</span><span class="p">),)</span>
@@ -1253,15 +1264,20 @@ window.runMermaid = runMermaid;</script>
             <span class="c1"># rate moved to the projects table in v2; expose it via get_meta too.</span>
             <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"rate"</span><span class="p">:</span>
                 <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rate</span><span class="p">)</span>
-            <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
 
+
+<div class="viewcode-block" id="PostgresStore.set_meta">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.set_meta">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Store a metadata value under ``key``."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
             <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
                 <span class="s2">"INSERT INTO meta (key, value) VALUES (</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">) "</span>
                 <span class="s2">"ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value"</span><span class="p">,</span>
                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_meta_key</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">value</span><span class="p">),</span>
-            <span class="p">)</span>
+            <span class="p">)</span></div>
+
 
     <span class="c1"># --- tier registry ------------------------------------------------</span>
 
@@ -1337,43 +1353,59 @@ window.runMermaid = runMermaid;</script>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_safe_tier_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_project_id</span><span class="p">)</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">_safe_tier_id</span><span class="p">(</span><span class="n">tier_name</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)[:</span><span class="mi">63</span><span class="p">]</span>
 
+<div class="viewcode-block" id="PostgresStore.get_tier">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.get_tier">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tier</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the tier with the given name, or ``None``."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
             <span class="n">row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
                 <span class="s2">"SELECT name, stereotype, parent, metadata FROM tiers "</span>
                 <span class="s2">"WHERE owner_id = </span><span class="si">%s</span><span class="s2"> AND project_id = </span><span class="si">%s</span><span class="s2"> AND name = </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_owner_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_id</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span>
             <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
-            <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_row_to_tier</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_row_to_tier</span><span class="p">(</span><span class="n">row</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="PostgresStore.tiers">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.tiers">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">tiers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tier</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return the registered tiers."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
             <span class="n">rows</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
                 <span class="s2">"SELECT name, stereotype, parent, metadata FROM tiers "</span>
                 <span class="s2">"WHERE owner_id = </span><span class="si">%s</span><span class="s2"> AND project_id = </span><span class="si">%s</span><span class="s2"> ORDER BY name"</span><span class="p">,</span>
                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_owner_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_id</span><span class="p">),</span>
             <span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
-        <span class="k">return</span> <span class="nb">iter</span><span class="p">([</span><span class="n">_row_to_tier</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">])</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">([</span><span class="n">_row_to_tier</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">])</span></div>
 
+
+<div class="viewcode-block" id="PostgresStore.is_no_overlap_enforced">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.is_no_overlap_enforced">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_no_overlap_enforced</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tier_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether the database enforces no overlap within a tier."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
             <span class="n">row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
                 <span class="s2">"SELECT enforce_no_overlap FROM tiers "</span>
                 <span class="s2">"WHERE owner_id = </span><span class="si">%s</span><span class="s2"> AND project_id = </span><span class="si">%s</span><span class="s2"> AND name = </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_owner_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_id</span><span class="p">,</span> <span class="n">tier_name</span><span class="p">),</span>
             <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
-            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">row</span> <span class="k">else</span> <span class="kc">False</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">row</span> <span class="k">else</span> <span class="kc">False</span></div>
+
 
     <span class="c1"># --- annotation CRUD ---------------------------------------------</span>
 
+<div class="viewcode-block" id="PostgresStore.add">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.add">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation</span><span class="p">:</span> <span class="n">Annotation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Add an annotation to the store."""</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_do_add</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span>
         <span class="k">except</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psycopg</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">ExclusionViolation</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">TierOverlapError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"annotation </span><span class="si">{</span><span class="n">annotation</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> would overlap an existing one in tier "</span>
                 <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">annotation</span><span class="o">.</span><span class="n">tier</span><span class="si">!r}</span><span class="s2"> (per-tier EXCLUDE constraint is active)"</span>
-            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_scope</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""SQL ``AND``-able tenant predicate + its params.</span>
@@ -1392,7 +1424,10 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">values</span><span class="p">,</span>
             <span class="p">)</span>
 
+<div class="viewcode-block" id="PostgresStore.remove">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.remove">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation_id</span><span class="p">:</span> <span class="n">UUID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Annotation</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Remove the annotation with the given id; return it, or ``None`` if absent."""</span>
         <span class="n">scope</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scope</span><span class="p">()</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
             <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
@@ -1408,7 +1443,8 @@ window.runMermaid = runMermaid;</script>
                 <span class="sa">f</span><span class="s2">"DELETE FROM annotations WHERE id = %s AND </span><span class="si">{</span><span class="n">scope</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
                 <span class="p">(</span><span class="n">annotation_id</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">),</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">ann</span>
+        <span class="k">return</span> <span class="n">ann</span></div>
+
 
 <div class="viewcode-block" id="PostgresStore.update">
 <a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.update">[docs]</a>
@@ -1441,7 +1477,10 @@ window.runMermaid = runMermaid;</script>
             <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span></div>
 
 
+<div class="viewcode-block" id="PostgresStore.all">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.all">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Iterate over every annotation in the store."""</span>
         <span class="n">scope</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scope</span><span class="p">()</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
             <span class="n">rows</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
@@ -1449,7 +1488,8 @@ window.runMermaid = runMermaid;</script>
             <span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
             <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">cur</span><span class="o">.</span><span class="n">description</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
-            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_row_to_annotation</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">row</span><span class="p">)))</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_row_to_annotation</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">row</span><span class="p">)))</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="c1"># Number of distinct interval keys; matches MutableMapping facade.</span>
@@ -1535,38 +1575,73 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># --- Allen-relation queries ---------------------------------------</span>
 
+<div class="viewcode-block" id="PostgresStore.intersects">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.intersects">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">intersects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_with_op</span><span class="p">(</span><span class="s2">"&amp;&amp;"</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Yield annotations whose interval intersects the query interval."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_with_op</span><span class="p">(</span><span class="s2">"&amp;&amp;"</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="PostgresStore.during">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.during">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">during</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations lying strictly during the query interval (Allen ``during``)."""</span>
         <span class="c1"># Strict: a's span is strictly inside q (Allen 'd' excludes shared</span>
         <span class="c1"># endpoints). We pre-filter with `&lt;@` then re-check exact rationals.</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="s2">"&lt;@"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">DURING</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="s2">"&lt;@"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">DURING</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="PostgresStore.contains">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.contains">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">contains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="s2">"@&gt;"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">CONTAINS</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that contain the query interval (Allen ``contains``)."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="s2">"@&gt;"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">CONTAINS</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="PostgresStore.overlaps">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.overlaps">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">overlaps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that overlap the start of the query interval (Allen ``overlaps``)."""</span>
         <span class="c1"># Strict Allen 'o': pre-filter with `&amp;&amp;`, re-check rationals.</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="s2">"&amp;&amp;"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">OVERLAPS</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="s2">"&amp;&amp;"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">OVERLAPS</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="PostgresStore.meets">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.meets">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">meets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that end exactly where the query interval starts (Allen ``meets``)."""</span>
         <span class="c1"># `-|-` matches both meets and met_by; rational predicate disambiguates.</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="s2">"-|-"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">MEETS</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="s2">"-|-"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">MEETS</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="PostgresStore.starts">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.starts">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">starts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="s2">"&amp;&amp;"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">STARTS</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that start with the query interval but end earlier (Allen ``starts``)."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="s2">"&amp;&amp;"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">STARTS</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="PostgresStore.finishes">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.finishes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">finishes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="s2">"&amp;&amp;"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">FINISHES</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that finish with the query interval but start later (Allen ``finishes``)."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="s2">"&amp;&amp;"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">FINISHES</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="PostgresStore.equals">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.equals">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">equals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations whose interval equals the query interval."""</span>
         <span class="c1"># Range equality matches Allen '=' exactly.</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_with_op</span><span class="p">(</span><span class="s2">"="</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_with_op</span><span class="p">(</span><span class="s2">"="</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="PostgresStore.relate">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.relate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">relate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">relations</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">AllenRelation</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations standing in the given Allen relation to the query interval."""</span>
         <span class="n">rels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">relations</span><span class="p">)</span>
         <span class="c1"># Pick the broadest pre-filter that covers all requested relations.</span>
         <span class="k">if</span> <span class="n">rels</span> <span class="o">&lt;=</span> <span class="p">{</span><span class="n">AllenRelation</span><span class="o">.</span><span class="n">BEFORE</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">AFTER</span><span class="p">}:</span>
@@ -1582,7 +1657,8 @@ window.runMermaid = runMermaid;</script>
             <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rels</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">PREDICATE_BY_RELATION</span><span class="p">[</span><span class="n">r</span><span class="p">](</span><span class="n">iv</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
                     <span class="k">yield</span> <span class="n">ann</span>
-                    <span class="k">break</span>
+                    <span class="k">break</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_query_with_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
         <span class="n">span</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interval_to_span</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
@@ -1630,7 +1706,10 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># --- tier filters ------------------------------------------------</span>
 
+<div class="viewcode-block" id="PostgresStore.by_tier">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.by_tier">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">by_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tier_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Iterate over the annotations of one tier."""</span>
         <span class="n">scope</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scope</span><span class="p">()</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
             <span class="n">rows</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
@@ -1639,19 +1718,28 @@ window.runMermaid = runMermaid;</script>
             <span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
             <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">cur</span><span class="o">.</span><span class="n">description</span><span class="p">]</span> <span class="k">if</span> <span class="n">cur</span><span class="o">.</span><span class="n">description</span> <span class="k">else</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
-            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_row_to_annotation</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">row</span><span class="p">)))</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_row_to_annotation</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">row</span><span class="p">)))</span></div>
 
+
+<div class="viewcode-block" id="PostgresStore.at_tier">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.at_tier">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">at_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tier_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations of one tier that intersect the query interval."""</span>
         <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">intersects</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">ann</span><span class="o">.</span><span class="n">tier</span> <span class="o">==</span> <span class="n">tier_name</span><span class="p">:</span>
-                <span class="k">yield</span> <span class="n">ann</span>
+                <span class="k">yield</span> <span class="n">ann</span></div>
+
 
     <span class="c1"># --- bulk -------------------------------------------------------</span>
 
+<div class="viewcode-block" id="PostgresStore.extend">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.postgres.html#lacing.store.PostgresStore.extend">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotations</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Annotation</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Add several annotations at once."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transaction</span><span class="p">():</span>
             <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="n">annotations</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_do_add</span><span class="p">(</span><span class="n">ann</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_do_add</span><span class="p">(</span><span class="n">ann</span><span class="p">)</span></div>
+
 
     <span class="nd">@contextmanager</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_transaction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

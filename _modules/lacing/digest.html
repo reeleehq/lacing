@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1670,9 +1670,13 @@ window.runMermaid = runMermaid;</script>
 
     <span class="n">_TOKEN</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\x00</span><span class="s2">lacing-site-container-</span><span class="si">{}</span><span class="se">\x00</span><span class="s2">"</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slots</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">layout</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">site_slot</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">current</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">slots</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">layout</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">site_slot</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">current</span><span class="p">:</span> <span class="nb">list</span>
+    <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_slots</span> <span class="o">=</span> <span class="n">slots</span>  <span class="c1"># the payload as now</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_layout</span> <span class="o">=</span> <span class="n">layout</span>  <span class="c1"># container -&gt; [(comma slot, site index or None, entry slot)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_layout</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">layout</span>  <span class="c1"># container -&gt; [(comma slot, site index or None, entry slot)]</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_site_slot</span> <span class="o">=</span> <span class="n">site_slot</span>  <span class="c1"># site i -&gt; (container, its entry's position)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_keys</span> <span class="o">=</span> <span class="n">keys</span>  <span class="c1"># site i -&gt; its '"key":' text</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_current</span> <span class="o">=</span> <span class="n">current</span>  <span class="c1"># site i -&gt; its value as now</span>
@@ -1705,7 +1709,9 @@ window.runMermaid = runMermaid;</script>
         <span class="n">top</span> <span class="o">=</span> <span class="n">_canonical</span><span class="p">(</span><span class="n">shadow</span><span class="p">(</span><span class="n">payload</span><span class="p">))</span>
         <span class="n">entry_texts</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">ci</span><span class="p">:</span> <span class="p">[</span>
-                <span class="n">site_of</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">ci</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">+</span> <span class="s2">":"</span> <span class="o">+</span> <span class="n">_canonical</span><span class="p">(</span><span class="n">shadow</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="n">key</span><span class="p">])))</span>
+                <span class="n">site_of</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">ci</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">+</span> <span class="s2">":"</span> <span class="o">+</span> <span class="n">_canonical</span><span class="p">(</span><span class="n">shadow</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+                <span class="p">)</span>
                 <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
             <span class="p">]</span>
             <span class="k">for</span> <span class="n">ci</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">by_index</span><span class="p">)</span>
@@ -1793,7 +1799,9 @@ window.runMermaid = runMermaid;</script>
             <span class="k">return</span> <span class="s2">""</span>
         <span class="n">memo</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">id</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
         <span class="n">held</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_text</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">memo</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">held</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">held</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">state</span><span class="p">:</span>  <span class="c1"># the state is kept, so its id is not reused</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">held</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">held</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">state</span>
+        <span class="p">):</span>  <span class="c1"># the state is kept, so its id is not reused</span>
             <span class="n">held</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_text</span><span class="p">[</span><span class="n">memo</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">_canonical</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">held</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 

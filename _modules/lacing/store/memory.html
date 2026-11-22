@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../../../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -850,8 +850,12 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># --- annotation-level convenience ---------------------------------------</span>
 
+<div class="viewcode-block" id="MemoryStore.add">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.add">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation</span><span class="p">:</span> <span class="n">Annotation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_insert</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Add an annotation to the store."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_insert</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation</span><span class="p">:</span> <span class="n">Annotation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""``add`` without subclass checks (``update`` must not trip a duplicate-id guard)."""</span>
@@ -863,7 +867,10 @@ window.runMermaid = runMermaid;</script>
             <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_node</span><span class="p">(</span><span class="n">_key</span><span class="p">(</span><span class="n">iv</span><span class="p">))</span>
             <span class="n">bucket</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span>
 
+<div class="viewcode-block" id="MemoryStore.remove">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.remove">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation_id</span><span class="p">:</span> <span class="n">UUID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Annotation</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Remove the annotation with the given id; return it, or ``None`` if absent."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
             <span class="c1"># Search timeless first.</span>
             <span class="k">if</span> <span class="n">annotation_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timeless</span><span class="p">:</span>
@@ -875,9 +882,13 @@ window.runMermaid = runMermaid;</script>
                         <span class="k">if</span> <span class="ow">not</span> <span class="n">bucket</span><span class="p">:</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">_drop_node</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
                         <span class="k">return</span> <span class="n">a</span>
-            <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
 
+
+<div class="viewcode-block" id="MemoryStore.update">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.update">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation</span><span class="p">:</span> <span class="n">Annotation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Replace the stored annotation that has the same id."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
             <span class="n">old</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">annotation</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">old</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -897,7 +908,8 @@ window.runMermaid = runMermaid;</script>
                 <span class="c1"># taking the old out, so the id is never absent even to a</span>
                 <span class="c1"># reader that does not take the lock.</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_insert</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_take_out</span><span class="p">(</span><span class="n">old</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_take_out</span><span class="p">(</span><span class="n">old</span><span class="p">)</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_take_out</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old</span><span class="p">:</span> <span class="n">Annotation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Remove exactly ``old`` (by identity) from where ``add`` put it."""</span>
@@ -910,11 +922,15 @@ window.runMermaid = runMermaid;</script>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">bucket</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_drop_node</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 
+<div class="viewcode-block" id="MemoryStore.all">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.all">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Iterate over every annotation in the store."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
             <span class="n">snapshot</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">bucket</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buckets</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">bucket</span><span class="p">]</span>
             <span class="n">snapshot</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_timeless</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-        <span class="k">yield from</span> <span class="n">snapshot</span>
+        <span class="k">yield from</span> <span class="n">snapshot</span></div>
+
 
     <span class="c1"># --- Allen-relation queries ---------------------------------------------</span>
 
@@ -932,38 +948,73 @@ window.runMermaid = runMermaid;</script>
             <span class="k">if</span> <span class="n">iv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pred</span><span class="p">(</span><span class="n">iv</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
                 <span class="k">yield from</span> <span class="n">bucket</span>
 
+<div class="viewcode-block" id="MemoryStore.intersects">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.intersects">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">intersects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations whose interval intersects the query interval."""</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.allen</span><span class="w"> </span><span class="kn">import</span> <span class="n">intersects</span> <span class="k">as</span> <span class="n">_intersects</span>
 
         <span class="k">for</span> <span class="n">bucket</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bucket_snapshot</span><span class="p">():</span>
             <span class="n">iv</span> <span class="o">=</span> <span class="n">bucket</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">interval</span>
             <span class="k">if</span> <span class="n">iv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_intersects</span><span class="p">(</span><span class="n">iv</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
-                <span class="k">yield from</span> <span class="n">bucket</span>
+                <span class="k">yield from</span> <span class="n">bucket</span></div>
 
+
+<div class="viewcode-block" id="MemoryStore.during">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.during">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">during</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">DURING</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Yield annotations lying strictly during the query interval (Allen ``during``)."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">DURING</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="MemoryStore.contains">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.contains">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">contains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">CONTAINS</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that contain the query interval (Allen ``contains``)."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">CONTAINS</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="MemoryStore.overlaps">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.overlaps">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">overlaps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">OVERLAPS</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that overlap the start of the query interval (Allen ``overlaps``)."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">OVERLAPS</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="MemoryStore.meets">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.meets">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">meets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">MEETS</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that end exactly where the query interval starts (Allen ``meets``)."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">MEETS</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="MemoryStore.starts">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.starts">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">starts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">STARTS</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that start with the query interval but end earlier (Allen ``starts``)."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">STARTS</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="MemoryStore.finishes">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.finishes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">finishes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">FINISHES</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that finish with the query interval but start later (Allen ``finishes``)."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">FINISHES</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="MemoryStore.equals">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.equals">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">equals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">EQUALS</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Yield annotations whose interval equals the query interval."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">AllenRelation</span><span class="o">.</span><span class="n">EQUALS</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="MemoryStore.relate">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.relate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">relate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">relations</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">AllenRelation</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations standing in the given Allen relation to the query interval."""</span>
         <span class="n">rels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">relations</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">bucket</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bucket_snapshot</span><span class="p">():</span>
             <span class="n">iv</span> <span class="o">=</span> <span class="n">bucket</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">interval</span>
@@ -972,36 +1023,61 @@ window.runMermaid = runMermaid;</script>
             <span class="k">for</span> <span class="n">rel</span> <span class="ow">in</span> <span class="n">rels</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">PREDICATE_BY_RELATION</span><span class="p">[</span><span class="n">rel</span><span class="p">](</span><span class="n">iv</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
                     <span class="k">yield from</span> <span class="n">bucket</span>
-                    <span class="k">break</span>
+                    <span class="k">break</span></div>
+
 
     <span class="c1"># --- tier filters --------------------------------------------------------</span>
 
+<div class="viewcode-block" id="MemoryStore.by_tier">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.by_tier">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">by_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tier_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Iterate over the annotations of one tier."""</span>
         <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">ann</span><span class="o">.</span><span class="n">tier</span> <span class="o">==</span> <span class="n">tier_name</span><span class="p">:</span>
-                <span class="k">yield</span> <span class="n">ann</span>
+                <span class="k">yield</span> <span class="n">ann</span></div>
 
+
+<div class="viewcode-block" id="MemoryStore.at_tier">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.at_tier">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">at_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tier_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations of one tier that intersect the query interval."""</span>
         <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">intersects</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">ann</span><span class="o">.</span><span class="n">tier</span> <span class="o">==</span> <span class="n">tier_name</span><span class="p">:</span>
-                <span class="k">yield</span> <span class="n">ann</span>
+                <span class="k">yield</span> <span class="n">ann</span></div>
+
 
     <span class="c1"># --- tier registry -------------------------------------------------------</span>
 
+<div class="viewcode-block" id="MemoryStore.tiers">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.tiers">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">tiers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tier</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tiers</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+<span class="w">        </span><span class="sd">"""Return the registered tiers."""</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tiers</span><span class="o">.</span><span class="n">values</span><span class="p">())</span></div>
 
+
+<div class="viewcode-block" id="MemoryStore.add_tier">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.add_tier">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tier</span><span class="p">:</span> <span class="n">Tier</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tiers</span><span class="p">[</span><span class="n">tier</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tier</span>
+<span class="w">        </span><span class="sd">"""Register a tier."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tiers</span><span class="p">[</span><span class="n">tier</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tier</span></div>
 
+
+<div class="viewcode-block" id="MemoryStore.get_tier">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.get_tier">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tier</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tiers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Return the tier with the given name, or ``None``."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tiers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
 
     <span class="c1"># --- bulk ---------------------------------------------------------------</span>
 
+<div class="viewcode-block" id="MemoryStore.extend">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.memory.html#lacing.MemoryStore.extend">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotations</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Annotation</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Add several annotations at once."""</span>
         <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">annotations</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
+
 
     <span class="c1"># --- misc ---------------------------------------------------------------</span>
 

@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -503,6 +503,17 @@ implement the full interface.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.base.IntervalAnnotationStore.add_tier">
+<span class="sig-name descname"><span class="pre">add_tier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tier</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/base.html#IntervalAnnotationStore.add_tier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.base.IntervalAnnotationStore.add_tier" title="Link to this definition">#</a></dt>
+<dd><p>Register a tier.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lacing.store.base.IntervalAnnotationStore.all">
 <span class="sig-name descname"><span class="pre">all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/base.html#IntervalAnnotationStore.all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.base.IntervalAnnotationStore.all" title="Link to this definition">#</a></dt>
 <dd><p>Iterate every annotation in the store, order unspecified.</p>
@@ -586,6 +597,17 @@ implement the full interface.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.base.IntervalAnnotationStore.get_tier">
+<span class="sig-name descname"><span class="pre">get_tier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/base.html#IntervalAnnotationStore.get_tier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.base.IntervalAnnotationStore.get_tier" title="Link to this definition">#</a></dt>
+<dd><p>Return the tier with the given name, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.tier.html#lacing.tier.Tier" title="lacing.tier.Tier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tier</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -755,6 +777,7 @@ for a new one.</p>
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore.add"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.add()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore.add_tier"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.add_tier()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore.all"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.all()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore.at_tier"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.at_tier()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore.by_tier"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.by_tier()</span></code></a></li>
@@ -763,6 +786,7 @@ for a new one.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore.equals"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.equals()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore.extend"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.extend()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore.finishes"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.finishes()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore.get_tier"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.get_tier()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore.intersects"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.intersects()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore.lock"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.lock()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.base.IntervalAnnotationStore.meets"><code class="docutils literal notranslate"><span class="pre">IntervalAnnotationStore.meets()</span></code></a></li>

@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -593,11 +593,55 @@ interval; both would otherwise not survive a reload.</p>
 <dl class="field-list simple">
 </dl>
 <dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.mapping.MappingStore.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/mapping.html#MappingStore.add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.mapping.MappingStore.add" title="Link to this definition">#</a></dt>
+<dd><p>Add an annotation to the store.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.mapping.MappingStore.add_tier">
+<span class="sig-name descname"><span class="pre">add_tier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tier</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/mapping.html#MappingStore.add_tier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.mapping.MappingStore.add_tier" title="Link to this definition">#</a></dt>
+<dd><p>Register a tier.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lacing.store.mapping.MappingStore.close">
 <span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/mapping.html#MappingStore.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.mapping.MappingStore.close" title="Link to this definition">#</a></dt>
 <dd><p>No-op. Writes go through immediately and the mapping is the caller’s.</p>
 <p>Present so code that calls <code class="docutils literal notranslate"><span class="pre">store.close()</span></code> after each use (as it does
 for <code class="docutils literal notranslate"><span class="pre">SqliteStore</span></code>) can treat both alike; the store stays usable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.mapping.MappingStore.remove">
+<span class="sig-name descname"><span class="pre">remove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/mapping.html#MappingStore.remove"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.mapping.MappingStore.remove" title="Link to this definition">#</a></dt>
+<dd><p>Remove the annotation with the given id; return it, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if absent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="lacing.model.html#lacing.model.Annotation" title="lacing.model.Annotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.mapping.MappingStore.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/mapping.html#MappingStore.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.mapping.MappingStore.update" title="Link to this definition">#</a></dt>
+<dd><p>Replace the stored annotation that has the same id.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
@@ -668,7 +712,11 @@ for <code class="docutils literal notranslate"><span class="pre">SqliteStore</sp
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.mapping.MappingStore"><code class="docutils literal notranslate"><span class="pre">MappingStore</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.mapping.MappingStore.add"><code class="docutils literal notranslate"><span class="pre">MappingStore.add()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.mapping.MappingStore.add_tier"><code class="docutils literal notranslate"><span class="pre">MappingStore.add_tier()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.mapping.MappingStore.close"><code class="docutils literal notranslate"><span class="pre">MappingStore.close()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.mapping.MappingStore.remove"><code class="docutils literal notranslate"><span class="pre">MappingStore.remove()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.mapping.MappingStore.update"><code class="docutils literal notranslate"><span class="pre">MappingStore.update()</span></code></a></li>
 </ul>
 </li>
 </ul>

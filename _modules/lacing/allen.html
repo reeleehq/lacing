@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -802,56 +802,108 @@ window.runMermaid = runMermaid;</script>
 <span class="c1"># --- The thirteen predicates --------------------------------------------------</span>
 
 
+<div class="viewcode-block" id="before">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.before">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">before</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``before``: true when ``a`` before ``b``."""</span>
+    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span></div>
 
 
+
+<div class="viewcode-block" id="after">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.after">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">after</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&gt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``after``: true when ``a`` after ``b``."""</span>
+    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&gt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span></div>
 
 
+
+<div class="viewcode-block" id="meets">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.meets">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">meets</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span> <span class="o">!=</span> <span class="n">b</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``meets``: true when ``a`` meets ``b``."""</span>
+    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span> <span class="o">!=</span> <span class="n">b</span></div>
 
 
+
+<div class="viewcode-block" id="met_by">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.met_by">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">met_by</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span> <span class="ow">and</span> <span class="n">a</span> <span class="o">!=</span> <span class="n">b</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``met_by``: true when ``a`` met by ``b``."""</span>
+    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span> <span class="ow">and</span> <span class="n">a</span> <span class="o">!=</span> <span class="n">b</span></div>
 
 
+
+<div class="viewcode-block" id="overlaps">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.overlaps">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">overlaps</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``overlaps``: true when ``a`` overlaps ``b``."""</span>
+    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span></div>
 
 
+
+<div class="viewcode-block" id="overlapped_by">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.overlapped_by">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">overlapped_by</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``overlapped_by``: true when ``a`` overlapped by ``b``."""</span>
+    <span class="k">return</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span></div>
 
 
+
+<div class="viewcode-block" id="starts">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.starts">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">starts</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``starts``: true when ``a`` starts ``b``."""</span>
+    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span></div>
 
 
+
+<div class="viewcode-block" id="started_by">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.started_by">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">started_by</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">&gt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``started_by``: true when ``a`` started by ``b``."""</span>
+    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">&gt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span></div>
 
 
+
+<div class="viewcode-block" id="during">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.during">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">during</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&gt;</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``during``: true when ``a`` during ``b``."""</span>
+    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&gt;</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span></div>
 
 
+
+<div class="viewcode-block" id="contains">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.contains">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">contains</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">&gt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``contains``: true when ``a`` contains ``b``."""</span>
+    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">&gt;</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span></div>
 
 
+
+<div class="viewcode-block" id="finishes">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.finishes">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">finishes</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&gt;</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``finishes``: true when ``a`` finishes ``b``."""</span>
+    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&gt;</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span></div>
 
 
+
+<div class="viewcode-block" id="finished_by">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.finished_by">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">finished_by</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``finished_by``: true when ``a`` finished by ``b``."""</span>
+    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span></div>
 
 
+
+<div class="viewcode-block" id="equals">
+<a class="viewcode-back" href="../../_autosummary/lacing.allen.html#lacing.equals">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">equals</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span>
+<span class="w">    </span><span class="sd">"""Allen relation ``equals``: true when ``a`` equals ``b``."""</span>
+    <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">start</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">start</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">end</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">end</span></div>
+
 
 
 <span class="c1"># --- Aggregate predicates ----------------------------------------------------</span>

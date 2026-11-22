@@ -932,6 +932,27 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Simple list-backed op-log. Thread-safe via an RLock.
 
+#### append(operation, , target_id=None, payload=None, actor='anonymous')
+
+Append an entry to the log.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### entries(, until_clock=None, from_clock=None)
+
+Iterate over the logged entries.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`OpLogEntry`](lacing.oplog.html.md#lacing.oplog.OpLogEntry)]
+
+#### latest_clock()
+
+Return the highest logical clock in the log.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
 ### *class* lacing.IntervalAnnotationStore(\*args, \*\*kwargs)
 
 Bases: [`Protocol`](https://docs.python.org/3/library/typing.html#typing.Protocol)
@@ -951,6 +972,13 @@ implement the full interface.
 #### add(annotation)
 
 Append `annotation` to the list at its reference interval.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### add_tier(tier)
+
+Register a tier.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -1010,6 +1038,13 @@ Allen `f`: later start, same end.
 
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### get_tier(name)
+
+Return the tier with the given name, or `None`.
+
+* **Return type:**
+  [`Tier`](lacing.tier.html.md#lacing.tier.Tier) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### intersects(query)
 
@@ -1122,12 +1157,40 @@ Raises `ValueError` on a duplicate annotation id (as `SqliteStore`
 does) and when an annotation is assigned under a key that is not its own
 interval; both would otherwise not survive a reload.
 
+#### add(annotation)
+
+Add an annotation to the store.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### add_tier(tier)
+
+Register a tier.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### close()
 
 No-op. Writes go through immediately and the mapping is the caller’s.
 
 Present so code that calls `store.close()` after each use (as it does
 for `SqliteStore`) can treat both alike; the store stays usable.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### remove(annotation_id)
+
+Remove the annotation with the given id; return it, or `None` if absent.
+
+* **Return type:**
+  [`Annotation`](lacing.model.html.md#lacing.model.Annotation) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### update(annotation)
+
+Replace the stored annotation that has the same id.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -1152,12 +1215,145 @@ Conforms to the protocol in `lacing.store.base`. We don’t formally
 inherit from `IntervalAnnotationStore` because it’s a `Protocol`
 with method bodies — structural typing is enough.
 
+#### add(annotation)
+
+Add an annotation to the store.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### add_tier(tier)
+
+Register a tier.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### all()
+
+Iterate over every annotation in the store.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### at_tier(tier_name, query)
+
+Yield annotations of one tier that intersect the query interval.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### by_tier(tier_name)
+
+Iterate over the annotations of one tier.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### contains(query)
+
+Yield annotations that contain the query interval (Allen `contains`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### during(query)
+
+Yield annotations lying strictly during the query interval (Allen `during`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### equals(query)
+
+Yield annotations whose interval equals the query interval.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### extend(annotations)
+
+Add several annotations at once.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### finishes(query)
+
+Yield annotations that finish with the query interval but start later (Allen `finishes`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### get_tier(name)
+
+Return the tier with the given name, or `None`.
+
+* **Return type:**
+  [`Tier`](lacing.tier.html.md#lacing.tier.Tier) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### intersects(query)
+
+Yield annotations whose interval intersects the query interval.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
 #### lock(key)
 
 Exclusive lock named `key` among the threads of this process.
 
 * **Return type:**
   [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
+#### meets(query)
+
+Yield annotations that end exactly where the query interval starts (Allen `meets`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### overlaps(query)
+
+Yield annotations that overlap the start of the query interval (Allen `overlaps`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### relate(query, relations)
+
+Yield annotations standing in the given Allen relation to the query interval.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### remove(annotation_id)
+
+Remove the annotation with the given id; return it, or `None` if absent.
+
+* **Return type:**
+  [`Annotation`](lacing.model.html.md#lacing.model.Annotation) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### starts(query)
+
+Yield annotations that start with the query interval but end earlier (Allen `starts`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### tiers()
+
+Return the registered tiers.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Tier`](lacing.tier.html.md#lacing.tier.Tier)]
+
+#### update(annotation)
+
+Replace the stored annotation that has the same id.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### *exception* lacing.MigrationError
 
@@ -1237,6 +1433,13 @@ A generator identifier, `<prefix>:<name>[@<version>]`; see `lacing.generator_id`
 
 Monotonic Lamport clock starting at 1. Strictly increasing per log.
 
+#### *classmethod* from_dict(d)
+
+Rebuild an entry from [`to_dict()`](#lacing.OpLogEntry.to_dict) output.
+
+* **Return type:**
+  [`OpLogEntry`](lacing.oplog.html.md#lacing.oplog.OpLogEntry)
+
 #### operation *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
 
 `add_annotation`, `remove_annotation`, `update_annotation`,
@@ -1256,6 +1459,13 @@ Wall-clock time the operation was received (seconds since epoch).
 #### target_id *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)*
 
 Annotation id, tier name, meta key, or None for batch ops.
+
+#### to_dict()
+
+Serialise the entry to a plain dict.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
 ### *exception* lacing.ProcessorError
 
@@ -1308,6 +1518,13 @@ True
 >>> RationalTime.from_seconds("1.5", rate=2).value
 3
 ```
+
+#### *classmethod* from_fraction(f, rate=24000)
+
+Build from a number of seconds given as a [`Fraction`](https://docs.python.org/3/library/fractions.html#fractions.Fraction).
+
+* **Return type:**
+  [`RationalTime`](lacing.time.html.md#lacing.time.RationalTime)
 
 #### *classmethod* from_seconds(seconds, rate=24000)
 
@@ -1380,6 +1597,17 @@ as a *known* time. Tick 0 there is the UNKNOWN sentinel
 * **Return type:**
   [`RationalTime`](lacing.time.html.md#lacing.time.RationalTime)
 
+#### *property* rate *: [int](https://docs.python.org/3/builtins/functions.html#int)*
+
+The tick rate (ticks per second).
+
+#### to_fraction()
+
+Return the time in seconds as an exact [`Fraction`](https://docs.python.org/3/library/fractions.html#fractions.Fraction).
+
+* **Return type:**
+  [`Fraction`](https://docs.python.org/3/library/fractions.html#fractions.Fraction)
+
 #### to_rate(new_rate)
 
 Re-express at `new_rate`. Raises `LossyTimeConversionError` on loss.
@@ -1393,6 +1621,17 @@ Float seconds — for display only. Never round-trip through this.
 
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
+
+#### to_wire()
+
+Serialise to the JSON wire format.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
+
+#### *property* value *: [int](https://docs.python.org/3/builtins/functions.html#int)*
+
+The tick count.
 
 #### *classmethod* zero(rate=24000)
 
@@ -1551,6 +1790,34 @@ Designed to share a database file with `SqliteStore` so the store
 snapshot + the op-log live together and survive a single
 `cp project.annot project.backup` step.
 
+#### append(operation, , target_id=None, payload=None, actor='anonymous')
+
+Append an entry to the log.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### close()
+
+Release the underlying resources.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### entries(, until_clock=None, from_clock=None)
+
+Iterate over the logged entries.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`OpLogEntry`](lacing.oplog.html.md#lacing.oplog.OpLogEntry)]
+
+#### latest_clock()
+
+Return the highest logical clock in the log.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
 ### *class* lacing.SqliteStore(path, , check_same_thread=True, migrate=False)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
@@ -1571,6 +1838,104 @@ SQLite-backed `IntervalAnnotationStore`.
     — raises [`SchemaMismatchError`](#lacing.SchemaMismatchError); a failed migration
     chains the ladder’s `StoreMigrationError` as its cause.
 
+#### add(annotation)
+
+Add an annotation to the store.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### add_tier(tier)
+
+Register a tier.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### all()
+
+Iterate over every annotation in the store.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### at_tier(tier_name, query)
+
+Yield annotations of one tier that intersect the query interval.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### by_tier(tier_name)
+
+Iterate over the annotations of one tier.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### close()
+
+Release the underlying resources.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### contains(query)
+
+Yield annotations that contain the query interval (Allen `contains`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### during(query)
+
+Yield annotations lying strictly during the query interval (Allen `during`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### equals(query)
+
+Yield annotations whose interval equals the query interval.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### extend(annotations)
+
+Add several annotations at once.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### finishes(query)
+
+Yield annotations that finish with the query interval but start later (Allen `finishes`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### get_meta(key)
+
+Return the metadata value stored under `key`, or `None`.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### get_tier(name)
+
+Return the tier with the given name, or `None`.
+
+* **Return type:**
+  [`Tier`](lacing.tier.html.md#lacing.tier.Tier) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### intersects(query)
+
+Yield annotations whose interval intersects the query interval.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
 #### lock(key)
 
 Exclusive lock named `key`: a file lock beside the database.
@@ -1582,6 +1947,63 @@ process-local lock.
 
 * **Return type:**
   [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
+#### meets(query)
+
+Yield annotations that end exactly where the query interval starts (Allen `meets`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### overlaps(query)
+
+Yield annotations that overlap the start of the query interval (Allen `overlaps`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### *property* path *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [PathLike](https://docs.python.org/3/library/os.html#os.PathLike)*
+
+Filesystem path of the backing database file.
+
+#### relate(query, relations)
+
+Yield annotations standing in the given Allen relation to the query interval.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### remove(annotation_id)
+
+Remove the annotation with the given id; return it, or `None` if absent.
+
+* **Return type:**
+  [`Annotation`](lacing.model.html.md#lacing.model.Annotation) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### *property* schema_version *: [int](https://docs.python.org/3/builtins/functions.html#int)*
+
+The schema version recorded in the store.
+
+#### set_meta(key, value)
+
+Store a metadata value under `key`.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### starts(query)
+
+Yield annotations that start with the query interval but end earlier (Allen `starts`).
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Annotation`](lacing.model.html.md#lacing.model.Annotation)]
+
+#### tiers()
+
+Return the registered tiers.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`Tier`](lacing.tier.html.md#lacing.tier.Tier)]
 
 #### update(annotation)
 
@@ -1610,6 +2032,36 @@ A named annotation layer with optional parent and stereotype.
 Tiers are pure metadata; they don’t own annotations. The store is keyed
 by interval, not by tier — annotations carry their tier name as a field.
 This matches ELAN’s TIME_ORDER indirection (see ANN-DOC §C).
+
+#### *classmethod* from_wire(d)
+
+Rebuild from [`to_wire()`](#lacing.Tier.to_wire) output.
+
+* **Return type:**
+  [`Tier`](lacing.tier.html.md#lacing.tier.Tier)
+
+#### *property* metadata *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)*
+
+A copy of the tier’s metadata.
+
+#### *property* name *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+The tier’s name.
+
+#### *property* parent *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+
+Name of the parent tier, or `None`.
+
+#### *property* stereotype *: [TierStereotype](lacing.tier.html.md#lacing.tier.TierStereotype)*
+
+The tier’s [`TierStereotype`](#lacing.TierStereotype).
+
+#### to_wire()
+
+Serialise to the JSON wire format.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 ### *class* lacing.TierStereotype(\*values)
 
@@ -1652,6 +2104,17 @@ Always `start <= end`; constructor raises `ValueError` otherwise.
 
 `end - start` at the same rate as `start`.
 
+#### *property* end *: [RationalTime](lacing.time.html.md#lacing.time.RationalTime)*
+
+The (exclusive) end time.
+
+#### *classmethod* from_seconds(start, end, rate=24000)
+
+Build an interval from start and end given in seconds.
+
+* **Return type:**
+  [`TimeInterval`](lacing.time.html.md#lacing.time.TimeInterval)
+
 #### *classmethod* from_seconds_lossy(start, end, , rate=24000, mode='round')
 
 Build from seconds, quantizing each end to a tick at `rate`.
@@ -1664,7 +2127,7 @@ instead of each writing `round(x * rate)`, which rounds the float
 product and disagrees on inputs such as `0.0005`. Both ends use
 `mode`, which keeps `start <= end` and puts the shared edge of two
 adjacent windows on one tick; a window shorter than a tick can collapse
-to a point. Use `from_seconds()` when a lossy conversion should be
+to a point. Use [`from_seconds()`](#lacing.TimeInterval.from_seconds) when a lossy conversion should be
 an error.
 
 ### Examples
@@ -1685,6 +2148,35 @@ Build from the wire form. See [`RationalTime.from_wire()`](#lacing.RationalTime.
 
 * **Return type:**
   [`TimeInterval`](lacing.time.html.md#lacing.time.TimeInterval)
+
+#### *property* is_point *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
+
+Whether the interval is a point (`start == end`).
+
+#### *classmethod* point(t)
+
+Build a point interval at `t`.
+
+* **Return type:**
+  [`TimeInterval`](lacing.time.html.md#lacing.time.TimeInterval)
+
+#### shift(by)
+
+Return the interval moved by `by`.
+
+* **Return type:**
+  [`TimeInterval`](lacing.time.html.md#lacing.time.TimeInterval)
+
+#### *property* start *: [RationalTime](lacing.time.html.md#lacing.time.RationalTime)*
+
+The (inclusive) start time.
+
+#### to_wire()
+
+Serialise to the JSON wire format.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]]
 
 ### *exception* lacing.UnknownBodySchemaError
 

@@ -36,7 +36,7 @@ Register your own with [`register_processor()`](#lacing.processors.register_proc
 | [`clear_processors`](#lacing.processors.clear_processors)()                             | Drop every registered processor.                                      |
 |-------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | [`detect_density_change_points`](#lacing.processors.detect_density_change_points)(\*, store, oplog) | Emit point markers wherever annotation density changes sharply.       |
-| `get_processor`(name)                                                                           |                                                                       |
+| [`get_processor`](#lacing.processors.get_processor)(name)                            | Return the registered processor called `name`.                        |
 | [`low_confidence_review`](#lacing.processors.low_confidence_review)(\*, store, oplog[, ...]) | Flag low-confidence annotations by mirroring them onto a review tier. |
 | [`register_processor`](#lacing.processors.register_processor)([func, name])               | Register a processor under `name` (defaults to the function name).    |
 | [`registered_processors`](#lacing.processors.registered_processors)()                        | Names of every registered processor, sorted.                          |
@@ -91,6 +91,13 @@ architecture is what matters.
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 * **Returns:**
   `{"markers": <count>, "target_tier": <name>}`.
+
+### lacing.processors.get_processor(name)
+
+Return the registered processor called `name`.
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis), [`Awaitable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Awaitable)[[`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]
 
 ### *async* lacing.processors.low_confidence_review(, store, oplog, threshold=0.5, review_tier='for-review', actor='processor:low_confidence_review')
 

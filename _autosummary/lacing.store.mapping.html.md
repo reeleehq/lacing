@@ -109,12 +109,40 @@ Raises `ValueError` on a duplicate annotation id (as `SqliteStore`
 does) and when an annotation is assigned under a key that is not its own
 interval; both would otherwise not survive a reload.
 
+#### add(annotation)
+
+Add an annotation to the store.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### add_tier(tier)
+
+Register a tier.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### close()
 
 No-op. Writes go through immediately and the mapping is the caller’s.
 
 Present so code that calls `store.close()` after each use (as it does
 for `SqliteStore`) can treat both alike; the store stays usable.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### remove(annotation_id)
+
+Remove the annotation with the given id; return it, or `None` if absent.
+
+* **Return type:**
+  [`Annotation`](lacing.model.html.md#lacing.model.Annotation) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### update(annotation)
+
+Replace the stored annotation that has the same id.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)

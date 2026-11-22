@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -849,10 +849,12 @@ window.runMermaid = runMermaid;</script>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The tick count."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">rate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The tick rate (ticks per second)."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rate</span>
 
 <div class="viewcode-block" id="RationalTime.from_seconds">
@@ -924,9 +926,13 @@ window.runMermaid = runMermaid;</script>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">quantized</span><span class="p">),</span> <span class="n">rate</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="RationalTime.from_fraction">
+<a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.RationalTime.from_fraction">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_fraction</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">Fraction</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_RATE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"RationalTime"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_seconds</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Build from a number of seconds given as a :class:`~fractions.Fraction`."""</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_seconds</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="RationalTime.zero">
 <a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.RationalTime.zero">[docs]</a>
@@ -960,8 +966,12 @@ window.runMermaid = runMermaid;</script>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">samples</span><span class="p">),</span> <span class="n">rate</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="RationalTime.to_fraction">
+<a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.RationalTime.to_fraction">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_fraction</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Fraction</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">Fraction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rate</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Return the time in seconds as an exact :class:`~fractions.Fraction`."""</span>
+        <span class="k">return</span> <span class="n">Fraction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rate</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="RationalTime.to_seconds">
 <a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.RationalTime.to_seconds">[docs]</a>
@@ -1046,8 +1056,12 @@ window.runMermaid = runMermaid;</script>
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">"RationalTime(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_rate</span><span class="si">}</span><span class="s2">)"</span>
 
+<div class="viewcode-block" id="RationalTime.to_wire">
+<a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.RationalTime.to_wire">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_wire</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">"v"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rate</span><span class="p">}</span>
+<span class="w">        </span><span class="sd">"""Serialise to the JSON wire format."""</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"v"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rate</span><span class="p">}</span></div>
+
 
 <div class="viewcode-block" id="RationalTime.from_wire">
 <a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.RationalTime.from_wire">[docs]</a>
@@ -1131,10 +1145,12 @@ window.runMermaid = runMermaid;</script>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RationalTime</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The (inclusive) start time."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">end</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RationalTime</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The (exclusive) end time."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_end</span>
 
     <span class="nd">@property</span>
@@ -1144,12 +1160,19 @@ window.runMermaid = runMermaid;</script>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_point</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether the interval is a point (``start == end``)."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_end</span>
 
+<div class="viewcode-block" id="TimeInterval.point">
+<a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.TimeInterval.point">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">point</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">RationalTime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"TimeInterval"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Build a point interval at ``t``."""</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="TimeInterval.from_seconds">
+<a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.TimeInterval.from_seconds">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_seconds</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -1157,10 +1180,12 @@ window.runMermaid = runMermaid;</script>
         <span class="n">end</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Fraction</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_RATE</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"TimeInterval"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Build an interval from start and end given in seconds."""</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">),</span>
             <span class="n">RationalTime</span><span class="o">.</span><span class="n">from_seconds</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">),</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="TimeInterval.from_seconds_lossy">
 <a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.TimeInterval.from_seconds_lossy">[docs]</a>
@@ -1198,11 +1223,19 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="TimeInterval.shift">
+<a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.TimeInterval.shift">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">by</span><span class="p">:</span> <span class="n">RationalTime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"TimeInterval"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">_start</span> <span class="o">+</span> <span class="n">by</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_end</span> <span class="o">+</span> <span class="n">by</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Return the interval moved by ``by``."""</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">_start</span> <span class="o">+</span> <span class="n">by</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_end</span> <span class="o">+</span> <span class="n">by</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="TimeInterval.to_wire">
+<a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.TimeInterval.to_wire">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_wire</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">"start"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start</span><span class="o">.</span><span class="n">to_wire</span><span class="p">(),</span> <span class="s2">"end"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_end</span><span class="o">.</span><span class="n">to_wire</span><span class="p">()}</span>
+<span class="w">        </span><span class="sd">"""Serialise to the JSON wire format."""</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"start"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start</span><span class="o">.</span><span class="n">to_wire</span><span class="p">(),</span> <span class="s2">"end"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_end</span><span class="o">.</span><span class="n">to_wire</span><span class="p">()}</span></div>
+
 
 <div class="viewcode-block" id="TimeInterval.from_wire">
 <a class="viewcode-back" href="../../_autosummary/lacing.time.html#lacing.TimeInterval.from_wire">[docs]</a>

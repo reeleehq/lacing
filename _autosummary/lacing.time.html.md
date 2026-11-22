@@ -73,6 +73,13 @@ True
 3
 ```
 
+#### *classmethod* from_fraction(f, rate=24000)
+
+Build from a number of seconds given as a [`Fraction`](https://docs.python.org/3/library/fractions.html#fractions.Fraction).
+
+* **Return type:**
+  [`RationalTime`](#lacing.time.RationalTime)
+
 #### *classmethod* from_seconds(seconds, rate=24000)
 
 Build from seconds. Quantizes to `rate`; raises if lossy.
@@ -144,6 +151,17 @@ as a *known* time. Tick 0 there is the UNKNOWN sentinel
 * **Return type:**
   [`RationalTime`](#lacing.time.RationalTime)
 
+#### *property* rate *: [int](https://docs.python.org/3/builtins/functions.html#int)*
+
+The tick rate (ticks per second).
+
+#### to_fraction()
+
+Return the time in seconds as an exact [`Fraction`](https://docs.python.org/3/library/fractions.html#fractions.Fraction).
+
+* **Return type:**
+  [`Fraction`](https://docs.python.org/3/library/fractions.html#fractions.Fraction)
+
 #### to_rate(new_rate)
 
 Re-express at `new_rate`. Raises `LossyTimeConversionError` on loss.
@@ -157,6 +175,17 @@ Float seconds — for display only. Never round-trip through this.
 
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
+
+#### to_wire()
+
+Serialise to the JSON wire format.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
+
+#### *property* value *: [int](https://docs.python.org/3/builtins/functions.html#int)*
+
+The tick count.
 
 #### *classmethod* zero(rate=24000)
 
@@ -189,6 +218,17 @@ Always `start <= end`; constructor raises `ValueError` otherwise.
 
 `end - start` at the same rate as `start`.
 
+#### *property* end *: [RationalTime](#lacing.time.RationalTime)*
+
+The (exclusive) end time.
+
+#### *classmethod* from_seconds(start, end, rate=24000)
+
+Build an interval from start and end given in seconds.
+
+* **Return type:**
+  [`TimeInterval`](#lacing.time.TimeInterval)
+
 #### *classmethod* from_seconds_lossy(start, end, , rate=24000, mode='round')
 
 Build from seconds, quantizing each end to a tick at `rate`.
@@ -201,7 +241,7 @@ instead of each writing `round(x * rate)`, which rounds the float
 product and disagrees on inputs such as `0.0005`. Both ends use
 `mode`, which keeps `start <= end` and puts the shared edge of two
 adjacent windows on one tick; a window shorter than a tick can collapse
-to a point. Use `from_seconds()` when a lossy conversion should be
+to a point. Use [`from_seconds()`](#lacing.time.TimeInterval.from_seconds) when a lossy conversion should be
 an error.
 
 ### Examples
@@ -222,3 +262,32 @@ Build from the wire form. See [`RationalTime.from_wire()`](#lacing.time.Rational
 
 * **Return type:**
   [`TimeInterval`](#lacing.time.TimeInterval)
+
+#### *property* is_point *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
+
+Whether the interval is a point (`start == end`).
+
+#### *classmethod* point(t)
+
+Build a point interval at `t`.
+
+* **Return type:**
+  [`TimeInterval`](#lacing.time.TimeInterval)
+
+#### shift(by)
+
+Return the interval moved by `by`.
+
+* **Return type:**
+  [`TimeInterval`](#lacing.time.TimeInterval)
+
+#### *property* start *: [RationalTime](#lacing.time.RationalTime)*
+
+The (inclusive) start time.
+
+#### to_wire()
+
+Serialise to the JSON wire format.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]]

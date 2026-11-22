@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -526,8 +526,8 @@ silently.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.get_body_schema" title="lacing.schema.get_body_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_body_schema</span></code></a>(uri)</p></td>
 <td><p>Look up the registered Pydantic model for <code class="docutils literal notranslate"><span class="pre">uri</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_registered</span></code>(uri)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.schema.is_registered" title="lacing.schema.is_registered"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_registered</span></code></a>(uri)</p></td>
+<td><p>Return whether <code class="docutils literal notranslate"><span class="pre">name</span></code> is a registered body type.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.schema.json_schema" title="lacing.schema.json_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">json_schema</span></code></a>(uri)</p></td>
 <td><p>Return the JSON Schema for the body model registered at <code class="docutils literal notranslate"><span class="pre">uri</span></code>.</p></td>
@@ -710,6 +710,17 @@ committed artifacts.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#type" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">type</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.schema.is_registered">
+<span class="sig-prename descclassname"><span class="pre">lacing.schema.</span></span><span class="sig-name descname"><span class="pre">is_registered</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uri</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/schema.html#is_registered"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.schema.is_registered" title="Link to this definition">#</a></dt>
+<dd><p>Return whether <code class="docutils literal notranslate"><span class="pre">name</span></code> is a registered body type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -952,6 +963,7 @@ or <a class="reference internal" href="#lacing.schema.UnknownBodySchemaError" ti
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.default_version"><code class="docutils literal notranslate"><span class="pre">default_version()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.export_json_schemas"><code class="docutils literal notranslate"><span class="pre">export_json_schemas()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.get_body_schema"><code class="docutils literal notranslate"><span class="pre">get_body_schema()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.is_registered"><code class="docutils literal notranslate"><span class="pre">is_registered()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.json_schema"><code class="docutils literal notranslate"><span class="pre">json_schema()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.latest_version"><code class="docutils literal notranslate"><span class="pre">latest_version()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.schema.make_uri"><code class="docutils literal notranslate"><span class="pre">make_uri()</span></code></a></li>

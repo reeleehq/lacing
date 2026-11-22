@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../../../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -951,36 +951,52 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># --- annotation-level -----------------------------------------------------</span>
 
+<div class="viewcode-block" id="MappingStore.add">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.mapping.html#lacing.MappingStore.add">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation</span><span class="p">:</span> <span class="n">Annotation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Add an annotation to the store."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">annotation</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ids</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"annotation id </span><span class="si">{</span><span class="n">annotation</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> already in the store"</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_put</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">annotation</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="MappingStore.remove">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.mapping.html#lacing.MappingStore.remove">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation_id</span><span class="p">:</span> <span class="n">UUID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Annotation</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Remove the annotation with the given id; return it, or ``None`` if absent."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">annotation_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ids</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">None</span>
             <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">annotation_id</span><span class="p">)]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_ids</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">annotation_id</span><span class="p">)</span>
-            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">annotation_id</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">annotation_id</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="MappingStore.update">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.mapping.html#lacing.MappingStore.update">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation</span><span class="p">:</span> <span class="n">Annotation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Replace the stored annotation that has the same id."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">annotation</span><span class="o">.</span><span class="n">id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ids</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">annotation</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_put</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span>  <span class="c1"># one key overwritten: never absent in the mapping</span>
-            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span></div>
+
 
     <span class="c1"># --- tier registry --------------------------------------------------------</span>
 
+<div class="viewcode-block" id="MappingStore.add_tier">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.mapping.html#lacing.MappingStore.add_tier">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tier</span><span class="p">:</span> <span class="n">Tier</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Register a tier."""</span>
         <span class="n">merged</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tiers</span><span class="p">()}</span>
         <span class="n">merged</span><span class="p">[</span><span class="n">tier</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tier</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_put_tiers</span><span class="p">(</span><span class="n">merged</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_tier</span><span class="p">(</span><span class="n">tier</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_tier</span><span class="p">(</span><span class="n">tier</span><span class="p">)</span></div>
+
 
     <span class="c1"># --- lifecycle --------------------------------------------------------------</span>
 

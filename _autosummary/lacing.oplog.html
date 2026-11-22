@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -476,8 +476,8 @@ feature” called out in BACK-DOC §4.7.</p>
 <p class="rubric">Functions</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_entries</span></code>(log)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.oplog.has_entries" title="lacing.oplog.has_entries"><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_entries</span></code></a>(log)</p></td>
+<td><p>Return whether the log holds any entries.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.oplog.replay" title="lacing.oplog.replay"><code class="xref py py-obj docutils literal notranslate"><span class="pre">replay</span></code></a>(log, *[, until_clock, target_factory])</p></td>
 <td><p>Rebuild a store by replaying <code class="docutils literal notranslate"><span class="pre">log</span></code> up to (and including) <code class="docutils literal notranslate"><span class="pre">until_clock</span></code>.</p></td>
@@ -510,6 +510,39 @@ feature” called out in BACK-DOC §4.7.</p>
 <p>Simple list-backed op-log. Thread-safe via an RLock.</p>
 <dl class="field-list simple">
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.oplog.InMemoryOpLog.append">
+<span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operation</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">payload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'anonymous'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/oplog.html#InMemoryOpLog.append"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.oplog.InMemoryOpLog.append" title="Link to this definition">#</a></dt>
+<dd><p>Append an entry to the log.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.oplog.InMemoryOpLog.entries">
+<span class="sig-name descname"><span class="pre">entries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">until_clock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_clock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/oplog.html#InMemoryOpLog.entries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.oplog.InMemoryOpLog.entries" title="Link to this definition">#</a></dt>
+<dd><p>Iterate over the logged entries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="#lacing.oplog.OpLogEntry" title="lacing.oplog.OpLogEntry"><code class="xref py py-class docutils literal notranslate"><span class="pre">OpLogEntry</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.oplog.InMemoryOpLog.latest_clock">
+<span class="sig-name descname"><span class="pre">latest_clock</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/oplog.html#InMemoryOpLog.latest_clock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.oplog.InMemoryOpLog.latest_clock" title="Link to this definition">#</a></dt>
+<dd><p>Return the highest logical clock in the log.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -574,6 +607,17 @@ clock value across the lifetime of the log.</p>
 <dd><p>Monotonic Lamport clock starting at 1. Strictly increasing per log.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.oplog.OpLogEntry.from_dict">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/oplog.html#OpLogEntry.from_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.oplog.OpLogEntry.from_dict" title="Link to this definition">#</a></dt>
+<dd><p>Rebuild an entry from <a class="reference internal" href="#lacing.oplog.OpLogEntry.to_dict" title="lacing.oplog.OpLogEntry.to_dict"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_dict()</span></code></a> output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#lacing.oplog.OpLogEntry" title="lacing.oplog.OpLogEntry"><code class="xref py py-class docutils literal notranslate"><span class="pre">OpLogEntry</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lacing.oplog.OpLogEntry.operation">
 <span class="sig-name descname"><span class="pre">operation</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#lacing.oplog.OpLogEntry.operation" title="Link to this definition">#</a></dt>
@@ -604,6 +648,17 @@ clock value across the lifetime of the log.</p>
 <dd><p>Annotation id, tier name, meta key, or None for batch ops.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.oplog.OpLogEntry.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/oplog.html#OpLogEntry.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.oplog.OpLogEntry.to_dict" title="Link to this definition">#</a></dt>
+<dd><p>Serialise the entry to a plain dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -615,6 +670,61 @@ clock value across the lifetime of the log.</p>
 snapshot + the op-log live together and survive a single
 <code class="docutils literal notranslate"><span class="pre">cp</span> <span class="pre">project.annot</span> <span class="pre">project.backup</span></code> step.</p>
 <dl class="field-list simple">
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.oplog.SqliteOpLog.append">
+<span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operation</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">payload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'anonymous'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/oplog.html#SqliteOpLog.append"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.oplog.SqliteOpLog.append" title="Link to this definition">#</a></dt>
+<dd><p>Append an entry to the log.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.oplog.SqliteOpLog.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/oplog.html#SqliteOpLog.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.oplog.SqliteOpLog.close" title="Link to this definition">#</a></dt>
+<dd><p>Release the underlying resources.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.oplog.SqliteOpLog.entries">
+<span class="sig-name descname"><span class="pre">entries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">until_clock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_clock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/oplog.html#SqliteOpLog.entries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.oplog.SqliteOpLog.entries" title="Link to this definition">#</a></dt>
+<dd><p>Iterate over the logged entries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="#lacing.oplog.OpLogEntry" title="lacing.oplog.OpLogEntry"><code class="xref py py-class docutils literal notranslate"><span class="pre">OpLogEntry</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.oplog.SqliteOpLog.latest_clock">
+<span class="sig-name descname"><span class="pre">latest_clock</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/oplog.html#SqliteOpLog.latest_clock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.oplog.SqliteOpLog.latest_clock" title="Link to this definition">#</a></dt>
+<dd><p>Return the highest logical clock in the log.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.oplog.has_entries">
+<span class="sig-prename descclassname"><span class="pre">lacing.oplog.</span></span><span class="sig-name descname"><span class="pre">has_entries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/oplog.html#has_entries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.oplog.has_entries" title="Link to this definition">#</a></dt>
+<dd><p>Return whether the log holds any entries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -692,7 +802,12 @@ responsible for any post-replay validation.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.InMemoryOpLog"><code class="docutils literal notranslate"><span class="pre">InMemoryOpLog</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.InMemoryOpLog"><code class="docutils literal notranslate"><span class="pre">InMemoryOpLog</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.InMemoryOpLog.append"><code class="docutils literal notranslate"><span class="pre">InMemoryOpLog.append()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.InMemoryOpLog.entries"><code class="docutils literal notranslate"><span class="pre">InMemoryOpLog.entries()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.InMemoryOpLog.latest_clock"><code class="docutils literal notranslate"><span class="pre">InMemoryOpLog.latest_clock()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.OpLog"><code class="docutils literal notranslate"><span class="pre">OpLog</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.OpLog.append"><code class="docutils literal notranslate"><span class="pre">OpLog.append()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.OpLog.entries"><code class="docutils literal notranslate"><span class="pre">OpLog.entries()</span></code></a></li>
@@ -702,13 +817,22 @@ responsible for any post-replay validation.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.OpLogEntry"><code class="docutils literal notranslate"><span class="pre">OpLogEntry</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.OpLogEntry.actor"><code class="docutils literal notranslate"><span class="pre">OpLogEntry.actor</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.OpLogEntry.clock"><code class="docutils literal notranslate"><span class="pre">OpLogEntry.clock</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.OpLogEntry.from_dict"><code class="docutils literal notranslate"><span class="pre">OpLogEntry.from_dict()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.OpLogEntry.operation"><code class="docutils literal notranslate"><span class="pre">OpLogEntry.operation</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.OpLogEntry.payload"><code class="docutils literal notranslate"><span class="pre">OpLogEntry.payload</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.OpLogEntry.received_at"><code class="docutils literal notranslate"><span class="pre">OpLogEntry.received_at</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.OpLogEntry.target_id"><code class="docutils literal notranslate"><span class="pre">OpLogEntry.target_id</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.OpLogEntry.to_dict"><code class="docutils literal notranslate"><span class="pre">OpLogEntry.to_dict()</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.SqliteOpLog"><code class="docutils literal notranslate"><span class="pre">SqliteOpLog</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.SqliteOpLog"><code class="docutils literal notranslate"><span class="pre">SqliteOpLog</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.SqliteOpLog.append"><code class="docutils literal notranslate"><span class="pre">SqliteOpLog.append()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.SqliteOpLog.close"><code class="docutils literal notranslate"><span class="pre">SqliteOpLog.close()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.SqliteOpLog.entries"><code class="docutils literal notranslate"><span class="pre">SqliteOpLog.entries()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.SqliteOpLog.latest_clock"><code class="docutils literal notranslate"><span class="pre">SqliteOpLog.latest_clock()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.has_entries"><code class="docutils literal notranslate"><span class="pre">has_entries()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.oplog.replay"><code class="docutils literal notranslate"><span class="pre">replay()</span></code></a></li>
 </ul>
   </nav></div>

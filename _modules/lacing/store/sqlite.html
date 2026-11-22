@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=0f6bfde0"></script>
+    <script src="../../../_static/documentation_options.js?v=e7715e22"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.117" />
+  <meta name="docsearch:version" content="0.0.118" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -953,9 +953,13 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
         <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">"value"</span><span class="p">])</span>
 
+<div class="viewcode-block" id="SqliteStore.close">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.close">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Release the underlying resources."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"SqliteStore"</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span>
@@ -982,32 +986,45 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># --- meta -----------------------------------------------------------</span>
 
+<div class="viewcode-block" id="SqliteStore.get_meta">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.get_meta">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the metadata value stored under ``key``, or ``None``."""</span>
         <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
             <span class="s2">"SELECT value FROM meta WHERE key = ?"</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,)</span>
         <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
-        <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">row</span><span class="p">[</span><span class="s2">"value"</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">row</span><span class="p">[</span><span class="s2">"value"</span><span class="p">]</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.set_meta">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.set_meta">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Store a metadata value under ``key``."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
                 <span class="s2">"INSERT INTO meta (key, value) VALUES (?, ?) "</span>
                 <span class="s2">"ON CONFLICT(key) DO UPDATE SET value=excluded.value"</span><span class="p">,</span>
                 <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span>
-            <span class="p">)</span>
+            <span class="p">)</span></div>
+
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">schema_version</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The schema version recorded in the store."""</span>
         <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_meta</span><span class="p">(</span><span class="s2">"schema_version"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">SCHEMA_VERSION</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Filesystem path of the backing database file."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span>
 
     <span class="c1"># --- tier registry --------------------------------------------------</span>
 
+<div class="viewcode-block" id="SqliteStore.add_tier">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.add_tier">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tier</span><span class="p">:</span> <span class="n">Tier</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Register a tier."""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
                 <span class="s2">"INSERT INTO tiers (name, stereotype, parent, metadata) "</span>
@@ -1022,26 +1039,38 @@ window.runMermaid = runMermaid;</script>
                     <span class="n">tier</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
                     <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">tier</span><span class="o">.</span><span class="n">metadata</span><span class="p">),</span>
                 <span class="p">),</span>
-            <span class="p">)</span>
+            <span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.get_tier">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.get_tier">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tier</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the tier with the given name, or ``None``."""</span>
         <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
             <span class="s2">"SELECT name, stereotype, parent, metadata FROM tiers WHERE name = ?"</span><span class="p">,</span>
             <span class="p">(</span><span class="n">name</span><span class="p">,),</span>
         <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">return</span> <span class="n">_row_to_tier</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_row_to_tier</span><span class="p">(</span><span class="n">row</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.tiers">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.tiers">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">tiers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tier</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return the registered tiers."""</span>
         <span class="n">rows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
             <span class="s2">"SELECT name, stereotype, parent, metadata FROM tiers"</span>
         <span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
-        <span class="k">return</span> <span class="nb">iter</span><span class="p">([</span><span class="n">_row_to_tier</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">])</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">([</span><span class="n">_row_to_tier</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">])</span></div>
+
 
     <span class="c1"># --- annotation CRUD -----------------------------------------------</span>
 
+<div class="viewcode-block" id="SqliteStore.add">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.add">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation</span><span class="p">:</span> <span class="n">Annotation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Add an annotation to the store."""</span>
         <span class="n">cols</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="n">_annotation_to_row</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
             <span class="n">cur</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
@@ -1064,9 +1093,13 @@ window.runMermaid = runMermaid;</script>
                         <span class="n">math</span><span class="o">.</span><span class="n">nextafter</span><span class="p">(</span><span class="n">start_s</span><span class="p">,</span> <span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">inf</span><span class="p">),</span>
                         <span class="n">math</span><span class="o">.</span><span class="n">nextafter</span><span class="p">(</span><span class="n">end_s</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">inf</span><span class="p">),</span>
                     <span class="p">),</span>
-                <span class="p">)</span>
+                <span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.remove">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.remove">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation_id</span><span class="p">:</span> <span class="n">UUID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Annotation</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Remove the annotation with the given id; return it, or ``None`` if absent."""</span>
         <span class="n">ann</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fetch_one</span><span class="p">(</span><span class="n">annotation_id</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">ann</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
@@ -1080,7 +1113,8 @@ window.runMermaid = runMermaid;</script>
                     <span class="s2">"DELETE FROM annotations_rtree WHERE rowid = ?"</span><span class="p">,</span> <span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">"rowid"</span><span class="p">],)</span>
                 <span class="p">)</span>
             <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"DELETE FROM annotations WHERE id = ?"</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">annotation_id</span><span class="p">),))</span>
-        <span class="k">return</span> <span class="n">ann</span>
+        <span class="k">return</span> <span class="n">ann</span></div>
+
 
 <div class="viewcode-block" id="SqliteStore.update">
 <a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.update">[docs]</a>
@@ -1141,9 +1175,13 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">_row_to_annotation</span><span class="p">(</span><span class="n">rows</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">rows</span> <span class="k">else</span> <span class="kc">None</span>
 
+<div class="viewcode-block" id="SqliteStore.all">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.all">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Iterate over every annotation in the store."""</span>
         <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fetchall</span><span class="p">(</span><span class="s2">"SELECT * FROM annotations"</span><span class="p">):</span>
-            <span class="k">yield</span> <span class="n">_row_to_annotation</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">_row_to_annotation</span><span class="p">(</span><span class="n">row</span><span class="p">)</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="c1"># __len__ matches the MutableMapping facade: number of distinct</span>
@@ -1218,47 +1256,82 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># --- Allen-relation queries ----------------------------------------</span>
 
+<div class="viewcode-block" id="SqliteStore.intersects">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.intersects">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">intersects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations whose interval intersects the query interval."""</span>
         <span class="c1"># R*Tree pre-filter: rows whose [start, end] overlaps query interval.</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">_intersects</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">_intersects</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.during">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.during">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">during</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations lying strictly during the query interval (Allen ``during``)."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span>
             <span class="n">query</span><span class="p">,</span> <span class="n">PREDICATE_BY_RELATION</span><span class="p">[</span><span class="n">AllenRelation</span><span class="o">.</span><span class="n">DURING</span><span class="p">]</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.contains">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.contains">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">contains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that contain the query interval (Allen ``contains``)."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span>
             <span class="n">query</span><span class="p">,</span> <span class="n">PREDICATE_BY_RELATION</span><span class="p">[</span><span class="n">AllenRelation</span><span class="o">.</span><span class="n">CONTAINS</span><span class="p">]</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.overlaps">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.overlaps">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">overlaps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that overlap the start of the query interval (Allen ``overlaps``)."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span>
             <span class="n">query</span><span class="p">,</span> <span class="n">PREDICATE_BY_RELATION</span><span class="p">[</span><span class="n">AllenRelation</span><span class="o">.</span><span class="n">OVERLAPS</span><span class="p">]</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.meets">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.meets">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">meets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that end exactly where the query interval starts (Allen ``meets``)."""</span>
         <span class="c1"># meets(a, q): a.end == q.start. R*Tree won't help — scan all.</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scan_filtered</span><span class="p">(</span><span class="n">PREDICATE_BY_RELATION</span><span class="p">[</span><span class="n">AllenRelation</span><span class="o">.</span><span class="n">MEETS</span><span class="p">],</span> <span class="n">query</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scan_filtered</span><span class="p">(</span><span class="n">PREDICATE_BY_RELATION</span><span class="p">[</span><span class="n">AllenRelation</span><span class="o">.</span><span class="n">MEETS</span><span class="p">],</span> <span class="n">query</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.starts">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.starts">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">starts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that start with the query interval but end earlier (Allen ``starts``)."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span>
             <span class="n">query</span><span class="p">,</span> <span class="n">PREDICATE_BY_RELATION</span><span class="p">[</span><span class="n">AllenRelation</span><span class="o">.</span><span class="n">STARTS</span><span class="p">]</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.finishes">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.finishes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">finishes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations that finish with the query interval but start later (Allen ``finishes``)."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span>
             <span class="n">query</span><span class="p">,</span> <span class="n">PREDICATE_BY_RELATION</span><span class="p">[</span><span class="n">AllenRelation</span><span class="o">.</span><span class="n">FINISHES</span><span class="p">]</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.equals">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.equals">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">equals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations whose interval equals the query interval."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidates_filtered</span><span class="p">(</span>
             <span class="n">query</span><span class="p">,</span> <span class="n">PREDICATE_BY_RELATION</span><span class="p">[</span><span class="n">AllenRelation</span><span class="o">.</span><span class="n">EQUALS</span><span class="p">]</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.relate">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.relate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">relate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">,</span> <span class="n">relations</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">AllenRelation</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations standing in the given Allen relation to the query interval."""</span>
         <span class="n">rels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">relations</span><span class="p">)</span>
         <span class="c1"># If only "before" or "after" relations are requested, R*Tree is a</span>
         <span class="c1"># net loss; for everything else it pays.</span>
@@ -1275,24 +1348,36 @@ window.runMermaid = runMermaid;</script>
             <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rels</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">PREDICATE_BY_RELATION</span><span class="p">[</span><span class="n">r</span><span class="p">](</span><span class="n">iv</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
                     <span class="k">yield</span> <span class="n">ann</span>
-                    <span class="k">break</span>
+                    <span class="k">break</span></div>
+
 
     <span class="c1"># --- tier filters --------------------------------------------------</span>
 
+<div class="viewcode-block" id="SqliteStore.by_tier">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.by_tier">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">by_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tier_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Iterate over the annotations of one tier."""</span>
         <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fetchall</span><span class="p">(</span>
             <span class="s2">"SELECT * FROM annotations WHERE tier = ?"</span><span class="p">,</span> <span class="p">(</span><span class="n">tier_name</span><span class="p">,)</span>
         <span class="p">):</span>
-            <span class="k">yield</span> <span class="n">_row_to_annotation</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">_row_to_annotation</span><span class="p">(</span><span class="n">row</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="SqliteStore.at_tier">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.at_tier">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">at_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tier_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Annotation</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Yield annotations of one tier that intersect the query interval."""</span>
         <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">intersects</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">ann</span><span class="o">.</span><span class="n">tier</span> <span class="o">==</span> <span class="n">tier_name</span><span class="p">:</span>
-                <span class="k">yield</span> <span class="n">ann</span>
+                <span class="k">yield</span> <span class="n">ann</span></div>
+
 
     <span class="c1"># --- bulk ----------------------------------------------------------</span>
 
+<div class="viewcode-block" id="SqliteStore.extend">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.sqlite.html#lacing.SqliteStore.extend">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotations</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Annotation</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Add several annotations at once."""</span>
         <span class="c1"># Batch insert inside a single transaction for throughput.</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
             <span class="n">cur</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
@@ -1322,7 +1407,8 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"COMMIT"</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
                 <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">"ROLLBACK"</span><span class="p">)</span>
-                <span class="k">raise</span>
+                <span class="k">raise</span></div>
+
 
     <span class="c1"># --- candidate filtering ------------------------------------------</span>
 

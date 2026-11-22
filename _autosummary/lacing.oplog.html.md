@@ -22,7 +22,7 @@ Use [`replay()`](#lacing.oplog.replay) to rebuild a store at a given clock.
 
 ### Functions
 
-| `has_entries`(log)                                                                              |                                                                         |
+| [`has_entries`](#lacing.oplog.has_entries)(log)                               | Return whether the log holds any entries.                               |
 |-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
 | [`replay`](#lacing.oplog.replay)(log, \*[, until_clock, target_factory]) | Rebuild a store by replaying `log` up to (and including) `until_clock`. |
 
@@ -39,6 +39,27 @@ Use [`replay()`](#lacing.oplog.replay) to rebuild a store at a given clock.
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Simple list-backed op-log. Thread-safe via an RLock.
+
+#### append(operation, , target_id=None, payload=None, actor='anonymous')
+
+Append an entry to the log.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### entries(, until_clock=None, from_clock=None)
+
+Iterate over the logged entries.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`OpLogEntry`](#lacing.oplog.OpLogEntry)]
+
+#### latest_clock()
+
+Return the highest logical clock in the log.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
 ### *class* lacing.oplog.OpLog(\*args, \*\*kwargs)
 
@@ -85,6 +106,13 @@ A generator identifier, `<prefix>:<name>[@<version>]`; see `lacing.generator_id`
 
 Monotonic Lamport clock starting at 1. Strictly increasing per log.
 
+#### *classmethod* from_dict(d)
+
+Rebuild an entry from [`to_dict()`](#lacing.oplog.OpLogEntry.to_dict) output.
+
+* **Return type:**
+  [`OpLogEntry`](#lacing.oplog.OpLogEntry)
+
 #### operation *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
 
 `add_annotation`, `remove_annotation`, `update_annotation`,
@@ -105,6 +133,13 @@ Wall-clock time the operation was received (seconds since epoch).
 
 Annotation id, tier name, meta key, or None for batch ops.
 
+#### to_dict()
+
+Serialise the entry to a plain dict.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
+
 ### *class* lacing.oplog.SqliteOpLog(path, , check_same_thread=True)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
@@ -114,6 +149,41 @@ Op-log backed by a SQLite table.
 Designed to share a database file with `SqliteStore` so the store
 snapshot + the op-log live together and survive a single
 `cp project.annot project.backup` step.
+
+#### append(operation, , target_id=None, payload=None, actor='anonymous')
+
+Append an entry to the log.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+#### close()
+
+Release the underlying resources.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### entries(, until_clock=None, from_clock=None)
+
+Iterate over the logged entries.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`OpLogEntry`](#lacing.oplog.OpLogEntry)]
+
+#### latest_clock()
+
+Return the highest logical clock in the log.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+### lacing.oplog.has_entries(log)
+
+Return whether the log holds any entries.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 ### lacing.oplog.replay(log, , until_clock=None, target_factory=None)
 
