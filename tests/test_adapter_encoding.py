@@ -102,3 +102,21 @@ def test_cli_encoding_option(tmp_path):
     src.write_bytes(SRT.replace("—", "-").encode("cp1252"))
     cli.convert(str(src), str(dst), encoding="cp1252")
     assert "café" in dst.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("module, text, ext", CASES)
+def test_bomless_utf16_names_the_keyword(tmp_path, module, text, ext):
+    """BOM-less ASCII UTF-16 is valid UTF-8 with NULs: a hint, not a parser error (lacing#187)."""
+    ascii_text = text.encode("ascii", "ignore").decode()
+    path = tmp_path / f"f{ext}"
+    path.write_bytes(ascii_text.encode("utf-16-le"))
+    with pytest.raises(UnicodeDecodeError, match="utf-16-le"):
+        module.load(path)
+    assert module.load(path, encoding="utf-16-le").all() is not None
+
+
+def test_decode_text_nul_hint_only_when_nameable():
+    data = "hi".encode("utf-16-le")
+    with pytest.raises(UnicodeDecodeError, match="encoding='utf-16-le'"):
+        decode_text(data)
+    assert decode_text(data, nameable=False) == "h\x00i\x00"
