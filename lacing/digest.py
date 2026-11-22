@@ -285,7 +285,9 @@ byte budget.
 Each candidate is rendered from pre-rendered segments (:class:`_SegmentedCanonical`)
 rather than dumped whole, which made a hashed byte about a quarter of its old cost
 (the SHA-256 is now most of it), so the budget grew from 1.5 MB at about the same
-miss cost: about 40 ms at 1,000 images (measured on an M-series Mac).
+miss cost: about 35 ms at 1,000 images (measured on an M-series Mac). A body whose
+segments would not repay their setup is dumped whole, charged
+:data:`WHOLE_DUMP_BYTE_COST` per byte, at the old cost.
 
 What it costs in reach: reaching a fill on the ``k``-th image needs about ``k``
 candidates (``2k`` with a non-null pre-fill), so the byte budget limits a last-fill
@@ -294,11 +296,19 @@ each, 70 at 800 (135 and 45 before lacing#181). Panels of a few dozen images, th
 realistic case, are not limited; a verifier over larger ones can pass
 ``max_mixed_bytes=None`` (or a larger budget) for the full count and its cost."""
 
-SEGMENTS_PAY_OFF = 32
-"""Mixed-state candidates are rendered from segments (lacing#181) only when more
-than this many fit the budgets: building the segments costs about 16 to 32 dumps
-of the body (measured at 135 to 5000 images), each candidate then about a tenth
-of one, so below this a whole dump per candidate is cheaper."""
+SEGMENT_SETUP_BYTES_PER_CONTAINER = 2_000
+"""The cost of building the segments (lacing#181), in bytes of whole dump, per
+dict that holds a derived site: measured at 11-17 us a container, about 1,000
+bytes of dump each, doubled for margin. Segments are built only when the
+candidates the budgets allow would dump more than this times the containers;
+setup grows with the containers, not the body, so a large body with a few
+sites always gets them."""
+
+WHOLE_DUMP_BYTE_COST = 8 / 3
+"""How many budget bytes one byte of a whole-dumped candidate costs (when the
+segments do not pay off): dumping a byte costs about this much more than joining
+and hashing it, so that path keeps the miss cost of the 1.5 MB budget it had
+before lacing#181."""
 
 MAX_MIXED_FILLS = 1024
 """Default budget of mixed-state bodies :func:`value_digest_matches` tries
@@ -716,7 +726,7 @@ the value it held)."""
 
 def _mixed_fills(
     payload: dict, dropped: list, *, limit: int, max_bytes: int | None = None
-) -> Iterator[dict]:
+) -> Iterator[str]:
     """``payload``, whose derived entries ``dropped`` were removed, with each of
     them in its own state: as now, absent, ``None``, or its path's pre-fill
     value. Only the mixed combinations (the bodies of the uniform ones were
@@ -732,8 +742,8 @@ def _mixed_fills(
     ``null`` or at its pre-fill now, it most likely was then too); then those
     that also move the others. Each in :func:`_by_distance` order.
 
-    ``payload`` is left with every occurrence as now (the fallback for a body
-    the segments cannot render edits it in place between yields)."""
+    The segments leave ``payload`` as now; the whole-dump fallback edits it in
+    place from one combination to the next, so a caller must not read it after."""
     from lacing.derived import memoized_same_json
 
     same_json = memoized_same_json()
@@ -784,12 +794,17 @@ def _mixed_fills(
 
     for container, key, value, _ in dropped:  # start from the body as now
         container[key] = value
-    expected = limit
-    if max_bytes is not None:
-        expected = min(limit, max(1, max_bytes // max(len(_canonical(payload)), 1)))
-    # segments repay their setup (about 16-32 dumps of the body) only over many candidates
-    render = _SegmentedCanonical.of(payload, dropped) if expected > SEGMENTS_PAY_OFF else None
-    hashed = 0
+    size = max(len(_canonical(payload)), 1)
+    expected = limit if max_bytes is None else min(limit, max(1, max_bytes // size))
+    containers = len({id(container) for container, *_ in dropped})
+    # segments repay their setup, which grows with the containers, over enough candidates
+    render = (
+        _SegmentedCanonical.of(payload, dropped)
+        if expected * size > SEGMENT_SETUP_BYTES_PER_CONTAINER * containers
+        else None
+    )
+    cost = 1.0 if render is not None else WHOLE_DUMP_BYTE_COST
+    hashed = 0.0
     applied: dict[int, Any] = {}  # the sites ``payload`` holds off "as now"
     for combo in itertools.islice((c for c in combos if c not in tried), limit):
         if render is not None:
@@ -803,7 +818,7 @@ def _mixed_fills(
             applied = combo
             canonical = _canonical(payload)
         yield canonical
-        hashed += len(canonical)
+        hashed += len(canonical) * cost
         if max_bytes is not None and hashed >= max_bytes:
             return
 
@@ -973,6 +988,8 @@ class _SegmentedCanonical:
 
         keys = [json.dumps(key) + ":" for _c, key, *_ in dropped]
         current = [value for _c, _k, value, _p in dropped]
+        if any(_canonical(shadow(v)) != _canonical(v) for v in current):
+            return None  # a container is also reached through a site's value
         slots: list[str] = []
         variable: set[int] = set()  # the slots a candidate may change
         layout: dict[int, list] = {}
