@@ -935,9 +935,13 @@ class _SegmentedCanonical:
 
     _TOKEN = "\x00lacing-site-container-{}\x00"
 
-    def __init__(self, slots: list, layout: dict, site_slot: list, keys: list, current: list):
+    def __init__(
+        self, slots: list, layout: dict, site_slot: list, keys: list, current: list
+    ):
         self._slots = slots  # the payload as now
-        self._layout = layout  # container -> [(comma slot, site index or None, entry slot)]
+        self._layout = (
+            layout  # container -> [(comma slot, site index or None, entry slot)]
+        )
         self._site_slot = site_slot  # site i -> (container, its entry's position)
         self._keys = keys  # site i -> its '"key":' text
         self._current = current  # site i -> its value as now
@@ -970,7 +974,9 @@ class _SegmentedCanonical:
         top = _canonical(shadow(payload))
         entry_texts = {
             ci: [
-                site_of.get((ci, key), json.dumps(key) + ":" + _canonical(shadow(c[key])))
+                site_of.get(
+                    (ci, key), json.dumps(key) + ":" + _canonical(shadow(c[key]))
+                )
                 for key in sorted(c)
             ]
             for ci, c in enumerate(by_index)
@@ -1058,7 +1064,9 @@ class _SegmentedCanonical:
             return ""
         memo = (i, id(state))
         held = self._state_text.get(memo)
-        if held is None or held[0] is not state:  # the state is kept, so its id is not reused
+        if (
+            held is None or held[0] is not state
+        ):  # the state is kept, so its id is not reused
             held = self._state_text[memo] = (state, self._keys[i] + _canonical(state))
         return held[1]
 
