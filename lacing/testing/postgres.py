@@ -40,10 +40,7 @@ def postgres_unavailable(
     """
     for module in modules:
         if importlib.util.find_spec(module) is None:
-            return (
-                f"needs {module} "
-                '(pip install pytest-postgresql "psycopg[binary]")'
-            )
+            return f'needs {module} (pip install pytest-postgresql "psycopg[binary]")'
     missing = [name for name in binaries if shutil.which(name) is None]
     if missing:
         return f"needs a Postgres binary ({', '.join(missing)}) on PATH"
