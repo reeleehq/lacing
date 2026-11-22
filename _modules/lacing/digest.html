@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=ab1379f9"></script>
+    <script src="../../_static/documentation_options.js?v=0f6bfde0"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.116" />
+  <meta name="docsearch:version" content="0.0.117" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -877,6 +877,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Sequence</span>
 
@@ -991,23 +992,40 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">"""Every scheme :func:`annotation_value_digest` can compute, oldest first. Only</span>
 <span class="sd">the latest excludes derived fields."""</span>
 
-<span class="n">MAX_MIXED_BYTES</span> <span class="o">=</span> <span class="mi">1_500_000</span>
-<span class="sd">"""Default budget of bytes :func:`value_digest_matches` digests over mixed-state</span>
-<span class="sd">bodies (lacing#161), beside :data:`MAX_MIXED_FILLS`: each candidate is a whole</span>
-<span class="sd">canonical dump of the body plus a SHA-256, so the count alone made a miss cost</span>
-<span class="sd">the body's size times 1024 (2.15 s at 5000 images). A miss tries at most</span>
-<span class="sd">``MAX_MIXED_BYTES // len(body)`` candidates (at least one), so a small body</span>
-<span class="sd">still gets the whole count and a large one a bounded cost, about 50 ms with the</span>
-<span class="sd">default. ``None`` is no byte budget.</span>
+<span class="n">MAX_MIXED_BYTES</span> <span class="o">=</span> <span class="mi">4_000_000</span>
+<span class="sd">"""Default budget of canonical JSON bytes :func:`value_digest_matches` hashes over</span>
+<span class="sd">mixed-state bodies (lacing#161, lacing#181), beside :data:`MAX_MIXED_FILLS`: a miss</span>
+<span class="sd">stops once the candidates it hashed add up to this (at least one is tried), so a</span>
+<span class="sd">small body gets the whole count and a large one a bounded cost. ``None`` is no</span>
+<span class="sd">byte budget.</span>
+
+<span class="sd">Each candidate is rendered from pre-rendered segments (:class:`_SegmentedCanonical`)</span>
+<span class="sd">rather than dumped whole, which made a hashed byte about a quarter of its old cost</span>
+<span class="sd">(the SHA-256 is now most of it), so the budget grew from 1.5 MB at about the same</span>
+<span class="sd">miss cost: about 35 ms at 1,000 images (measured on an M-series Mac). A body whose</span>
+<span class="sd">segments would not repay their setup is dumped whole, charged</span>
+<span class="sd">:data:`WHOLE_DUMP_BYTE_COST` per byte, at the old cost.</span>
 
 <span class="sd">What it costs in reach: reaching a fill on the ``k``-th image needs about ``k``</span>
-<span class="sd">candidates (``2k`` with a non-null pre-fill), so the byte budget limits a</span>
-<span class="sd">last-fill trace to about ``sqrt(MAX_MIXED_BYTES / bytes_per_image)`` images with</span>
-<span class="sd">the defaults: 135 images at 80 bytes each, 45 at 800. Panels of a few dozen</span>
-<span class="sd">images, the realistic case, are not limited; a verifier over larger ones can</span>
-<span class="sd">pass ``max_mixed_bytes=None`` (or a larger budget) for the old reach and its</span>
-<span class="sd">cost. Making the candidates cheap instead of capping them (canonical JSON as</span>
-<span class="sd">fixed segments plus per-site segments) is lacing#181."""</span>
+<span class="sd">candidates (``2k`` with a non-null pre-fill), so the byte budget limits a last-fill</span>
+<span class="sd">trace to about ``sqrt(MAX_MIXED_BYTES / bytes_per_image)`` images: 220 at 80 bytes</span>
+<span class="sd">each, 70 at 800 (135 and 45 before lacing#181). Panels of a few dozen images, the</span>
+<span class="sd">realistic case, are not limited; a verifier over larger ones can pass</span>
+<span class="sd">``max_mixed_bytes=None`` (or a larger budget) for the full count and its cost."""</span>
+
+<span class="n">SEGMENT_SETUP_BYTES_PER_CONTAINER</span> <span class="o">=</span> <span class="mi">2_000</span>
+<span class="sd">"""The cost of building the segments (lacing#181), in bytes of whole dump, per</span>
+<span class="sd">dict that holds a derived site: measured at 11-17 us a container, about 1,000</span>
+<span class="sd">bytes of dump each, doubled for margin. Segments are built only when the</span>
+<span class="sd">candidates the budgets allow would dump more than this times the containers;</span>
+<span class="sd">setup grows with the containers, not the body, so a large body with a few</span>
+<span class="sd">sites always gets them."""</span>
+
+<span class="n">WHOLE_DUMP_BYTE_COST</span> <span class="o">=</span> <span class="mi">8</span> <span class="o">/</span> <span class="mi">3</span>
+<span class="sd">"""How many budget bytes one byte of a whole-dumped candidate costs (when the</span>
+<span class="sd">segments do not pay off): dumping a byte costs about this much more than joining</span>
+<span class="sd">and hashing it, so that path keeps the miss cost of the 1.5 MB budget it had</span>
+<span class="sd">before lacing#181."""</span>
 
 <span class="n">MAX_MIXED_FILLS</span> <span class="o">=</span> <span class="mi">1024</span>
 <span class="sd">"""Default budget of mixed-state bodies :func:`value_digest_matches` tries</span>
@@ -1032,8 +1050,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">the budget.</span>
 
 <span class="sd">Cost: a miss computes up to this many more digests, each over the whole body,</span>
-<span class="sd">so at most :data:`MAX_MIXED_BYTES` of body bytes (lacing#161): about 0.45 s at</span>
-<span class="sd">1,000 images without that budget, about 35 ms with it."""</span>
+<span class="sd">so at most :data:`MAX_MIXED_BYTES` of body bytes (lacing#161): about 0.36 s at</span>
+<span class="sd">1,000 images without that budget (3.2 s before lacing#181), about 40 ms with it."""</span>
 
 <span class="n">BODY_DIGEST_SCHEME</span> <span class="o">=</span> <span class="s2">"lacing/annotation-body-digest/v1"</span>
 <span class="sd">"""Domain-separation tag mixed into :func:`annotation_body_digest`."""</span>
@@ -1405,21 +1423,11 @@ window.runMermaid = runMermaid;</script>
             <span class="k">if</span> <span class="n">digest</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
                 <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">digest</span><span class="p">)</span>
                 <span class="k">yield</span> <span class="n">digest</span>
-    <span class="c1"># last, each occurrence in its own state, editing the dropped dump in place</span>
-    <span class="k">for</span> <span class="n">mixed</span> <span class="ow">in</span> <span class="n">_mixed_fills</span><span class="p">(</span>
+    <span class="c1"># last, each occurrence in its own state, as canonical text (lacing#181)</span>
+    <span class="k">for</span> <span class="n">canonical</span> <span class="ow">in</span> <span class="n">_mixed_fills</span><span class="p">(</span>
         <span class="n">payload</span><span class="p">,</span> <span class="n">dropped</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">max_mixed_fills</span><span class="p">,</span> <span class="n">max_bytes</span><span class="o">=</span><span class="n">max_mixed_bytes</span>
     <span class="p">):</span>
-        <span class="k">yield</span> <span class="n">_digest</span><span class="p">(</span><span class="n">_V1_SCHEME</span><span class="p">,</span> <span class="n">mixed</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_mixed_limit</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">max_fills</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">max_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""How many mixed-state bodies to try: ``max_fills``, cut so that digesting</span>
-<span class="sd">    them is about ``max_bytes`` of canonical JSON (each costs the size of</span>
-<span class="sd">    ``payload``, the body as it is now; at least one is tried)."""</span>
-    <span class="k">if</span> <span class="n">max_bytes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">max_fills</span>
-    <span class="n">size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">)))</span>
-    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">max_fills</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_bytes</span> <span class="o">//</span> <span class="nb">max</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="k">yield</span> <span class="n">_digest_canonical</span><span class="p">(</span><span class="n">_V1_SCHEME</span><span class="p">,</span> <span class="n">canonical</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_is_json</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -1453,13 +1461,15 @@ window.runMermaid = runMermaid;</script>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_mixed_fills</span><span class="p">(</span>
     <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">dropped</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">max_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""``payload``, whose derived entries ``dropped`` were removed, with each of</span>
 <span class="sd">    them in its own state: as now, absent, ``None``, or its path's pre-fill</span>
 <span class="sd">    value. Only the mixed combinations (the bodies of the uniform ones were</span>
-<span class="sd">    tried before), at most ``limit`` of them and about ``max_bytes`` of</span>
-<span class="sd">    canonical JSON (:func:`_mixed_limit`), the likeliest first, so a miss</span>
-<span class="sd">    costs ``limit`` digests, never ``3**n``.</span>
+<span class="sd">    tried before), at most ``limit`` of them and until about ``max_bytes`` of</span>
+<span class="sd">    canonical JSON have been hashed (at least one), the likeliest first, so a</span>
+<span class="sd">    miss costs ``limit`` digests, never ``3**n``. Each is yielded as its</span>
+<span class="sd">    canonical JSON text, rendered from segments (:class:`_SegmentedCanonical`,</span>
+<span class="sd">    lacing#181) rather than dumped whole.</span>
 
 <span class="sd">    Likeliest first (lacing#157): the occurrences filled now (not ``None``, not</span>
 <span class="sd">    at their pre-fill) are where a late fill happened, so the combinations that</span>
@@ -1467,9 +1477,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    ``null`` or at its pre-fill now, it most likely was then too); then those</span>
 <span class="sd">    that also move the others. Each in :func:`_by_distance` order.</span>
 
-<span class="sd">    ``payload`` is edited in place from one combination to the next, only where</span>
-<span class="sd">    an occurrence's state changes, so each yield is valid only until the next</span>
-<span class="sd">    (the caller digests it at once)."""</span>
+<span class="sd">    The segments leave ``payload`` as now; the whole-dump fallback edits it in</span>
+<span class="sd">    place from one combination to the next, so a caller must not read it after."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.derived</span><span class="w"> </span><span class="kn">import</span> <span class="n">memoized_same_json</span>
 
     <span class="n">same_json</span> <span class="o">=</span> <span class="n">memoized_same_json</span><span class="p">()</span>
@@ -1520,16 +1529,33 @@ window.runMermaid = runMermaid;</script>
 
     <span class="k">for</span> <span class="n">container</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">dropped</span><span class="p">:</span>  <span class="c1"># start from the body as now</span>
         <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-    <span class="n">limit</span> <span class="o">=</span> <span class="n">_mixed_limit</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">max_bytes</span><span class="p">)</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">_canonical</span><span class="p">(</span><span class="n">payload</span><span class="p">)),</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">expected</span> <span class="o">=</span> <span class="n">limit</span> <span class="k">if</span> <span class="n">max_bytes</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">min</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_bytes</span> <span class="o">//</span> <span class="n">size</span><span class="p">))</span>
+    <span class="n">containers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">({</span><span class="nb">id</span><span class="p">(</span><span class="n">container</span><span class="p">)</span> <span class="k">for</span> <span class="n">container</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="ow">in</span> <span class="n">dropped</span><span class="p">})</span>
+    <span class="c1"># segments repay their setup, which grows with the containers, over enough candidates</span>
+    <span class="n">render</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">_SegmentedCanonical</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">dropped</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">expected</span> <span class="o">*</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="n">SEGMENT_SETUP_BYTES_PER_CONTAINER</span> <span class="o">*</span> <span class="n">containers</span>
+        <span class="k">else</span> <span class="kc">None</span>
+    <span class="p">)</span>
+    <span class="n">cost</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">render</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">WHOLE_DUMP_BYTE_COST</span>
+    <span class="n">hashed</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">applied</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># the sites ``payload`` holds off "as now"</span>
     <span class="k">for</span> <span class="n">combo</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">islice</span><span class="p">((</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">combos</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tried</span><span class="p">),</span> <span class="n">limit</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">applied</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="n">combo</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="n">place</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">dropped</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">combo</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">applied</span> <span class="ow">or</span> <span class="n">applied</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">state</span><span class="p">:</span>
-                <span class="n">place</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
-        <span class="n">applied</span> <span class="o">=</span> <span class="n">combo</span>
-        <span class="k">yield</span> <span class="n">payload</span>
+        <span class="k">if</span> <span class="n">render</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">canonical</span> <span class="o">=</span> <span class="n">render</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">combo</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># a body the segments cannot render: dump it whole, as before</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">applied</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="n">combo</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">place</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">dropped</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">combo</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">applied</span> <span class="ow">or</span> <span class="n">applied</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">state</span><span class="p">:</span>
+                    <span class="n">place</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+            <span class="n">applied</span> <span class="o">=</span> <span class="n">combo</span>
+            <span class="n">canonical</span> <span class="o">=</span> <span class="n">_canonical</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">canonical</span>
+        <span class="n">hashed</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">canonical</span><span class="p">)</span> <span class="o">*</span> <span class="n">cost</span>
+        <span class="k">if</span> <span class="n">max_bytes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">hashed</span> <span class="o">&gt;=</span> <span class="n">max_bytes</span><span class="p">:</span>
+            <span class="k">return</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_by_distance</span><span class="p">(</span>
@@ -1615,6 +1641,182 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="p">{</span><span class="n">field</span><span class="p">:</span> <span class="n">dumped</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">}</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_canonical</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The canonical JSON of ``value``: what every digest here hashes."""</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_digest_canonical</span><span class="p">(</span><span class="n">scheme</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">canonical</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">""":func:`_digest` of a payload whose canonical JSON is ``canonical``."""</span>
+    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">scheme</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">canonical</span><span class="si">}</span><span class="s2">"</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_SegmentedCanonical</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The canonical JSON of a payload whose derived sites change state, built from</span>
+<span class="sd">    pre-rendered slots instead of dumped whole (lacing#181).</span>
+
+<span class="sd">    The payload as now is rendered once into a flat list of slots: fixed text, one</span>
+<span class="sd">    slot per entry of a dict that holds a site (a site's *container*) and one per</span>
+<span class="sd">    comma between its entries. A candidate copies the list, re-renders only the</span>
+<span class="sd">    containers it moves a site of (an absent site's slot and its comma go empty, so</span>
+<span class="sd">    no stray comma is left), and joins: a list copy and a C-level join instead of a</span>
+<span class="sd">    dump, which was 85-95% of a candidate's cost.</span>
+
+<span class="sd">    The text is byte for byte :func:`_canonical` of the payload in that state (every</span>
+<span class="sd">    piece goes through the same ``json.dumps``). :meth:`of` returns ``None``, and the</span>
+<span class="sd">    caller dumps whole, when a token's text also occurs in the payload, or a site's</span>
+<span class="sd">    container is not a dict.</span>
+<span class="sd">    """</span>
+
+    <span class="n">_TOKEN</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\x00</span><span class="s2">lacing-site-container-</span><span class="si">{}</span><span class="se">\x00</span><span class="s2">"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slots</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">layout</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">site_slot</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">current</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slots</span> <span class="o">=</span> <span class="n">slots</span>  <span class="c1"># the payload as now</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_layout</span> <span class="o">=</span> <span class="n">layout</span>  <span class="c1"># container -&gt; [(comma slot, site index or None, entry slot)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_site_slot</span> <span class="o">=</span> <span class="n">site_slot</span>  <span class="c1"># site i -&gt; (container, its entry's position)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_keys</span> <span class="o">=</span> <span class="n">keys</span>  <span class="c1"># site i -&gt; its '"key":' text</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current</span> <span class="o">=</span> <span class="n">current</span>  <span class="c1"># site i -&gt; its value as now</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state_text</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1">#: A container's token as ``json.dumps`` renders it (the ``\x00`` escaped).</span>
+    <span class="n">_RENDERED_TOKEN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'"</span><span class="se">\\</span><span class="s1">u0000lacing-site-container-(\d+)</span><span class="se">\\</span><span class="s1">u0000"'</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">of</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">dropped</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"_SegmentedCanonical | None"</span><span class="p">:</span>
+        <span class="n">order</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># id(container) -&gt; container index</span>
+        <span class="n">by_index</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">container</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="ow">in</span> <span class="n">dropped</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="nb">id</span><span class="p">(</span><span class="n">container</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">order</span><span class="p">:</span>
+                <span class="n">order</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">container</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">by_index</span><span class="p">)</span>
+                <span class="n">by_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">shadow</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">id</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">order</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_TOKEN</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">order</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">value</span><span class="p">)])</span>
+                <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">shadow</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">[</span><span class="n">shadow</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">value</span>
+
+        <span class="n">site_of</span> <span class="o">=</span> <span class="p">{(</span><span class="n">order</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">c</span><span class="p">)],</span> <span class="n">k</span><span class="p">):</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dropped</span><span class="p">)}</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">_canonical</span><span class="p">(</span><span class="n">shadow</span><span class="p">(</span><span class="n">payload</span><span class="p">))</span>
+        <span class="n">entry_texts</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">ci</span><span class="p">:</span> <span class="p">[</span>
+                <span class="n">site_of</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">ci</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">+</span> <span class="s2">":"</span> <span class="o">+</span> <span class="n">_canonical</span><span class="p">(</span><span class="n">shadow</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="n">key</span><span class="p">])))</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">ci</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">by_index</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_RENDERED_TOKEN</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">top</span><span class="p">)]</span>
+        <span class="n">found</span> <span class="o">+=</span> <span class="p">[</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">es</span> <span class="ow">in</span> <span class="n">entry_texts</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">es</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_RENDERED_TOKEN</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">found</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">by_index</span><span class="p">))):</span>
+            <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># a token's text also occurs in the body itself</span>
+
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">+</span> <span class="s2">":"</span> <span class="k">for</span> <span class="n">_c</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="ow">in</span> <span class="n">dropped</span><span class="p">]</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span> <span class="k">for</span> <span class="n">_c</span><span class="p">,</span> <span class="n">_k</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">_p</span> <span class="ow">in</span> <span class="n">dropped</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">_canonical</span><span class="p">(</span><span class="n">shadow</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="o">!=</span> <span class="n">_canonical</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">current</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># a container is also reached through a site's value</span>
+        <span class="n">slots</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">variable</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>  <span class="c1"># the slots a candidate may change</span>
+        <span class="n">layout</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">site_slot</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">dropped</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">emit</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">"""``text`` into the slots, each container token expanded."""</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_RENDERED_TOKEN</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+                <span class="n">slots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">[</span><span class="n">pos</span> <span class="p">:</span> <span class="n">m</span><span class="o">.</span><span class="n">start</span><span class="p">()])</span>
+                <span class="n">container</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)))</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
+            <span class="n">slots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">[</span><span class="n">pos</span><span class="p">:])</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">container</span><span class="p">(</span><span class="n">ci</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">slots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"{"</span><span class="p">)</span>
+            <span class="n">layout</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">after_site</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># a comma moves only once a site before it may be absent</span>
+            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">entry_texts</span><span class="p">[</span><span class="n">ci</span><span class="p">]):</span>
+                <span class="n">comma</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">slots</span><span class="p">)</span>
+                <span class="n">slots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">","</span> <span class="k">if</span> <span class="n">n</span> <span class="k">else</span> <span class="s2">""</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>  <span class="c1"># a site, present as now</span>
+                    <span class="n">site_slot</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">ci</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+                    <span class="n">variable</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="n">comma</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">slots</span><span class="p">)))</span>
+                    <span class="n">layout</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">comma</span><span class="p">,</span> <span class="n">entry</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">slots</span><span class="p">)))</span>
+                    <span class="n">slots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">keys</span><span class="p">[</span><span class="n">entry</span><span class="p">]</span> <span class="o">+</span> <span class="n">_canonical</span><span class="p">(</span><span class="n">current</span><span class="p">[</span><span class="n">entry</span><span class="p">]))</span>
+                    <span class="n">after_site</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">after_site</span><span class="p">:</span>
+                        <span class="n">variable</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">comma</span><span class="p">)</span>
+                    <span class="n">layout</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">comma</span> <span class="k">if</span> <span class="n">after_site</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+                    <span class="n">emit</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+            <span class="n">slots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"}"</span><span class="p">)</span>
+
+        <span class="n">emit</span><span class="p">(</span><span class="n">top</span><span class="p">)</span>
+        <span class="c1"># merge every run of fixed slots into one, so a candidate joins only the</span>
+        <span class="c1"># variable slots and the fixed text between them</span>
+        <span class="n">merged</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">new_index</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">run</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">slot</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">slots</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">variable</span><span class="p">:</span>
+                <span class="n">merged</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">run</span><span class="p">))</span>
+                <span class="n">run</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">new_index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">merged</span><span class="p">)</span>
+                <span class="n">merged</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">slot</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">run</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">slot</span><span class="p">)</span>
+        <span class="n">merged</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">run</span><span class="p">))</span>
+        <span class="n">layout</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">ci</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">(</span>
+                    <span class="kc">None</span> <span class="k">if</span> <span class="n">comma</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">new_index</span><span class="p">[</span><span class="n">comma</span><span class="p">],</span>
+                    <span class="n">site</span><span class="p">,</span>
+                    <span class="kc">None</span> <span class="k">if</span> <span class="n">slot</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">new_index</span><span class="p">[</span><span class="n">slot</span><span class="p">],</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">comma</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">slot</span> <span class="ow">in</span> <span class="n">entries</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">ci</span><span class="p">,</span> <span class="n">entries</span> <span class="ow">in</span> <span class="n">layout</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">merged</span><span class="p">,</span> <span class="n">layout</span><span class="p">,</span> <span class="n">site_slot</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">current</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_site_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""``"key":value`` of site ``i`` in ``state`` (``""``: absent)."""</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="n">_ABSENT</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">""</span>
+        <span class="n">memo</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">id</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
+        <span class="n">held</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_text</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">memo</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">held</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">held</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">state</span><span class="p">:</span>  <span class="c1"># the state is kept, so its id is not reused</span>
+            <span class="n">held</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_text</span><span class="p">[</span><span class="n">memo</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">_canonical</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">held</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">combo</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The canonical JSON of the payload with the sites of ``combo`` in their</span>
+<span class="sd">        states and every other site as now."""</span>
+        <span class="n">slots</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slots</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">ci</span> <span class="ow">in</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_site_slot</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">combo</span><span class="p">}:</span>
+            <span class="n">first</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">for</span> <span class="n">comma</span><span class="p">,</span> <span class="n">site</span><span class="p">,</span> <span class="n">slot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_layout</span><span class="p">[</span><span class="n">ci</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">site</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">state</span> <span class="o">=</span> <span class="n">combo</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">site</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current</span><span class="p">[</span><span class="n">site</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="n">_ABSENT</span><span class="p">:</span>
+                        <span class="n">slots</span><span class="p">[</span><span class="n">comma</span><span class="p">]</span> <span class="o">=</span> <span class="n">slots</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span> <span class="o">=</span> <span class="s2">""</span>
+                        <span class="k">continue</span>
+                    <span class="k">if</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">combo</span><span class="p">:</span>
+                        <span class="n">slots</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_site_text</span><span class="p">(</span><span class="n">site</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">comma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># None: no site before it, so it never moves</span>
+                    <span class="n">slots</span><span class="p">[</span><span class="n">comma</span><span class="p">]</span> <span class="o">=</span> <span class="s2">""</span> <span class="k">if</span> <span class="n">first</span> <span class="k">else</span> <span class="s2">","</span>
+                <span class="n">first</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">slots</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_digest</span><span class="p">(</span><span class="n">scheme</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""SHA-256 hex over ``scheme`` plus the canonical JSON of ``payload``.</span>
 
@@ -1624,8 +1826,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    functions in this module whose payloads happened to coincide would return</span>
 <span class="sd">    the same hex for different questions.</span>
 <span class="sd">    """</span>
-    <span class="n">canonical</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">","</span><span class="p">,</span> <span class="s2">":"</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">scheme</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">canonical</span><span class="si">}</span><span class="s2">"</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">_digest_canonical</span><span class="p">(</span><span class="n">scheme</span><span class="p">,</span> <span class="n">_canonical</span><span class="p">(</span><span class="n">payload</span><span class="p">))</span>
 </pre></div>
 
                 </article>

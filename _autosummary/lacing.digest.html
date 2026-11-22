@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=ab1379f9"></script>
+    <script src="../_static/documentation_options.js?v=0f6bfde0"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.116" />
+  <meta name="docsearch:version" content="0.0.117" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -627,7 +627,7 @@ consumers.</p>
 <td><p>Every scheme <a class="reference internal" href="#lacing.digest.annotation_value_digest" title="lacing.digest.annotation_value_digest"><code class="xref py py-func docutils literal notranslate"><span class="pre">annotation_value_digest()</span></code></a> can compute, oldest first.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.digest.MAX_MIXED_BYTES" title="lacing.digest.MAX_MIXED_BYTES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MAX_MIXED_BYTES</span></code></a></p></td>
-<td><p>Default budget of bytes <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> digests over mixed-state bodies (lacing#161), beside <a class="reference internal" href="#lacing.digest.MAX_MIXED_FILLS" title="lacing.digest.MAX_MIXED_FILLS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MAX_MIXED_FILLS</span></code></a>: each candidate is a whole canonical dump of the body plus a SHA-256, so the count alone made a miss cost the body's size times 1024 (2.15 s at 5000 images).</p></td>
+<td><p>Default budget of canonical JSON bytes <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> hashes over mixed-state bodies (lacing#161, lacing#181), beside <a class="reference internal" href="#lacing.digest.MAX_MIXED_FILLS" title="lacing.digest.MAX_MIXED_FILLS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MAX_MIXED_FILLS</span></code></a>: a miss stops once the candidates it hashed add up to this (at least one is tried), so a small body gets the whole count and a large one a bounded cost.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.digest.MAX_MIXED_FILLS" title="lacing.digest.MAX_MIXED_FILLS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MAX_MIXED_FILLS</span></code></a></p></td>
 <td><p>Default budget of mixed-state bodies <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> tries (lacing#152, lacing#157): a body whose derived fields were filled one occurrence at a time was recorded with each occurrence in its own state (as now, absent, <code class="docutils literal notranslate"><span class="pre">null</span></code>, at its pre-fill value), and every combination is a candidate.</p></td>
@@ -690,22 +690,24 @@ alike here.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="lacing.digest.MAX_MIXED_BYTES">
-<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">MAX_MIXED_BYTES</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1500000</span></span><a class="headerlink" href="#lacing.digest.MAX_MIXED_BYTES" title="Link to this definition">#</a></dt>
-<dd><p>Default budget of bytes <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> digests over mixed-state
-bodies (lacing#161), beside <a class="reference internal" href="#lacing.digest.MAX_MIXED_FILLS" title="lacing.digest.MAX_MIXED_FILLS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MAX_MIXED_FILLS</span></code></a>: each candidate is a whole
-canonical dump of the body plus a SHA-256, so the count alone made a miss cost
-the body’s size times 1024 (2.15 s at 5000 images). A miss tries at most
-<code class="docutils literal notranslate"><span class="pre">MAX_MIXED_BYTES</span> <span class="pre">//</span> <span class="pre">len(body)</span></code> candidates (at least one), so a small body
-still gets the whole count and a large one a bounded cost, about 50 ms with the
-default. <code class="docutils literal notranslate"><span class="pre">None</span></code> is no byte budget.</p>
+<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">MAX_MIXED_BYTES</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4000000</span></span><a class="headerlink" href="#lacing.digest.MAX_MIXED_BYTES" title="Link to this definition">#</a></dt>
+<dd><p>Default budget of canonical JSON bytes <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> hashes over
+mixed-state bodies (lacing#161, lacing#181), beside <a class="reference internal" href="#lacing.digest.MAX_MIXED_FILLS" title="lacing.digest.MAX_MIXED_FILLS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MAX_MIXED_FILLS</span></code></a>: a miss
+stops once the candidates it hashed add up to this (at least one is tried), so a
+small body gets the whole count and a large one a bounded cost. <code class="docutils literal notranslate"><span class="pre">None</span></code> is no
+byte budget.</p>
+<p>Each candidate is rendered from pre-rendered segments (<code class="xref py py-class docutils literal notranslate"><span class="pre">_SegmentedCanonical</span></code>)
+rather than dumped whole, which made a hashed byte about a quarter of its old cost
+(the SHA-256 is now most of it), so the budget grew from 1.5 MB at about the same
+miss cost: about 35 ms at 1,000 images (measured on an M-series Mac). A body whose
+segments would not repay their setup is dumped whole, charged
+<code class="xref py py-data docutils literal notranslate"><span class="pre">WHOLE_DUMP_BYTE_COST</span></code> per byte, at the old cost.</p>
 <p>What it costs in reach: reaching a fill on the <code class="docutils literal notranslate"><span class="pre">k</span></code>-th image needs about <code class="docutils literal notranslate"><span class="pre">k</span></code>
-candidates (<code class="docutils literal notranslate"><span class="pre">2k</span></code> with a non-null pre-fill), so the byte budget limits a
-last-fill trace to about <code class="docutils literal notranslate"><span class="pre">sqrt(MAX_MIXED_BYTES</span> <span class="pre">/</span> <span class="pre">bytes_per_image)</span></code> images with
-the defaults: 135 images at 80 bytes each, 45 at 800. Panels of a few dozen
-images, the realistic case, are not limited; a verifier over larger ones can
-pass <code class="docutils literal notranslate"><span class="pre">max_mixed_bytes=None</span></code> (or a larger budget) for the old reach and its
-cost. Making the candidates cheap instead of capping them (canonical JSON as
-fixed segments plus per-site segments) is lacing#181.</p>
+candidates (<code class="docutils literal notranslate"><span class="pre">2k</span></code> with a non-null pre-fill), so the byte budget limits a last-fill
+trace to about <code class="docutils literal notranslate"><span class="pre">sqrt(MAX_MIXED_BYTES</span> <span class="pre">/</span> <span class="pre">bytes_per_image)</span></code> images: 220 at 80 bytes
+each, 70 at 800 (135 and 45 before lacing#181). Panels of a few dozen images, the
+realistic case, are not limited; a verifier over larger ones can pass
+<code class="docutils literal notranslate"><span class="pre">max_mixed_bytes=None</span></code> (or a larger budget) for the full count and its cost.</p>
 </dd></dl>
 
 <dl class="py data">
@@ -731,8 +733,8 @@ occurrence <code class="docutils literal notranslate"><span class="pre">null</sp
 combination of the filled ones, so with seven or more filled images it is past
 the budget.</p>
 <p>Cost: a miss computes up to this many more digests, each over the whole body,
-so at most <a class="reference internal" href="#lacing.digest.MAX_MIXED_BYTES" title="lacing.digest.MAX_MIXED_BYTES"><code class="xref py py-data docutils literal notranslate"><span class="pre">MAX_MIXED_BYTES</span></code></a> of body bytes (lacing#161): about 0.45 s at
-1,000 images without that budget, about 35 ms with it.</p>
+so at most <a class="reference internal" href="#lacing.digest.MAX_MIXED_BYTES" title="lacing.digest.MAX_MIXED_BYTES"><code class="xref py py-data docutils literal notranslate"><span class="pre">MAX_MIXED_BYTES</span></code></a> of body bytes (lacing#161): about 0.36 s at
+1,000 images without that budget (3.2 s before lacing#181), about 40 ms with it.</p>
 </dd></dl>
 
 <dl class="py exception">
@@ -777,7 +779,7 @@ why each is in, and why <code class="docutils literal notranslate"><span class="
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lacing.digest.accepted_value_digests">
-<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">accepted_value_digests</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing/annotation-value-digest/v2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_derived</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mixed_fills</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mixed_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1500000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/digest.html#accepted_value_digests"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.digest.accepted_value_digests" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">accepted_value_digests</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing/annotation-value-digest/v2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_derived</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mixed_fills</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mixed_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4000000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/digest.html#accepted_value_digests"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.digest.accepted_value_digests" title="Link to this definition">#</a></dt>
 <dd><p>Every digest <a class="reference internal" href="#lacing.digest.value_digest_matches" title="lacing.digest.value_digest_matches"><code class="xref py py-func docutils literal notranslate"><span class="pre">value_digest_matches()</span></code></a> accepts for <code class="docutils literal notranslate"><span class="pre">annotation</span></code>.</p>
 <p>For a verifier that memoizes per annotation and scheme and checks many
 recorded digests against one set; <code class="docutils literal notranslate"><span class="pre">value_digest_matches</span></code> stays the lazy
@@ -968,7 +970,7 @@ default <code class="docutils literal notranslate"><span class="pre">resolve_der
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lacing.digest.value_digest_matches">
-<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">value_digest_matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recorded</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing/annotation-value-digest/v2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_derived</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mixed_fills</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mixed_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1500000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/digest.html#value_digest_matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.digest.value_digest_matches" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lacing.digest.</span></span><span class="sig-name descname"><span class="pre">value_digest_matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recorded</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lacing/annotation-value-digest/v2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_derived</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mixed_fills</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mixed_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4000000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/digest.html#value_digest_matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.digest.value_digest_matches" title="Link to this definition">#</a></dt>
 <dd><p>Whether <code class="docutils literal notranslate"><span class="pre">recorded</span></code>, a value digest a trace stored under <code class="docutils literal notranslate"><span class="pre">scheme</span></code>, still
 describes <code class="docutils literal notranslate"><span class="pre">annotation</span></code>’s value.</p>
 <p>The check a freshness verifier makes, instead of comparing
