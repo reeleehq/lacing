@@ -8,34 +8,27 @@ binary is available, those tests are skipped automatically.
 
 from __future__ import annotations
 
-import shutil
 import sqlite3
 
 import pytest
 
-
-def _have_postgres_binary() -> bool:
-    return any(
-        shutil.which(name) is not None for name in ("pg_ctl", "postgres")
-    )
+from lacing.testing.postgres import postgres_unavailable
 
 
-def _have_pytest_postgresql() -> bool:
-    try:
-        import pytest_postgresql  # noqa: F401
-        return True
-    except ImportError:
-        return False
+def _postgres_ok() -> bool:
+    """pytest-postgresql and a ``pg_ctl`` are there (psycopg is lacing's own dependency
+    for the Postgres store, so it is not asked here)."""
+    return postgres_unavailable(modules=("pytest_postgresql",)) is None
 
 
 # Auto-load the pytest-postgresql plugin only when both prerequisites are met.
 # Otherwise, register a marker so tests can skip cleanly.
-if _have_pytest_postgresql() and _have_postgres_binary():
+if _postgres_ok():
     pytest_plugins = ("pytest_postgresql",)
 
 
 def pytest_collection_modifyitems(config, items):  # pragma: no cover
-    if _have_pytest_postgresql() and _have_postgres_binary():
+    if _postgres_ok():
         return
     # Skip any test that requests the postgres fixture.
     skip_pg = pytest.mark.skip(
