@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "built_at": "2026-11-22T11:14:04Z",
+  "built_at": "2026-11-22T11:19:04Z",
   "package": {
     "name": "lacing",
     "version": "0.0.113",
@@ -9,26 +9,24 @@
   },
   "git": {
     "available": true,
-    "commit": "1ccd0f10b9e3f4a3602c3ec9be180436e4892545",
-    "short_commit": "1ccd0f1",
+    "commit": "ae7ae4715ccdcbb1e27b39c1af67a4532d9bd8b8",
+    "short_commit": "ae7ae47",
     "branch": "main",
-    "tags": [
-      "0.0.113"
-    ],
+    "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/reeleehq/lacing",
-    "commit_url": "https://github.com/reeleehq/lacing/commit/1ccd0f10b9e3f4a3602c3ec9be180436e4892545",
+    "commit_url": "https://github.com/reeleehq/lacing/commit/ae7ae4715ccdcbb1e27b39c1af67a4532d9bd8b8",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "reeleehq/lacing",
-    "sha": "6deb74d0f97d6d17ae503989434088e9f43613ca",
+    "sha": "ae7ae4715ccdcbb1e27b39c1af67a4532d9bd8b8",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "45015615692",
-    "run_url": "https://github.com/reeleehq/lacing/actions/runs/45015615692",
+    "run_id": "45016454442",
+    "run_url": "https://github.com/reeleehq/lacing/actions/runs/45016454442",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -66,7 +64,7 @@
     "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout 1ccd0f10b9e3f4a3602c3ec9be180436e4892545\npip install \"epythet==0.2.23\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/reeleehq/lacing && cd lacing\ngit checkout ae7ae4715ccdcbb1e27b39c1af67a4532d9bd8b8\npip install \"epythet==0.2.23\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,
