@@ -192,9 +192,7 @@ def decode_text(
         if encoding is None and sniffed is None and nameable and "\x00" in text:
             # BOM-less ASCII UTF-16 is valid UTF-8 full of NULs (lacing#187)
             at = text.index("\x00")
-            raise UnicodeDecodeError(
-                "utf-8", data, at, at + 1, "NUL byte in the text"
-            )
+            raise UnicodeDecodeError("utf-8", data, at, at + 1, "NUL byte in the text")
         return text.removeprefix(_BOM)
     except UnicodeDecodeError as error:
         if sniffed is not None:
