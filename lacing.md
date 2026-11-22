@@ -1,4 +1,4 @@
-> built 2026-11-22 11:19 UTC from ae7ae47 (main) · lacing 0.0.113. Details: build_info.json
+> built 2026-11-22 11:23 UTC from 814cb28 (main) · lacing 0.0.114. Details: build_info.json
 
 # index.html.md
 
@@ -7938,6 +7938,7 @@ The advisory check [`lacing.Provenance`](_autosummary/lacing.html.md#lacing.Prov
 | [`schema`](_autosummary/lacing.schema.html.md#module-lacing.schema)                 | Body schema registry, JSON Schema export, and migrations.                                                       |
 | [`store`](_autosummary/lacing.store.html.md#module-lacing.store)                   | Interval-keyed annotation stores.                                                                               |
 | [`territory`](_autosummary/lacing.territory.html.md#module-lacing.territory)           | Territories: the vocabulary a `territory_excluded` restriction is written in.                                   |
+| [`testing`](_autosummary/lacing.testing.html.md#module-lacing.testing)               | Test helpers that downstream packages can import (lacing#166).                                                  |
 | [`tier`](_autosummary/lacing.tier.html.md#module-lacing.tier)                     | Tiers and the five ELAN stereotypes.                                                                            |
 | [`time`](_autosummary/lacing.time.html.md#module-lacing.time)                     | Rational time and half-open intervals — the foundations.                                                        |
 | [`tracks`](_autosummary/lacing.tracks.html.md#module-lacing.tracks)                 | High-level "track-shaped" facades on top of `lacing`.                                                           |
@@ -10800,6 +10801,76 @@ is not an ISO code, an alias of one, or a region, and [`WORLDWIDE`](_autosummary
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 
+# _autosummary/lacing.testing.html.md
+
+# lacing.testing
+
+Test helpers that downstream packages can import (lacing#166).
+
+`lacing.testing.postgres` is the per-test Postgres harness’s shared part.
+
+### Modules
+
+| [`postgres`](_autosummary/lacing.testing.postgres.html.md#module-lacing.testing.postgres)   | The shared part of a per-test Postgres harness (lacing#166).   |
+|--------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+
+
+# _autosummary/lacing.testing.postgres.html.md
+
+# lacing.testing.postgres
+
+The shared part of a per-test Postgres harness (lacing#166).
+
+lacing’s store tests and downstream packages (nw, reelee) all need the same two
+things around pytest-postgresql: a reason to skip when a local Postgres cannot
+start here, and a libpq connection string for its `postgresql` fixture:
+
+```default
+from lacing.testing.postgres import conninfo, postgres_unavailable
+
+if (why := postgres_unavailable()) is not None: ...  # skip
+dsn = conninfo(postgresql)
+```
+
+Nothing here imports pytest, psycopg or pytest-postgresql at module import.
+
+### Module Attributes
+
+| [`POSTGRES_BINARIES`](_autosummary/lacing.testing.postgres.html.md#lacing.testing.postgres.POSTGRES_BINARIES)   | Executables all of which must be on `PATH` for a local Postgres to start: pytest-postgresql runs `pg_ctl`, so a bare `postgres` binary is not enough.   |
+|----------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+### Functions
+
+| [`conninfo`](_autosummary/lacing.testing.postgres.html.md#lacing.testing.postgres.conninfo)(postgresql)                          | A libpq connection string for pytest-postgresql's `postgresql` fixture.   |
+|------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| [`postgres_unavailable`](_autosummary/lacing.testing.postgres.html.md#lacing.testing.postgres.postgres_unavailable)(\*[, modules, binaries]) | Why a per-test Postgres cannot run here, or `None` when it can.           |
+
+### lacing.testing.postgres.POSTGRES_BINARIES *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ('pg_ctl',)*
+
+Executables all of which must be on `PATH` for a local Postgres to start:
+pytest-postgresql runs `pg_ctl`, so a bare `postgres` binary is not enough.
+
+### lacing.testing.postgres.conninfo(postgresql)
+
+A libpq connection string for pytest-postgresql’s `postgresql` fixture.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### lacing.testing.postgres.postgres_unavailable(, modules=('pytest_postgresql', 'psycopg'), binaries=('pg_ctl',))
+
+Why a per-test Postgres cannot run here, or `None` when it can.
+
+```pycon
+>>> postgres_unavailable(modules=("no_such_module_xyz",))
+'needs no_such_module_xyz (pip install pytest-postgresql "psycopg[binary]")'
+>>> postgres_unavailable(modules=(), binaries=())
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+
 # _autosummary/lacing.tier.html.md
 
 # lacing.tier
@@ -11615,7 +11686,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-22 11:19 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/ae7ae4715ccdcbb1e27b39c1af67a4532d9bd8b8"><code>ae7ae47</code></a> on branch <code>main</code>, for **lacing 0.0.113** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-22 11:23 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/814cb28d0c6b72e0466ef24b8f83c6bda256dc38"><code>814cb28</code></a> on branch <code>main</code>, for **lacing 0.0.114** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11624,7 +11695,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/ae7ae4715ccdcbb1e27b39c1af67a4532d9bd8b8"><code>ae7ae4715ccdcbb1e27b39c1af67a4532d9bd8b8</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/814cb28d0c6b72e0466ef24b8f83c6bda256dc38"><code>814cb28d0c6b72e0466ef24b8f83c6bda256dc38</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -11635,9 +11706,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45016454442">45016454442</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45016816699">45016816699</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>ae7ae4715ccdcbb1e27b39c1af67a4532d9bd8b8</code> (in the history of the built commit) |
+| Event commit | <code>814cb28d0c6b72e0466ef24b8f83c6bda256dc38</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11662,13 +11733,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.113/">0.0.113</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.114/">0.0.114</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout ae7ae4715ccdcbb1e27b39c1af67a4532d9bd8b8
+git checkout 814cb28d0c6b72e0466ef24b8f83c6bda256dc38
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

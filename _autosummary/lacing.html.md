@@ -2679,6 +2679,7 @@ The advisory check [`lacing.Provenance`](#lacing.Provenance) runs on `was_genera
 | [`schema`](lacing.schema.html.md#module-lacing.schema)                 | Body schema registry, JSON Schema export, and migrations.                                                       |
 | [`store`](lacing.store.html.md#module-lacing.store)                   | Interval-keyed annotation stores.                                                                               |
 | [`territory`](lacing.territory.html.md#module-lacing.territory)           | Territories: the vocabulary a `territory_excluded` restriction is written in.                                   |
+| [`testing`](lacing.testing.html.md#module-lacing.testing)               | Test helpers that downstream packages can import (lacing#166).                                                  |
 | [`tier`](lacing.tier.html.md#module-lacing.tier)                     | Tiers and the five ELAN stereotypes.                                                                            |
 | [`time`](lacing.time.html.md#module-lacing.time)                     | Rational time and half-open intervals — the foundations.                                                        |
 | [`tracks`](lacing.tracks.html.md#module-lacing.tracks)                 | High-level "track-shaped" facades on top of `lacing`.                                                           |

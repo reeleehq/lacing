@@ -1,0 +1,19 @@
+lacing.testing.postgres
+=======================
+
+.. automodule:: lacing.testing.postgres
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      POSTGRES_BINARIES
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      conninfo
+      postgres_unavailable
+   

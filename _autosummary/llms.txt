@@ -58,6 +58,8 @@
 - [lacing.store.postgres](lacing.store.postgres.html.md): PostgreSQL-backed annotation store using &#96;int8range&#96; + GiST.
 - [lacing.store.sqlite](lacing.store.sqlite.html.md): SQLite-backed annotation store and the &#96;.annot&#96; portable file format.
 - [lacing.territory](lacing.territory.html.md): Territories: the vocabulary a &#96;territory_excluded&#96; restriction is written in.
+- [lacing.testing](lacing.testing.html.md): Test helpers that downstream packages can import (lacing#166).
+- [lacing.testing.postgres](lacing.testing.postgres.html.md): The shared part of a per-test Postgres harness (lacing#166).
 - [lacing.tier](lacing.tier.html.md): Tiers and the five ELAN stereotypes.
 - [lacing.time](lacing.time.html.md): Rational time and half-open intervals — the foundations.
 - [lacing.tracks](lacing.tracks.html.md): High-level “track-shaped” facades on top of &#96;lacing&#96;.
