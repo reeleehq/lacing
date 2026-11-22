@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=9cebf393"></script>
+    <script src="../_static/documentation_options.js?v=ab1379f9"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.115" />
+  <meta name="docsearch:version" content="0.0.116" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -468,11 +468,18 @@ data: a process-local lock for <code class="docutils literal notranslate"><span 
 for <code class="docutils literal notranslate"><span class="pre">SqliteStore</span></code> (excludes other processes on the host too), a Postgres
 advisory lock for <code class="docutils literal notranslate"><span class="pre">PostgresStore</span></code> (excludes other hosts).</p>
 <p>Locks are <em>not</em> re-entrant: taking a lock you already hold blocks forever.</p>
+<p><a class="reference internal" href="#lacing.store.locking.KeyedTurn" title="lacing.store.locking.KeyedTurn"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyedTurn</span></code></a> is the same exclusion as a <em>turn</em> a caller takes and gives
+back: a per-key turn across threads and processes, with a blocking acquire for
+worker threads, a non-blocking one, and an <code class="docutils literal notranslate"><span class="pre">async</span></code> acquire an event loop polls
+without holding a thread (lacing#194).</p>
 <p class="rubric">Module Attributes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.store.locking.KEY_DIGEST_BYTES" title="lacing.store.locking.KEY_DIGEST_BYTES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KEY_DIGEST_BYTES</span></code></a></p></td>
 <td><p>Bytes of the blake2b digest used to name a key (file name / advisory id).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.store.locking.DFLT_TURN_POLL_S" title="lacing.store.locking.DFLT_TURN_POLL_S"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DFLT_TURN_POLL_S</span></code></a></p></td>
+<td><p>Seconds between tries of another process's hold on a turn.</p></td>
 </tr>
 </tbody>
 </table>
@@ -489,8 +496,14 @@ advisory lock for <code class="docutils literal notranslate"><span class="pre">P
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.store.locking.key_digest" title="lacing.store.locking.key_digest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">key_digest</span></code></a>(*parts)</p></td>
 <td><p>Stable digest of <code class="docutils literal notranslate"><span class="pre">parts</span></code> (length-prefixed, so <code class="docutils literal notranslate"><span class="pre">(&quot;a&quot;,</span> <span class="pre">&quot;bc&quot;)</span> <span class="pre">!=</span> <span class="pre">(&quot;ab&quot;,</span> <span class="pre">&quot;c&quot;)</span></code>).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.store.locking.sidecar_lock_path" title="lacing.store.locking.sidecar_lock_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sidecar_lock_path</span></code></a>(db_path, key)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.store.locking.keyed_turn" title="lacing.store.locking.keyed_turn"><code class="xref py py-obj docutils literal notranslate"><span class="pre">keyed_turn</span></code></a>(directory, key, *[, name_of])</p></td>
+<td><p>The one <a class="reference internal" href="#lacing.store.locking.KeyedTurn" title="lacing.store.locking.KeyedTurn"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyedTurn</span></code></a> per <code class="docutils literal notranslate"><span class="pre">(directory,</span> <span class="pre">key)</span></code> in this process: every caller that takes a key's turn must share one, or their thread locks would not order them.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.store.locking.sidecar_lock_path" title="lacing.store.locking.sidecar_lock_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sidecar_lock_path</span></code></a>(db_path, key)</p></td>
 <td><p>Lock file for <code class="docutils literal notranslate"><span class="pre">key</span></code> beside the database at <code class="docutils literal notranslate"><span class="pre">db_path</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.store.locking.turn_file_name" title="lacing.store.locking.turn_file_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">turn_file_name</span></code></a>(key)</p></td>
+<td><p>The lock file a <a class="reference internal" href="#lacing.store.locking.KeyedTurn" title="lacing.store.locking.KeyedTurn"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyedTurn</span></code></a> of <code class="docutils literal notranslate"><span class="pre">key</span></code> holds: its digest, so a key may hold any character (an email, a path) and never names a file itself.</p></td>
 </tr>
 </tbody>
 </table>
@@ -498,16 +511,109 @@ advisory lock for <code class="docutils literal notranslate"><span class="pre">P
 <p class="rubric">Classes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.store.locking.NamedLocks" title="lacing.store.locking.NamedLocks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NamedLocks</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.store.locking.KeyedTurn" title="lacing.store.locking.KeyedTurn"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KeyedTurn</span></code></a>(directory, key, *[, name_of, poll_s])</p></td>
+<td><p>One key's turn, ordered across this process's threads and every process that shares <code class="docutils literal notranslate"><span class="pre">directory</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.store.locking.NamedLocks" title="lacing.store.locking.NamedLocks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NamedLocks</span></code></a>()</p></td>
 <td><p>Process-local named exclusive locks (a registry of <code class="docutils literal notranslate"><span class="pre">threading.Lock</span></code>).</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <dl class="py data">
+<dt class="sig sig-object py" id="lacing.store.locking.DFLT_TURN_POLL_S">
+<span class="sig-prename descclassname"><span class="pre">lacing.store.locking.</span></span><span class="sig-name descname"><span class="pre">DFLT_TURN_POLL_S</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.05</span></span><a class="headerlink" href="#lacing.store.locking.DFLT_TURN_POLL_S" title="Link to this definition">#</a></dt>
+<dd><p>Seconds between tries of another process’s hold on a turn.</p>
+</dd></dl>
+
+<dl class="py data">
 <dt class="sig sig-object py" id="lacing.store.locking.KEY_DIGEST_BYTES">
 <span class="sig-prename descclassname"><span class="pre">lacing.store.locking.</span></span><span class="sig-name descname"><span class="pre">KEY_DIGEST_BYTES</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></span><a class="headerlink" href="#lacing.store.locking.KEY_DIGEST_BYTES" title="Link to this definition">#</a></dt>
 <dd><p>Bytes of the blake2b digest used to name a key (file name / advisory id).</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lacing.store.locking.KeyedTurn">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.store.locking.</span></span><span class="sig-name descname"><span class="pre">KeyedTurn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_of</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">turn_file_name&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poll_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/locking.html#KeyedTurn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.locking.KeyedTurn" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>One key’s turn, ordered across this process’s threads and every process
+that shares <code class="docutils literal notranslate"><span class="pre">directory</span></code>.</p>
+<p>A thread lock orders this process’s callers; an exclusive <code class="docutils literal notranslate"><span class="pre">flock</span></code> on
+<code class="docutils literal notranslate"><span class="pre">directory/&lt;name_of(key)&gt;</span></code> orders them against other processes. The kernel
+releases an <code class="docutils literal notranslate"><span class="pre">flock</span></code> when its holder dies, so a crashed process never leaves a
+turn held. Without <code class="docutils literal notranslate"><span class="pre">fcntl</span></code> (not POSIX) the turn is the thread lock alone.</p>
+<p><strong>It fails closed</strong>: when the lock file cannot be made (an unwritable
+directory), taking the turn raises <code class="docutils literal notranslate"><span class="pre">OSError</span></code> rather than running unordered.</p>
+<p>Three ways to take it: <a class="reference internal" href="#lacing.store.locking.KeyedTurn.acquire" title="lacing.store.locking.KeyedTurn.acquire"><code class="xref py py-meth docutils literal notranslate"><span class="pre">acquire()</span></code></a> (blocking, with a <code class="docutils literal notranslate"><span class="pre">timeout</span></code>),
+<a class="reference internal" href="#lacing.store.locking.KeyedTurn.try_acquire" title="lacing.store.locking.KeyedTurn.try_acquire"><code class="xref py py-meth docutils literal notranslate"><span class="pre">try_acquire()</span></code></a> (never blocks) and <a class="reference internal" href="#lacing.store.locking.KeyedTurn.acquire_async" title="lacing.store.locking.KeyedTurn.acquire_async"><code class="xref py py-meth docutils literal notranslate"><span class="pre">acquire_async()</span></code></a> (polls
+<a class="reference internal" href="#lacing.store.locking.KeyedTurn.try_acquire" title="lacing.store.locking.KeyedTurn.try_acquire"><code class="xref py py-meth docutils literal notranslate"><span class="pre">try_acquire()</span></code></a> from an event loop, so a cancelled waiter holds nothing).
+Not re-entrant; <a class="reference internal" href="#lacing.store.locking.KeyedTurn.release" title="lacing.store.locking.KeyedTurn.release"><code class="xref py py-meth docutils literal notranslate"><span class="pre">release()</span></code></a> gives it back. As a context manager it is the
+blocking acquire.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">turn</span> <span class="o">=</span> <span class="n">KeyedTurn</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(),</span> <span class="s2">"alice@example.com"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">turn</span><span class="o">.</span><span class="n">try_acquire</span><span class="p">(),</span> <span class="n">turn</span><span class="o">.</span><span class="n">try_acquire</span><span class="p">()</span>
+<span class="go">(True, False)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">turn</span><span class="o">.</span><span class="n">release</span><span class="p">();</span> <span class="n">turn</span><span class="o">.</span><span class="n">try_acquire</span><span class="p">()</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">turn</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.locking.KeyedTurn.acquire">
+<span class="sig-name descname"><span class="pre">acquire</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/locking.html#KeyedTurn.acquire"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.locking.KeyedTurn.acquire" title="Link to this definition">#</a></dt>
+<dd><p>Take the turn within <code class="docutils literal notranslate"><span class="pre">timeout</span></code> seconds (negative: as long as it takes);
+<code class="docutils literal notranslate"><span class="pre">False</span></code> when it is still held.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.locking.KeyedTurn.acquire_async">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">acquire_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">poll_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deadline_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/locking.html#KeyedTurn.acquire_async"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.locking.KeyedTurn.acquire_async" title="Link to this definition">#</a></dt>
+<dd><p>Take the turn from an event loop: <a class="reference internal" href="#lacing.store.locking.KeyedTurn.try_acquire" title="lacing.store.locking.KeyedTurn.try_acquire"><code class="xref py py-meth docutils literal notranslate"><span class="pre">try_acquire()</span></code></a> every <code class="docutils literal notranslate"><span class="pre">poll_s</span></code>
+(default the turn’s), for at most <code class="docutils literal notranslate"><span class="pre">deadline_s</span></code> seconds (<code class="docutils literal notranslate"><span class="pre">None</span></code>: until
+taken). Nothing is held across an <code class="docutils literal notranslate"><span class="pre">await</span></code>, so a cancelled waiter holds
+nothing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lacing.store.locking.KeyedTurn.path">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">path</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#lacing.store.locking.KeyedTurn.path" title="Link to this definition">#</a></dt>
+<dd><p>The lock file this turn holds.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.locking.KeyedTurn.release">
+<span class="sig-name descname"><span class="pre">release</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/locking.html#KeyedTurn.release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.locking.KeyedTurn.release" title="Link to this definition">#</a></dt>
+<dd><p>Give the turn back, to this process’s next caller and to other processes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lacing.store.locking.KeyedTurn.try_acquire">
+<span class="sig-name descname"><span class="pre">try_acquire</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/locking.html#KeyedTurn.try_acquire"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.locking.KeyedTurn.try_acquire" title="Link to this definition">#</a></dt>
+<dd><p>Take the turn now, or <code class="docutils literal notranslate"><span class="pre">False</span></code> when it is held; never blocks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -564,9 +670,35 @@ dies. The lock file is left in place (removing it would race a waiter).</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lacing.store.locking.keyed_turn">
+<span class="sig-prename descclassname"><span class="pre">lacing.store.locking.</span></span><span class="sig-name descname"><span class="pre">keyed_turn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_of</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">turn_file_name&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/locking.html#keyed_turn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.locking.keyed_turn" title="Link to this definition">#</a></dt>
+<dd><p>The one <a class="reference internal" href="#lacing.store.locking.KeyedTurn" title="lacing.store.locking.KeyedTurn"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyedTurn</span></code></a> per <code class="docutils literal notranslate"><span class="pre">(directory,</span> <span class="pre">key)</span></code> in this process: every
+caller that takes a key’s turn must share one, or their thread locks would not
+order them. Kept for the process’s life, so the map is bounded by the number
+of distinct keys.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#lacing.store.locking.KeyedTurn" title="lacing.store.locking.KeyedTurn"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyedTurn</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lacing.store.locking.sidecar_lock_path">
 <span class="sig-prename descclassname"><span class="pre">lacing.store.locking.</span></span><span class="sig-name descname"><span class="pre">sidecar_lock_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/locking.html#sidecar_lock_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.locking.sidecar_lock_path" title="Link to this definition">#</a></dt>
 <dd><p>Lock file for <code class="docutils literal notranslate"><span class="pre">key</span></code> beside the database at <code class="docutils literal notranslate"><span class="pre">db_path</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.store.locking.turn_file_name">
+<span class="sig-prename descclassname"><span class="pre">lacing.store.locking.</span></span><span class="sig-name descname"><span class="pre">turn_file_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/store/locking.html#turn_file_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.store.locking.turn_file_name" title="Link to this definition">#</a></dt>
+<dd><p>The lock file a <a class="reference internal" href="#lacing.store.locking.KeyedTurn" title="lacing.store.locking.KeyedTurn"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyedTurn</span></code></a> of <code class="docutils literal notranslate"><span class="pre">key</span></code> holds: its digest, so a key may
+hold any character (an email, a path) and never names a file itself.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
@@ -623,12 +755,23 @@ dies. The lock file is left in place (removing it would race a waiter).</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.DFLT_TURN_POLL_S"><code class="docutils literal notranslate"><span class="pre">DFLT_TURN_POLL_S</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.KEY_DIGEST_BYTES"><code class="docutils literal notranslate"><span class="pre">KEY_DIGEST_BYTES</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.KeyedTurn"><code class="docutils literal notranslate"><span class="pre">KeyedTurn</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.KeyedTurn.acquire"><code class="docutils literal notranslate"><span class="pre">KeyedTurn.acquire()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.KeyedTurn.acquire_async"><code class="docutils literal notranslate"><span class="pre">KeyedTurn.acquire_async()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.KeyedTurn.path"><code class="docutils literal notranslate"><span class="pre">KeyedTurn.path</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.KeyedTurn.release"><code class="docutils literal notranslate"><span class="pre">KeyedTurn.release()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.KeyedTurn.try_acquire"><code class="docutils literal notranslate"><span class="pre">KeyedTurn.try_acquire()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.NamedLocks"><code class="docutils literal notranslate"><span class="pre">NamedLocks</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.advisory_lock_id"><code class="docutils literal notranslate"><span class="pre">advisory_lock_id()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.file_lock"><code class="docutils literal notranslate"><span class="pre">file_lock()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.key_digest"><code class="docutils literal notranslate"><span class="pre">key_digest()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.keyed_turn"><code class="docutils literal notranslate"><span class="pre">keyed_turn()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.sidecar_lock_path"><code class="docutils literal notranslate"><span class="pre">sidecar_lock_path()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.store.locking.turn_file_name"><code class="docutils literal notranslate"><span class="pre">turn_file_name()</span></code></a></li>
 </ul>
   </nav></div>
 

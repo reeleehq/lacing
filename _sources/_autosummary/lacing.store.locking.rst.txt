@@ -9,6 +9,7 @@ lacing.store.locking
    .. autosummary::
    
       KEY_DIGEST_BYTES
+      DFLT_TURN_POLL_S
    
    .. rubric:: Functions
 
@@ -17,11 +18,14 @@ lacing.store.locking
       advisory_lock_id
       file_lock
       key_digest
+      keyed_turn
       sidecar_lock_path
+      turn_file_name
    
    .. rubric:: Classes
 
    .. autosummary::
    
+      KeyedTurn
       NamedLocks
    

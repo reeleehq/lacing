@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../../_static/documentation_options.js?v=9cebf393"></script>
+    <script src="../../../_static/documentation_options.js?v=ab1379f9"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.115" />
+  <meta name="docsearch:version" content="0.0.116" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -722,6 +722,11 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">advisory lock for ``PostgresStore`` (excludes other hosts).</span>
 
 <span class="sd">Locks are *not* re-entrant: taking a lock you already hold blocks forever.</span>
+
+<span class="sd">:class:`KeyedTurn` is the same exclusion as a *turn* a caller takes and gives</span>
+<span class="sd">back: a per-key turn across threads and processes, with a blocking acquire for</span>
+<span class="sd">worker threads, a non-blocking one, and an ``async`` acquire an event loop polls</span>
+<span class="sd">without holding a thread (lacing#194).</span>
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -729,7 +734,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
 
 <span class="k">try</span><span class="p">:</span>  <span class="c1"># POSIX</span>
@@ -834,6 +839,200 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">sidecar_lock_path</span><span class="p">(</span><span class="n">db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Lock file for ``key`` beside the database at ``db_path``."""</span>
     <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">key_digest</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span><span class="si">}</span><span class="s2">.lock"</span></div>
+
+
+
+<span class="c1"># --------------------------------------------------------------------------- #</span>
+<span class="c1"># KeyedTurn: a per-key turn across threads and processes (lacing#194)</span>
+<span class="c1"># --------------------------------------------------------------------------- #</span>
+
+<span class="c1">#: Seconds between tries of another process's hold on a turn.</span>
+<span class="n">DFLT_TURN_POLL_S</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span>
+
+
+<div class="viewcode-block" id="turn_file_name">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.locking.html#lacing.store.locking.turn_file_name">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">turn_file_name</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The lock file a :class:`KeyedTurn` of ``key`` holds: its digest, so a key may</span>
+<span class="sd">    hold any character (an email, a path) and never names a file itself."""</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key_digest</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span><span class="si">}</span><span class="s2">.lock"</span></div>
+
+
+
+<div class="viewcode-block" id="KeyedTurn">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.locking.html#lacing.store.locking.KeyedTurn">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">KeyedTurn</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""One key's turn, ordered across this process's threads and every process</span>
+<span class="sd">    that shares ``directory``.</span>
+
+<span class="sd">    A thread lock orders this process's callers; an exclusive ``flock`` on</span>
+<span class="sd">    ``directory/&lt;name_of(key)&gt;`` orders them against other processes. The kernel</span>
+<span class="sd">    releases an ``flock`` when its holder dies, so a crashed process never leaves a</span>
+<span class="sd">    turn held. Without ``fcntl`` (not POSIX) the turn is the thread lock alone.</span>
+
+<span class="sd">    **It fails closed**: when the lock file cannot be made (an unwritable</span>
+<span class="sd">    directory), taking the turn raises ``OSError`` rather than running unordered.</span>
+
+<span class="sd">    Three ways to take it: :meth:`acquire` (blocking, with a ``timeout``),</span>
+<span class="sd">    :meth:`try_acquire` (never blocks) and :meth:`acquire_async` (polls</span>
+<span class="sd">    :meth:`try_acquire` from an event loop, so a cancelled waiter holds nothing).</span>
+<span class="sd">    Not re-entrant; :meth:`release` gives it back. As a context manager it is the</span>
+<span class="sd">    blocking acquire.</span>
+
+<span class="sd">    &gt;&gt;&gt; import tempfile</span>
+<span class="sd">    &gt;&gt;&gt; turn = KeyedTurn(tempfile.mkdtemp(), "alice@example.com")</span>
+<span class="sd">    &gt;&gt;&gt; turn.try_acquire(), turn.try_acquire()</span>
+<span class="sd">    (True, False)</span>
+<span class="sd">    &gt;&gt;&gt; turn.release(); turn.try_acquire()</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; turn.release()</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">directory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">name_of</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">turn_file_name</span><span class="p">,</span>
+        <span class="n">poll_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DFLT_TURN_POLL_S</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">poll_s</span> <span class="o">=</span> <span class="n">poll_s</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_file_name</span> <span class="o">=</span> <span class="n">name_of</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thread_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fd</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The lock file this turn holds."""</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file_name</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_open</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># Read-only is enough for flock, and works on a lock file another user made.</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">O_RDONLY</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_CREAT</span><span class="p">,</span> <span class="mo">0o644</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_take_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">deadline</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""With the thread lock held: the file lock by ``deadline`` (``None``: try once)."""</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+        <span class="k">if</span> <span class="n">_fcntl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: no cover  — not POSIX: this process's order only</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="n">fd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_open</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_fcntl</span><span class="o">.</span><span class="n">flock</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">_fcntl</span><span class="o">.</span><span class="n">LOCK_EX</span> <span class="o">|</span> <span class="n">_fcntl</span><span class="o">.</span><span class="n">LOCK_NB</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_fd</span> <span class="o">=</span> <span class="n">fd</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+                <span class="k">except</span> <span class="ne">BlockingIOError</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">deadline</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="n">deadline</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">deadline</span><span class="p">):</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+                        <span class="k">return</span> <span class="kc">False</span>
+                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">poll_s</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+            <span class="k">raise</span>
+
+<div class="viewcode-block" id="KeyedTurn.try_acquire">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.locking.html#lacing.store.locking.KeyedTurn.try_acquire">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">try_acquire</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Take the turn now, or ``False`` when it is held; never blocks."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread_lock</span><span class="o">.</span><span class="n">acquire</span><span class="p">(</span><span class="n">blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">taken</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_take_file</span><span class="p">(</span><span class="n">deadline</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_thread_lock</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+            <span class="k">raise</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">taken</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_thread_lock</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">taken</span></div>
+
+
+<div class="viewcode-block" id="KeyedTurn.acquire">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.locking.html#lacing.store.locking.KeyedTurn.acquire">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">acquire</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Take the turn within ``timeout`` seconds (negative: as long as it takes);</span>
+<span class="sd">        ``False`` when it is still held."""</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+        <span class="n">deadline</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">timeout</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">+</span> <span class="n">timeout</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread_lock</span><span class="o">.</span><span class="n">acquire</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">taken</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_take_file</span><span class="p">(</span><span class="n">deadline</span><span class="o">=</span><span class="n">deadline</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_thread_lock</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+            <span class="k">raise</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">taken</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_thread_lock</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">taken</span></div>
+
+
+<div class="viewcode-block" id="KeyedTurn.acquire_async">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.locking.html#lacing.store.locking.KeyedTurn.acquire_async">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">acquire_async</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">poll_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">deadline_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Take the turn from an event loop: :meth:`try_acquire` every ``poll_s``</span>
+<span class="sd">        (default the turn's), for at most ``deadline_s`` seconds (``None``: until</span>
+<span class="sd">        taken). Nothing is held across an ``await``, so a cancelled waiter holds</span>
+<span class="sd">        nothing."""</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+        <span class="n">poll</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">poll_s</span> <span class="k">if</span> <span class="n">poll_s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">poll_s</span>
+        <span class="n">deadline</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">deadline_s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">+</span> <span class="n">deadline_s</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">try_acquire</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">deadline</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">deadline</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">poll</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="KeyedTurn.release">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.locking.html#lacing.store.locking.KeyedTurn.release">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">release</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Give the turn back, to this process's next caller and to other processes."""</span>
+        <span class="n">fd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fd</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_fcntl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_fcntl</span><span class="o">.</span><span class="n">flock</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">_fcntl</span><span class="o">.</span><span class="n">LOCK_UN</span><span class="p">)</span>
+                <span class="k">finally</span><span class="p">:</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_thread_lock</span><span class="o">.</span><span class="n">release</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"KeyedTurn"</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">exc</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">release</span><span class="p">()</span></div>
+
+
+
+<span class="n">_KEYED_TURNS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]],</span> <span class="n">KeyedTurn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">_KEYED_TURNS_GUARD</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="keyed_turn">
+<a class="viewcode-back" href="../../../_autosummary/lacing.store.locking.html#lacing.store.locking.keyed_turn">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">keyed_turn</span><span class="p">(</span>
+    <span class="n">directory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name_of</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">turn_file_name</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyedTurn</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The one :class:`KeyedTurn` per ``(directory, key)`` in this process: every</span>
+<span class="sd">    caller that takes a key's turn must share one, or their thread locks would not</span>
+<span class="sd">    order them. Kept for the process's life, so the map is bounded by the number</span>
+<span class="sd">    of distinct keys."""</span>
+    <span class="n">ident</span> <span class="o">=</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="n">directory</span><span class="p">)),</span> <span class="n">key</span><span class="p">,</span> <span class="n">name_of</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">_KEYED_TURNS_GUARD</span><span class="p">:</span>
+        <span class="n">turn</span> <span class="o">=</span> <span class="n">_KEYED_TURNS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ident</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">turn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">turn</span> <span class="o">=</span> <span class="n">_KEYED_TURNS</span><span class="p">[</span><span class="n">ident</span><span class="p">]</span> <span class="o">=</span> <span class="n">KeyedTurn</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">name_of</span><span class="o">=</span><span class="n">name_of</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">turn</span></div>
 
 </pre></div>
 
