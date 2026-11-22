@@ -60,7 +60,6 @@ from collections.abc import Iterable
 import cw
 
 
-
 _ENABLED_ADAPTERS = (
     "lacing.adapters.textgrid",
     "lacing.adapters.webvtt",
