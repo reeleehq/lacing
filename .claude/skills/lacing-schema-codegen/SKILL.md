@@ -143,6 +143,12 @@ design. The envelope (RationalTime/Reference/Provenance) is hand-written in
 lacing-ui `src/domain/envelope.ts`, NOT generated — it moves in lockstep
 with lacing/model.py by hand (see lacing#14's widening for the pattern).
 
+json-schema-to-zod itself reads neither `$ref` nor 2020-12 `prefixItems`, both of which Pydantic emits. lacing-ui's `scripts/codegen.mjs` normalises each schema first (local `$defs` inlined, `prefixItems` as tuple `items`), so a nested model is typed and a fixed tuple (`chars: [start, end]`) is a `z.tuple`. If a generated file shows `z.any()` where a model was meant, the reference is recursive or external, which the normaliser leaves alone (lacing#179).
+
+### Aligned tracks: a document, plus two annotation bodies
+
+`aligned-track/v1` (`lacing/bodies/aligned_track.py`) is a **document**: the export and import shape of a whole aligned text (`text` once, `spans` in pre-order), not the body of one annotation. It is registered through `register_body_schema` only so `export_json_schemas` writes it and lacing-ui mirrors it. In a store it is held as `aligned-text/v1` (one annotation spanning the asset, holding the text) and one `aligned-span/v1` per span (its interval is the annotation's). A span's `chars` are offsets in **Unicode code points** (Python string indices), not JavaScript UTF-16 units: lacing-ui slices them with `src/domain/codePoints.ts`, never `String.prototype.slice`. A parent's `chars` contain its children's; siblings' `chars` may overlap, and nothing refuses it.
+
 ## Custom types need a JSON-Schema hook
 
 Any non-Pydantic type embedded in a model (`RationalTime`, `TimeInterval`)
