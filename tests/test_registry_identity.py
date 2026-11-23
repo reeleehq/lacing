@@ -92,14 +92,14 @@ class TestBodySchemaReplacement:
         register_body_schema(URI, _A)
         assert lacing_schema.get_body_schema(URI) is _A
 
-    def test_different_warns_and_replaces(self):
+    def test_different_raises_and_keeps_the_first(self):
         register_body_schema(URI, _A)
-        with pytest.warns(lacing.RegistryConflictWarning, match="force=True") as rec:
+        with pytest.raises(lacing.RegistryConflictError, match="force=True") as rec:
             register_body_schema(URI, _B)
-        assert lacing_schema.get_body_schema(URI) is _B
-        message = str(rec[0].message)
+        assert lacing_schema.get_body_schema(URI) is _A  # nothing replaced
+        message = str(rec.value)
         assert URI in message and "_A" in message and "_B" in message
-        assert rec[0].filename == __file__  # points at the caller
+        assert isinstance(rec.value, ValueError)
 
     def test_force_is_silent(self, no_warnings):
         register_body_schema(URI, _A)
@@ -113,9 +113,9 @@ class TestMigrationReplacement:
         _migration(_step)
         assert lacing_schema._MIGRATION_REGISTRY[("identity-demo", 1)] == (2, _step)
 
-    def test_different_warns_and_replaces(self):
+    def test_different_raises_and_keeps_the_first(self):
         _migration(_step)
-        with pytest.warns(lacing.RegistryConflictWarning) as rec:
+        with pytest.raises(lacing.RegistryConflictError):
 
             @register_migration(
                 schema_name="identity-demo", from_version=1, to_version=2
@@ -123,11 +123,7 @@ class TestMigrationReplacement:
             def _decorated(body):
                 return body
 
-        assert lacing_schema._MIGRATION_REGISTRY[("identity-demo", 1)] == (
-            2,
-            _decorated,
-        )
-        assert rec[0].filename == __file__  # points at the decorated definition
+        assert lacing_schema._MIGRATION_REGISTRY[("identity-demo", 1)] == (2, _step)
 
     def test_force_is_silent(self, no_warnings):
         _migration(_step)
@@ -143,16 +139,15 @@ class TestAdapterReplacement:
         first = _adapter()
         assert _adapter() == first
 
-    def test_different_warns_and_replaces(self):
-        _adapter()
-        with pytest.warns(lacing.RegistryConflictWarning) as rec:
-            spec = _adapter(load=_other_load)
-        assert adapters.get_adapter("identity-demo") is spec
-        assert rec[0].filename == __file__
+    def test_different_raises_and_keeps_the_first(self):
+        first = _adapter()
+        with pytest.raises(lacing.RegistryConflictError):
+            _adapter(load=_other_load)
+        assert adapters.get_adapter("identity-demo") == first
 
     def test_new_version_is_a_different_spec(self):
         _adapter(version="1.0.0")
-        with pytest.warns(lacing.RegistryConflictWarning):
+        with pytest.raises(lacing.RegistryConflictError):
             _adapter(version="1.1.0")
 
     def test_force_is_silent(self, no_warnings):
@@ -206,12 +201,12 @@ class TestDefaultVersion:
         with pytest.raises(lacing_schema.UnknownBodySchemaError, match="v2"):
             default_version("identity-demo")
 
-    def test_declaring_a_different_default_warns(self):
+    def test_declaring_a_different_default_raises(self):
         _three_versions_with_chain()
         register_body_schema("annot://schema/identity-demo/v2", _A, default=True)
-        with pytest.warns(lacing.RegistryConflictWarning, match="default version"):
+        with pytest.raises(lacing.RegistryConflictError, match="default version"):
             register_body_schema("annot://schema/identity-demo/v3", _A, default=True)
-        assert default_version("identity-demo") == 3
+        assert default_version("identity-demo") == 2  # nothing replaced
 
     def test_redeclaring_the_same_default_is_silent(self, no_warnings):
         register_body_schema("annot://schema/identity-demo/v2", _A, default=True)
