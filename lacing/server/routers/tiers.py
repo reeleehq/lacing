@@ -32,6 +32,7 @@ class TierIn(BaseModel):
 
 class TierOut(BaseModel):
     """Response model describing a tier."""
+
     name: str
     stereotype: TierStereotype
     parent: str | None

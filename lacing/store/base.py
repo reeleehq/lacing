@@ -148,6 +148,7 @@ class IntervalAnnotationStore(Protocol):
     def add_tier(self, tier: Tier) -> None:
         """Register a tier."""
         ...
+
     def get_tier(self, name: str) -> Tier | None:
         """Return the tier with the given name, or ``None``."""
         ...

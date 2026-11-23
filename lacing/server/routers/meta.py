@@ -49,6 +49,7 @@ def get_all_meta(store=Depends(get_store)) -> dict[str, str]:
 
 class MetaSet(BaseModel):
     """Request body for setting a metadata value."""
+
     model_config = {"extra": "forbid"}
     value: str = Field(..., description="String value to store.")
 
