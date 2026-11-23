@@ -1,4 +1,4 @@
-> built 2026-11-23 22:55 UTC from 304a7e2 (main) · lacing 0.0.122. Details: build_info.json
+> built 2026-11-23 23:09 UTC from f1d163d (main) · lacing 0.0.123. Details: build_info.json
 
 # index.html.md
 
@@ -13935,18 +13935,16 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-23 22:55 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/304a7e2a194b098d15119f3b59d1b01c9d6d3ea2"><code>304a7e2</code></a> on branch <code>main</code>, for **lacing 0.0.122** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-23 23:09 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/f1d163d619865919159f07e97cad6545eadd2ec6"><code>f1d163d</code></a> on branch <code>main</code>, for **lacing 0.0.123** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.122) is behind the latest release on PyPI (0.0.123): `pip install lacing` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/304a7e2a194b098d15119f3b59d1b01c9d6d3ea2"><code>304a7e2a194b098d15119f3b59d1b01c9d6d3ea2</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/f1d163d619865919159f07e97cad6545eadd2ec6"><code>f1d163d619865919159f07e97cad6545eadd2ec6</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -13957,9 +13955,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45283765425">45283765425</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45285866033">45285866033</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>304a7e2a194b098d15119f3b59d1b01c9d6d3ea2</code> (in the history of the built commit) |
+| Event commit | <code>f1d163d619865919159f07e97cad6545eadd2ec6</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -13984,13 +13982,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.123/">0.0.123</a>, newer than the documented version (0.0.122).
+Latest release: <a href="https://pypi.org/project/lacing/0.0.123/">0.0.123</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 304a7e2a194b098d15119f3b59d1b01c9d6d3ea2
+git checkout f1d163d619865919159f07e97cad6545eadd2ec6
 pip install "epythet==0.2.25"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
