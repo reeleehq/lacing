@@ -1,4 +1,4 @@
-> built 2026-11-23 02:37 UTC from 495cc6b (main) · lacing 0.0.119. Details: build_info.json
+> built 2026-11-23 10:27 UTC from 664b62c (main) · lacing 0.0.120. Details: build_info.json
 
 # index.html.md
 
@@ -13916,7 +13916,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-23 02:37 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/495cc6b6669f2b318043ea7e68e57e68b6b5e186"><code>495cc6b</code></a> on branch <code>main</code>, for **lacing 0.0.119** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-23 10:27 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/664b62c030b1b42bfed9d37ce3109af9342a4a2a"><code>664b62c</code></a> on branch <code>main</code>, for **lacing 0.0.120** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -13925,7 +13925,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/495cc6b6669f2b318043ea7e68e57e68b6b5e186"><code>495cc6b6669f2b318043ea7e68e57e68b6b5e186</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/664b62c030b1b42bfed9d37ce3109af9342a4a2a"><code>664b62c030b1b42bfed9d37ce3109af9342a4a2a</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -13936,15 +13936,15 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45100971366">45100971366</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45155847312">45155847312</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>495cc6b6669f2b318043ea7e68e57e68b6b5e186</code> (in the history of the built commit) |
+| Event commit | <code>664b62c030b1b42bfed9d37ce3109af9342a4a2a</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.23  |
+| epythet  | 0.2.25  |
 | Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
 | Python   | 3.12.16 |
@@ -13963,14 +13963,14 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.119/">0.0.119</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.120/">0.0.120</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 495cc6b6669f2b318043ea7e68e57e68b6b5e186
-pip install "epythet==0.2.23"
+git checkout 664b62c030b1b42bfed9d37ce3109af9342a4a2a
+pip install "epythet==0.2.25"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=4309da3b"></script>
+    <script src="../../_static/documentation_options.js?v=69b21de1"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.119" />
+  <meta name="docsearch:version" content="0.0.120" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -970,13 +970,13 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    ``max_length`` must leave room for at least one character, a ``-`` and the</span>
 <span class="sd">    digest (``ValueError`` otherwise).</span>
 <span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">is_id_slug</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="n">max_length</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">value</span>  <span class="c1"># type: ignore[return-value]  # is_id_slug checked str</span>
     <span class="k">if</span> <span class="n">max_length</span> <span class="o">&lt;</span> <span class="n">digest_chars</span> <span class="o">+</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">digest_chars</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"max_length=</span><span class="si">{</span><span class="n">max_length</span><span class="si">}</span><span class="s2"> leaves no room for a stem, '-' and "</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">digest_chars</span><span class="si">}</span><span class="s2"> digest characters (need at least </span><span class="si">{</span><span class="n">digest_chars</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="si">}</span><span class="s2">)"</span>
         <span class="p">)</span>
-    <span class="k">if</span> <span class="n">is_id_slug</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="n">max_length</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">value</span>  <span class="c1"># type: ignore[return-value]  # is_id_slug checked str</span>
     <span class="n">text</span> <span class="o">=</span> <span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
     <span class="n">digest</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="n">digest_chars</span><span class="p">]</span>
     <span class="n">stem_room</span> <span class="o">=</span> <span class="n">max_length</span> <span class="o">-</span> <span class="n">digest_chars</span> <span class="o">-</span> <span class="mi">1</span>
@@ -1038,7 +1038,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">tail</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" </span><span class="si">{</span><span class="n">hint</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">hint</span> <span class="k">else</span> <span class="s2">""</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">IdSlugError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"invalid </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: expected a string, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}{</span><span class="n">tail</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">"invalid </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: expected a string, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">tail</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
             <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
             <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
             <span class="n">problem</span><span class="o">=</span><span class="s2">"type"</span><span class="p">,</span>
