@@ -69,6 +69,16 @@ from lacing.model import (
     Provenance,
     Reference,
 )
+from lacing.id_slug import (
+    ID_SLUG_JSON_PATTERN,
+    ID_SLUG_PATTERN,
+    IdSlugError,
+    MAX_ID_SLUG_LENGTH,
+    check_id_slug,
+    distinct_id_slug,
+    is_id_slug,
+    slugify_id,
+)
 from lacing.generator_id import (
     GENERATOR_ID_SHAPE,
     GENERATOR_PREFIXES,
@@ -163,6 +173,15 @@ __all__ = [
     "GeneratorId",
     "GeneratorIdWarning",
     "generator_id_findings",
+    # id slugs — the one traversal-safe path-segment rule (lacing#165)
+    "ID_SLUG_JSON_PATTERN",
+    "ID_SLUG_PATTERN",
+    "IdSlugError",
+    "MAX_ID_SLUG_LENGTH",
+    "check_id_slug",
+    "distinct_id_slug",
+    "is_id_slug",
+    "slugify_id",
     "parse_generator_id",
     "warn_if_malformed",
     # artifact
