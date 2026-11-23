@@ -147,7 +147,10 @@ class AlignedTrackV1(SchemaModel):
         description=(
             "Spans in pre-order: a span, then the spans it holds; siblings by "
             "start, then end, then level. A parent is of a coarser level and "
-            "comes earlier than its children."
+            "comes earlier than its children, and its ``chars`` contain theirs. "
+            "Siblings' ``chars`` may overlap (a recognizer can return two "
+            "readings of one stretch): nothing refuses it, so a reader that "
+            "needs the siblings to partition their parent checks."
         ),
     )
 
