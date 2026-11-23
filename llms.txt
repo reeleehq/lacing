@@ -5,7 +5,7 @@
 
 ## Pages
 
-- [lacing](index.html.md): A standoff, interval-keyed annotation system. Pythonic core: a
+- [lacing](index.html.md): A standoff, interval-keyed annotation system for time-based media (audio, video, speech, music), usa...
 - [API reference](api.html.md): | &#96;lacing&#96;   | lacing — interval annotation system.   |
 - [lacing](_autosummary/lacing.html.md): lacing — interval annotation system.
 - [lacing.adapters](_autosummary/lacing.adapters.html.md): I/O adapter registry.
@@ -69,7 +69,7 @@
 - [lacing.tracks.subtitle](_autosummary/lacing.tracks.subtitle.html.md): Subtitle / lyric / caption tracks — the (sections, lines, words) trio.
 - [lacing.worker](_autosummary/lacing.worker.html.md): Optional Arq integration — queue processors through Redis.
 - [For AI agents](ai-agents.html.md): &#96;lacing&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-22 21:57 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-11-23 02:25 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
 
 ## Optional
 

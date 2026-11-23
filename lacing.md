@@ -1,4 +1,4 @@
-> built 2026-11-22 21:57 UTC from 3f7dcea (main) · lacing 0.0.118. Details: build_info.json
+> built 2026-11-23 02:25 UTC from 9e993c2 (main) · lacing 0.0.118. Details: build_info.json
 
 # index.html.md
 
@@ -6,28 +6,17 @@
 
 # lacing
 
-A standoff, interval-keyed annotation system. Pythonic core: a
-`MutableMapping[TimeInterval, list[Annotation]]` facade with rational time,
-ELAN-style tier stereotypes, and Allen’s interval algebra. Designed for
-time-based media (audio, video, speech, music) but generalizes to any 1-D
-interval domain.
-
-> **Status:** Phase 0–2 complete. Core data model, in-memory + SQLite +
-> Postgres stores, **thirteen round-trip adapters** (Praat TextGrid, WebVTT,
-> SubRip, LRC, ASS/SSA, W3C Web Annotation, `.annot` SQLite, ELAN EAF, JAMS,
-> Label Studio JSON, OpenTimelineIO, Podcasting 2.0 transcript and chapters), body-schema registry + JSON Schema export + migrations,
-> inter-annotator agreement metrics, a `lacing` CLI, a **FastAPI HTTP
-> server** (REST CRUD + ETag + import/export + schemas + op-log +
-> `/state-at` time-travel), an **MCP server** (10 tools, agents as
-> first-class clients), a **processor registry** (`low_confidence_review`,
-> `detect_density_change_points`) with optional **Arq** integration, and
-> opt-in **OpenTelemetry** instrumentation. Frontend is on the roadmap
-> (see `misc/docs/Lacing Development Roadmap.md`).
-
-## Install
+A standoff, interval-keyed annotation system for time-based media (audio, video, speech, music), usable for any 1-D interval domain. The core is a `MutableMapping[TimeInterval, list[Annotation]]` facade with rational time, ELAN-style tier stereotypes, and Allen’s interval algebra. Load a Praat TextGrid, query it, write it back out as WebVTT, and keep it in memory, SQLite or Postgres.
 
 ```bash
-pip install lacing                # core only
+pip install lacing
+```
+
+> **Status:** Phase 0–2 complete. In the box: the data model; in-memory, SQLite and Postgres stores; thirteen round-trip adapters (Praat TextGrid, WebVTT, SubRip, LRC, ASS/SSA, W3C Web Annotation, `.annot` SQLite, ELAN EAF, JAMS, Label Studio JSON, OpenTimelineIO, Podcasting 2.0 transcript and chapters); a body-schema registry with JSON Schema export and migrations; inter-annotator agreement metrics; a `lacing` CLI; a FastAPI HTTP server (REST CRUD, ETag, import/export, op-log, `/state-at` time-travel); an MCP server (10 tools); a processor registry with optional Arq integration; and opt-in OpenTelemetry. A frontend is on the roadmap (see `misc/docs/Lacing Development Roadmap.md`).
+
+## Optional extras
+
+```bash
 pip install 'lacing[textgrid]'    # + Praat TextGrid support (praatio)
 pip install 'lacing[eaf]'         # + ELAN EAF support (pympi-ling)
 pip install 'lacing[jams]'        # + JAMS (MIR annotation) support
@@ -68,10 +57,7 @@ dump(store, "speech.jsonld", format="web_annotation")
 
 ## Track facades — opinionated bundles of tiers
 
-Some tier shapes recur often enough to deserve a friendly builder.
-`lacing.tracks.subtitle` is the first: a `(sections, lines, words)`
-trio over one audio asset, with float-second times and the
-`Annotation` / `MediaRef` / `Provenance` plumbing hidden:
+Some tier shapes recur often enough to deserve a friendly builder. `lacing.tracks.subtitle` is the first: a `(sections, lines, words)` trio over one audio asset, with float-second times and the `Annotation` / `MediaRef` / `Provenance` plumbing hidden:
 
 ```python
 from lacing import MemoryStore
@@ -100,11 +86,7 @@ track.words_in(12.5, 13.5)  # words overlapping the window
 track.sections_covering(20.0)  # sections containing this instant
 ```
 
-The facade reuses `at_tier` / `by_tier` under the hood; anything you
-can build with it could also be hand-built with the raw API. Body
-schemas (`annot://schema/song-section/v1`, `lyric-line/v1`, `word/v1`)
-are lacing built-in bodies, registered on import: sections and lines
-keep any extra fields you pass, words use the strict `word/v1`.
+The facade reuses `at_tier` / `by_tier` under the hood; anything you can build with it could also be hand-built with the raw API. Body schemas (`annot://schema/song-section/v1`, `lyric-line/v1`, `word/v1`) are lacing built-in bodies, registered on import: sections and lines keep any extra fields you pass, words use the strict `word/v1`.
 
 ## What’s in the core
 
@@ -154,10 +136,7 @@ lacing/
 6. **PROV-O provenance inline on every annotation** — `was_generated_by`, `was_attributed_to`, `was_derived_from`, `generated_at_time`. `generated_at_time` is wall-clock (`RationalTime.now()`); tick 0 is `UNKNOWN_GENERATED_AT`, never the epoch — consumers read it as unverifiable, not oldest.
 7. **MIT/BSD/Apache licenses only.**
 
-The full reasoning lives in [`misc/docs/`]() — four design docs
-covering annotation systems generally, backend architecture, frontend UI,
-and an OSS deep-dive of what to build on. The synthesized plan is in
-[`misc/docs/Lacing Development Roadmap.md`]().
+The full reasoning lives in [`misc/docs/`]() — four design docs covering annotation systems generally, backend architecture, frontend UI, and an OSS deep-dive of what to build on. The synthesized plan is in [`misc/docs/Lacing Development Roadmap.md`]().
 
 ## Concrete recipes
 
@@ -228,11 +207,9 @@ for ann in store.intersects(window):
 store.close()
 ```
 
-The `.annot` file is the recommended portable handoff format — single-file
-SQLite, Git-trackable, lossless round-trip with `MemoryStore`.
+The `.annot` file is the recommended portable handoff format — single-file SQLite, Git-trackable, lossless round-trip with `MemoryStore`.
 
-Already keep your data in a mapping (a `dict`, a `dol` `JsonFiles`, an app’s
-store)? Hand it over and there is no second persistence path:
+Already keep your data in a mapping (a `dict`, a `dol` `JsonFiles`, an app’s store)? Hand it over and there is no second persistence path:
 
 ```python
 from lacing.store import MappingStore
@@ -244,11 +221,9 @@ store.add(...)  # writes through to my_mapping
 store = MappingStore(my_mapping)  # reopening sees the same annotations and tiers
 ```
 
-Single writer, no cross-process locking (unlike `SqliteStore`). Pass
-`codec=JSON_BYTES_CODEC` for a mapping that stores bytes.
+Single writer, no cross-process locking (unlike `SqliteStore`). Pass `codec=JSON_BYTES_CODEC` for a mapping that stores bytes.
 
-For multi-user / production scale, the same facade is available over
-PostgreSQL:
+For multi-user / production scale, the same facade is available over PostgreSQL:
 
 ```python
 from lacing.store import PostgresStore
@@ -261,9 +236,7 @@ store = PostgresStore("postgresql://localhost/myproject", rate=1000)
 store.add_tier(Tier("speakers"), enforce_no_overlap=True)
 ```
 
-The Postgres backend uses `int8range` + GiST (sub-millisecond overlap
-queries at million-row scale) and exposes the same Allen-relation
-methods. Times are normalized to a project-wide rate stored in `meta`.
+The Postgres backend uses `int8range` + GiST (sub-millisecond overlap queries at million-row scale) and exposes the same Allen-relation methods. Times are normalized to a project-wide rate stored in `meta`.
 
 ### CLI
 
@@ -278,9 +251,7 @@ lacing validate speech.annot                                 # parse + summary
 
 ### Body schemas, validation, migrations
 
-Every annotation has a `body: dict` validated against the schema named by
-its `body_schema_uri` (e.g., `annot://schema/named-entity/v2`). Register
-your own with a Pydantic v2 model:
+Every annotation has a `body: dict` validated against the schema named by its `body_schema_uri` (e.g., `annot://schema/named-entity/v2`). Register your own with a Pydantic v2 model:
 
 ```python
 from pydantic import BaseModel, Field
@@ -311,8 +282,7 @@ migrated = migrate(
 )
 ```
 
-Export every registered schema to JSON Schema (the upstream for downstream
-Zod codegen):
+Export every registered schema to JSON Schema (the upstream for downstream Zod codegen):
 
 ```python
 from lacing.schema import export_json_schemas
@@ -320,8 +290,7 @@ from lacing.schema import export_json_schemas
 export_json_schemas("./schema/")  # writes <name>/v<N>.json + index.json
 ```
 
-Built-in body schemas live under `lacing/bodies/` (`word`, `named-entity`).
-They register themselves on import.
+Built-in body schemas live under `lacing/bodies/` (`word`, `named-entity`). They register themselves on import.
 
 ### Run the HTTP server
 
@@ -330,9 +299,7 @@ pip install 'lacing[server]'
 uvicorn lacing.server:app --reload
 ```
 
-By default the server starts with an in-memory `SqliteStore`. Wire your
-own backend (e.g., a `PostgresStore` or an `.annot` file) via FastAPI’s
-dependency-override:
+By default the server starts with an in-memory `SqliteStore`. Wire your own backend (e.g., a `PostgresStore` or an `.annot` file) via FastAPI’s dependency-override:
 
 ```python
 from lacing.server import create_app
@@ -367,10 +334,7 @@ GET    /oplog/latest-clock                 current Lamport clock value
 GET    /state-at?clock=N                   replay log to clock N → snapshot
 ```
 
-Every mutation gets a Lamport clock returned in the `X-Lacing-Clock`
-response header. The op-log + `/state-at` endpoint give you full
-time-travel debug — pick any past clock value and reconstruct exactly
-what the system saw.
+Every mutation gets a Lamport clock returned in the `X-Lacing-Clock` response header. The op-log + `/state-at` endpoint give you full time-travel debug — pick any past clock value and reconstruct exactly what the system saw.
 
 ### MCP server — agents as first-class clients
 
@@ -385,36 +349,15 @@ server = build_mcp_server(store, oplog)
 server.run()  # stdio transport by default
 ```
 
-Tools registered (all take seconds — no need to construct rational-time
-wire dicts): `add_annotation`, `query_annotations`, `get_annotation`,
-`delete_annotation`, `accept_ai_suggestion`, `add_tier`, `list_tiers`,
-`list_formats`, `latest_clock`, `state_at`. The MCP server shares the
-same `store` + `oplog` as the FastAPI app, so a human edit via REST and
-an agent edit via MCP land in the same op-log with the same Lamport
-clock.
+Tools registered (all take seconds — no need to construct rational-time wire dicts): `add_annotation`, `query_annotations`, `get_annotation`, `delete_annotation`, `accept_ai_suggestion`, `add_tier`, `list_tiers`, `list_formats`, `latest_clock`, `state_at`. The MCP server shares the same `store` + `oplog` as the FastAPI app, so a human edit via REST and an agent edit via MCP land in the same op-log with the same Lamport clock.
 
-`accept_ai_suggestion` returns **two** records — `{"annotation": …, "review": …}` — because a review is two facts, not one. The reviewed
-annotation keeps its `id` *and its provenance*: it was still generated
-by the agent, so `was_generated_by` / `was_attributed_to` are left
-alone and only `confidence` moves to 1.0 / 0.0. The human’s decision
-becomes its own standoff `approval` review annotation on the `review`
-tier, pointing at what it judged (`AnnotationRef`, **no interval**),
-attributed to the reviewer and stamped with the review time. Rewriting
-the agent’s provenance in place — which is what this used to do — erased
-the one record proving the annotation was ever AI-generated (lacing#18).
+`accept_ai_suggestion` returns **two** records — `{"annotation": …, "review": …}` — because a review is two facts, not one. The reviewed annotation keeps its `id` *and its provenance*: it was still generated by the agent, so `was_generated_by` / `was_attributed_to` are left alone and only `confidence` moves to 1.0 / 0.0. The human’s decision becomes its own standoff `approval` review annotation on the `review` tier, pointing at what it judged (`AnnotationRef`, **no interval**), attributed to the reviewer and stamped with the review time. Rewriting the agent’s provenance in place — which is what this used to do — erased the one record proving the annotation was ever AI-generated (lacing#18).
 
-The review carries no interval on purpose: a verdict about a whole
-annotation has no position of its own on the media timeline, so it stays
-out of untiered interval queries and out of every timeline export.
-Giving it the reviewed annotation’s interval would put a blank cue at
-that annotation’s exact timestamps in WebVTT, an empty interval in a
-TextGrid tier, and an asset-less item in a Web Annotation collection —
-one per accept.
+The review carries no interval on purpose: a verdict about a whole annotation has no position of its own on the media timeline, so it stays out of untiered interval queries and out of every timeline export. Giving it the reviewed annotation’s interval would put a blank cue at that annotation’s exact timestamps in WebVTT, an empty interval in a TextGrid tier, and an asset-less item in a Web Annotation collection — one per accept.
 
 ### Freshness — “did the answer actually change?”
 
-lacing has **three** digests answering three different questions. Picking the
-wrong one is a silent correctness bug, so they are named apart:
+lacing has **three** digests answering three different questions. Picking the wrong one is a silent correctness bug, so they are named apart:
 
 | Digest                               | Over                      | Question                                                           |
 |--------------------------------------|---------------------------|--------------------------------------------------------------------|
@@ -422,11 +365,7 @@ wrong one is a silent correctness bug, so they are named apart:
 | `lacing.server.etag.annotation_etag` | the **whole** annotation  | *has this record been touched since I read it?* (`If-Match` / 412) |
 | `annotation_value_digest`            | an annotation’s **value** | *did the answer actually change?* (freshness / early cutoff)       |
 
-A regeneration mints a fresh `id` and a fresh `provenance.generated_at_time`,
-so `annotation_etag` changes even when the content is byte-identical. The value
-digest excludes both — which is what lets a downstream freshness check key on
-*upstream output values* rather than *upstream keys*, and stop propagating
-invalidation when nothing actually changed.
+A regeneration mints a fresh `id` and a fresh `provenance.generated_at_time`, so `annotation_etag` changes even when the content is byte-identical. The value digest excludes both — which is what lets a downstream freshness check key on *upstream output values* rather than *upstream keys*, and stop propagating invalidation when nothing actually changed.
 
 ```python
 from lacing import annotation_value_digest, annotation_body_digest
@@ -444,16 +383,9 @@ assert annotation_value_digest(original) == annotation_value_digest(regenerated)
 assert annotation_body_digest(over_interview) == annotation_body_digest(over_broadcast)
 ```
 
-A `body` must contain only JSON types. A non-`str` mapping key raises
-`NonStringBodyKeyError` rather than digesting: JSON object keys are strings, so
-`{1: "a", "1": "b"}` would collapse to `{"1": "b"}` and silently lose an entry
-— two different annotations digesting alike. Within that contract the digest
-never returns a wrong cache *hit*; it can return a spurious miss, which only
-costs a recompute.
+A `body` must contain only JSON types. A non-`str` mapping key raises `NonStringBodyKeyError` rather than digesting: JSON object keys are strings, so `{1: "a", "1": "b"}` would collapse to `{"1": "b"}` and silently lose an entry — two different annotations digesting alike. Within that contract the digest never returns a wrong cache *hit*; it can return a spurious miss, which only costs a recompute.
 
-`lacing/digest.py` justifies each inclusion/exclusion in its docstring; read it
-before changing the boundary, because changing it invalidates every consumer’s
-cache at once.
+`lacing/digest.py` justifies each inclusion/exclusion in its docstring; read it before changing the boundary, because changing it invalidates every consumer’s cache at once.
 
 ### Inter-annotator agreement
 
@@ -13597,16 +13529,18 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-22 21:57 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/3f7dcea60b11ef7d43c47f170b95d7ea84b85f73"><code>3f7dcea</code></a> on branch <code>main</code>, for **lacing 0.0.118** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-23 02:25 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/9e993c2a089ce7588875846f0cce7874ea7d5399"><code>9e993c2</code></a> on branch <code>main</code>, for **lacing 0.0.118** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.118) is behind the latest release on PyPI (0.0.119): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/3f7dcea60b11ef7d43c47f170b95d7ea84b85f73"><code>3f7dcea60b11ef7d43c47f170b95d7ea84b85f73</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/9e993c2a089ce7588875846f0cce7874ea7d5399"><code>9e993c2a089ce7588875846f0cce7874ea7d5399</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -13617,9 +13551,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45074744008">45074744008</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45099885320">45099885320</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>3f7dcea60b11ef7d43c47f170b95d7ea84b85f73</code> (in the history of the built commit) |
+| Event commit | <code>9e993c2a089ce7588875846f0cce7874ea7d5399</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -13644,13 +13578,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.118/">0.0.118</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.119/">0.0.119</a>, newer than the documented version (0.0.118).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 3f7dcea60b11ef7d43c47f170b95d7ea84b85f73
+git checkout 9e993c2a089ce7588875846f0cce7874ea7d5399
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
