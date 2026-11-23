@@ -4,15 +4,23 @@ lacing.registry
 .. automodule:: lacing.registry
 
    
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      warn_if_replacing
+   
    .. rubric:: Functions
 
    .. autosummary::
    
+      refuse_replacing
       warn_if_replacing
    
    .. rubric:: Exceptions
 
    .. autosummary::
    
+      RegistryConflictError
       RegistryConflictWarning
    

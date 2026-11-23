@@ -23,9 +23,9 @@ module implements:
   name resolves to (declared, else the highest), and migrating a body to it.
 
 Every register function follows [`lacing.registry`](lacing.registry.html.md#module-lacing.registry)’s rule: the identical
-object again is a no-op, a different one under a taken key warns
-([`lacing.RegistryConflictWarning`](lacing.html.md#lacing.RegistryConflictWarning)) and replaces, `force=True` replaces
-silently.
+object again is a no-op, a different one under a taken key raises
+([`lacing.RegistryConflictError`](lacing.html.md#lacing.RegistryConflictError), the registry unchanged), `force=True`
+replaces silently.
 
 See the `lacing-schema-codegen` skill and BACK-DOC §4.5.
 
@@ -296,8 +296,8 @@ Register `model` as the validator for `uri`. Returns `model`.
 `default=True` declares `uri`’s version the default of its schema name
 (see [`default_version()`](#lacing.schema.default_version)). Re-registering the identical model is a
 no-op (listeners are still told); a different model, or a different
-declared default, warns ([`lacing.RegistryConflictWarning`](lacing.html.md#lacing.RegistryConflictWarning)) and
-replaces, unless `force`.
+declared default, raises ([`lacing.RegistryConflictError`](lacing.html.md#lacing.RegistryConflictError)) and
+replaces nothing, unless `force`.
 
 * **Return type:**
   [`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]
@@ -311,9 +311,8 @@ Migrations must be one major-version step at a time
 (`to_version == from_version + 1`).
 
 Re-registering the same function for the same step is a no-op; a
-different one warns ([`lacing.RegistryConflictWarning`](lacing.html.md#lacing.RegistryConflictWarning)), pointed at
-the decorated definition, and replaces, unless `force` (tests,
-hot-reload).
+different one raises ([`lacing.RegistryConflictError`](lacing.html.md#lacing.RegistryConflictError)) and replaces
+nothing, unless `force` (tests, hot-reload).
 
 ### lacing.schema.registered_uris()
 

@@ -111,7 +111,7 @@ path, infers from extension. Raises `ValueError` if it can’t pick.
 Register an adapter under `name`; returns its [`AdapterSpec`](#lacing.adapters.AdapterSpec).
 
 Re-registering an equal spec is a no-op. A different spec under a taken
-name warns ([`lacing.RegistryConflictWarning`](lacing.html.md#lacing.RegistryConflictWarning)) and replaces, unless
+name raises ([`lacing.RegistryConflictError`](lacing.html.md#lacing.RegistryConflictError)) and replaces nothing, unless
 `force` (see [`lacing.registry`](lacing.registry.html.md#module-lacing.registry)).
 
 * **Return type:**

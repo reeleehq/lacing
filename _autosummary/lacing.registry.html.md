@@ -10,48 +10,62 @@ default version) and body migrations by `(schema_name, from_version)`
 [`warn_if_replacing()`](#lacing.registry.warn_if_replacing) before it writes, so all three follow one rule:
 
 - registering the identical object again is a silent no-op;
-- registering a *different* object under a key already taken emits a
-  [`RegistryConflictWarning`](#lacing.registry.RegistryConflictWarning), then replaces;
+- registering a *different* object under a key already taken raises
+  [`RegistryConflictError`](#lacing.registry.RegistryConflictError) and leaves the registry as it was (lacing#121;
+  > it warned, then replaced, while downstream code still collided);
 - `force=True` replaces silently, for tests and hot-reload.
 
 Silent replacement is how two modules registering the same key end up with
 import order deciding the winner, and nothing saying so.
 
+### Module Attributes
+
+| [`warn_if_replacing`](#lacing.registry.warn_if_replacing)(registry, key, new, \*, what)   | The name the register functions used while a conflict only warned (lacing#19).   |
+|----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+
 ### Functions
 
-| [`warn_if_replacing`](#lacing.registry.warn_if_replacing)(registry, key, new, \*, what)   | Warn when writing `new` under `key` would replace a different object.   |
-|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [`refuse_replacing`](#lacing.registry.refuse_replacing)(registry, key, new, \*, what)   | Raise [`RegistryConflictError`](#lacing.registry.RegistryConflictError) when writing `new` under `key` would replace a different object.   |
+|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`warn_if_replacing`](#lacing.registry.warn_if_replacing)(registry, key, new, \*, what)  | The name the register functions used while a conflict only warned (lacing#19).                                                                  |
 
 ### Exceptions
 
-| [`RegistryConflictWarning`](#lacing.registry.RegistryConflictWarning)   | A registration replaced a *different* object already registered under its key.   |
-|----------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+| [`RegistryConflictError`](#lacing.registry.RegistryConflictError)   | A registration would replace a *different* object already registered under its key.                                                       |
+|--------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| [`RegistryConflictWarning`](#lacing.registry.RegistryConflictWarning) | No longer emitted: a conflicting registration raises [`RegistryConflictError`](#lacing.registry.RegistryConflictError) (lacing#121). |
+
+### *exception* lacing.registry.RegistryConflictError
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+A registration would replace a *different* object already registered under
+its key. Pass `force=True` to the register function to replace on purpose.
 
 ### *exception* lacing.registry.RegistryConflictWarning
 
 Bases: [`FutureWarning`](https://docs.python.org/3/builtins/exceptions.html#FutureWarning)
 
-A registration replaced a *different* object already registered under its key.
+No longer emitted: a conflicting registration raises
+[`RegistryConflictError`](#lacing.registry.RegistryConflictError) (lacing#121). Kept so a `-W` filter or a
+`pytest.warns` naming it still imports.
 
-It will become an error; pass `force=True` to the register function to
-replace on purpose.
+### lacing.registry.refuse_replacing(registry, key, new, , what, force=False)
+
+Raise [`RegistryConflictError`](#lacing.registry.RegistryConflictError) when writing `new` under `key`
+would replace a different object.
+
+Call it just before the write. `what` names the registry in the message
+(`"body schema"`). Identical means `is` or `==`: a model class compares
+by identity, a migration’s `(to_version, func)` and a frozen
+`AdapterSpec` compare field by field, their functions by identity.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### lacing.registry.warn_if_replacing(registry, key, new, , what, force=False)
 
-Warn when writing `new` under `key` would replace a different object.
-
-Call it just before the write. `what` names the registry in the message
-(`"body schema"`). The warning points at whoever called the register
-function, or, for a decorator, at the decorated definition.
-
-Identical means `is` or `==`: a model class compares by identity, a
-migration’s `(to_version, func)` and a frozen `AdapterSpec` compare
-field by field, their functions by identity.
-
-The issue (lacing#19) asks for an error. This warns instead, because
-downstream test suites re-register different models under one URI today
-(a new local class per test), and raising would turn their CI red on the
-next lacing release. Warn first, raise later.
+The name the register functions used while a conflict only warned (lacing#19).
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)

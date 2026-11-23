@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=cdca99f8"></script>
+    <script src="../../_static/documentation_options.js?v=fa321392"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.121" />
+  <meta name="docsearch:version" content="0.0.122" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -722,8 +722,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">:func:`warn_if_replacing` before it writes, so all three follow one rule:</span>
 
 <span class="sd">- registering the identical object again is a silent no-op;</span>
-<span class="sd">- registering a *different* object under a key already taken emits a</span>
-<span class="sd">  :class:`RegistryConflictWarning`, then replaces;</span>
+<span class="sd">- registering a *different* object under a key already taken raises</span>
+<span class="sd">  :class:`RegistryConflictError` and leaves the registry as it was (lacing#121;</span>
+<span class="sd">  it warned, then replaced, while downstream code still collided);</span>
 <span class="sd">- ``force=True`` replaces silently, for tests and hot-reload.</span>
 
 <span class="sd">Silent replacement is how two modules registering the same key end up with</span>
@@ -732,28 +733,38 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">Mapping</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">fields</span><span class="p">,</span> <span class="n">is_dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"RegistryConflictWarning"</span><span class="p">,</span> <span class="s2">"warn_if_replacing"</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"RegistryConflictError"</span><span class="p">,</span>
+    <span class="s2">"RegistryConflictWarning"</span><span class="p">,</span>
+    <span class="s2">"refuse_replacing"</span><span class="p">,</span>
+    <span class="s2">"warn_if_replacing"</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="RegistryConflictError">
+<a class="viewcode-back" href="../../_autosummary/lacing.registry.html#lacing.RegistryConflictError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RegistryConflictError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A registration would replace a *different* object already registered under</span>
+<span class="sd">    its key. Pass ``force=True`` to the register function to replace on purpose."""</span></div>
+
 
 
 <div class="viewcode-block" id="RegistryConflictWarning">
 <a class="viewcode-back" href="../../_autosummary/lacing.registry.html#lacing.RegistryConflictWarning">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RegistryConflictWarning</span><span class="p">(</span><span class="ne">FutureWarning</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""A registration replaced a *different* object already registered under its key.</span>
-
-<span class="sd">    It will become an error; pass ``force=True`` to the register function to</span>
-<span class="sd">    replace on purpose.</span>
-<span class="sd">    """</span></div>
+<span class="w">    </span><span class="sd">"""No longer emitted: a conflicting registration raises</span>
+<span class="sd">    :class:`RegistryConflictError` (lacing#121). Kept so a ``-W`` filter or a</span>
+<span class="sd">    ``pytest.warns`` naming it still imports."""</span></div>
 
 
 
-<div class="viewcode-block" id="warn_if_replacing">
-<a class="viewcode-back" href="../../_autosummary/lacing.registry.html#lacing.warn_if_replacing">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">warn_if_replacing</span><span class="p">(</span>
+<div class="viewcode-block" id="refuse_replacing">
+<a class="viewcode-back" href="../../_autosummary/lacing.registry.html#lacing.refuse_replacing">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">refuse_replacing</span><span class="p">(</span>
     <span class="n">registry</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">key</span><span class="p">:</span> <span class="n">Hashable</span><span class="p">,</span>
     <span class="n">new</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -761,35 +772,28 @@ window.runMermaid = runMermaid;</script>
     <span class="n">what</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Warn when writing ``new`` under ``key`` would replace a different object.</span>
+<span class="w">    </span><span class="sd">"""Raise :class:`RegistryConflictError` when writing ``new`` under ``key``</span>
+<span class="sd">    would replace a different object.</span>
 
 <span class="sd">    Call it just before the write. ``what`` names the registry in the message</span>
-<span class="sd">    (``"body schema"``). The warning points at whoever called the register</span>
-<span class="sd">    function, or, for a decorator, at the decorated definition.</span>
-
-<span class="sd">    Identical means ``is`` or ``==``: a model class compares by identity, a</span>
-<span class="sd">    migration's ``(to_version, func)`` and a frozen ``AdapterSpec`` compare</span>
-<span class="sd">    field by field, their functions by identity.</span>
-
-<span class="sd">    The issue (lacing#19) asks for an error. This warns instead, because</span>
-<span class="sd">    downstream test suites re-register different models under one URI today</span>
-<span class="sd">    (a new local class per test), and raising would turn their CI red on the</span>
-<span class="sd">    next lacing release. Warn first, raise later.</span>
+<span class="sd">    (``"body schema"``). Identical means ``is`` or ``==``: a model class compares</span>
+<span class="sd">    by identity, a migration's ``(to_version, func)`` and a frozen</span>
+<span class="sd">    ``AdapterSpec`` compare field by field, their functions by identity.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">force</span> <span class="ow">or</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">registry</span><span class="p">:</span>
         <span class="k">return</span>
     <span class="n">old</span> <span class="o">=</span> <span class="n">registry</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">old</span> <span class="ow">is</span> <span class="n">new</span> <span class="ow">or</span> <span class="n">old</span> <span class="o">==</span> <span class="n">new</span><span class="p">:</span>
         <span class="k">return</span>
-    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+    <span class="k">raise</span> <span class="n">RegistryConflictError</span><span class="p">(</span>
         <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> is already registered as a different object "</span>
-        <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">_difference</span><span class="p">(</span><span class="n">old</span><span class="p">,</span><span class="w"> </span><span class="n">new</span><span class="p">)</span><span class="si">}</span><span class="s2">); replacing it. Replacing a registered </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2"> "</span>
-        <span class="s2">"with a different object will become an error: pass force=True to "</span>
-        <span class="s2">"replace on purpose."</span><span class="p">,</span>
-        <span class="n">RegistryConflictWarning</span><span class="p">,</span>
-        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>  <span class="c1"># warn_if_replacing &lt;- register function &lt;- its caller</span>
+        <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">_difference</span><span class="p">(</span><span class="n">old</span><span class="p">,</span><span class="w"> </span><span class="n">new</span><span class="p">)</span><span class="si">}</span><span class="s2">). Pass force=True to replace it on purpose."</span>
     <span class="p">)</span></div>
 
+
+
+<span class="c1">#: The name the register functions used while a conflict only warned (lacing#19).</span>
+<span class="n">warn_if_replacing</span> <span class="o">=</span> <span class="n">refuse_replacing</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_difference</span><span class="p">(</span><span class="n">old</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">new</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>

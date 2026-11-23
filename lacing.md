@@ -1,4 +1,4 @@
-> built 2026-11-23 16:00 UTC from 436a392 (main) · lacing 0.0.121. Details: build_info.json
+> built 2026-11-23 22:55 UTC from 304a7e2 (main) · lacing 0.0.122. Details: build_info.json
 
 # index.html.md
 
@@ -955,7 +955,7 @@ path, infers from extension. Raises `ValueError` if it can’t pick.
 Register an adapter under `name`; returns its [`AdapterSpec`](_autosummary/lacing.adapters.html.md#lacing.adapters.AdapterSpec).
 
 Re-registering an equal spec is a no-op. A different spec under a taken
-name warns ([`lacing.RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)) and replaces, unless
+name raises ([`lacing.RegistryConflictError`](_autosummary/lacing.html.md#lacing.RegistryConflictError)) and replaces nothing, unless
 `force` (see [`lacing.registry`](_autosummary/lacing.registry.html.md#module-lacing.registry)).
 
 * **Return type:**
@@ -5400,19 +5400,20 @@ full story. `.claude/skills/` contains the rules.
 
 ### Exceptions
 
-| [`LossyTimeConversionError`](_autosummary/lacing.html.md#lacing.LossyTimeConversionError)                    | Raised when a rate or seconds conversion would lose precision.                     |
-|----------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| [`GeneratorIdWarning`](_autosummary/lacing.html.md#lacing.GeneratorIdWarning)                          | A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.       |
-| [`IdSlugError`](_autosummary/lacing.html.md#lacing.IdSlugError)(message, \*, value, label, ...) | An id refused by [`check_id_slug()`](_autosummary/lacing.html.md#lacing.check_id_slug). |
-| [`NonStringBodyKeyError`](_autosummary/lacing.html.md#lacing.NonStringBodyKeyError)                       | An annotation `body` contains a mapping key that is not a `str`.                   |
-| [`SchemaMismatchError`](_autosummary/lacing.html.md#lacing.SchemaMismatchError)                         | Raised when opening a `.annot` file with an incompatible schema.                   |
-| [`StoreMigrationError`](_autosummary/lacing.html.md#lacing.StoreMigrationError)                         | Raised when a store migration step is missing or fails.                            |
-| [`ProcessorError`](_autosummary/lacing.html.md#lacing.ProcessorError)                              | Raised when a registered processor's invocation fails.                             |
-| [`RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)                     | A registration replaced a *different* object already registered under its key.     |
-| [`BodySchemaError`](_autosummary/lacing.html.md#lacing.BodySchemaError)                             | Raised when a body fails validation against its registered schema.                 |
-| [`EmptySchemaRegistryError`](_autosummary/lacing.html.md#lacing.EmptySchemaRegistryError)                    | Raised when an export would write an empty registry over real artifacts.           |
-| [`UnknownBodySchemaError`](_autosummary/lacing.html.md#lacing.UnknownBodySchemaError)                      | Raised when an annotation's body_schema_uri has no registered model.               |
-| [`MigrationError`](_autosummary/lacing.html.md#lacing.MigrationError)                              | Raised when a migration step is missing or fails.                                  |
+| [`LossyTimeConversionError`](_autosummary/lacing.html.md#lacing.LossyTimeConversionError)                    | Raised when a rate or seconds conversion would lose precision.                                                                            |
+|----------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| [`GeneratorIdWarning`](_autosummary/lacing.html.md#lacing.GeneratorIdWarning)                          | A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.                                                              |
+| [`IdSlugError`](_autosummary/lacing.html.md#lacing.IdSlugError)(message, \*, value, label, ...) | An id refused by [`check_id_slug()`](_autosummary/lacing.html.md#lacing.check_id_slug).                                                        |
+| [`NonStringBodyKeyError`](_autosummary/lacing.html.md#lacing.NonStringBodyKeyError)                       | An annotation `body` contains a mapping key that is not a `str`.                                                                          |
+| [`SchemaMismatchError`](_autosummary/lacing.html.md#lacing.SchemaMismatchError)                         | Raised when opening a `.annot` file with an incompatible schema.                                                                          |
+| [`StoreMigrationError`](_autosummary/lacing.html.md#lacing.StoreMigrationError)                         | Raised when a store migration step is missing or fails.                                                                                   |
+| [`ProcessorError`](_autosummary/lacing.html.md#lacing.ProcessorError)                              | Raised when a registered processor's invocation fails.                                                                                    |
+| [`RegistryConflictError`](_autosummary/lacing.html.md#lacing.RegistryConflictError)                       | A registration would replace a *different* object already registered under its key.                                                       |
+| [`RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)                     | No longer emitted: a conflicting registration raises [`RegistryConflictError`](_autosummary/lacing.html.md#lacing.RegistryConflictError) (lacing#121). |
+| [`BodySchemaError`](_autosummary/lacing.html.md#lacing.BodySchemaError)                             | Raised when a body fails validation against its registered schema.                                                                        |
+| [`EmptySchemaRegistryError`](_autosummary/lacing.html.md#lacing.EmptySchemaRegistryError)                    | Raised when an export would write an empty registry over real artifacts.                                                                  |
+| [`UnknownBodySchemaError`](_autosummary/lacing.html.md#lacing.UnknownBodySchemaError)                      | Raised when an annotation's body_schema_uri has no registered model.                                                                      |
+| [`MigrationError`](_autosummary/lacing.html.md#lacing.MigrationError)                              | Raised when a migration step is missing or fails.                                                                                         |
 
 ### *class* lacing.AllenRelation(\*values)
 
@@ -6956,14 +6957,20 @@ the epoch. Producers stamp [`now()`](_autosummary/lacing.html.md#lacing.Rational
 * **Return type:**
   [`RationalTime`](_autosummary/lacing.time.html.md#lacing.time.RationalTime)
 
+### *exception* lacing.RegistryConflictError
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+A registration would replace a *different* object already registered under
+its key. Pass `force=True` to the register function to replace on purpose.
+
 ### *exception* lacing.RegistryConflictWarning
 
 Bases: [`FutureWarning`](https://docs.python.org/3/builtins/exceptions.html#FutureWarning)
 
-A registration replaced a *different* object already registered under its key.
-
-It will become an error; pass `force=True` to the register function to
-replace on purpose.
+No longer emitted: a conflicting registration raises
+[`RegistryConflictError`](_autosummary/lacing.html.md#lacing.RegistryConflictError) (lacing#121). Kept so a `-W` filter or a
+`pytest.warns` naming it still imports.
 
 ### *class* lacing.ResolvedArtifact(key, record, content_hash, data)
 
@@ -8223,8 +8230,8 @@ Register `model` as the validator for `uri`. Returns `model`.
 `default=True` declares `uri`’s version the default of its schema name
 (see [`default_version()`](_autosummary/lacing.html.md#lacing.default_version)). Re-registering the identical model is a
 no-op (listeners are still told); a different model, or a different
-declared default, warns ([`lacing.RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)) and
-replaces, unless `force`.
+declared default, raises ([`lacing.RegistryConflictError`](_autosummary/lacing.html.md#lacing.RegistryConflictError)) and
+replaces nothing, unless `force`.
 
 * **Return type:**
   [`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]
@@ -8238,9 +8245,8 @@ Migrations must be one major-version step at a time
 (`to_version == from_version + 1`).
 
 Re-registering the same function for the same step is a no-op; a
-different one warns ([`lacing.RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)), pointed at
-the decorated definition, and replaces, unless `force` (tests,
-hot-reload).
+different one raises ([`lacing.RegistryConflictError`](_autosummary/lacing.html.md#lacing.RegistryConflictError)) and replaces
+nothing, unless `force` (tests, hot-reload).
 
 ### lacing.register_processor(func=None, , name=None)
 
@@ -9728,48 +9734,62 @@ default version) and body migrations by `(schema_name, from_version)`
 [`warn_if_replacing()`](_autosummary/lacing.registry.html.md#lacing.registry.warn_if_replacing) before it writes, so all three follow one rule:
 
 - registering the identical object again is a silent no-op;
-- registering a *different* object under a key already taken emits a
-  [`RegistryConflictWarning`](_autosummary/lacing.registry.html.md#lacing.registry.RegistryConflictWarning), then replaces;
+- registering a *different* object under a key already taken raises
+  [`RegistryConflictError`](_autosummary/lacing.registry.html.md#lacing.registry.RegistryConflictError) and leaves the registry as it was (lacing#121;
+  > it warned, then replaced, while downstream code still collided);
 - `force=True` replaces silently, for tests and hot-reload.
 
 Silent replacement is how two modules registering the same key end up with
 import order deciding the winner, and nothing saying so.
 
+### Module Attributes
+
+| [`warn_if_replacing`](_autosummary/lacing.registry.html.md#lacing.registry.warn_if_replacing)(registry, key, new, \*, what)   | The name the register functions used while a conflict only warned (lacing#19).   |
+|----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+
 ### Functions
 
-| [`warn_if_replacing`](_autosummary/lacing.registry.html.md#lacing.registry.warn_if_replacing)(registry, key, new, \*, what)   | Warn when writing `new` under `key` would replace a different object.   |
-|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [`refuse_replacing`](_autosummary/lacing.registry.html.md#lacing.registry.refuse_replacing)(registry, key, new, \*, what)   | Raise [`RegistryConflictError`](_autosummary/lacing.registry.html.md#lacing.registry.RegistryConflictError) when writing `new` under `key` would replace a different object.   |
+|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`warn_if_replacing`](_autosummary/lacing.registry.html.md#lacing.registry.warn_if_replacing)(registry, key, new, \*, what)  | The name the register functions used while a conflict only warned (lacing#19).                                                                  |
 
 ### Exceptions
 
-| [`RegistryConflictWarning`](_autosummary/lacing.registry.html.md#lacing.registry.RegistryConflictWarning)   | A registration replaced a *different* object already registered under its key.   |
-|----------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+| [`RegistryConflictError`](_autosummary/lacing.registry.html.md#lacing.registry.RegistryConflictError)   | A registration would replace a *different* object already registered under its key.                                                       |
+|--------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| [`RegistryConflictWarning`](_autosummary/lacing.registry.html.md#lacing.registry.RegistryConflictWarning) | No longer emitted: a conflicting registration raises [`RegistryConflictError`](_autosummary/lacing.registry.html.md#lacing.registry.RegistryConflictError) (lacing#121). |
+
+### *exception* lacing.registry.RegistryConflictError
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+A registration would replace a *different* object already registered under
+its key. Pass `force=True` to the register function to replace on purpose.
 
 ### *exception* lacing.registry.RegistryConflictWarning
 
 Bases: [`FutureWarning`](https://docs.python.org/3/builtins/exceptions.html#FutureWarning)
 
-A registration replaced a *different* object already registered under its key.
+No longer emitted: a conflicting registration raises
+[`RegistryConflictError`](_autosummary/lacing.registry.html.md#lacing.registry.RegistryConflictError) (lacing#121). Kept so a `-W` filter or a
+`pytest.warns` naming it still imports.
 
-It will become an error; pass `force=True` to the register function to
-replace on purpose.
+### lacing.registry.refuse_replacing(registry, key, new, , what, force=False)
+
+Raise [`RegistryConflictError`](_autosummary/lacing.registry.html.md#lacing.registry.RegistryConflictError) when writing `new` under `key`
+would replace a different object.
+
+Call it just before the write. `what` names the registry in the message
+(`"body schema"`). Identical means `is` or `==`: a model class compares
+by identity, a migration’s `(to_version, func)` and a frozen
+`AdapterSpec` compare field by field, their functions by identity.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### lacing.registry.warn_if_replacing(registry, key, new, , what, force=False)
 
-Warn when writing `new` under `key` would replace a different object.
-
-Call it just before the write. `what` names the registry in the message
-(`"body schema"`). The warning points at whoever called the register
-function, or, for a decorator, at the decorated definition.
-
-Identical means `is` or `==`: a model class compares by identity, a
-migration’s `(to_version, func)` and a frozen `AdapterSpec` compare
-field by field, their functions by identity.
-
-The issue (lacing#19) asks for an error. This warns instead, because
-downstream test suites re-register different models under one URI today
-(a new local class per test), and raising would turn their CI red on the
-next lacing release. Warn first, raise later.
+The name the register functions used while a conflict only warned (lacing#19).
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -9902,9 +9922,9 @@ module implements:
   name resolves to (declared, else the highest), and migrating a body to it.
 
 Every register function follows [`lacing.registry`](_autosummary/lacing.registry.html.md#module-lacing.registry)’s rule: the identical
-object again is a no-op, a different one under a taken key warns
-([`lacing.RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)) and replaces, `force=True` replaces
-silently.
+object again is a no-op, a different one under a taken key raises
+([`lacing.RegistryConflictError`](_autosummary/lacing.html.md#lacing.RegistryConflictError), the registry unchanged), `force=True`
+replaces silently.
 
 See the `lacing-schema-codegen` skill and BACK-DOC §4.5.
 
@@ -10175,8 +10195,8 @@ Register `model` as the validator for `uri`. Returns `model`.
 `default=True` declares `uri`’s version the default of its schema name
 (see [`default_version()`](_autosummary/lacing.schema.html.md#lacing.schema.default_version)). Re-registering the identical model is a
 no-op (listeners are still told); a different model, or a different
-declared default, warns ([`lacing.RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)) and
-replaces, unless `force`.
+declared default, raises ([`lacing.RegistryConflictError`](_autosummary/lacing.html.md#lacing.RegistryConflictError)) and
+replaces nothing, unless `force`.
 
 * **Return type:**
   [`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]
@@ -10190,9 +10210,8 @@ Migrations must be one major-version step at a time
 (`to_version == from_version + 1`).
 
 Re-registering the same function for the same step is a no-op; a
-different one warns ([`lacing.RegistryConflictWarning`](_autosummary/lacing.html.md#lacing.RegistryConflictWarning)), pointed at
-the decorated definition, and replaces, unless `force` (tests,
-hot-reload).
+different one raises ([`lacing.RegistryConflictError`](_autosummary/lacing.html.md#lacing.RegistryConflictError)) and replaces
+nothing, unless `force` (tests, hot-reload).
 
 ### lacing.schema.registered_uris()
 
@@ -13916,16 +13935,18 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-23 16:00 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/436a3929a09dadb3012198d6166c0f35694e2f6d"><code>436a392</code></a> on branch <code>main</code>, for **lacing 0.0.121** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-23 22:55 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/304a7e2a194b098d15119f3b59d1b01c9d6d3ea2"><code>304a7e2</code></a> on branch <code>main</code>, for **lacing 0.0.122** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.122) is behind the latest release on PyPI (0.0.123): `pip install lacing` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/436a3929a09dadb3012198d6166c0f35694e2f6d"><code>436a3929a09dadb3012198d6166c0f35694e2f6d</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/304a7e2a194b098d15119f3b59d1b01c9d6d3ea2"><code>304a7e2a194b098d15119f3b59d1b01c9d6d3ea2</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -13936,9 +13957,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45211025628">45211025628</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45283765425">45283765425</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>436a3929a09dadb3012198d6166c0f35694e2f6d</code> (in the history of the built commit) |
+| Event commit | <code>304a7e2a194b098d15119f3b59d1b01c9d6d3ea2</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -13963,13 +13984,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.121/">0.0.121</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.123/">0.0.123</a>, newer than the documented version (0.0.122).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 436a3929a09dadb3012198d6166c0f35694e2f6d
+git checkout 304a7e2a194b098d15119f3b59d1b01c9d6d3ea2
 pip install "epythet==0.2.25"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

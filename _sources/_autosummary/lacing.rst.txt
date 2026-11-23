@@ -104,6 +104,7 @@
       SchemaMismatchError
       StoreMigrationError
       ProcessorError
+      RegistryConflictError
       RegistryConflictWarning
       BodySchemaError
       EmptySchemaRegistryError

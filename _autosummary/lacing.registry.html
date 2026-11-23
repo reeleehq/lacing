@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=cdca99f8"></script>
+    <script src="../_static/documentation_options.js?v=fa321392"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.121" />
+  <meta name="docsearch:version" content="0.0.122" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -465,19 +465,35 @@
 default version) and body migrations by <code class="docutils literal notranslate"><span class="pre">(schema_name,</span> <span class="pre">from_version)</span></code>
 (<a class="reference internal" href="lacing.schema.html#lacing.schema.register_migration" title="lacing.schema.register_migration"><code class="xref py py-func docutils literal notranslate"><span class="pre">lacing.schema.register_migration()</span></code></a>). Each calls
 <a class="reference internal" href="#lacing.registry.warn_if_replacing" title="lacing.registry.warn_if_replacing"><code class="xref py py-func docutils literal notranslate"><span class="pre">warn_if_replacing()</span></code></a> before it writes, so all three follow one rule:</p>
-<ul class="simple">
+<ul>
 <li><p>registering the identical object again is a silent no-op;</p></li>
-<li><p>registering a <em>different</em> object under a key already taken emits a
-<a class="reference internal" href="#lacing.registry.RegistryConflictWarning" title="lacing.registry.RegistryConflictWarning"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistryConflictWarning</span></code></a>, then replaces;</p></li>
+<li><p>registering a <em>different</em> object under a key already taken raises
+<a class="reference internal" href="#lacing.registry.RegistryConflictError" title="lacing.registry.RegistryConflictError"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistryConflictError</span></code></a> and leaves the registry as it was (lacing#121;</p>
+<blockquote>
+<div><p>it warned, then replaced, while downstream code still collided);</p>
+</div></blockquote>
+</li>
 <li><p><code class="docutils literal notranslate"><span class="pre">force=True</span></code> replaces silently, for tests and hot-reload.</p></li>
 </ul>
 <p>Silent replacement is how two modules registering the same key end up with
 import order deciding the winner, and nothing saying so.</p>
-<p class="rubric">Functions</p>
+<p class="rubric">Module Attributes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.registry.warn_if_replacing" title="lacing.registry.warn_if_replacing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">warn_if_replacing</span></code></a>(registry, key, new, *, what)</p></td>
-<td><p>Warn when writing <code class="docutils literal notranslate"><span class="pre">new</span></code> under <code class="docutils literal notranslate"><span class="pre">key</span></code> would replace a different object.</p></td>
+<td><p>The name the register functions used while a conflict only warned (lacing#19).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Functions</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.registry.refuse_replacing" title="lacing.registry.refuse_replacing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">refuse_replacing</span></code></a>(registry, key, new, *, what)</p></td>
+<td><p>Raise <a class="reference internal" href="#lacing.registry.RegistryConflictError" title="lacing.registry.RegistryConflictError"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistryConflictError</span></code></a> when writing <code class="docutils literal notranslate"><span class="pre">new</span></code> under <code class="docutils literal notranslate"><span class="pre">key</span></code> would replace a different object.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.registry.warn_if_replacing" title="lacing.registry.warn_if_replacing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">warn_if_replacing</span></code></a>(registry, key, new, *, what)</p></td>
+<td><p>The name the register functions used while a conflict only warned (lacing#19).</p></td>
 </tr>
 </tbody>
 </table>
@@ -485,35 +501,52 @@ import order deciding the winner, and nothing saying so.</p>
 <p class="rubric">Exceptions</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.registry.RegistryConflictWarning" title="lacing.registry.RegistryConflictWarning"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RegistryConflictWarning</span></code></a></p></td>
-<td><p>A registration replaced a <em>different</em> object already registered under its key.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.registry.RegistryConflictError" title="lacing.registry.RegistryConflictError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RegistryConflictError</span></code></a></p></td>
+<td><p>A registration would replace a <em>different</em> object already registered under its key.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.registry.RegistryConflictWarning" title="lacing.registry.RegistryConflictWarning"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RegistryConflictWarning</span></code></a></p></td>
+<td><p>No longer emitted: a conflicting registration raises <a class="reference internal" href="#lacing.registry.RegistryConflictError" title="lacing.registry.RegistryConflictError"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistryConflictError</span></code></a> (lacing#121).</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <dl class="py exception">
+<dt class="sig sig-object py" id="lacing.registry.RegistryConflictError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.registry.</span></span><span class="sig-name descname"><span class="pre">RegistryConflictError</span></span><a class="reference internal" href="../_modules/lacing/registry.html#RegistryConflictError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.registry.RegistryConflictError" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></a></p>
+<p>A registration would replace a <em>different</em> object already registered under
+its key. Pass <code class="docutils literal notranslate"><span class="pre">force=True</span></code> to the register function to replace on purpose.</p>
+</dd></dl>
+
+<dl class="py exception">
 <dt class="sig sig-object py" id="lacing.registry.RegistryConflictWarning">
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.registry.</span></span><span class="sig-name descname"><span class="pre">RegistryConflictWarning</span></span><a class="reference internal" href="../_modules/lacing/registry.html#RegistryConflictWarning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.registry.RegistryConflictWarning" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#FutureWarning" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">FutureWarning</span></code></a></p>
-<p>A registration replaced a <em>different</em> object already registered under its key.</p>
-<p>It will become an error; pass <code class="docutils literal notranslate"><span class="pre">force=True</span></code> to the register function to
-replace on purpose.</p>
+<p>No longer emitted: a conflicting registration raises
+<a class="reference internal" href="#lacing.registry.RegistryConflictError" title="lacing.registry.RegistryConflictError"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistryConflictError</span></code></a> (lacing#121). Kept so a <code class="docutils literal notranslate"><span class="pre">-W</span></code> filter or a
+<code class="docutils literal notranslate"><span class="pre">pytest.warns</span></code> naming it still imports.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.registry.refuse_replacing">
+<span class="sig-prename descclassname"><span class="pre">lacing.registry.</span></span><span class="sig-name descname"><span class="pre">refuse_replacing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">what</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/registry.html#refuse_replacing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.registry.refuse_replacing" title="Link to this definition">#</a></dt>
+<dd><p>Raise <a class="reference internal" href="#lacing.registry.RegistryConflictError" title="lacing.registry.RegistryConflictError"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistryConflictError</span></code></a> when writing <code class="docutils literal notranslate"><span class="pre">new</span></code> under <code class="docutils literal notranslate"><span class="pre">key</span></code>
+would replace a different object.</p>
+<p>Call it just before the write. <code class="docutils literal notranslate"><span class="pre">what</span></code> names the registry in the message
+(<code class="docutils literal notranslate"><span class="pre">&quot;body</span> <span class="pre">schema&quot;</span></code>). Identical means <code class="docutils literal notranslate"><span class="pre">is</span></code> or <code class="docutils literal notranslate"><span class="pre">==</span></code>: a model class compares
+by identity, a migration’s <code class="docutils literal notranslate"><span class="pre">(to_version,</span> <span class="pre">func)</span></code> and a frozen
+<code class="docutils literal notranslate"><span class="pre">AdapterSpec</span></code> compare field by field, their functions by identity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lacing.registry.warn_if_replacing">
-<span class="sig-prename descclassname"><span class="pre">lacing.registry.</span></span><span class="sig-name descname"><span class="pre">warn_if_replacing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">what</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/registry.html#warn_if_replacing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.registry.warn_if_replacing" title="Link to this definition">#</a></dt>
-<dd><p>Warn when writing <code class="docutils literal notranslate"><span class="pre">new</span></code> under <code class="docutils literal notranslate"><span class="pre">key</span></code> would replace a different object.</p>
-<p>Call it just before the write. <code class="docutils literal notranslate"><span class="pre">what</span></code> names the registry in the message
-(<code class="docutils literal notranslate"><span class="pre">&quot;body</span> <span class="pre">schema&quot;</span></code>). The warning points at whoever called the register
-function, or, for a decorator, at the decorated definition.</p>
-<p>Identical means <code class="docutils literal notranslate"><span class="pre">is</span></code> or <code class="docutils literal notranslate"><span class="pre">==</span></code>: a model class compares by identity, a
-migration’s <code class="docutils literal notranslate"><span class="pre">(to_version,</span> <span class="pre">func)</span></code> and a frozen <code class="docutils literal notranslate"><span class="pre">AdapterSpec</span></code> compare
-field by field, their functions by identity.</p>
-<p>The issue (lacing#19) asks for an error. This warns instead, because
-downstream test suites re-register different models under one URI today
-(a new local class per test), and raising would turn their CI red on the
-next lacing release. Warn first, raise later.</p>
+<span class="sig-prename descclassname"><span class="pre">lacing.registry.</span></span><span class="sig-name descname"><span class="pre">warn_if_replacing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">what</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lacing.registry.warn_if_replacing" title="Link to this definition">#</a></dt>
+<dd><p>The name the register functions used while a conflict only warned (lacing#19).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
@@ -570,7 +603,9 @@ next lacing release. Warn first, raise later.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.registry.RegistryConflictError"><code class="docutils literal notranslate"><span class="pre">RegistryConflictError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.registry.RegistryConflictWarning"><code class="docutils literal notranslate"><span class="pre">RegistryConflictWarning</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.registry.refuse_replacing"><code class="docutils literal notranslate"><span class="pre">refuse_replacing()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.registry.warn_if_replacing"><code class="docutils literal notranslate"><span class="pre">warn_if_replacing()</span></code></a></li>
 </ul>
   </nav></div>

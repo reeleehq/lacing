@@ -104,19 +104,20 @@ full story. `.claude/skills/` contains the rules.
 
 ### Exceptions
 
-| [`LossyTimeConversionError`](#lacing.LossyTimeConversionError)                    | Raised when a rate or seconds conversion would lose precision.                     |
-|----------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| [`GeneratorIdWarning`](#lacing.GeneratorIdWarning)                          | A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.       |
-| [`IdSlugError`](#lacing.IdSlugError)(message, \*, value, label, ...) | An id refused by [`check_id_slug()`](#lacing.check_id_slug). |
-| [`NonStringBodyKeyError`](#lacing.NonStringBodyKeyError)                       | An annotation `body` contains a mapping key that is not a `str`.                   |
-| [`SchemaMismatchError`](#lacing.SchemaMismatchError)                         | Raised when opening a `.annot` file with an incompatible schema.                   |
-| [`StoreMigrationError`](#lacing.StoreMigrationError)                         | Raised when a store migration step is missing or fails.                            |
-| [`ProcessorError`](#lacing.ProcessorError)                              | Raised when a registered processor's invocation fails.                             |
-| [`RegistryConflictWarning`](#lacing.RegistryConflictWarning)                     | A registration replaced a *different* object already registered under its key.     |
-| [`BodySchemaError`](#lacing.BodySchemaError)                             | Raised when a body fails validation against its registered schema.                 |
-| [`EmptySchemaRegistryError`](#lacing.EmptySchemaRegistryError)                    | Raised when an export would write an empty registry over real artifacts.           |
-| [`UnknownBodySchemaError`](#lacing.UnknownBodySchemaError)                      | Raised when an annotation's body_schema_uri has no registered model.               |
-| [`MigrationError`](#lacing.MigrationError)                              | Raised when a migration step is missing or fails.                                  |
+| [`LossyTimeConversionError`](#lacing.LossyTimeConversionError)                    | Raised when a rate or seconds conversion would lose precision.                                                                            |
+|----------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| [`GeneratorIdWarning`](#lacing.GeneratorIdWarning)                          | A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.                                                              |
+| [`IdSlugError`](#lacing.IdSlugError)(message, \*, value, label, ...) | An id refused by [`check_id_slug()`](#lacing.check_id_slug).                                                        |
+| [`NonStringBodyKeyError`](#lacing.NonStringBodyKeyError)                       | An annotation `body` contains a mapping key that is not a `str`.                                                                          |
+| [`SchemaMismatchError`](#lacing.SchemaMismatchError)                         | Raised when opening a `.annot` file with an incompatible schema.                                                                          |
+| [`StoreMigrationError`](#lacing.StoreMigrationError)                         | Raised when a store migration step is missing or fails.                                                                                   |
+| [`ProcessorError`](#lacing.ProcessorError)                              | Raised when a registered processor's invocation fails.                                                                                    |
+| [`RegistryConflictError`](#lacing.RegistryConflictError)                       | A registration would replace a *different* object already registered under its key.                                                       |
+| [`RegistryConflictWarning`](#lacing.RegistryConflictWarning)                     | No longer emitted: a conflicting registration raises [`RegistryConflictError`](#lacing.RegistryConflictError) (lacing#121). |
+| [`BodySchemaError`](#lacing.BodySchemaError)                             | Raised when a body fails validation against its registered schema.                                                                        |
+| [`EmptySchemaRegistryError`](#lacing.EmptySchemaRegistryError)                    | Raised when an export would write an empty registry over real artifacts.                                                                  |
+| [`UnknownBodySchemaError`](#lacing.UnknownBodySchemaError)                      | Raised when an annotation's body_schema_uri has no registered model.                                                                      |
+| [`MigrationError`](#lacing.MigrationError)                              | Raised when a migration step is missing or fails.                                                                                         |
 
 ### *class* lacing.AllenRelation(\*values)
 
@@ -1660,14 +1661,20 @@ the epoch. Producers stamp [`now()`](#lacing.RationalTime.now) there.
 * **Return type:**
   [`RationalTime`](lacing.time.html.md#lacing.time.RationalTime)
 
+### *exception* lacing.RegistryConflictError
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+A registration would replace a *different* object already registered under
+its key. Pass `force=True` to the register function to replace on purpose.
+
 ### *exception* lacing.RegistryConflictWarning
 
 Bases: [`FutureWarning`](https://docs.python.org/3/builtins/exceptions.html#FutureWarning)
 
-A registration replaced a *different* object already registered under its key.
-
-It will become an error; pass `force=True` to the register function to
-replace on purpose.
+No longer emitted: a conflicting registration raises
+[`RegistryConflictError`](#lacing.RegistryConflictError) (lacing#121). Kept so a `-W` filter or a
+`pytest.warns` naming it still imports.
 
 ### *class* lacing.ResolvedArtifact(key, record, content_hash, data)
 
@@ -2927,8 +2934,8 @@ Register `model` as the validator for `uri`. Returns `model`.
 `default=True` declares `uri`’s version the default of its schema name
 (see [`default_version()`](#lacing.default_version)). Re-registering the identical model is a
 no-op (listeners are still told); a different model, or a different
-declared default, warns ([`lacing.RegistryConflictWarning`](#lacing.RegistryConflictWarning)) and
-replaces, unless `force`.
+declared default, raises ([`lacing.RegistryConflictError`](#lacing.RegistryConflictError)) and
+replaces nothing, unless `force`.
 
 * **Return type:**
   [`type`](https://docs.python.org/3/builtins/functions.html#type)[`BaseModel`]
@@ -2942,9 +2949,8 @@ Migrations must be one major-version step at a time
 (`to_version == from_version + 1`).
 
 Re-registering the same function for the same step is a no-op; a
-different one warns ([`lacing.RegistryConflictWarning`](#lacing.RegistryConflictWarning)), pointed at
-the decorated definition, and replaces, unless `force` (tests,
-hot-reload).
+different one raises ([`lacing.RegistryConflictError`](#lacing.RegistryConflictError)) and replaces
+nothing, unless `force` (tests, hot-reload).
 
 ### lacing.register_processor(func=None, , name=None)
 
