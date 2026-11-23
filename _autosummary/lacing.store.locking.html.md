@@ -79,8 +79,8 @@ True
 
 #### acquire(timeout=-1)
 
-Take the turn within `timeout` seconds (negative: as long as it takes);
-`False` when it is still held.
+Take the turn within `timeout` seconds (negative, infinite or `None`:
+as long as it takes); `False` when it is still held.
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
