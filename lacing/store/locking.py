@@ -163,7 +163,8 @@ class KeyedTurn:
         name_of: Callable[[str], str] = turn_file_name,
         poll_s: float = DFLT_TURN_POLL_S,
     ) -> None:
-        self.directory = os.fspath(directory)
+        # absolute, so a later os.chdir does not move the lock file (#210)
+        self.directory = os.path.abspath(os.fspath(directory))
         self.key = key
         self.poll_s = poll_s
         self._file_name = name_of(key)
@@ -217,11 +218,14 @@ class KeyedTurn:
             self._thread_lock.release()
         return taken
 
-    def acquire(self, timeout: float = -1) -> bool:
-        """Take the turn within ``timeout`` seconds (negative: as long as it takes);
-        ``False`` when it is still held."""
+    def acquire(self, timeout: float | None = -1) -> bool:
+        """Take the turn within ``timeout`` seconds (negative, infinite or ``None``:
+        as long as it takes); ``False`` when it is still held."""
+        import math
         import time
 
+        if timeout is None or timeout < 0 or math.isinf(timeout):
+            timeout = -1
         deadline = -1.0 if timeout < 0 else time.monotonic() + timeout
         if not self._thread_lock.acquire(timeout=timeout):
             return False

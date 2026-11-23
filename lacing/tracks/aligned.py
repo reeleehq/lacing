@@ -331,9 +331,15 @@ def _locate_legacy(
     parent's range (the whole text for a root), as :func:`_layout` does."""
     folded = _fold(text)
     resume: dict[int | None, int] = {}
+    # per parent, the (end time, end offset) of siblings that already have chars: a
+    # legacy row is searched after those that end before it starts (lacing#210)
+    placed: dict[int | None, list[tuple[int, int]]] = {}
     for i, r in enumerate(ordered):
         parent = parents[i]
-        if chars[i] is not None or not r.text:
+        if chars[i] is not None:
+            placed.setdefault(parent, []).append((r.end, chars[i][1]))  # type: ignore[index]
+            continue
+        if not r.text:
             continue
         if parent is None:
             lo, hi = 0, len(text)
@@ -341,10 +347,13 @@ def _locate_legacy(
             continue
         else:
             lo, hi = chars[parent]  # type: ignore[misc]
-        at = _find(text, folded, r.text, max(resume.get(parent, lo), lo), hi)
+        earlier = (off for end, off in placed.get(parent, ()) if end <= r.start)
+        start = max(resume.get(parent, lo), lo, *earlier)
+        at = _find(text, folded, r.text, start, hi)
         if at >= 0:
             chars[i] = (at, at + len(r.text))
             resume[parent] = at + len(r.text)
+            placed.setdefault(parent, []).append((r.end, at + len(r.text)))
 
 
 def _ms(t: RationalTime, quantize: QuantizeMode | None) -> int:
