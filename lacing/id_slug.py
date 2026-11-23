@@ -245,13 +245,13 @@ def distinct_id_slug(
     ``max_length`` must leave room for at least one character, a ``-`` and the
     digest (``ValueError`` otherwise).
     """
+    if is_id_slug(value, max_length=max_length):
+        return value  # type: ignore[return-value]  # is_id_slug checked str
     if max_length < digest_chars + 2 or digest_chars < 1:
         raise ValueError(
             f"max_length={max_length} leaves no room for a stem, '-' and "
             f"{digest_chars} digest characters (need at least {digest_chars + 2})"
         )
-    if is_id_slug(value, max_length=max_length):
-        return value  # type: ignore[return-value]  # is_id_slug checked str
     text = value if isinstance(value, str) else repr(value)
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:digest_chars]
     stem_room = max_length - digest_chars - 1
@@ -310,7 +310,7 @@ def check_id_slug(
     tail = f" {hint}" if hint else ""
     if not isinstance(value, str):
         raise IdSlugError(
-            f"invalid {label}: expected a string, got {type(value).__name__}{tail}",
+            f"invalid {label}: expected a string, got {type(value).__name__}.{tail}",
             value=value,
             label=label,
             problem="type",

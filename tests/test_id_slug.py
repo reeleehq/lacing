@@ -209,3 +209,23 @@ def test_the_error_survives_pickling():
     assert (str(back), back.problem, back.suggestion, back.label, back.value) == (
         str(info.value), "charset", "Cafe", "panel id", "Café"
     )
+
+
+def test_distinct_id_slug_returns_an_existing_slug_under_a_tight_cap():
+    """A value that already is a slug within the cap comes back, whatever room a
+    digest would need; only a value that needs a digest needs the room."""
+    from lacing.id_slug import distinct_id_slug
+
+    assert distinct_id_slug("b03", max_length=7) == "b03"
+    with pytest.raises(ValueError, match="no room"):
+        distinct_id_slug("Café Noir", max_length=7)
+
+
+def test_a_non_string_refusal_ends_its_sentence_before_the_hint():
+    from lacing.id_slug import IdSlugError, check_id_slug
+
+    with pytest.raises(IdSlugError) as refused:
+        check_id_slug(None, label="project id", hint="Keep the text as its name.")
+    assert str(refused.value) == (
+        "invalid project id: expected a string, got NoneType. Keep the text as its name."
+    )
