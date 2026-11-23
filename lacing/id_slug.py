@@ -37,9 +37,10 @@ case-sensitive, so ``Foo`` and ``foo`` are two ids that are one folder on a
 case-insensitive filesystem (macOS, Windows); and it admits names Windows
 treats specially (``CON``, ``NUL``, a trailing ``.``). A package that stores ids
 as folders on such a filesystem and needs those cases refused adds that check on
-top; the shared rule stays the one every existing copy already enforced, so
-delegating to it refuses nothing that was accepted before (except the trailing
-newline above).
+top. The shared rule is the one every existing copy already enforced, with two
+differences a caller that delegates should know about: a trailing newline is
+refused (see above), and so is an id over 255 characters where the old copy had
+no length cap (pass a larger ``max_length`` to keep accepting those).
 
 Each package keeps its own vocabulary (``is_valid_project_id``,
 ``check_panel_id``) as a one-line delegation, passing its own ``label`` so the
@@ -47,8 +48,15 @@ refusal names the thing the caller tried to create. :class:`IdSlugError` carries
 the parts (``problem``, ``suggestion``) for a package that phrases its own
 message.
 
-Stdlib only, with no import from the rest of :mod:`lacing`. (Importing it as
-``lacing.id_slug`` still runs ``lacing/__init__``.)
+Stdlib only, with no import from the rest of :mod:`lacing`. Importing it as
+``lacing.id_slug`` still runs ``lacing/__init__`` (pydantic, dol: about a second
+on a cold start), so a caller that promises a light import surface imports it
+inside the delegating function, where only the first call pays::
+
+    def is_valid_project_id(value) -> bool:
+        from lacing.id_slug import is_id_slug
+
+        return is_id_slug(value)
 """
 
 from __future__ import annotations
@@ -110,10 +118,40 @@ class IdSlugError(ValueError):
         suggestion: str | None,
     ):
         super().__init__(message)
+        self.message = message
         self.value = value
         self.label = label
         self.problem = problem
         self.suggestion = suggestion
+
+    def __reduce__(self):
+        # keyword-only arguments: rebuild through a helper so the error survives
+        # pickling (multiprocessing, job queues)
+        return (
+            _rebuild_id_slug_error,
+            (self.message, self.value, self.label, self.problem, self.suggestion),
+        )
+
+
+def _rebuild_id_slug_error(message, value, label, problem, suggestion):
+    return IdSlugError(
+        message, value=value, label=label, problem=problem, suggestion=suggestion
+    )
+
+
+def _checked_fallback(fallback: str, max_length: int) -> str:
+    """``fallback`` if it is itself an id slug within ``max_length``, else ``ValueError``.
+
+    The fallback is what comes back when nothing else survives, so a bad one (``"../"``)
+    would be the one way these functions return a non-slug.
+    """
+    if max_length < 1:
+        raise ValueError(f"max_length must be at least 1, got {max_length}")
+    if not is_id_slug(fallback, max_length=max_length):
+        raise ValueError(
+            f"fallback {fallback!r} is not an id slug of at most {max_length} characters"
+        )
+    return fallback
 
 
 def is_id_slug(value: object, *, max_length: int = MAX_ID_SLUG_LENGTH) -> bool:
@@ -154,6 +192,8 @@ def slugify_id(
 
     Two different inputs can give the same slug (``"a b"`` and ``"a/b"``); use
     :func:`distinct_id_slug` when the slug becomes an id that must not collide.
+    ``fallback`` must itself be an id slug within ``max_length`` (``ValueError``
+    otherwise), so the result always is one.
 
     >>> slugify_id("Café Noir")
     'Cafe-Noir'
@@ -164,6 +204,7 @@ def slugify_id(
     >>> slugify_id("a" * 300) == "a" * 255
     True
     """
+    fallback = _checked_fallback(fallback, max_length)
     if not isinstance(value, str):
         return fallback
     decomposed = unicodedata.normalize("NFKD", value)
@@ -200,14 +241,23 @@ def distinct_id_slug(
     True
     >>> is_id_slug(distinct_id_slug("我的项目"))
     True
+
+    ``max_length`` must leave room for at least one character, a ``-`` and the
+    digest (``ValueError`` otherwise).
     """
+    if max_length < digest_chars + 2 or digest_chars < 1:
+        raise ValueError(
+            f"max_length={max_length} leaves no room for a stem, '-' and "
+            f"{digest_chars} digest characters (need at least {digest_chars + 2})"
+        )
     if is_id_slug(value, max_length=max_length):
         return value  # type: ignore[return-value]  # is_id_slug checked str
     text = value if isinstance(value, str) else repr(value)
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:digest_chars]
     stem_room = max_length - digest_chars - 1
-    stem = slugify_id(text, max_length=stem_room, fallback=fallback)
-    stem = stem[:stem_room].rstrip("._-") or fallback[:stem_room]
+    _checked_fallback(fallback, max_length)
+    stem_fallback = fallback[:stem_room].rstrip("._-") or fallback[0]
+    stem = slugify_id(text, max_length=stem_room, fallback=stem_fallback)
     return f"{stem}-{digest}"
 
 
@@ -217,6 +267,8 @@ def check_id_slug(
     label: str = "id",
     max_length: int = MAX_ID_SLUG_LENGTH,
     reason: str = "",
+    hint: str = "",
+    fallback: str = FALLBACK_ID_SLUG,
 ) -> str:
     """Return ``value`` if it is an id slug, else raise :class:`IdSlugError`.
 
@@ -225,7 +277,9 @@ def check_id_slug(
     rather than silently transliterating, because a caller who asked for one
     name and got another back is a worse surprise than a clear no. ``reason``,
     when given, says why this caller needs the rule (``"it travels in the
-    X-Reelee-Project header"``) and is added to the charset message.
+    X-Reelee-Project header"``) and is added to the charset message; ``hint``, when
+    given, ends every message (``"Keep the original text as the display name."``);
+    ``fallback`` is the suggestion when nothing of the value survives slugifying.
 
     The charset and the length are reported separately, because they have
     different causes and different fixes. When both are wrong the charset
@@ -236,7 +290,7 @@ def check_id_slug(
     >>> check_id_slug("a/b", label="panel id")
     Traceback (most recent call last):
         ...
-    lacing.id_slug.IdSlugError: invalid panel id 'a/b': a panel id must be an ASCII slug (letters, digits, '.', '_', '-'; starting with a letter or digit). Try 'a-b'.
+    lacing.id_slug.IdSlugError: invalid panel id 'a/b': it must be an ASCII slug (letters, digits, '.', '_', '-'; starting with a letter or digit). Try 'a-b'.
     >>> check_id_slug("x" * 300)
     Traceback (most recent call last):
         ...
@@ -246,22 +300,27 @@ def check_id_slug(
     ... except IdSlugError as e:
     ...     (e.problem, e.suggestion)
     ('charset', 'Cafe')
+    >>> check_id_slug("我的", label="project id", fallback="project", hint="Keep the text as its name.")
+    Traceback (most recent call last):
+        ...
+    lacing.id_slug.IdSlugError: invalid project id '我的': ... Try 'project'. Keep the text as its name.
     """
     if is_id_slug(value, max_length=max_length):
         return value  # type: ignore[return-value]  # is_id_slug checked str
+    tail = f" {hint}" if hint else ""
     if not isinstance(value, str):
         raise IdSlugError(
-            f"invalid {label}: expected a string, got {type(value).__name__}",
+            f"invalid {label}: expected a string, got {type(value).__name__}{tail}",
             value=value,
             label=label,
             problem="type",
             suggestion=None,
         )
-    suggestion = slugify_id(value, max_length=max_length)
+    suggestion = slugify_id(value, max_length=max_length, fallback=fallback)
     if ID_SLUG_RE.fullmatch(value) is not None:  # only the length is wrong
         raise IdSlugError(
             f"invalid {label}: {len(value)} characters is over the "
-            f"{max_length}-character limit for one path component. Shorten it.",
+            f"{max_length}-character limit for one path component. Shorten it.{tail}",
             value=value,
             label=label,
             problem="length",
@@ -269,9 +328,9 @@ def check_id_slug(
         )
     because = f" because {reason}" if reason else ""
     raise IdSlugError(
-        f"invalid {label} {value!r}: a {label} must be an ASCII slug "
+        f"invalid {label} {value!r}: it must be an ASCII slug "
         f"(letters, digits, '.', '_', '-'; starting with a letter or digit)"
-        f"{because}. Try {suggestion!r}.",
+        f"{because}. Try {suggestion!r}.{tail}",
         value=value,
         label=label,
         problem="charset",

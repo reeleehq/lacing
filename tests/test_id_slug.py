@@ -138,9 +138,10 @@ def test_module_is_stdlib_only():
     """It must not import the rest of lacing, so it stays a leaf a stdlib-only
     caller can depend on."""
     import ast
-    import pathlib
+    import importlib
+    import inspect
 
-    source = pathlib.Path(lacing.id_slug.__file__).read_text()
+    source = inspect.getsource(importlib.import_module("lacing.id_slug"))
     imported = {
         (node.module or "").split(".")[0]
         for node in ast.walk(ast.parse(source))
@@ -152,3 +153,59 @@ def test_module_is_stdlib_only():
         for alias in node.names
     }
     assert imported <= {"__future__", "hashlib", "re", "unicodedata"}
+
+
+@pytest.mark.parametrize("max_length", [0, 1, 6, 7])
+def test_distinct_refuses_a_max_length_with_no_room(max_length):
+    with pytest.raises(ValueError, match="no room"):
+        distinct_id_slug("Opening scene", max_length=max_length)
+
+
+@pytest.mark.parametrize("max_length", range(8, 20))
+def test_distinct_at_the_smallest_lengths_is_a_slug_within_bounds(max_length):
+    for value in ["Opening scene", "我的项目", "...", "b03", "a" * 50]:
+        out = distinct_id_slug(value, max_length=max_length, fallback="project")
+        assert is_id_slug(out, max_length=max_length), (value, out)
+
+
+def test_slugify_refuses_a_non_positive_max_length():
+    with pytest.raises(ValueError):
+        slugify_id("abc", max_length=0)
+    with pytest.raises(ValueError):
+        slugify_id("abc", max_length=-1)
+
+
+@pytest.mark.parametrize("fallback", ["../", "", ".x", "a/b", "x" * 300])
+def test_a_fallback_that_is_not_a_slug_is_refused(fallback):
+    with pytest.raises(ValueError, match="fallback"):
+        slugify_id("我的", fallback=fallback)
+    with pytest.raises(ValueError):
+        distinct_id_slug("我的", fallback=fallback)
+
+
+def test_check_takes_a_fallback_and_a_hint():
+    with pytest.raises(IdSlugError) as info:
+        check_id_slug("我的", label="project id", fallback="project", hint="Keep it as the name.")
+    assert info.value.suggestion == "project"
+    assert str(info.value).endswith("Try 'project'. Keep it as the name.")
+    with pytest.raises(IdSlugError) as info:
+        check_id_slug("x" * 300, hint="Keep it as the name.")
+    assert str(info.value).endswith("Keep it as the name.")
+
+
+def test_the_message_reads_for_any_label():
+    with pytest.raises(IdSlugError) as info:
+        check_id_slug("a b", label="artifact id")
+    assert "invalid artifact id 'a b': it must be" in str(info.value)
+
+
+def test_the_error_survives_pickling():
+    import pickle
+
+    with pytest.raises(IdSlugError) as info:
+        check_id_slug("Café", label="panel id")
+    back = pickle.loads(pickle.dumps(info.value))
+    assert isinstance(back, IdSlugError)
+    assert (str(back), back.problem, back.suggestion, back.label, back.value) == (
+        str(info.value), "charset", "Cafe", "panel id", "Café"
+    )
