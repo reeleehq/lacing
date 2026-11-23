@@ -441,3 +441,27 @@ def test_a_legacy_word_on_an_aligned_store_is_located_in_its_parents_chars():
         b.line("the cat sat", 0.0, 1.0, words=[("Cat", 0.3, 0.6)])
     out = to_aligned_track(store, asset_id=ASSET)
     assert (4, 7) in [s.chars for s in out.spans if s.level == "word"]
+
+
+def test_a_legacy_line_is_located_after_the_aligned_lines_before_it():
+    """A legacy line whose text also appears earlier is found after the aligned
+    siblings that precede it, not at the first occurrence (lacing#210)."""
+    from lacing.bodies.aligned_track import AlignedSpan, AlignedTrackV1, SpanTime
+    from lacing.tracks.aligned import from_aligned_track, to_aligned_track
+    from lacing.tracks.subtitle import SubtitleBuilder
+
+    def span(start, end, chars):
+        return AlignedSpan(
+            level="line", start_ms=start, end_ms=end,
+            time=SpanTime(kind="imported"), chars=chars,
+        )
+
+    track = AlignedTrackV1(
+        asset_id="a.mp3", text="chorus\nverse\nchorus", language="en",
+        spans=[span(0, 1000, (0, 6)), span(1000, 2000, (7, 12))],
+    )
+    store = from_aligned_track(track)
+    with SubtitleBuilder(store, asset_id="a.mp3") as b:
+        b.line("chorus", 2.0, 3.0)
+    out = to_aligned_track(store, asset_id="a.mp3")
+    assert [s.chars for s in out.spans] == [(0, 6), (7, 12), (13, 19)]

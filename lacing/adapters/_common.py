@@ -135,6 +135,30 @@ _BOM_CODECS: tuple[tuple[bytes, str], ...] = (
 )
 
 
+def _nul_hint(data: bytes) -> str:
+    """What to say about BOM-less bytes holding NULs: the UTF-16 or UTF-32 byte order
+    that puts the NULs where they are (ASCII text: high bytes are NUL), else a
+    generic hint (lacing#187, #210)."""
+
+    def nul_share(start: int, step: int) -> float:
+        part = data[start::step]
+        return part.count(0) / len(part) if part else 0.0
+
+    by_quarter = [nul_share(k, 4) for k in range(4)]
+    mostly = [share > 0.5 for share in by_quarter]
+    if mostly == [False, True, True, True]:
+        codec = "utf-32-le"
+    elif mostly == [True, True, True, False]:
+        codec = "utf-32-be"
+    elif nul_share(1, 2) > 0.5 >= nul_share(0, 2):
+        codec = "utf-16-le"
+    elif nul_share(0, 2) > 0.5 >= nul_share(1, 2):
+        codec = "utf-16-be"
+    else:
+        return "NUL bytes: not UTF-8 text; pass encoding=, e.g. encoding='utf-16-le'"
+    return f"NUL bytes: probably BOM-less {codec.upper()[:6]}, pass encoding='{codec}'"
+
+
 def decode_text(
     data: bytes, *, encoding: str | None = None, nameable: bool = True
 ) -> str:
@@ -177,7 +201,7 @@ def decode_text(
         elif encoding is not None:
             hint = "wrong encoding= for this text"
         elif b"\x00" in data:
-            hint = "NUL bytes: probably BOM-less UTF-16, pass encoding='utf-16-le'"
+            hint = _nul_hint(data)
         else:
             hint = "not UTF-8: pass encoding=, e.g. encoding='cp1252' or 'utf-16'"
         error.reason += f" ({hint})"

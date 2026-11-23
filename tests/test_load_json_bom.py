@@ -40,3 +40,19 @@ def test_a_non_utf8_file_says_so_without_offering_a_keyword(tmp_path):
     with pytest.raises(UnicodeDecodeError) as error:
         load_json(path)
     assert "not UTF-8" in str(error.value) and "encoding=" not in str(error.value)
+
+
+import pytest
+
+
+@pytest.mark.parametrize(
+    "codec", ["utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be"]
+)
+def test_the_nul_hint_names_the_right_bomless_codec(codec):
+    """The hint for BOM-less bytes with NULs follows where the NULs sit (lacing#210)."""
+    from lacing.adapters._common import decode_text
+
+    data = "1\n00:00:01,000 --> 00:00:02,000\nhello\n".encode(codec)
+    with pytest.raises(UnicodeDecodeError) as info:
+        decode_text(data)
+    assert f"encoding='{codec}'" in str(info.value)

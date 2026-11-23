@@ -125,3 +125,32 @@ def test_it_fails_closed_when_the_lock_file_cannot_be_made(tmp_path):
     with pytest.raises(OSError):
         turn.try_acquire()
     assert not turn._thread_lock.locked()  # nothing left half-held
+
+
+import math
+
+import pytest
+
+
+@pytest.mark.parametrize("timeout", [-2, -0.5, math.inf, None])
+def test_any_negative_infinite_or_none_timeout_waits_as_long_as_it_takes(
+    tmp_path, timeout
+):
+    """Not only ``-1`` (lacing#210)."""
+    from lacing.store.locking import KeyedTurn
+
+    turn = KeyedTurn(tmp_path, "k")
+    assert turn.acquire(timeout=timeout)
+    turn.release()
+
+
+def test_a_turn_keeps_its_directory_after_a_chdir(tmp_path, monkeypatch):
+    """A relative directory is resolved once, where the turn is made (lacing#210)."""
+    from lacing.store.locking import keyed_turn
+
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    monkeypatch.chdir(tmp_path / "a")
+    turn = keyed_turn("turns", "k")
+    monkeypatch.chdir(tmp_path / "b")
+    assert turn.path.startswith(str((tmp_path / "a").resolve()))
