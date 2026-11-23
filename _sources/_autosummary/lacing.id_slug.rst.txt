@@ -1,0 +1,31 @@
+lacing.id\_slug
+===============
+
+.. automodule:: lacing.id_slug
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      ID_SLUG_PATTERN
+      ID_SLUG_RE
+      ID_SLUG_JSON_PATTERN
+      MAX_ID_SLUG_LENGTH
+      FALLBACK_ID_SLUG
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      check_id_slug
+      distinct_id_slug
+      is_id_slug
+      slugify_id
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      IdSlugError
+   

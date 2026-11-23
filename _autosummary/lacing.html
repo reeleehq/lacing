@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=e7715e22"></script>
+    <script src="../_static/documentation_options.js?v=4309da3b"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.118" />
+  <meta name="docsearch:version" content="0.0.119" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -358,6 +358,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lacing.digest.html">lacing.digest</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.exhibit.html">lacing.exhibit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.generator_id.html">lacing.generator_id</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lacing.id_slug.html">lacing.id_slug</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.locations.html">lacing.locations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.model.html">lacing.model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lacing.oplog.html">lacing.oplog</a></li>
@@ -469,6 +470,18 @@ full story. <code class="docutils literal notranslate"><span class="pre">.claude
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#lacing.generator_id_findings" title="lacing.generator_id_findings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generator_id_findings</span></code></a>(value, *[, prefixes, ...])</p></td>
 <td><p>What <code class="docutils literal notranslate"><span class="pre">value</span></code> does differently from the documented convention; empty if nothing.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.check_id_slug" title="lacing.check_id_slug"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_id_slug</span></code></a>(value, *[, label, max_length, ...])</p></td>
+<td><p>Return <code class="docutils literal notranslate"><span class="pre">value</span></code> if it is an id slug, else raise <a class="reference internal" href="#lacing.IdSlugError" title="lacing.IdSlugError"><code class="xref py py-class docutils literal notranslate"><span class="pre">IdSlugError</span></code></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.distinct_id_slug" title="lacing.distinct_id_slug"><code class="xref py py-obj docutils literal notranslate"><span class="pre">distinct_id_slug</span></code></a>(value, *[, max_length, ...])</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">value</span></code> itself when it is already an id slug, else its slug plus a short digest of <code class="docutils literal notranslate"><span class="pre">value</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.is_id_slug" title="lacing.is_id_slug"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_id_slug</span></code></a>(value, *[, max_length])</p></td>
+<td><p>Whether <code class="docutils literal notranslate"><span class="pre">value</span></code> is a string that satisfies the id-slug rule.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.slugify_id" title="lacing.slugify_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">slugify_id</span></code></a>(value, *[, max_length, fallback])</p></td>
+<td><p>A best-effort id slug for <code class="docutils literal notranslate"><span class="pre">value</span></code>: the <em>suggestion</em> in a refusal.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.parse_generator_id" title="lacing.parse_generator_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_generator_id</span></code></a>(value)</p></td>
 <td><p>Parse <code class="docutils literal notranslate"><span class="pre">value</span></code>, or return <code class="docutils literal notranslate"><span class="pre">None</span></code> when it is not of the generator-id shape.</p></td>
@@ -710,31 +723,34 @@ full story. <code class="docutils literal notranslate"><span class="pre">.claude
 <tr class="row-even"><td><p><a class="reference internal" href="#lacing.GeneratorIdWarning" title="lacing.GeneratorIdWarning"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GeneratorIdWarning</span></code></a></p></td>
 <td><p>A <code class="docutils literal notranslate"><span class="pre">was_generated_by</span></code> that is not of the <code class="docutils literal notranslate"><span class="pre">&lt;prefix&gt;:&lt;name&gt;[&#64;&lt;version&gt;]</span></code> shape.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.NonStringBodyKeyError" title="lacing.NonStringBodyKeyError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NonStringBodyKeyError</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.IdSlugError" title="lacing.IdSlugError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IdSlugError</span></code></a>(message, *, value, label, ...)</p></td>
+<td><p>An id refused by <a class="reference internal" href="#lacing.check_id_slug" title="lacing.check_id_slug"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_id_slug()</span></code></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.NonStringBodyKeyError" title="lacing.NonStringBodyKeyError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NonStringBodyKeyError</span></code></a></p></td>
 <td><p>An annotation <code class="docutils literal notranslate"><span class="pre">body</span></code> contains a mapping key that is not a <code class="docutils literal notranslate"><span class="pre">str</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.SchemaMismatchError" title="lacing.SchemaMismatchError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SchemaMismatchError</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.SchemaMismatchError" title="lacing.SchemaMismatchError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SchemaMismatchError</span></code></a></p></td>
 <td><p>Raised when opening a <code class="docutils literal notranslate"><span class="pre">.annot</span></code> file with an incompatible schema.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.StoreMigrationError" title="lacing.StoreMigrationError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StoreMigrationError</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.StoreMigrationError" title="lacing.StoreMigrationError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StoreMigrationError</span></code></a></p></td>
 <td><p>Raised when a store migration step is missing or fails.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.ProcessorError" title="lacing.ProcessorError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProcessorError</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.ProcessorError" title="lacing.ProcessorError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProcessorError</span></code></a></p></td>
 <td><p>Raised when a registered processor's invocation fails.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.RegistryConflictWarning" title="lacing.RegistryConflictWarning"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RegistryConflictWarning</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.RegistryConflictWarning" title="lacing.RegistryConflictWarning"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RegistryConflictWarning</span></code></a></p></td>
 <td><p>A registration replaced a <em>different</em> object already registered under its key.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.BodySchemaError" title="lacing.BodySchemaError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BodySchemaError</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.BodySchemaError" title="lacing.BodySchemaError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BodySchemaError</span></code></a></p></td>
 <td><p>Raised when a body fails validation against its registered schema.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.EmptySchemaRegistryError" title="lacing.EmptySchemaRegistryError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EmptySchemaRegistryError</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.EmptySchemaRegistryError" title="lacing.EmptySchemaRegistryError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EmptySchemaRegistryError</span></code></a></p></td>
 <td><p>Raised when an export would write an empty registry over real artifacts.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#lacing.UnknownBodySchemaError" title="lacing.UnknownBodySchemaError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UnknownBodySchemaError</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.UnknownBodySchemaError" title="lacing.UnknownBodySchemaError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UnknownBodySchemaError</span></code></a></p></td>
 <td><p>Raised when an annotation's body_schema_uri has no registered model.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#lacing.MigrationError" title="lacing.MigrationError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MigrationError</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#lacing.MigrationError" title="lacing.MigrationError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MigrationError</span></code></a></p></td>
 <td><p>Raised when a migration step is missing or fails.</p></td>
 </tr>
 </tbody>
@@ -1677,6 +1693,19 @@ committed <code class="docutils literal notranslate"><span class="pre">v&lt;N&gt
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">GeneratorIdWarning</span></span><a class="reference internal" href="../_modules/lacing/generator_id.html#GeneratorIdWarning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.GeneratorIdWarning" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#UserWarning" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UserWarning</span></code></a></p>
 <p>A <code class="docutils literal notranslate"><span class="pre">was_generated_by</span></code> that is not of the <code class="docutils literal notranslate"><span class="pre">&lt;prefix&gt;:&lt;name&gt;[&#64;&lt;version&gt;]</span></code> shape.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="lacing.IdSlugError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">IdSlugError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">problem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suggestion</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/id_slug.html#IdSlugError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.IdSlugError" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></a></p>
+<p>An id refused by <a class="reference internal" href="#lacing.check_id_slug" title="lacing.check_id_slug"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_id_slug()</span></code></a>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">problem</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;charset&quot;</span></code> (wrong characters, or empty), <code class="docutils literal notranslate"><span class="pre">&quot;length&quot;</span></code> (the
+characters are fine, it is too long) or <code class="docutils literal notranslate"><span class="pre">&quot;type&quot;</span></code> (not a string), so a
+caller can phrase its own message; <code class="docutils literal notranslate"><span class="pre">suggestion</span></code> is <a class="reference internal" href="#lacing.slugify_id" title="lacing.slugify_id"><code class="xref py py-func docutils literal notranslate"><span class="pre">slugify_id()</span></code></a> of the
+value (<code class="docutils literal notranslate"><span class="pre">None</span></code> for <code class="docutils literal notranslate"><span class="pre">&quot;type&quot;</span></code>).</p>
+<dl class="field-list simple">
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -3636,6 +3665,49 @@ as a “no agreement to measure” baseline).</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lacing.check_id_slug">
+<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">check_id_slug</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'id'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">255</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reason</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fallback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'id'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/id_slug.html#check_id_slug"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.check_id_slug" title="Link to this definition">#</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">value</span></code> if it is an id slug, else raise <a class="reference internal" href="#lacing.IdSlugError" title="lacing.IdSlugError"><code class="xref py py-class docutils literal notranslate"><span class="pre">IdSlugError</span></code></a>.</p>
+<p>The refusal names <code class="docutils literal notranslate"><span class="pre">label</span></code> (the caller’s word for the thing: <code class="docutils literal notranslate"><span class="pre">&quot;project</span>
+<span class="pre">id&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;panel</span> <span class="pre">id&quot;</span></code>) and suggests <a class="reference internal" href="#lacing.slugify_id" title="lacing.slugify_id"><code class="xref py py-func docutils literal notranslate"><span class="pre">slugify_id()</span></code></a>’s form. It refuses
+rather than silently transliterating, because a caller who asked for one
+name and got another back is a worse surprise than a clear no. <code class="docutils literal notranslate"><span class="pre">reason</span></code>,
+when given, says why this caller needs the rule (<code class="docutils literal notranslate"><span class="pre">&quot;it</span> <span class="pre">travels</span> <span class="pre">in</span> <span class="pre">the</span>
+<span class="pre">X-Reelee-Project</span> <span class="pre">header&quot;</span></code>) and is added to the charset message; <code class="docutils literal notranslate"><span class="pre">hint</span></code>, when
+given, ends every message (<code class="docutils literal notranslate"><span class="pre">&quot;Keep</span> <span class="pre">the</span> <span class="pre">original</span> <span class="pre">text</span> <span class="pre">as</span> <span class="pre">the</span> <span class="pre">display</span> <span class="pre">name.&quot;</span></code>);
+<code class="docutils literal notranslate"><span class="pre">fallback</span></code> is the suggestion when nothing of the value survives slugifying.</p>
+<p>The charset and the length are reported separately, because they have
+different causes and different fixes. When both are wrong the charset
+message wins: its suggestion also fixes the length.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">check_id_slug</span><span class="p">(</span><span class="s2">"bedtime_story"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"project id"</span><span class="p">)</span>
+<span class="go">'bedtime_story'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">check_id_slug</span><span class="p">(</span><span class="s2">"a/b"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"panel id"</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="w">    </span><span class="o">...</span>
+<span class="gr">lacing.id_slug.IdSlugError</span>: <span class="n">invalid panel id 'a/b': it must be an ASCII slug (letters, digits, '.', '_', '-'; starting with a letter or digit). Try 'a-b'.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">check_id_slug</span><span class="p">(</span><span class="s2">"x"</span> <span class="o">*</span> <span class="mi">300</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="w">    </span><span class="o">...</span>
+<span class="gr">lacing.id_slug.IdSlugError</span>: <span class="n">invalid id: 300 characters is over the 255-character limit...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">try</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">check_id_slug</span><span class="p">(</span><span class="s2">"Café"</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"it is a folder name"</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">except</span> <span class="n">IdSlugError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">problem</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">suggestion</span><span class="p">)</span>
+<span class="go">('charset', 'Cafe')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">check_id_slug</span><span class="p">(</span><span class="s2">"我的"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"project id"</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="s2">"project"</span><span class="p">,</span> <span class="n">hint</span><span class="o">=</span><span class="s2">"Keep the text as its name."</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="w">    </span><span class="o">...</span>
+<span class="gr">lacing.id_slug.IdSlugError</span>: <span class="n">invalid project id '我的': ... Try 'project'. Keep the text as its name.</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lacing.cohen_kappa">
 <span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">cohen_kappa</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/quality.html#cohen_kappa"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.cohen_kappa" title="Link to this definition">#</a></dt>
 <dd><p>Cohen’s kappa for two annotators on a categorical label.</p>
@@ -3735,6 +3807,37 @@ none (see <code class="xref py py-func docutils literal notranslate"><span class
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.distinct_id_slug">
+<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">distinct_id_slug</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">255</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">digest_chars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fallback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'id'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/id_slug.html#distinct_id_slug"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.distinct_id_slug" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">value</span></code> itself when it is already an id slug, else its slug plus a short
+digest of <code class="docutils literal notranslate"><span class="pre">value</span></code>.</p>
+<p>So two different inputs never share a result (up to the digest), and an
+input that is already a slug comes back unchanged. This is what an id
+<em>derived</em> from a caller’s text needs (a panel id from a beat id), where
+<a class="reference internal" href="#lacing.slugify_id" title="lacing.slugify_id"><code class="xref py py-func docutils literal notranslate"><span class="pre">slugify_id()</span></code></a> alone maps <code class="docutils literal notranslate"><span class="pre">&quot;Opening</span> <span class="pre">scene&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;Opening/scene&quot;</span></code> to
+one id.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"b03"</span><span class="p">)</span>
+<span class="go">'b03'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"Opening scene"</span><span class="p">)</span>
+<span class="go">'Opening-scene-8ba344'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"Opening scene"</span><span class="p">)</span> <span class="o">!=</span> <span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"Opening/scene"</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"x "</span> <span class="o">*</span> <span class="mi">300</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="n">MAX_ID_SLUG_LENGTH</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">is_id_slug</span><span class="p">(</span><span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"我的项目"</span><span class="p">))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">max_length</span></code> must leave room for at least one character, a <code class="docutils literal notranslate"><span class="pre">-</span></code> and the
+digest (<code class="docutils literal notranslate"><span class="pre">ValueError</span></code> otherwise).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -3874,6 +3977,29 @@ if they don’t intersect (including when only one is a point).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lacing.is_id_slug">
+<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">is_id_slug</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">255</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/id_slug.html#is_id_slug"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.is_id_slug" title="Link to this definition">#</a></dt>
+<dd><p>Whether <code class="docutils literal notranslate"><span class="pre">value</span></code> is a string that satisfies the id-slug rule.</p>
+<p>Anything that is not a <code class="docutils literal notranslate"><span class="pre">str</span></code> is <code class="docutils literal notranslate"><span class="pre">False</span></code> rather than an error, so it can
+guard untrusted input directly.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">is_id_slug</span><span class="p">(</span><span class="s2">"p3f7c1"</span><span class="p">),</span> <span class="n">is_id_slug</span><span class="p">(</span><span class="s2">"1.a_b"</span><span class="p">),</span> <span class="n">is_id_slug</span><span class="p">(</span><span class="s2">"x"</span> <span class="o">*</span> <span class="mi">255</span><span class="p">)</span>
+<span class="go">(True, True, True)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">is_id_slug</span><span class="p">(</span><span class="s2">""</span><span class="p">),</span> <span class="n">is_id_slug</span><span class="p">(</span><span class="s2">".."</span><span class="p">),</span> <span class="n">is_id_slug</span><span class="p">(</span><span class="s2">".hidden"</span><span class="p">),</span> <span class="n">is_id_slug</span><span class="p">(</span><span class="s2">"-x"</span><span class="p">)</span>
+<span class="go">(False, False, False, False)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">is_id_slug</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">is_id_slug</span><span class="p">(</span><span class="sa">b</span><span class="s2">"abc"</span><span class="p">),</span> <span class="n">is_id_slug</span><span class="p">(</span><span class="s2">"x"</span> <span class="o">*</span> <span class="mi">256</span><span class="p">)</span>
+<span class="go">(False, False, False)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">is_id_slug</span><span class="p">(</span><span class="s2">"abcd"</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -4374,6 +4500,36 @@ active). Most callers from sync code want the former.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lacing.slugify_id">
+<span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">slugify_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">255</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fallback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'id'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/id_slug.html#slugify_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.slugify_id" title="Link to this definition">#</a></dt>
+<dd><p>A best-effort id slug for <code class="docutils literal notranslate"><span class="pre">value</span></code>: the <em>suggestion</em> in a refusal.</p>
+<p>Transliterates through NFKD (<code class="docutils literal notranslate"><span class="pre">é</span></code> becomes <code class="docutils literal notranslate"><span class="pre">e</span></code>), drops what will not
+transliterate, turns every other run of characters into one <code class="docutils literal notranslate"><span class="pre">-</span></code>, trims
+separators from both ends and truncates to <code class="docutils literal notranslate"><span class="pre">max_length</span></code>. Never raises;
+returns <code class="docutils literal notranslate"><span class="pre">fallback</span></code> when nothing usable survives (or <code class="docutils literal notranslate"><span class="pre">value</span></code> is not a
+string).</p>
+<p>Two different inputs can give the same slug (<code class="docutils literal notranslate"><span class="pre">&quot;a</span> <span class="pre">b&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;a/b&quot;</span></code>); use
+<a class="reference internal" href="#lacing.distinct_id_slug" title="lacing.distinct_id_slug"><code class="xref py py-func docutils literal notranslate"><span class="pre">distinct_id_slug()</span></code></a> when the slug becomes an id that must not collide.
+<code class="docutils literal notranslate"><span class="pre">fallback</span></code> must itself be an id slug within <code class="docutils literal notranslate"><span class="pre">max_length</span></code> (<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+otherwise), so the result always is one.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">slugify_id</span><span class="p">(</span><span class="s2">"Café Noir"</span><span class="p">)</span>
+<span class="go">'Cafe-Noir'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">slugify_id</span><span class="p">(</span><span class="s2">"我的项目"</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="s2">"project"</span><span class="p">)</span>
+<span class="go">'project'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">slugify_id</span><span class="p">(</span><span class="s2">"../../etc/passwd"</span><span class="p">)</span>
+<span class="go">'etc-passwd'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">slugify_id</span><span class="p">(</span><span class="s2">"a"</span> <span class="o">*</span> <span class="mi">300</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"a"</span> <span class="o">*</span> <span class="mi">255</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lacing.territory_excluded">
 <span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">territory_excluded</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">excluded</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">territory</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">regions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'EU':</span> <span class="pre">frozenset({'AT',</span> <span class="pre">'AX',</span> <span class="pre">'BE',</span> <span class="pre">'BG',</span> <span class="pre">'CY',</span> <span class="pre">'CZ',</span> <span class="pre">'DE',</span> <span class="pre">'DK',</span> <span class="pre">'EE',</span> <span class="pre">'ES',</span> <span class="pre">'FI',</span> <span class="pre">'FR',</span> <span class="pre">'GF',</span> <span class="pre">'GP',</span> <span class="pre">'GR',</span> <span class="pre">'HR',</span> <span class="pre">'HU',</span> <span class="pre">'IE',</span> <span class="pre">'IT',</span> <span class="pre">'LT',</span> <span class="pre">'LU',</span> <span class="pre">'LV',</span> <span class="pre">'MF',</span> <span class="pre">'MQ',</span> <span class="pre">'MT',</span> <span class="pre">'NL',</span> <span class="pre">'PL',</span> <span class="pre">'PT',</span> <span class="pre">'RE',</span> <span class="pre">'RO',</span> <span class="pre">'SE',</span> <span class="pre">'SI',</span> <span class="pre">'SK',</span> <span class="pre">'YT'})}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/territory.html#territory_excluded"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.territory_excluded" title="Link to this definition">#</a></dt>
 <dd><p>Whether a use in <code class="docutils literal notranslate"><span class="pre">territory</span></code> falls in <code class="docutils literal notranslate"><span class="pre">excluded</span></code> (a region covers its members).</p>
@@ -4578,52 +4734,55 @@ when <code class="docutils literal notranslate"><span class="pre">value</span></
 <tr class="row-odd"><td><p><a class="reference internal" href="lacing.generator_id.html#module-lacing.generator_id" title="lacing.generator_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generator_id</span></code></a></p></td>
 <td><p>The grammar of <code class="docutils literal notranslate"><span class="pre">Provenance.was_generated_by</span></code>, and an advisory check of it.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.locations.html#module-lacing.locations" title="lacing.locations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">locations</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.id_slug.html#module-lacing.id_slug" title="lacing.id_slug"><code class="xref py py-obj docutils literal notranslate"><span class="pre">id_slug</span></code></a></p></td>
+<td><p>The federation's one <strong>id-slug</strong> rule: a traversal-safe path segment.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.locations.html#module-lacing.locations" title="lacing.locations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">locations</span></code></a></p></td>
 <td><p>Which body fields hold locations (urls, file paths).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.model.html#module-lacing.model" title="lacing.model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.model.html#module-lacing.model" title="lacing.model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model</span></code></a></p></td>
 <td><p>Annotation envelope, references, and provenance.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.oplog.html#module-lacing.oplog" title="lacing.oplog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">oplog</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.oplog.html#module-lacing.oplog" title="lacing.oplog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">oplog</span></code></a></p></td>
 <td><p>Operation log for time-travel debug + audit.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.otel.html#module-lacing.otel" title="lacing.otel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">otel</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.otel.html#module-lacing.otel" title="lacing.otel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">otel</span></code></a></p></td>
 <td><p>Optional OpenTelemetry instrumentation for the lacing server.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.processors.html#module-lacing.processors" title="lacing.processors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">processors</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.processors.html#module-lacing.processors" title="lacing.processors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">processors</span></code></a></p></td>
 <td><p>Background processors — pluggable jobs that run against a store + op-log.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.quality.html#module-lacing.quality" title="lacing.quality"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quality</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.quality.html#module-lacing.quality" title="lacing.quality"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quality</span></code></a></p></td>
 <td><p>Inter-annotator agreement and boundary metrics.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.registry.html#module-lacing.registry" title="lacing.registry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">registry</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.registry.html#module-lacing.registry" title="lacing.registry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">registry</span></code></a></p></td>
 <td><p>The replacement rule shared by lacing's registries (lacing#19).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.restrictions.html#module-lacing.restrictions" title="lacing.restrictions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">restrictions</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.restrictions.html#module-lacing.restrictions" title="lacing.restrictions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">restrictions</span></code></a></p></td>
 <td><p>What a <a class="reference internal" href="#lacing.Restriction" title="lacing.Restriction"><code class="xref py py-class docutils literal notranslate"><span class="pre">lacing.Restriction</span></code></a> means for one use (reeleehq/an#743).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.schema.html#module-lacing.schema" title="lacing.schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">schema</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.schema.html#module-lacing.schema" title="lacing.schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">schema</span></code></a></p></td>
 <td><p>Body schema registry, JSON Schema export, and migrations.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.store.html#module-lacing.store" title="lacing.store"><code class="xref py py-obj docutils literal notranslate"><span class="pre">store</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.store.html#module-lacing.store" title="lacing.store"><code class="xref py py-obj docutils literal notranslate"><span class="pre">store</span></code></a></p></td>
 <td><p>Interval-keyed annotation stores.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.territory.html#module-lacing.territory" title="lacing.territory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">territory</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.territory.html#module-lacing.territory" title="lacing.territory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">territory</span></code></a></p></td>
 <td><p>Territories: the vocabulary a <code class="docutils literal notranslate"><span class="pre">territory_excluded</span></code> restriction is written in.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.testing.html#module-lacing.testing" title="lacing.testing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">testing</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.testing.html#module-lacing.testing" title="lacing.testing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">testing</span></code></a></p></td>
 <td><p>Test helpers that downstream packages can import (lacing#166).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.tier.html#module-lacing.tier" title="lacing.tier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tier</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.tier.html#module-lacing.tier" title="lacing.tier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tier</span></code></a></p></td>
 <td><p>Tiers and the five ELAN stereotypes.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.time.html#module-lacing.time" title="lacing.time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.time.html#module-lacing.time" title="lacing.time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time</span></code></a></p></td>
 <td><p>Rational time and half-open intervals — the foundations.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="lacing.tracks.html#module-lacing.tracks" title="lacing.tracks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tracks</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="lacing.tracks.html#module-lacing.tracks" title="lacing.tracks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tracks</span></code></a></p></td>
 <td><p>High-level &quot;track-shaped&quot; facades on top of <code class="docutils literal notranslate"><span class="pre">lacing</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="lacing.worker.html#module-lacing.worker" title="lacing.worker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">worker</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="lacing.worker.html#module-lacing.worker" title="lacing.worker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">worker</span></code></a></p></td>
 <td><p>Optional Arq integration — queue processors through Redis.</p></td>
 </tr>
 </tbody>
@@ -4733,6 +4892,7 @@ when <code class="docutils literal notranslate"><span class="pre">value</span></
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.EmptySchemaRegistryError"><code class="docutils literal notranslate"><span class="pre">EmptySchemaRegistryError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.GeneratorId"><code class="docutils literal notranslate"><span class="pre">GeneratorId</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.GeneratorIdWarning"><code class="docutils literal notranslate"><span class="pre">GeneratorIdWarning</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.IdSlugError"><code class="docutils literal notranslate"><span class="pre">IdSlugError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.InMemoryOpLog"><code class="docutils literal notranslate"><span class="pre">InMemoryOpLog</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.InMemoryOpLog.append"><code class="docutils literal notranslate"><span class="pre">InMemoryOpLog.append()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.InMemoryOpLog.entries"><code class="docutils literal notranslate"><span class="pre">InMemoryOpLog.entries()</span></code></a></li>
@@ -4933,11 +5093,13 @@ when <code class="docutils literal notranslate"><span class="pre">value</span></
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.annotation_value_digest"><code class="docutils literal notranslate"><span class="pre">annotation_value_digest()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.body_locations"><code class="docutils literal notranslate"><span class="pre">body_locations()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.boundary_iou"><code class="docutils literal notranslate"><span class="pre">boundary_iou()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.check_id_slug"><code class="docutils literal notranslate"><span class="pre">check_id_slug()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.cohen_kappa"><code class="docutils literal notranslate"><span class="pre">cohen_kappa()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.content_hash_of"><code class="docutils literal notranslate"><span class="pre">content_hash_of()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.default_version"><code class="docutils literal notranslate"><span class="pre">default_version()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.derived_paths"><code class="docutils literal notranslate"><span class="pre">derived_paths()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.derived_prefills"><code class="docutils literal notranslate"><span class="pre">derived_prefills()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.distinct_id_slug"><code class="docutils literal notranslate"><span class="pre">distinct_id_slug()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.export_json_schemas"><code class="docutils literal notranslate"><span class="pre">export_json_schemas()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.generator_id_findings"><code class="docutils literal notranslate"><span class="pre">generator_id_findings()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.get_tracer"><code class="docutils literal notranslate"><span class="pre">get_tracer()</span></code></a></li>
@@ -4945,6 +5107,7 @@ when <code class="docutils literal notranslate"><span class="pre">value</span></
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.instrument_otel"><code class="docutils literal notranslate"><span class="pre">instrument_otel()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.interval_iou"><code class="docutils literal notranslate"><span class="pre">interval_iou()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.is_id_slug"><code class="docutils literal notranslate"><span class="pre">is_id_slug()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.is_otel_active"><code class="docutils literal notranslate"><span class="pre">is_otel_active()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.json_schema"><code class="docutils literal notranslate"><span class="pre">json_schema()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.keep_rights"><code class="docutils literal notranslate"><span class="pre">keep_rights()</span></code></a></li>
@@ -4969,6 +5132,7 @@ when <code class="docutils literal notranslate"><span class="pre">value</span></
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.restriction_breach"><code class="docutils literal notranslate"><span class="pre">restriction_breach()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.run_processor_async"><code class="docutils literal notranslate"><span class="pre">run_processor_async()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.run_processor_sync"><code class="docutils literal notranslate"><span class="pre">run_processor_sync()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.slugify_id"><code class="docutils literal notranslate"><span class="pre">slugify_id()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.territory_excluded"><code class="docutils literal notranslate"><span class="pre">territory_excluded()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.traced"><code class="docutils literal notranslate"><span class="pre">traced()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lacing.unplaceable_codes"><code class="docutils literal notranslate"><span class="pre">unplaceable_codes()</span></code></a></li>

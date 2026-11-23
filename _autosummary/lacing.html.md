@@ -19,6 +19,10 @@ full story. `.claude/skills/` contains the rules.
 
 | [`generator_id_findings`](#lacing.generator_id_findings)(value, \*[, prefixes, ...])   | What `value` does differently from the documented convention; empty if nothing.                                                                                                                                                                                                                                                                                                                                                         |
 |------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`check_id_slug`](#lacing.check_id_slug)(value, \*[, label, max_length, ...])  | Return `value` if it is an id slug, else raise [`IdSlugError`](#lacing.IdSlugError).                                                                                                                                                                                                                                                                                                                            |
+| [`distinct_id_slug`](#lacing.distinct_id_slug)(value, \*[, max_length, ...])      | `value` itself when it is already an id slug, else its slug plus a short digest of `value`.                                                                                                                                                                                                                                                                                                                                             |
+| [`is_id_slug`](#lacing.is_id_slug)(value, \*[, max_length])                 | Whether `value` is a string that satisfies the id-slug rule.                                                                                                                                                                                                                                                                                                                                                                            |
+| [`slugify_id`](#lacing.slugify_id)(value, \*[, max_length, fallback])       | A best-effort id slug for `value`: the *suggestion* in a refusal.                                                                                                                                                                                                                                                                                                                                                                       |
 | [`parse_generator_id`](#lacing.parse_generator_id)(value)                           | Parse `value`, or return `None` when it is not of the generator-id shape.                                                                                                                                                                                                                                                                                                                                                               |
 | [`warn_if_malformed`](#lacing.warn_if_malformed)(value)                            | Emit a [`GeneratorIdWarning`](#lacing.GeneratorIdWarning), pointed at the caller outside lacing, when `value` is not of the generator-id shape; return `value`.                                                                                                                                                                                                                                                        |
 | [`restriction_breach`](#lacing.restriction_breach)(restriction[, use, checks])      | Why `use` breaks `restriction`, or `None` (an unstated use by default).                                                                                                                                                                                                                                                                                                                                                                 |
@@ -100,18 +104,19 @@ full story. `.claude/skills/` contains the rules.
 
 ### Exceptions
 
-| [`LossyTimeConversionError`](#lacing.LossyTimeConversionError)   | Raised when a rate or seconds conversion would lose precision.                 |
-|-----------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| [`GeneratorIdWarning`](#lacing.GeneratorIdWarning)         | A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.   |
-| [`NonStringBodyKeyError`](#lacing.NonStringBodyKeyError)      | An annotation `body` contains a mapping key that is not a `str`.               |
-| [`SchemaMismatchError`](#lacing.SchemaMismatchError)        | Raised when opening a `.annot` file with an incompatible schema.               |
-| [`StoreMigrationError`](#lacing.StoreMigrationError)        | Raised when a store migration step is missing or fails.                        |
-| [`ProcessorError`](#lacing.ProcessorError)             | Raised when a registered processor's invocation fails.                         |
-| [`RegistryConflictWarning`](#lacing.RegistryConflictWarning)    | A registration replaced a *different* object already registered under its key. |
-| [`BodySchemaError`](#lacing.BodySchemaError)            | Raised when a body fails validation against its registered schema.             |
-| [`EmptySchemaRegistryError`](#lacing.EmptySchemaRegistryError)   | Raised when an export would write an empty registry over real artifacts.       |
-| [`UnknownBodySchemaError`](#lacing.UnknownBodySchemaError)     | Raised when an annotation's body_schema_uri has no registered model.           |
-| [`MigrationError`](#lacing.MigrationError)             | Raised when a migration step is missing or fails.                              |
+| [`LossyTimeConversionError`](#lacing.LossyTimeConversionError)                    | Raised when a rate or seconds conversion would lose precision.                     |
+|----------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| [`GeneratorIdWarning`](#lacing.GeneratorIdWarning)                          | A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.       |
+| [`IdSlugError`](#lacing.IdSlugError)(message, \*, value, label, ...) | An id refused by [`check_id_slug()`](#lacing.check_id_slug). |
+| [`NonStringBodyKeyError`](#lacing.NonStringBodyKeyError)                       | An annotation `body` contains a mapping key that is not a `str`.                   |
+| [`SchemaMismatchError`](#lacing.SchemaMismatchError)                         | Raised when opening a `.annot` file with an incompatible schema.                   |
+| [`StoreMigrationError`](#lacing.StoreMigrationError)                         | Raised when a store migration step is missing or fails.                            |
+| [`ProcessorError`](#lacing.ProcessorError)                              | Raised when a registered processor's invocation fails.                             |
+| [`RegistryConflictWarning`](#lacing.RegistryConflictWarning)                     | A registration replaced a *different* object already registered under its key.     |
+| [`BodySchemaError`](#lacing.BodySchemaError)                             | Raised when a body fails validation against its registered schema.                 |
+| [`EmptySchemaRegistryError`](#lacing.EmptySchemaRegistryError)                    | Raised when an export would write an empty registry over real artifacts.           |
+| [`UnknownBodySchemaError`](#lacing.UnknownBodySchemaError)                      | Raised when an annotation's body_schema_uri has no registered model.               |
+| [`MigrationError`](#lacing.MigrationError)                              | Raised when a migration step is missing or fails.                                  |
 
 ### *class* lacing.AllenRelation(\*values)
 
@@ -925,6 +930,17 @@ A parsed `was_generated_by`: `<prefix>:<name>[@<version>]`.
 Bases: [`UserWarning`](https://docs.python.org/3/builtins/exceptions.html#UserWarning)
 
 A `was_generated_by` that is not of the `<prefix>:<name>[@<version>]` shape.
+
+### *exception* lacing.IdSlugError(message, , value, label, problem, suggestion)
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+An id refused by [`check_id_slug()`](#lacing.check_id_slug).
+
+`problem` is `"charset"` (wrong characters, or empty), `"length"` (the
+characters are fine, it is too long) or `"type"` (not a string), so a
+caller can phrase its own message; `suggestion` is [`slugify_id()`](#lacing.slugify_id) of the
+value (`None` for `"type"`).
 
 ### *class* lacing.InMemoryOpLog
 
@@ -2397,6 +2413,48 @@ Unmatched intervals in either set contribute 0.0 to the mean.
   Mean IoU ∈ [0, 1]. Returns 0.0 if both sets are empty (defensible
   as a “no agreement to measure” baseline).
 
+### lacing.check_id_slug(value, , label='id', max_length=255, reason='', hint='', fallback='id')
+
+Return `value` if it is an id slug, else raise [`IdSlugError`](#lacing.IdSlugError).
+
+The refusal names `label` (the caller’s word for the thing: `"project
+id"`, `"panel id"`) and suggests [`slugify_id()`](#lacing.slugify_id)’s form. It refuses
+rather than silently transliterating, because a caller who asked for one
+name and got another back is a worse surprise than a clear no. `reason`,
+when given, says why this caller needs the rule (`"it travels in the
+X-Reelee-Project header"`) and is added to the charset message; `hint`, when
+given, ends every message (`"Keep the original text as the display name."`);
+`fallback` is the suggestion when nothing of the value survives slugifying.
+
+The charset and the length are reported separately, because they have
+different causes and different fixes. When both are wrong the charset
+message wins: its suggestion also fixes the length.
+
+```pycon
+>>> check_id_slug("bedtime_story", label="project id")
+'bedtime_story'
+>>> check_id_slug("a/b", label="panel id")
+Traceback (most recent call last):
+    ...
+lacing.id_slug.IdSlugError: invalid panel id 'a/b': it must be an ASCII slug (letters, digits, '.', '_', '-'; starting with a letter or digit). Try 'a-b'.
+>>> check_id_slug("x" * 300)
+Traceback (most recent call last):
+    ...
+lacing.id_slug.IdSlugError: invalid id: 300 characters is over the 255-character limit...
+>>> try:
+...     check_id_slug("Café", reason="it is a folder name")
+... except IdSlugError as e:
+...     (e.problem, e.suggestion)
+('charset', 'Cafe')
+>>> check_id_slug("我的", label="project id", fallback="project", hint="Keep the text as its name.")
+Traceback (most recent call last):
+    ...
+lacing.id_slug.IdSlugError: invalid project id '我的': ... Try 'project'. Keep the text as its name.
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### lacing.cohen_kappa(a, b)
 
 Cohen’s kappa for two annotators on a categorical label.
@@ -2476,6 +2534,36 @@ A fresh deep copy on every call, so mutating it cannot reach the cache.
   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – as [`derived_paths()`](#lacing.derived_paths).
 * **Return type:**
   [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
+
+### lacing.distinct_id_slug(value, , max_length=255, digest_chars=6, fallback='id')
+
+`value` itself when it is already an id slug, else its slug plus a short
+digest of `value`.
+
+So two different inputs never share a result (up to the digest), and an
+input that is already a slug comes back unchanged. This is what an id
+*derived* from a caller’s text needs (a panel id from a beat id), where
+[`slugify_id()`](#lacing.slugify_id) alone maps `"Opening scene"` and `"Opening/scene"` to
+one id.
+
+```pycon
+>>> distinct_id_slug("b03")
+'b03'
+>>> distinct_id_slug("Opening scene")
+'Opening-scene-8ba344'
+>>> distinct_id_slug("Opening scene") != distinct_id_slug("Opening/scene")
+True
+>>> len(distinct_id_slug("x " * 300)) <= MAX_ID_SLUG_LENGTH
+True
+>>> is_id_slug(distinct_id_slug("我的项目"))
+True
+```
+
+`max_length` must leave room for at least one character, a `-` and the
+digest (`ValueError` otherwise).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### lacing.export_json_schemas(target_dir, , overwrite=True, include_meta=True, allow_empty=False)
 
@@ -2582,6 +2670,27 @@ if they don’t intersect (including when only one is a point).
 
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
+
+### lacing.is_id_slug(value, , max_length=255)
+
+Whether `value` is a string that satisfies the id-slug rule.
+
+Anything that is not a `str` is `False` rather than an error, so it can
+guard untrusted input directly.
+
+```pycon
+>>> is_id_slug("p3f7c1"), is_id_slug("1.a_b"), is_id_slug("x" * 255)
+(True, True, True)
+>>> is_id_slug(""), is_id_slug(".."), is_id_slug(".hidden"), is_id_slug("-x")
+(False, False, False, False)
+>>> is_id_slug(None), is_id_slug(b"abc"), is_id_slug("x" * 256)
+(False, False, False)
+>>> is_id_slug("abcd", max_length=3)
+False
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 ### lacing.is_otel_active()
 
@@ -2995,6 +3104,35 @@ active). Most callers from sync code want the former.
 * **Return type:**
   [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
 
+### lacing.slugify_id(value, , max_length=255, fallback='id')
+
+A best-effort id slug for `value`: the *suggestion* in a refusal.
+
+Transliterates through NFKD (`é` becomes `e`), drops what will not
+transliterate, turns every other run of characters into one `-`, trims
+separators from both ends and truncates to `max_length`. Never raises;
+returns `fallback` when nothing usable survives (or `value` is not a
+string).
+
+Two different inputs can give the same slug (`"a b"` and `"a/b"`); use
+[`distinct_id_slug()`](#lacing.distinct_id_slug) when the slug becomes an id that must not collide.
+`fallback` must itself be an id slug within `max_length` (`ValueError`
+otherwise), so the result always is one.
+
+```pycon
+>>> slugify_id("Café Noir")
+'Cafe-Noir'
+>>> slugify_id("我的项目", fallback="project")
+'project'
+>>> slugify_id("../../etc/passwd")
+'etc-passwd'
+>>> slugify_id("a" * 300) == "a" * 255
+True
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### lacing.territory_excluded(excluded, territory, , regions={'EU': frozenset({'AT', 'AX', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GF', 'GP', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MF', 'MQ', 'MT', 'NL', 'PL', 'PT', 'RE', 'RO', 'SE', 'SI', 'SK', 'YT'})})
 
 Whether a use in `territory` falls in `excluded` (a region covers its members).
@@ -3163,6 +3301,7 @@ The advisory check [`lacing.Provenance`](#lacing.Provenance) runs on `was_genera
 | [`digest`](lacing.digest.html.md#module-lacing.digest)                 | Content digests over an annotation's *value* — the freshness primitive.                                         |
 | [`exhibit`](lacing.exhibit.html.md#module-lacing.exhibit)               | Artifact exhibit — render an annotation graph as a readable document.                                           |
 | [`generator_id`](lacing.generator_id.html.md#module-lacing.generator_id)     | The grammar of `Provenance.was_generated_by`, and an advisory check of it.                                      |
+| [`id_slug`](lacing.id_slug.html.md#module-lacing.id_slug)               | The federation's one **id-slug** rule: a traversal-safe path segment.                                           |
 | [`locations`](lacing.locations.html.md#module-lacing.locations)           | Which body fields hold locations (urls, file paths).                                                            |
 | [`model`](lacing.model.html.md#module-lacing.model)                   | Annotation envelope, references, and provenance.                                                                |
 | [`oplog`](lacing.oplog.html.md#module-lacing.oplog)                   | Operation log for time-travel debug + audit.                                                                    |
