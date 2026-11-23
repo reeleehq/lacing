@@ -8,8 +8,9 @@ default version) and body migrations by ``(schema_name, from_version)``
 :func:`warn_if_replacing` before it writes, so all three follow one rule:
 
 - registering the identical object again is a silent no-op;
-- registering a *different* object under a key already taken emits a
-  :class:`RegistryConflictWarning`, then replaces;
+- registering a *different* object under a key already taken raises
+  :class:`RegistryConflictError` and leaves the registry as it was (lacing#121;
+  it warned, then replaced, while downstream code still collided);
 - ``force=True`` replaces silently, for tests and hot-reload.
 
 Silent replacement is how two modules registering the same key end up with
@@ -18,23 +19,30 @@ import order deciding the winner, and nothing saying so.
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Hashable, Mapping
 from dataclasses import fields, is_dataclass
 from typing import Any
 
-__all__ = ["RegistryConflictWarning", "warn_if_replacing"]
+__all__ = [
+    "RegistryConflictError",
+    "RegistryConflictWarning",
+    "refuse_replacing",
+    "warn_if_replacing",
+]
+
+
+class RegistryConflictError(ValueError):
+    """A registration would replace a *different* object already registered under
+    its key. Pass ``force=True`` to the register function to replace on purpose."""
 
 
 class RegistryConflictWarning(FutureWarning):
-    """A registration replaced a *different* object already registered under its key.
-
-    It will become an error; pass ``force=True`` to the register function to
-    replace on purpose.
-    """
+    """No longer emitted: a conflicting registration raises
+    :class:`RegistryConflictError` (lacing#121). Kept so a ``-W`` filter or a
+    ``pytest.warns`` naming it still imports."""
 
 
-def warn_if_replacing(
+def refuse_replacing(
     registry: Mapping[Hashable, Any],
     key: Hashable,
     new: Any,
@@ -42,34 +50,27 @@ def warn_if_replacing(
     what: str,
     force: bool = False,
 ) -> None:
-    """Warn when writing ``new`` under ``key`` would replace a different object.
+    """Raise :class:`RegistryConflictError` when writing ``new`` under ``key``
+    would replace a different object.
 
     Call it just before the write. ``what`` names the registry in the message
-    (``"body schema"``). The warning points at whoever called the register
-    function, or, for a decorator, at the decorated definition.
-
-    Identical means ``is`` or ``==``: a model class compares by identity, a
-    migration's ``(to_version, func)`` and a frozen ``AdapterSpec`` compare
-    field by field, their functions by identity.
-
-    The issue (lacing#19) asks for an error. This warns instead, because
-    downstream test suites re-register different models under one URI today
-    (a new local class per test), and raising would turn their CI red on the
-    next lacing release. Warn first, raise later.
+    (``"body schema"``). Identical means ``is`` or ``==``: a model class compares
+    by identity, a migration's ``(to_version, func)`` and a frozen
+    ``AdapterSpec`` compare field by field, their functions by identity.
     """
     if force or key not in registry:
         return
     old = registry[key]
     if old is new or old == new:
         return
-    warnings.warn(
+    raise RegistryConflictError(
         f"{what} {key!r} is already registered as a different object "
-        f"({_difference(old, new)}); replacing it. Replacing a registered {what} "
-        "with a different object will become an error: pass force=True to "
-        "replace on purpose.",
-        RegistryConflictWarning,
-        stacklevel=3,  # warn_if_replacing <- register function <- its caller
+        f"({_difference(old, new)}). Pass force=True to replace it on purpose."
     )
+
+
+#: The name the register functions used while a conflict only warned (lacing#19).
+warn_if_replacing = refuse_replacing
 
 
 def _difference(old: Any, new: Any) -> str:

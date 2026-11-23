@@ -58,7 +58,7 @@ from lacing.schema import (
     register_migration,
     validate as validate_body,
 )
-from lacing.registry import RegistryConflictWarning
+from lacing.registry import RegistryConflictError, RegistryConflictWarning
 from lacing.model import (
     UNKNOWN_GENERATED_AT,
     Annotation,
@@ -268,6 +268,7 @@ __all__ = [
     "register_migration",
     "default_version",
     "migrate_to_default",
+    "RegistryConflictError",
     "RegistryConflictWarning",
     "json_schema",
     "export_json_schemas",

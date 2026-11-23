@@ -21,9 +21,9 @@ module implements:
   name resolves to (declared, else the highest), and migrating a body to it.
 
 Every register function follows :mod:`lacing.registry`'s rule: the identical
-object again is a no-op, a different one under a taken key warns
-(:class:`lacing.RegistryConflictWarning`) and replaces, ``force=True`` replaces
-silently.
+object again is a no-op, a different one under a taken key raises
+(:class:`lacing.RegistryConflictError`, the registry unchanged), ``force=True``
+replaces silently.
 
 See the ``lacing-schema-codegen`` skill and BACK-DOC §4.5.
 
@@ -63,7 +63,7 @@ from pydantic import BaseModel, ValidationError
 from lacing.json_schema import DefaultFactoryJsonSchema
 from lacing.derived import DerivedPath, derived_paths
 from lacing.locations import LocationKind, location_fields
-from lacing.registry import warn_if_replacing
+from lacing.registry import refuse_replacing
 
 
 # ---------------------------------------------------------------------------
@@ -137,8 +137,8 @@ def register_body_schema(
     ``default=True`` declares ``uri``'s version the default of its schema name
     (see :func:`default_version`). Re-registering the identical model is a
     no-op (listeners are still told); a different model, or a different
-    declared default, warns (:class:`lacing.RegistryConflictWarning`) and
-    replaces, unless ``force``.
+    declared default, raises (:class:`lacing.RegistryConflictError`) and
+    replaces nothing, unless ``force``.
     """
     name, version = parse_uri(uri)  # validate URI shape; raises on malformed
     if not isinstance(model, type) or not issubclass(model, BaseModel):
@@ -148,9 +148,9 @@ def register_body_schema(
         )
     derived_paths(model)  # a bad Derived marker fails here, not on every digest
     with _REGISTRY_LOCK:
-        warn_if_replacing(_BODY_REGISTRY, uri, model, what="body schema", force=force)
+        refuse_replacing(_BODY_REGISTRY, uri, model, what="body schema", force=force)
         if default:
-            warn_if_replacing(
+            refuse_replacing(
                 _DEFAULT_VERSIONS,
                 name,
                 version,
@@ -392,9 +392,8 @@ def register_migration(
     (``to_version == from_version + 1``).
 
     Re-registering the same function for the same step is a no-op; a
-    different one warns (:class:`lacing.RegistryConflictWarning`), pointed at
-    the decorated definition, and replaces, unless ``force`` (tests,
-    hot-reload).
+    different one raises (:class:`lacing.RegistryConflictError`) and replaces
+    nothing, unless ``force`` (tests, hot-reload).
     """
     if to_version != from_version + 1:
         raise ValueError(
@@ -407,7 +406,7 @@ def register_migration(
     def decorator(func: Callable[[dict], dict]) -> Callable[[dict], dict]:
         key, step = (schema_name, from_version), (to_version, func)
         with _REGISTRY_LOCK:
-            warn_if_replacing(
+            refuse_replacing(
                 _MIGRATION_REGISTRY, key, step, what="migration", force=force
             )
             _MIGRATION_REGISTRY[key] = step

@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from lacing.generator_id import GeneratorId
-from lacing.registry import warn_if_replacing
+from lacing.registry import refuse_replacing
 from lacing.store import IntervalAnnotationStore
 
 
@@ -82,7 +82,7 @@ def register_adapter(
     """Register an adapter under ``name``; returns its :class:`AdapterSpec`.
 
     Re-registering an equal spec is a no-op. A different spec under a taken
-    name warns (:class:`lacing.RegistryConflictWarning`) and replaces, unless
+    name raises (:class:`lacing.RegistryConflictError`) and replaces nothing, unless
     ``force`` (see :mod:`lacing.registry`).
     """
     spec = AdapterSpec(
@@ -96,7 +96,7 @@ def register_adapter(
         version=version,
     )
     with _REGISTRY_LOCK:
-        warn_if_replacing(_REGISTRY, name, spec, what="adapter", force=force)
+        refuse_replacing(_REGISTRY, name, spec, what="adapter", force=force)
         _REGISTRY[name] = spec
     return spec
 

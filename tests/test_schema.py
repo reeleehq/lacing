@@ -139,12 +139,11 @@ class TestRegistry:
         assert "annot://schema/dummy/v2" in uris
         assert uris == sorted(uris)
 
-    def test_re_registration_warns_and_replaces(self):
+    def test_re_registration_raises_and_keeps_the_first(self):
         register_body_schema("annot://schema/dummy/v1", _DummyV1)
-        with pytest.warns(lacing.RegistryConflictWarning):
+        with pytest.raises(lacing.RegistryConflictError):
             register_body_schema("annot://schema/dummy/v1", _DummyV2)
-        # Last wins.
-        assert get_body_schema("annot://schema/dummy/v1") is _DummyV2
+        assert get_body_schema("annot://schema/dummy/v1") is _DummyV1
 
 
 # ---------------------------------------------------------------------------
