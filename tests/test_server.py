@@ -475,3 +475,67 @@ class TestMeta:
             assert "schema_version" in get.json()
         finally:
             sqlite.close()
+
+
+# ---------------------------------------------------------------------------
+# PATCH reference: move an annotation in time (lacing#213)
+# ---------------------------------------------------------------------------
+
+
+class TestPatchReference:
+    def _create(self, client, **kw) -> tuple[str, str]:
+        r = client.post("/annotations", json=_annotation_payload(**kw))
+        return r.json()["id"], r.headers["ETag"]
+
+    def _moved(self, start_ms: int, end_ms: int) -> dict:
+        return {
+            "kind": "media",
+            "asset_id": "blake3:test",
+            "interval": {
+                "start": {"v": start_ms, "r": 1000},
+                "end": {"v": end_ms, "r": 1000},
+            },
+        }
+
+    def test_a_patch_moves_the_annotation_and_the_index_follows(self, client):
+        ann_id, etag = self._create(client)
+        r = client.patch(
+            f"/annotations/{ann_id}",
+            headers={"If-Match": etag},
+            json={"reference": self._moved(5000, 6000)},
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["reference"]["interval"]["start"] == {"v": 5000, "r": 1000}
+        assert r.headers["ETag"] != etag
+        found = client.get(
+            "/annotations", params={"start": 5, "end": 6, "rate": 1}
+        ).json()
+        assert [a["id"] for a in found] == [ann_id]
+        gone = client.get(
+            "/annotations", params={"start": 0, "end": 1, "rate": 1}
+        ).json()
+        assert ann_id not in [a["id"] for a in gone]
+
+    def test_a_bad_reference_is_refused_and_nothing_changes(self, client):
+        ann_id, etag = self._create(client)
+        r = client.patch(
+            f"/annotations/{ann_id}",
+            headers={"If-Match": etag},
+            json={"reference": {"kind": "planet"}},
+        )
+        assert r.status_code == 400
+        bad = self._moved(6000, 5000)  # end before start
+        r = client.patch(
+            f"/annotations/{ann_id}", headers={"If-Match": etag}, json={"reference": bad}
+        )
+        assert r.status_code == 422
+        assert client.get(f"/annotations/{ann_id}").headers["ETag"] == etag
+
+    def test_an_invalid_schema_uri_is_now_refused_too(self, client):
+        ann_id, etag = self._create(client)
+        r = client.patch(
+            f"/annotations/{ann_id}",
+            headers={"If-Match": etag},
+            json={"body_schema_uri": "not a schema uri"},
+        )
+        assert r.status_code == 422

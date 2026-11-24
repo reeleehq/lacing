@@ -13,7 +13,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from lacing.allen import AllenRelation
 from lacing.model import (
@@ -56,14 +56,23 @@ class AnnotationIn(BaseModel):
     confidence: float | None = None
 
 
+#: Unprocessable content: a well-formed request whose values are invalid
+#: (starlette renamed the constant; the code is what the wire carries).
+_UNPROCESSABLE = 422
+
+_REFERENCE_MODELS = {"media": MediaRef, "node": NodeRef, "annotation": AnnotationRef}
+
+
 def _build_reference(payload: dict[str, Any]) -> Reference:
+    """A reference from its wire form: 400 for an unknown ``kind``, 422 for one
+    whose values are invalid (an interval ending before it starts), never a 500."""
+    model = _REFERENCE_MODELS.get(payload.get("kind"))
+    if model is not None:
+        try:
+            return model.model_validate(payload)
+        except ValidationError as exc:
+            raise HTTPException(_UNPROCESSABLE, detail=str(exc)) from exc
     kind = payload.get("kind")
-    if kind == "media":
-        return MediaRef.model_validate(payload)
-    if kind == "node":
-        return NodeRef.model_validate(payload)
-    if kind == "annotation":
-        return AnnotationRef.model_validate(payload)
     raise HTTPException(
         status.HTTP_400_BAD_REQUEST,
         detail=f"reference.kind must be media|node|annotation, got {kind!r}",
@@ -228,11 +237,21 @@ def list_annotations(
 
 
 class AnnotationPatch(BaseModel):
-    """Partial update payload."""
+    """Partial update payload.
+
+    ``reference`` moves the annotation (another interval, another asset, or a
+    node or annotation target): a timeline editor's drag, resize, ripple and
+    nudge (lacing#213). It is validated as on create; the patched annotation is
+    validated whole, and written with the store's atomic :meth:`update`, so the
+    interval index moves in the same write.
+    """
 
     model_config = {"extra": "forbid"}
 
     tier: str | None = None
+    reference: dict[str, Any] | None = Field(
+        None, description="Discriminated reference (kind: media|node|annotation)."
+    )
     body: dict[str, Any] | None = None
     body_schema_uri: str | None = None
     confidence: float | None = None
@@ -274,6 +293,8 @@ def update_annotation(
     updates: dict[str, Any] = {}
     if patch.tier is not None:
         updates["tier"] = patch.tier
+    if patch.reference is not None:
+        updates["reference"] = _build_reference(patch.reference)
     if patch.body is not None:
         updates["body"] = patch.body
     if patch.body_schema_uri is not None:
@@ -281,9 +302,15 @@ def update_annotation(
     if patch.confidence is not None:
         updates["confidence"] = patch.confidence
 
-    updated = current.model_copy(update=updates)
-    store.remove(current.id)
-    store.add(updated)
+    try:  # model_copy does not validate: the whole patched annotation is
+        updated = Annotation.model_validate(
+            {**current.model_dump(), **updates}
+        )
+    except ValidationError as exc:
+        raise HTTPException(
+            _UNPROCESSABLE, detail=str(exc)
+        ) from exc
+    store.update(updated)  # one write: no moment where the id is in neither place
 
     clock = oplog.append(
         "update_annotation",
