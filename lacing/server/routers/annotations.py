@@ -303,13 +303,9 @@ def update_annotation(
         updates["confidence"] = patch.confidence
 
     try:  # model_copy does not validate: the whole patched annotation is
-        updated = Annotation.model_validate(
-            {**current.model_dump(), **updates}
-        )
+        updated = Annotation.model_validate({**current.model_dump(), **updates})
     except ValidationError as exc:
-        raise HTTPException(
-            _UNPROCESSABLE, detail=str(exc)
-        ) from exc
+        raise HTTPException(_UNPROCESSABLE, detail=str(exc)) from exc
     store.update(updated)  # one write: no moment where the id is in neither place
 
     clock = oplog.append(
