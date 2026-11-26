@@ -229,3 +229,15 @@ def test_a_non_string_refusal_ends_its_sentence_before_the_hint():
     assert str(refused.value) == (
         "invalid project id: expected a string, got NoneType. Keep the text as its name."
     )
+
+
+def test_distinct_id_slug_is_not_injective_on_slug_shaped_inputs():
+    # documented: a slug-shaped input is returned as is, so it can equal the
+    # derived form of another input
+    derived = distinct_id_slug("Opening scene")
+    assert distinct_id_slug(derived) == derived
+
+
+def test_distinct_id_slug_digests_a_non_string_through_its_repr():
+    # documented sibling: bytes and the string spelling their repr collide
+    assert distinct_id_slug(b"a b") == distinct_id_slug("b'a b'")
