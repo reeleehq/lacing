@@ -1,4 +1,4 @@
-> built 2026-11-24 01:44 UTC from 9c2f588 (main) · lacing 0.0.124. Details: build_info.json
+> built 2026-11-26 14:22 UTC from 71a1175 (main) · lacing 0.0.125. Details: build_info.json
 
 # index.html.md
 
@@ -7843,11 +7843,19 @@ A fresh deep copy on every call, so mutating it cannot reach the cache.
 `value` itself when it is already an id slug, else its slug plus a short
 digest of `value`.
 
-So two different inputs never share a result (up to the digest), and an
-input that is already a slug comes back unchanged. This is what an id
-*derived* from a caller’s text needs (a panel id from a beat id), where
+An input that is already a slug comes back unchanged, and any other input
+gets its slug plus a short digest of itself. This is what an id *derived*
+from a caller’s text needs (a panel id from a beat id), where
 [`slugify_id()`](_autosummary/lacing.html.md#lacing.slugify_id) alone maps `"Opening scene"` and `"Opening/scene"` to
 one id.
+
+It is **not injective**. Two inputs that are not slugs differ in their
+results up to the digest (a hash collision), but a slug-shaped input is
+returned as is, so it can equal another input’s *derived* form: an input
+already spelled `<stem>-<digest>` collides with the text it was derived
+from. A non-string is digested through its `repr`, so `b"a b"` and the
+string `"b'a b'"` share a result. Callers that need a strict one-to-one
+map must refuse slug-shaped inputs of that shape themselves.
 
 ```pycon
 >>> distinct_id_slug("b03")
@@ -7855,6 +7863,10 @@ one id.
 >>> distinct_id_slug("Opening scene")
 'Opening-scene-8ba344'
 >>> distinct_id_slug("Opening scene") != distinct_id_slug("Opening/scene")
+True
+>>> distinct_id_slug("Opening-scene-8ba344") == distinct_id_slug("Opening scene")
+True
+>>> distinct_id_slug(b"a b") == distinct_id_slug("b'a b'")
 True
 >>> len(distinct_id_slug("x " * 300)) <= MAX_ID_SLUG_LENGTH
 True
@@ -8794,11 +8806,19 @@ lacing.id_slug.IdSlugError: invalid project id '我的': ... Try 'project'. Keep
 `value` itself when it is already an id slug, else its slug plus a short
 digest of `value`.
 
-So two different inputs never share a result (up to the digest), and an
-input that is already a slug comes back unchanged. This is what an id
-*derived* from a caller’s text needs (a panel id from a beat id), where
+An input that is already a slug comes back unchanged, and any other input
+gets its slug plus a short digest of itself. This is what an id *derived*
+from a caller’s text needs (a panel id from a beat id), where
 [`slugify_id()`](_autosummary/lacing.id_slug.html.md#lacing.id_slug.slugify_id) alone maps `"Opening scene"` and `"Opening/scene"` to
 one id.
+
+It is **not injective**. Two inputs that are not slugs differ in their
+results up to the digest (a hash collision), but a slug-shaped input is
+returned as is, so it can equal another input’s *derived* form: an input
+already spelled `<stem>-<digest>` collides with the text it was derived
+from. A non-string is digested through its `repr`, so `b"a b"` and the
+string `"b'a b'"` share a result. Callers that need a strict one-to-one
+map must refuse slug-shaped inputs of that shape themselves.
 
 ```pycon
 >>> distinct_id_slug("b03")
@@ -8806,6 +8826,10 @@ one id.
 >>> distinct_id_slug("Opening scene")
 'Opening-scene-8ba344'
 >>> distinct_id_slug("Opening scene") != distinct_id_slug("Opening/scene")
+True
+>>> distinct_id_slug("Opening-scene-8ba344") == distinct_id_slug("Opening scene")
+True
+>>> distinct_id_slug(b"a b") == distinct_id_slug("b'a b'")
 True
 >>> len(distinct_id_slug("x " * 300)) <= MAX_ID_SLUG_LENGTH
 True
@@ -13935,7 +13959,7 @@ Build an Arq `WorkerSettings` class with lacing processors registered.
 
 # About this build
 
-This documentation was built on **2026-11-24 01:44 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/9c2f588f433e0ceda16c0a76e0bf55da193915e1"><code>9c2f588</code></a> on branch <code>main</code>, for **lacing 0.0.124** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-26 14:22 UTC** from commit <a href="https://github.com/reeleehq/lacing/commit/71a1175d92a9eb8a89e07f351e55ae1fb883cfa9"><code>71a1175</code></a> on branch <code>main</code>, for **lacing 0.0.125** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -13944,7 +13968,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                        |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/lacing/commit/9c2f588f433e0ceda16c0a76e0bf55da193915e1"><code>9c2f588f433e0ceda16c0a76e0bf55da193915e1</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/lacing/commit/71a1175d92a9eb8a89e07f351e55ae1fb883cfa9"><code>71a1175d92a9eb8a89e07f351e55ae1fb883cfa9</code></a> |
 | Branch              | <code>main</code>                                                                                                                                      |
 | Tags at this commit | none                                                                                                                                                   |
 | Working tree        | clean                                                                                                                                                  |
@@ -13955,9 +13979,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/lacing</code>                                                               |
-| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45306908701">45306908701</a>      |
+| Run          | <a href="https://github.com/reeleehq/lacing/actions/runs/45837860167">45837860167</a>      |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>9c2f588f433e0ceda16c0a76e0bf55da193915e1</code> (in the history of the built commit) |
+| Event commit | <code>71a1175d92a9eb8a89e07f351e55ae1fb883cfa9</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -13982,13 +14006,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/lacing/0.0.124/">0.0.124</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/lacing/0.0.125/">0.0.125</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/lacing && cd lacing
-git checkout 9c2f588f433e0ceda16c0a76e0bf55da193915e1
+git checkout 71a1175d92a9eb8a89e07f351e55ae1fb883cfa9
 pip install "epythet==0.2.25"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

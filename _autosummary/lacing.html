@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=95c30746"></script>
+    <script src="../_static/documentation_options.js?v=31bb835f"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.124" />
+  <meta name="docsearch:version" content="0.0.125" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -3827,16 +3827,27 @@ none (see <code class="xref py py-func docutils literal notranslate"><span class
 <span class="sig-prename descclassname"><span class="pre">lacing.</span></span><span class="sig-name descname"><span class="pre">distinct_id_slug</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">255</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">digest_chars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fallback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'id'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lacing/id_slug.html#distinct_id_slug"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lacing.distinct_id_slug" title="Link to this definition">#</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">value</span></code> itself when it is already an id slug, else its slug plus a short
 digest of <code class="docutils literal notranslate"><span class="pre">value</span></code>.</p>
-<p>So two different inputs never share a result (up to the digest), and an
-input that is already a slug comes back unchanged. This is what an id
-<em>derived</em> from a caller’s text needs (a panel id from a beat id), where
+<p>An input that is already a slug comes back unchanged, and any other input
+gets its slug plus a short digest of itself. This is what an id <em>derived</em>
+from a caller’s text needs (a panel id from a beat id), where
 <a class="reference internal" href="#lacing.slugify_id" title="lacing.slugify_id"><code class="xref py py-func docutils literal notranslate"><span class="pre">slugify_id()</span></code></a> alone maps <code class="docutils literal notranslate"><span class="pre">&quot;Opening</span> <span class="pre">scene&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;Opening/scene&quot;</span></code> to
 one id.</p>
+<p>It is <strong>not injective</strong>. Two inputs that are not slugs differ in their
+results up to the digest (a hash collision), but a slug-shaped input is
+returned as is, so it can equal another input’s <em>derived</em> form: an input
+already spelled <code class="docutils literal notranslate"><span class="pre">&lt;stem&gt;-&lt;digest&gt;</span></code> collides with the text it was derived
+from. A non-string is digested through its <code class="docutils literal notranslate"><span class="pre">repr</span></code>, so <code class="docutils literal notranslate"><span class="pre">b&quot;a</span> <span class="pre">b&quot;</span></code> and the
+string <code class="docutils literal notranslate"><span class="pre">&quot;b'a</span> <span class="pre">b'&quot;</span></code> share a result. Callers that need a strict one-to-one
+map must refuse slug-shaped inputs of that shape themselves.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"b03"</span><span class="p">)</span>
 <span class="go">'b03'</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"Opening scene"</span><span class="p">)</span>
 <span class="go">'Opening-scene-8ba344'</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"Opening scene"</span><span class="p">)</span> <span class="o">!=</span> <span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"Opening/scene"</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"Opening-scene-8ba344"</span><span class="p">)</span> <span class="o">==</span> <span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"Opening scene"</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distinct_id_slug</span><span class="p">(</span><span class="sa">b</span><span class="s2">"a b"</span><span class="p">)</span> <span class="o">==</span> <span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"b'a b'"</span><span class="p">)</span>
 <span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">distinct_id_slug</span><span class="p">(</span><span class="s2">"x "</span> <span class="o">*</span> <span class="mi">300</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="n">MAX_ID_SLUG_LENGTH</span>
 <span class="go">True</span>

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=95c30746"></script>
+    <script src="../../_static/documentation_options.js?v=31bb835f"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.0.124" />
+  <meta name="docsearch:version" content="0.0.125" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -950,17 +950,29 @@ window.runMermaid = runMermaid;</script>
 <span class="w">    </span><span class="sd">"""``value`` itself when it is already an id slug, else its slug plus a short</span>
 <span class="sd">    digest of ``value``.</span>
 
-<span class="sd">    So two different inputs never share a result (up to the digest), and an</span>
-<span class="sd">    input that is already a slug comes back unchanged. This is what an id</span>
-<span class="sd">    *derived* from a caller's text needs (a panel id from a beat id), where</span>
+<span class="sd">    An input that is already a slug comes back unchanged, and any other input</span>
+<span class="sd">    gets its slug plus a short digest of itself. This is what an id *derived*</span>
+<span class="sd">    from a caller's text needs (a panel id from a beat id), where</span>
 <span class="sd">    :func:`slugify_id` alone maps ``"Opening scene"`` and ``"Opening/scene"`` to</span>
 <span class="sd">    one id.</span>
+
+<span class="sd">    It is **not injective**. Two inputs that are not slugs differ in their</span>
+<span class="sd">    results up to the digest (a hash collision), but a slug-shaped input is</span>
+<span class="sd">    returned as is, so it can equal another input's *derived* form: an input</span>
+<span class="sd">    already spelled ``&lt;stem&gt;-&lt;digest&gt;`` collides with the text it was derived</span>
+<span class="sd">    from. A non-string is digested through its ``repr``, so ``b"a b"`` and the</span>
+<span class="sd">    string ``"b'a b'"`` share a result. Callers that need a strict one-to-one</span>
+<span class="sd">    map must refuse slug-shaped inputs of that shape themselves.</span>
 
 <span class="sd">    &gt;&gt;&gt; distinct_id_slug("b03")</span>
 <span class="sd">    'b03'</span>
 <span class="sd">    &gt;&gt;&gt; distinct_id_slug("Opening scene")</span>
 <span class="sd">    'Opening-scene-8ba344'</span>
 <span class="sd">    &gt;&gt;&gt; distinct_id_slug("Opening scene") != distinct_id_slug("Opening/scene")</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; distinct_id_slug("Opening-scene-8ba344") == distinct_id_slug("Opening scene")</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; distinct_id_slug(b"a b") == distinct_id_slug("b'a b'")</span>
 <span class="sd">    True</span>
 <span class="sd">    &gt;&gt;&gt; len(distinct_id_slug("x " * 300)) &lt;= MAX_ID_SLUG_LENGTH</span>
 <span class="sd">    True</span>

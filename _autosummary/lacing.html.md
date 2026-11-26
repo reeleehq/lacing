@@ -2547,11 +2547,19 @@ A fresh deep copy on every call, so mutating it cannot reach the cache.
 `value` itself when it is already an id slug, else its slug plus a short
 digest of `value`.
 
-So two different inputs never share a result (up to the digest), and an
-input that is already a slug comes back unchanged. This is what an id
-*derived* from a caller’s text needs (a panel id from a beat id), where
+An input that is already a slug comes back unchanged, and any other input
+gets its slug plus a short digest of itself. This is what an id *derived*
+from a caller’s text needs (a panel id from a beat id), where
 [`slugify_id()`](#lacing.slugify_id) alone maps `"Opening scene"` and `"Opening/scene"` to
 one id.
+
+It is **not injective**. Two inputs that are not slugs differ in their
+results up to the digest (a hash collision), but a slug-shaped input is
+returned as is, so it can equal another input’s *derived* form: an input
+already spelled `<stem>-<digest>` collides with the text it was derived
+from. A non-string is digested through its `repr`, so `b"a b"` and the
+string `"b'a b'"` share a result. Callers that need a strict one-to-one
+map must refuse slug-shaped inputs of that shape themselves.
 
 ```pycon
 >>> distinct_id_slug("b03")
@@ -2559,6 +2567,10 @@ one id.
 >>> distinct_id_slug("Opening scene")
 'Opening-scene-8ba344'
 >>> distinct_id_slug("Opening scene") != distinct_id_slug("Opening/scene")
+True
+>>> distinct_id_slug("Opening-scene-8ba344") == distinct_id_slug("Opening scene")
+True
+>>> distinct_id_slug(b"a b") == distinct_id_slug("b'a b'")
 True
 >>> len(distinct_id_slug("x " * 300)) <= MAX_ID_SLUG_LENGTH
 True
